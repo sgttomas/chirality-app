@@ -125,7 +125,8 @@ test('stop-request records label turns first and read back after a relaunch (REC
 // After a quit with live work and a relaunch (DEL-01-02 REQ-005, AC-006): what
 // each record establishes is said on the conversation, and no more.
 const DERIVED='The App session ended before a final status was recorded for this turn; this label is derived from that and is not written in any record.';
-const UNKNOWN='The App recorded a quit stop request for this turn. The final outcome is unknown to the App.';
+const NO_FINAL='The App&#x27;s stop record has no reported final status for this turn.';
+const UNKNOWN=`The App recorded a quit stop request for this turn. ${NO_FINAL}`;
 const QUIT_REPORTED='The App recorded a quit stop request for this turn. Codex reported it interrupted.';
 const old=(over)=>sr({appSession:'old',earlierSession:true,sourceSessionEnd:'established',cause:'quit',requestedAt:'2026-10-11T09:00:00Z',send:'sent',...over});
 const quitRows=()=>[
@@ -155,8 +156,10 @@ test('a conversation lists its stop requests by what each record establishes, an
   assert.ok(!/after the App sent|gives the cause|turns? of this conversation/.test(html));
   assert.ok(plain.includes(`${UNKNOWN} App label: <b>interrupted by quit (final status not observed)</b>. ⟦Reading: No final turn status is recorded`));
   assert.ok(!/you quit/.test(html),'no attribution to the person');
-  // The request time is a recorded value, boxed.
+  // The request time is a recorded value, boxed, named as recorded.
   assert.ok(plain.includes('(quitting the App, requested ⟦Requested: 2026-10-11T09:00:00Z⟧, earlier App session)'),plain);
+  assert.ok(html.includes('aria-label="Requested time as recorded"'));
+  assert.ok(!/unknown to the App/.test(html),'one record\'s missing report is not App-wide knowledge');
   // A send-unknown request and another session's request keep their readings, without a label.
   assert.ok(plain.includes("Stop request, no outcome label. ⟦Reading: Stop requested; the interrupt&#x27;s write began"));
   assert.ok(plain.includes('Stop request, no outcome label. ⟦Reading: Recorded by another App session whose end is not established.'));
@@ -170,6 +173,12 @@ test('a conversation lists its stop requests by what each record establishes, an
     assert.ok(!none.includes('Continue this conversation'),none);
   }
   assert.equal(continueEligible(sr()),false,'a current-session row: its session has not ended');
+  // A labelled earlier row with no completed write (the retained schema admits it; the App never writes it).
+  const incomplete=old({state:'send-unknown',send:'unknown(write-incomplete)',label:'interrupted by quit',codexReported:null});
+  assert.equal(continueEligible(incomplete),false,'no completed write, no added offer');
+  assert.equal(continueEligible({...rows[0],send:undefined}),false);
+  const noOffer=renderToStaticMarkup(React.createElement(ConversationStops,{records:[incomplete],onContinue:()=>{continued++;},canContinue:true}));
+  assert.ok(!noOffer.includes('Continue this conversation'),noOffer);
   assert.equal(continueEligible(rows[0]),true);
   assert.equal(continueEligible({label:'interrupted by Stop Codex',codexReported:'interrupted'}),false,'a memory-only outcome is not a qualifying record');
   const limited=renderToStaticMarkup(React.createElement(ConversationStops,{records:rows,limited:true}));
@@ -178,13 +187,20 @@ test('a conversation lists its stop requests by what each record establishes, an
   assert.equal(renderToStaticMarkup(React.createElement(ConversationStops,{records:[]})),'','no record, nothing said: absence establishes nothing');
   // An earlier interrupt row with its unknown label.
   const own=agentPlain(renderToStaticMarkup(React.createElement(ConversationStops,{records:[old({cause:'person-interrupt',label:'outcome unknown (stop requested)',codexReported:null})]})));
-  assert.ok(own.includes('The App recorded an interrupt request for this turn. The final outcome is unknown to the App. App label: <b>outcome unknown (stop requested)</b>.'),own);
+  assert.ok(own.includes(`The App recorded an interrupt request for this turn. ${NO_FINAL} App label: <b>outcome unknown (stop requested)</b>.`),own);
+  // A Stop or Restart Codex request, and a request whose reason is not recognised.
+  const stop=agentPlain(renderToStaticMarkup(React.createElement(ConversationStops,{records:[old({cause:'codex-stop',label:'interrupted by Stop Codex (final status not observed)',codexReported:null})]})));
+  assert.ok(stop.includes(`(Stop or Restart Codex, requested`)&&stop.includes(`The App recorded a request to interrupt this turn for Stop or Restart Codex. ${NO_FINAL} App label: <b>interrupted by Stop Codex (final status not observed)</b>.`),stop);
+  assert.ok(!stop.includes('Stop Codex stop request'));
+  const odd=agentPlain(renderToStaticMarkup(React.createElement(ConversationStops,{records:[old({cause:'future-cause',label:null})]})));
+  assert.ok(odd.includes('(Request reason not recognised, requested')&&!odd.includes('future-cause'),odd);
 });
 
-test('an unqualified label with no or another reported status is not called an interruption Codex reported',()=>{
-  for(const [reported,words] of [[null,UNKNOWN],['completed','Codex reported the turn completed.']]){
+test('an unqualified label with no, a nonterminal or another reported status is not called an interruption Codex reported',()=>{
+  // A nonterminal token is no final report.
+  for(const [reported,words] of [[null,UNKNOWN],['unknown',UNKNOWN],['inProgress',UNKNOWN],['completed','Codex reported the turn completed.']]){
     const html=agentPlain(renderToStaticMarkup(React.createElement(ConversationStops,{records:[old({label:'interrupted by quit',codexReported:reported})]})));
-    assert.ok(html.includes(`${words} App label: <b>interrupted by quit</b>.`),html);
+    assert.ok(html.includes(`${words} App label: <b>interrupted by quit</b>.`),`${reported}: ${html}`);
     assert.ok(!html.includes('Codex reported it interrupted'));
   }
 });

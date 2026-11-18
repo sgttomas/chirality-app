@@ -299,3 +299,15 @@ test('the stored turn\'s added Continue is the same matched resume, pressed once
   assert.equal(ui.selected(),key('stored'));assert.ok(ui.context());
  });
 });
+test('a mixed History source at the real caller shows no stop requests, no stored stop record and no added Continue',async()=>{
+ // History's home is another home's while its generation is the account home's; the stop records are the account home's.
+ await mounted({view:(value,resumed)=>{stopView(()=>[quitRow()])(value,resumed);if(!resumed&&value.nativeHistory)value.nativeHistory.home='other-home';}},async ui=>{
+  await ui.poll();
+  assert.equal(ui.c.querySelectorAll(e=>e.getAttribute('aria-label')==='Stop requests recorded for this conversation').length,0,'no box');
+  const page=turnPage(ui.c);
+  assert.ok(!/App label|Stop request|Codex reported it interrupted/.test(page.textContent),page.textContent);
+  assert.equal(elements(ui.c,'button').filter(e=>e.textContent==='Continue this conversation').length,0,'no added Continue');
+  // The ordinary Continue is untouched.
+  await ui.press('Continue selected conversation');
+ });
+});

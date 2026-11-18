@@ -482,24 +482,30 @@ implemented behavior and qualification limits.
     up to the stop wait limit for those turns to end, exits, stops each home's
     Codex and writes `session_ended` *quit* with each quit stop request's
     state. A relaunch reads *quit-with-live-work* and "interrupted by quit".
+
     History shows the selected conversation's App stop requests where its
     home is established. A labelled row gives the status Codex reported when
     available, including interrupted, completed or failed. If a labelled row
-    has no reported final status, the App says the outcome is unknown to it.
-    Each row gives the stop-record reading, with any App label attributed
-    and a derived label marked. An interrupt request does not answer a Codex
-    request.
+    has no reported final status, the App says its stop record has no
+    reported final status for that turn. Each row gives the stop-record
+    reading, with any App label attributed and a derived label marked. An
+    interrupt request does not answer a Codex request.
 
     An accepted stored turn page shows the native status and the newest
     matching App stop request, or an applicable in-memory Stop Codex outcome
     when there is no matching ledger row. Both matches require the turn's
-    home. The record identifies the reason for the request and the outcome
-    Codex reported, if any. The two final reports are identified by source
-    when they differ. A qualifying labelled stop-request row from an earlier
-    session whose end is established offers **Continue this conversation**.
+    home. The page shows the App's stop-request reading or its Stop or
+    Restart Codex outcome, with any App label attributed and any final
+    report identified by source. On a matched ledger row, the two final
+    reports are identified by source when they differ. A qualifying labelled
+    stop-request row from an earlier session whose end is established offers
+    **Continue this conversation**.
     It sends the existing Codex resume request and opens the conversation
     after matching admission in the current view. Continue sends no
-    conversation message.
+    conversation message. The live activity stop-label path is unchanged
+    from the pinned main base. The read-only Prior work section in
+    Conversation shows the same stored-turn stop labels after a matched
+    resume and adds no Continue.
 
     An exit nobody decided is held and asked as Quit. **Closing the window is
     not quit** (DEF-1, SQ-W): it hides the window (macOS; the Dock icon shows

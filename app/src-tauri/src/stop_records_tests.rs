@@ -391,3 +391,56 @@ fn a_requested_stop_in_this_session_reads_its_send_as_not_yet_confirmed() {
     assert!(row["label"].is_null(), "{row}");
     assert!(!row["reading"].as_str().unwrap().contains("not yet sent"), "{row}");
 }
+
+// A row the App never writes but the retained schema admits: an incomplete
+// write (SR-13) carrying the label "interrupted by quit". It keeps the SR-13
+// reading, with no label and no reported status; rows the App writes read as
+// before.
+#[test]
+fn a_label_on_a_request_with_no_completed_write_establishes_nothing() {
+    let mut unknown = requested(Cause::Quit);
+    unknown.send_unknown("cr").unwrap();
+    let mut labelled = unknown.record().clone();
+    labelled["outcomeLabel"] = json!("interrupted by quit");
+    assert_eq!((labelled["send"].as_str(), labelled["turnOutcome"].as_str(), labelled["outcomeSource"].as_str(), labelled["state"].as_str()),
+        (Some("unknown(write-incomplete)"), Some("pending"), Some("not-observed"), Some("send-unknown")));
+    validate_stored(&labelled).expect("the retained schema admits the row");
+    let mut settled = requested(Cause::Quit);
+    settled.sent("cr", &json!(1)).unwrap();
+    settled.turn_completed("interrupted").unwrap();
+    let mut plain = StopRequest::requested(&g(), "H-acct", "thread", "turn-2", Cause::Quit, &person("p")).unwrap();
+    plain.send_unknown("cr").unwrap();
+    let ledger = json!([
+        {"kind":"session_started","session":"session-a","at":"t","previousSessionEnd":"none","candidate":"c"},
+        ledger_entry("session-a", &labelled),
+        ledger_entry("session-a", plain.record()),
+    ]);
+    let settled_entry = ledger_entry("session-a", settled.record());
+    for current in ["session-b", "session-a"] {
+        let view = outcomes(ledger.as_array().unwrap(), &[], current);
+        let rows = view["records"].as_array().unwrap();
+        assert_eq!(rows.len(), 2, "{view}");
+        let row = &rows[0];
+        assert_eq!((row["label"].as_str(), row["labelDerived"].as_bool(), row["reading"].as_str()), (None, Some(false), Some(SEND_UNKNOWN_READING)), "{current}: {row}");
+        assert!(row["codexReported"].is_null());
+        assert_eq!(SEND_UNKNOWN_READING, "Stop requested; the interrupt's write began and its completion was not observed, so whether it reached Codex is not known.");
+        // The same request without the label reads the same.
+        assert_eq!((rows[1]["label"].as_str(), rows[1]["reading"].as_str()), (None, Some(SEND_UNKNOWN_READING)));
+    }
+    // A request with a completed write keeps its label and observed reading.
+    let mut held = ledger.as_array().unwrap().clone();
+    held.push(settled_entry);
+    let view = outcomes(&held, &[], "session-b");
+    let row = view["records"].as_array().unwrap().iter().find(|r| r["stopRequestId"] == settled.id()).unwrap();
+    assert_eq!((row["label"].as_str(), row["reading"].as_str(), row["codexReported"].as_str()), (Some("interrupted by quit"), Some("Final status observed when the turn ended."), Some("interrupted")));
+    // A not-sent request and a request still awaiting its send, each carrying a label: their own readings.
+    let mut not_sent = requested(Cause::Quit);
+    not_sent.not_sent("not ready").unwrap();
+    let mut pending = requested(Cause::Quit).record().clone();
+    let mut not_sent = not_sent.record().clone();
+    for row in [&mut not_sent, &mut pending] { row["outcomeLabel"] = json!("interrupted by quit"); }
+    for (row, reading) in [(&not_sent, "Stop not sent: not ready"), (&pending, REQUESTED_READING)] {
+        let (label, read, derived) = super::reading(row, Source::Current);
+        assert_eq!((label, read.as_str(), derived), (None, reading, false));
+    }
+}

@@ -400,7 +400,13 @@ pub(crate) const REQUESTED_READING: &str = "Stop requested. The App has not yet 
 
 fn reading(record: &Value, source: Source) -> (Option<String>, String, bool) {
     let cause = record["cause"].as_str().unwrap_or_default();
-    if let Some(label) = record["outcomeLabel"].as_str() {
+    let state = record["state"].as_str().unwrap_or_default();
+    // A request with no completed write (SR-01 pending, SR-03 not sent, SR-13
+    // write incomplete) keeps its own reading below even where its row carries
+    // a label: the App forms a label only after a completed write, so such a
+    // row's label establishes no write and no final status.
+    let unwritten = matches!(state, "requested" | "not-sent" | "send-unknown");
+    if let Some(label) = record["outcomeLabel"].as_str().filter(|_| !unwritten) {
         let reading = match record["state"].as_str() {
             // An outcome-unknown record is written when a generation closes or, at a later
             // start, for an earlier App session's request. Neither establishes here that
@@ -411,7 +417,6 @@ fn reading(record: &Value, source: Source) -> (Option<String>, String, bool) {
         };
         return (Some(label.to_owned()), reading.to_owned(), false);
     }
-    let state = record["state"].as_str().unwrap_or_default();
     // A send-unknown request of such a session keeps its own reading after
     // the source sentence: whether its interrupt reached Codex is not known
     // whatever became of that session.

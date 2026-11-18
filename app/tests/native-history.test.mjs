@@ -491,6 +491,8 @@ test('a stored turn shows its own home\'s stop record; only Codex reports are co
     rec({turnId: 'unknown-interrupted', label: 'interrupted by quit (final status not observed)', codexReported: null, state: 'outcome-unknown', reading: 'No final turn status is recorded for this stop request.'}),
     rec({turnId: 'unsent', state: 'send-unknown', send: 'unknown(write-incomplete)', label: null, codexReported: null, reading: "Stop requested; the interrupt's write began and its completion was not observed, so whether it reached Codex is not known."}),
     rec({turnId: 'other-home', home: 'H-key'}),
+    // Labelled, earlier, but no completed write: no added Continue.
+    rec({turnId: 'incomplete', send: 'unknown(write-incomplete)', state: 'send-unknown', codexReported: null}),
   ], limits: []};
   host.codexStops = {outcomes: [
     {state: 'stopped', modeHomeClass: 'api-key', generation: {...generation, home: 'key-home'}, turns: [{threadId: 'stored', turnId: 'foreign-outcome', label: 'interrupted by Stop Codex', codexReported: 'interrupted'}]},
@@ -498,7 +500,7 @@ test('a stored turn shows its own home\'s stop record; only Codex reports are co
       {threadId: 'stored', turnId: 'own-no-end', label: 'interrupted by Stop Codex (final status not observed)', codexReported: null}]},
   ]};
   const status = {'pair-completed': 'completed', 'label-no-report': 'completed'};
-  const ids = ['observed', 'pair-completed', 'pair-interrupted', 'label-no-report', 'unknown-interrupted', 'unsent', 'other-home', 'foreign-outcome', 'own-outcome', 'own-no-end', 'unrecorded'];
+  const ids = ['observed', 'pair-completed', 'pair-interrupted', 'label-no-report', 'unknown-interrupted', 'unsent', 'other-home', 'incomplete', 'foreign-outcome', 'own-outcome', 'own-no-end', 'unrecorded'];
   host.nativeHistory.selected.turnsPage.data = ids.map(id => ({id, status: status[id] ?? 'interrupted', items: []}));
   let continued = 0;
   const render = h => renderToStaticMarkup(React.createElement(StoredTurnPage, {binding: historyPageBinding(h, 'turns'), canRead: true, readItems: () => {}, stopFor: storedStopFor(h, 'stored', h.nativeHistory.generation), onContinue: () => { continued++; }, canContinue: true}));
@@ -523,8 +525,11 @@ test('a stored turn shows its own home\'s stop record; only Codex reports are co
   // Another home's ledger record and another home's outcome do not mark this home's turn.
   for (const id of ['other-home', 'foreign-outcome']) assert.ok(turn(id).includes(NOT) && !turn(id).includes('App label') && !turn(id).includes('Continue'), id);
   // This home's memory-only outcomes: the App's label and what it observed; no added Continue.
-  assert.ok(turn('own-outcome').includes('App label: <b>interrupted by Stop Codex</b>. Codex reported at the stop: interrupted.') && !turn('own-outcome').includes('Continue this conversation'), turn('own-outcome'));
-  assert.ok(turn('own-no-end').includes('App label: <b>interrupted by Stop Codex (final status not observed)</b>. The App observed no turn end while waiting before it stopped Codex.'), turn('own-no-end'));
+  // Nothing says the process was stopped or when the report arrived.
+  assert.ok(turn('own-outcome').includes('App label: <b>interrupted by Stop Codex</b>. The Stop or Restart Codex outcome records that Codex reported the turn interrupted.') && !turn('own-outcome').includes('Continue this conversation'), turn('own-outcome'));
+  assert.ok(turn('own-no-end').includes('App label: <b>interrupted by Stop Codex (final status not observed)</b>. The App observed no turn end during the Stop or Restart Codex wait.'), turn('own-no-end'));
+  assert.ok(!/stopped Codex|at the stop/.test(html));
+  assert.ok(turn('incomplete').includes('App label') && !turn('incomplete').includes('Continue this conversation'), turn('incomplete'));
   assert.ok(turn('unrecorded').includes(NOT) && !turn('unrecorded').includes('Stop request'));
   assert.equal(continued, 0, 'rendering continues nothing');
   // The page's home unknown: nothing is associated.
@@ -532,4 +537,8 @@ test('a stored turn shows its own home\'s stop record; only Codex reports are co
   const none = render(orphan);
   assert.ok(!none.includes('App label') && !none.includes('Stop request') && !none.includes('Continue this conversation'));
   assert.ok(!renderTurns(host).includes('App label'), 'without a stopFor the page is as before');
+  // A mixed History source (its home differs from its generation's home): the page is not accepted, nothing is matched.
+  const mixed = clone(host); mixed.nativeHistory.home = 'key-home';
+  const page = render(mixed);
+  assert.ok(!page.includes('App label') && !page.includes('Stop request') && !page.includes('Continue this conversation') && !page.includes('<code>observed</code>'), page);
 });
