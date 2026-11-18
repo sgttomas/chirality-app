@@ -570,12 +570,10 @@ fn ensure_directory_impl(path:&Path, owner_only: bool)->Result<(),String>{
     }
     Ok(())
 }
-/// The standard library's `create_dir_all` (Rust 1.97.1), step for step: the
-/// path is tried first, the walk goes upward only past `NotFound`, an
-/// `AlreadyExists` is accepted only where a folder is there, any other error
-/// is returned, and the folders not yet made are then made downward under the
-/// same rule. The one difference is the mode each `mkdir` is given: 0700 for
-/// the records store's folder and its `indexes` folder, and for `path` itself
+/// Directory creation follows the attempt order and error handling of Rust
+/// 1.97.1's `create_dir_all`. It selects the mode for each `mkdir` from the
+/// records store configuration and available physical roots: 0700 for the
+/// records store's folder and its `indexes` folder, and for `path` itself
 /// when `owner_only`; otherwise 0777, as the standard library gives. Both are
 /// subject to the file-creation mask; nothing is changed after creation.
 fn create_dir_all_with_modes(path: &Path, owner_only: bool) -> std::io::Result<()> {

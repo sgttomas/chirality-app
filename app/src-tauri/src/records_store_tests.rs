@@ -2127,6 +2127,81 @@ fn an_aliased_store_made_again_by_the_identity_publication_after_its_alias_dangl
 }
 
 #[test]
+fn an_opens_selected_root_counts_beside_a_binding_published_for_the_same_configured_path() {
+    let base = folder("selected-beside-bound-");
+    let (selected, published, alias) = (base.join("selected"), base.join("published"), base.join("alias"));
+    std::fs::create_dir(&selected).unwrap();
+    std::fs::create_dir(&published).unwrap();
+    std::os::unix::fs::symlink(&published, &alias).unwrap();
+    new_process();
+    use_store_not_started_for_test(Some(Ok(Store { root: alias.clone(), placement: Placement::Override, limits: vec![] })));
+    // Another open through the same configured path published its binding at
+    // another physical root while this thread's open carries its own.
+    *OPENED.lock().unwrap() = Some(Bound { configured: alias.clone(), root: published.clone(), id: "records-store:invented".into(), folder: node(&published).unwrap(), identity: (0, 0) });
+    let counts = |dir: &Path| is_store_folder_or_its_indexes(dir);
+    {
+        let _opening = Opening::enter(&selected);
+        assert!(counts(&selected), "the carried root counts beside a binding for the same configured path");
+        assert!(counts(&selected.join("indexes")), "and its indexes child");
+        assert!(counts(&published) && counts(&published.join("indexes")), "the bound root and its indexes child still count");
+        for other in [base.join("unrelated"), selected.join("other"), selected.join("indexes/deeper"), published.join("indexes/deeper"), base.clone()] {
+            assert!(!counts(&other), "{} is not the store's", other.display());
+        }
+    }
+    assert!(!counts(&selected) && !counts(&selected.join("indexes")), "once the guard is gone the carried root no longer counts");
+    assert!(counts(&published) && counts(&published.join("indexes")), "while the binding stands");
+    use_store_for_test(None);
+    new_process();
+    let _ = std::fs::remove_dir_all(base);
+}
+
+#[test]
+fn a_store_folder_the_identity_publication_makes_again_is_0700_after_a_competing_open_binds_elsewhere() {
+    use std::{cell::Cell, rc::Rc};
+    let (base, physical, alias) = aliased_store("competing-publication-");
+    let elsewhere = base.join("elsewhere");
+    let attempts = Rc::new(Cell::new(0));
+    let requested = Rc::new(Cell::new(None));
+    let result = {
+        let _mask = Umask::set(0);
+        let (n, asked, target, alias, elsewhere) = (attempts.clone(), requested.clone(), physical.clone(), alias.clone(), elsewhere.clone());
+        // At the bootstrap lock's attempt on the physical folder (which finds
+        // it there), the configured alias comes to name another folder and an
+        // open through it publishes its binding there. At the identity
+        // publication's attempt the physical folder has just been removed, so
+        // the publication makes it again.
+        storage::mkdir_for_test(Some(Box::new(move |dir, mode, real| {
+            if dir == target {
+                n.set(n.get() + 1);
+                match n.get() {
+                    1 => {
+                        std::fs::create_dir(&elsewhere).unwrap();
+                        std::fs::remove_file(&alias).unwrap();
+                        std::os::unix::fs::symlink(&elsewhere, &alias).unwrap();
+                        *OPENED.lock().unwrap() = Some(Bound { configured: alias.clone(), root: elsewhere.clone(), id: "records-store:invented".into(), folder: node(&elsewhere).unwrap(), identity: (0, 0) });
+                    }
+                    2 => { asked.set(Some(mode)); std::fs::remove_dir_all(dir).unwrap(); }
+                    _ => {}
+                }
+            }
+            real()
+        })));
+        let result = created();
+        storage::mkdir_for_test(None);
+        result
+    };
+    assert_eq!(attempts.get(), 2, "the lock's attempt and the publication's");
+    let refused = result.expect_err("a store folder replaced while it was opened is refused");
+    assert!(refused.contains("changed while it was opened"), "{refused}");
+    assert!(physical.join("store.json").is_file(), "the publication wrote into the folder it made");
+    assert_eq!(requested.get(), Some(0o700), "the publication requested 0700 for the physical folder this open selected");
+    assert_eq!(mode_of(&physical), 0o700);
+    use_store_for_test(None);
+    new_process();
+    let _ = std::fs::remove_dir_all(base);
+}
+
+#[test]
 fn the_root_an_open_carried_no_longer_counts_once_it_returns_or_unwinds() {
     use std::os::fd::AsRawFd;
     // An open that succeeds: once the binding is gone, the root is not the store's.

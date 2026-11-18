@@ -801,23 +801,25 @@ pub(crate) fn configured_project_dir(path: &Path) -> Option<PathBuf> {
 /// folder, for the mode storage gives a folder it creates there. Like
 /// [`configured_project_dir`] it never opens, creates or locks the store
 /// (opening here would recurse at bootstrap), and it never takes a test
-/// build's default store (taking it creates it). The store this process bound
-/// is compared in memory, with no system call. Where no store is bound for
-/// the configured one, the physical root an [`open`] on this thread has
-/// selected and not yet returned from is compared, then the configured
-/// store's physical path as [`open`] resolves it; a store bound earlier
-/// still counts.
+/// build's default store (taking it creates it). A published binding's
+/// physical root counts, as does the physical root an [`open`] on this thread
+/// has selected and not yet returned from; both are compared in memory, with
+/// no system call. A positive match on the opening thread's selected root or
+/// its `indexes` child takes precedence over a negative match against a
+/// published binding. The configured path is resolved only when there is no
+/// matching published binding and neither saved physical root matches.
 pub(crate) fn is_store_folder_or_its_indexes(dir: &Path) -> bool {
     let is = |root: &Path| dir == root || (dir.parent() == Some(root) && dir.file_name().is_some_and(|n| n == "indexes"));
     let configured = configured_root();
     {
         let bound = OPENED.lock().unwrap_or_else(|p| p.into_inner());
         if let Some(bound) = bound.as_ref() {
-            if configured.as_deref().is_none_or(|c| c == bound.configured) {
-                return is(&bound.root);
-            }
             if is(&bound.root) {
                 return true;
+            }
+            if configured.as_deref().is_none_or(|c| c == bound.configured) {
+                // A binding for the configured path: it is not resolved again.
+                return OPENING.with(|o| o.borrow().as_deref().is_some_and(is));
             }
         }
     }
