@@ -22,6 +22,8 @@
 #[path = "act_control_assurance.rs"]
 mod assurance;
 pub(crate) use assurance::{ConfirmedAssuranceAct, confirm_assurance_lowering};
+#[cfg(test)]
+pub(crate) use assurance::assurance_lowering;
 
 #[path = "act_control_file.rs"]
 mod file_act;

@@ -494,3 +494,28 @@ fn seal_enrollment_quit_refusal_precedes_busy_key_wording_after_choice() {
     drop(quit_guard);
     assert!(q.acquire().is_ok());
 }
+#[test]
+fn seal_enrollment_fault_in_the_native_question_or_window_check_is_a_refusal() {
+    // `FAULTED` is what `confirm` and `revalidate_original` return when their
+    // posted work faults.
+    let fault = crate::native_lifecycle_confirmation::FAULTED;
+    for at_window in [false, true] {
+        let q = Questions::new();
+        let key = Mutex::new(());
+        let quit = AppQuit::default();
+        let drops = Arc::new(AtomicUsize::new(0));
+        let result = run(
+            &q,
+            &key,
+            &quit,
+            || Ok(intent(&drops)),
+            |_| if at_window { Ok(true) } else { Err(fault.into()) },
+            || if at_window { Err(fault.into()) } else { panic!("a refused question has no window phase") },
+            |_| panic!("must not consume"),
+        );
+        assert_eq!(result.unwrap_err(), fault);
+        assert_eq!(drops.load(Ordering::SeqCst), 1);
+        assert!(key.try_lock().is_ok());
+        assert!(q.acquire().is_ok());
+    }
+}
