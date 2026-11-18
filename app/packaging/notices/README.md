@@ -128,19 +128,26 @@ Rules `coverage.py` applies, whatever the tables say:
   remains. The lockfiles are a superset: they lock packages for every platform and
   feature, and some may not be compiled into the macOS executables. The only package
   left out of what the component needs is one standing `not-in-macos-package`: absence
-  from the macOS target (`aarch64-apple-darwin`) by declared target condition, admitted
-  only with its evidence (every reverse dependency the lockfile gives, and for each the
-  manifest and line that declare the edge under a target table whose condition, in a
-  closed set of forms, is false for that target). No resolver was run and nothing was
-  read from the binaries; the account lists every such package with its evidence under
-  `excluded_packages`. Nothing is left out on any other ground. The table's standing for
-  the component must agree.
+  from the macOS target (`aarch64-apple-darwin`) by declared target condition. It is
+  admitted only when every reverse dependency the lockfile gives has its manifest
+  committed under `../supplier_notices/crates/manifests/`, and every declaration of the
+  package that the checker finds by parsing that manifest sits under a target key, in a
+  closed set of forms, that is false for that target (see
+  `../supplier_notices/README.md`). No resolver was run and nothing was read from the
+  binaries; the account lists every such package with its evidence under
+  `excluded_packages`. Nothing is left out on any other ground. The 23 packages awaiting
+  the owner's objc2 reading are a closed, named list in `crates.py` and stay held whatever
+  route, spelling or text their rows give them. The table's standing for the component
+  must agree.
 - **Voice rows.** A voice row (a component whose texts are members of the supplier
   tree) is covered only when the supplier's own voice records for the declared pin,
   committed under `../supplier_notices/voice_records/<pin>/` and bound to their members'
   digests in the distribution record, establish its version and source URL
-  (`../supplier_notices/voice.py`; any disagreement refuses). These are the supplier's
-  statements about its bundle; the libraries' contents are not inspected.
+  (`../supplier_notices/voice.py`; any disagreement refuses, and each native-library
+  entry establishes exactly one row). These are the supplier's statements about its
+  bundle; the libraries' contents are not inspected. Which licence file in the tree is a
+  row's notice is not stated by those records; it is curated in `components.json` and
+  reviewed, not checked.
 - **Table reviewed for another pin.** When the declared pin differs from the table's
   `reviewed_for_pin`, no association is carried forward: every table row stands
   uncovered (the deferred rows with their own reason), and a "Supplier component
@@ -159,7 +166,9 @@ Rules `coverage.py` applies, whatever the tables say:
 - **Reviewed inputs.** `../supplier_notices/components.json` and
   `coverage-inputs.json` are curated judgments, not facts a check can prove, as is
   `../supplier_notices/crates/associations.json`; `crates/index.json` is made from
-  archives CI does not hold. The
+  archives CI does not hold, and the committed registry parent manifests' equality with
+  their archives' `Cargo.toml` is checked only by `crates.py verify-manifests` with the
+  archives. The
   direct, transitive, font and SQLite indexes are made by generators from caches CI
   does not hold, so CI can check texts only against them. The declared pin's
   `CANONICAL_DISTRIBUTION.json` is bound too, because the account copies the voice

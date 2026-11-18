@@ -53,7 +53,9 @@ commit, the pin and `aarch64-apple-darwin`, and every digest it lists must equal
 record's; and each voice row's version and source URL must be stated by exactly one
 native-library entry of `sources.json`, with every such entry accounted for by one
 row and each row's members and texts listed by the manifest. A repeated or conflicting
-entry refuses; nothing is collapsed. Only then is a voice row covered (PCRE2 in the
+entry, or two rows for one entry, refuses; nothing is collapsed. Neither record states
+which licence file belongs to which library, so which tree text is a row's notice is a
+curated association in `components.json`, reviewed and not checked. Only then is a voice row covered (PCRE2 in the
 voice bundle is 10.48 at 0.169.0, as the supplier states). These are the supplier's own
 statements about its bundle, not an inspection of the libraries, and no source archive
 was read. `coverage.py --vendor DIR` applies the same comparison to an extracted tree's
@@ -84,32 +86,98 @@ is run.
   the shipped per-package account.
 - `crates.py check` needs no archive and refuses any disagreement among them.
 
-Each locked package has one standing. `text`: its texts ship, from exactly one route
-(the archive's notice members; the App's copy of the same archive, `app_texts`; or the
-publisher's licence files at the revision the archive's VCS record names,
-`registry_sources`). A `registry_sources` association is keyed by the archive's name,
-version and checksum and names the publisher repository, revision and paths; each text
-records the blob and size the saved listing of that revision gives, and its bytes must
-already be in `texts/` through another route with that blob (nothing is received for
-it). A byte-identical text is reused only through that package's own source identity,
-never by licence name. `held`: the resolved route's text comes from a repository that
-needs an owner licence reading (`READING_REPOSITORIES`, the objc2 repository); the
-requirement is applied after the route is resolved, so no route avoids it, and no
-supplier reading is recorded. `gap`: no text ships, with a specific reason from
-`gap_reasons` (the files each waits on, or why its revision is not established).
-`no-publisher-text`: a licence is stated and no publisher text was found at the
-examined revision; it ships nothing and stays open until a text exists or the owner
-decides what may serve as its notice. `not-in-macos-package`: absent from
-`aarch64-apple-darwin` by declared target condition (`not_in_macos_package`): the
-recorded reverse dependencies must equal the lockfile's exactly, and each records the
-manifest that declares its edge (a registry archive's `Cargo.toml`, by checksum, size
-and SHA-256; a workspace manifest at the lockfile's repository and revision, by size,
-blob and SHA-256) with the table and line. The table's condition must be one of
-`cfg(target_os = "...")`, `cfg(windows)` or a literal target triple, and false for
-macOS; any other form refuses, and absence is never inferred from a name. No resolver
-was run and nothing was read from the binaries. An association naming a package it
-cannot apply to (unlocked, another checksum, a package with a text route, or one named
-twice) refuses.
+Each locked package has one standing.
+
+- **`text`**: its texts ship, from exactly one route: the archive's notice members; the
+  App's copy of the same archive (`app_texts`); or the publisher's licence files at the
+  revision the archive's VCS record names (`registry_sources`).
+- **`held`**: open for an owner licence reading. The 23 packages awaiting the owner's
+  reading of the objc2 repository's `LICENSE.md` (a licensing overview) are a closed,
+  named list in `crates.py` (`HELD_FOR_READING`), by name, version and lockfile checksum,
+  not in the curated associations. A listed package stays held whatever text, repository
+  spelling or route its row gives it. If its row does not carry the overview text, it
+  stays held with a reason saying so: nothing in this change establishes another text
+  for it. A listed identity that no lockfile locks refuses. The overview text's digest
+  only identifies the text awaiting the reading (`awaiting_reading` on the row). As an
+  independent guard, an unlisted package whose texts include the overview text, or
+  whose repository is the objc2 repository, is held too. No supplier reading is recorded
+  and none can be accepted here.
+- **`gap`**: no text ships, with a specific reason from `gap_reasons`: the files each
+  package waits on, or why its revision is not established.
+- **`no-publisher-text`**: a licence is stated and no publisher text was found at the
+  examined revision. It ships nothing and stays open until a text exists or the owner
+  decides what may serve as its notice. Where a row records a further provenance question
+  (crc32c's zlib notice, debugserver-types' schema, deno_core_icudata's ICU data), its
+  `would_close` includes it.
+- **`not-in-macos-package`**: absent from `aarch64-apple-darwin` by declared target
+  condition (below).
+
+Every repository field of every association must be exactly
+`https://github.com/<owner>/<repository>`, with no `.git`, path or trailing slash.
+Anything else refuses.
+
+A `registry_sources` association is keyed by the archive's name, version and checksum,
+and names the publisher repository and revision.
+
+- Each package records:
+  - the size and SHA-256 of the archive's `Cargo.toml` and `.cargo_vcs_info.json`;
+  - the revision the VCS record names, which must equal the association's revision;
+  - the repository the archive's manifest names (in any spelling of the same GitHub
+    repository). An archive that names none needs the association's stated
+    `repository_basis`, as for pagable_derive.
+- The listing identity is required: `read`, `entries` and the response SHA-256.
+- Each text:
+  - must have a notice name by the rule the archive route uses, so a README refuses;
+  - records the blob and size the saved listing of that revision gives;
+  - must already be in `texts/` through another route with that blob. Nothing is
+    received for it.
+
+**Review boundary.** The tool cannot see the saved listings, the archives' metadata
+files or the publisher's tree. A well-formed but wrong revision recorded consistently
+in both places, another held text with consistent digests, or a lock identity moved
+between associations is caught only by the review of `associations.json`, which
+`coverage-review.json` binds. The tool does not prevent these.
+
+### Absence from the macOS target (`not_in_macos_package`, `manifests/`)
+
+The parent manifests that declare each excluded package's edges are committed byte for
+byte under `crates/manifests/` as checker inputs. Each has an entry in
+`associations.json` `manifests` with:
+- its size, SHA-256, Git blob and binding;
+- the licence the crate or repository declares;
+- its source: a registry archive's `Cargo.toml` by crate, version, archive checksum and
+  member path, or a workspace file by repository, revision and source path;
+- the notice under which it ships, already in the account.
+  - For keyring 3.6.3, rustls-platform-verifier 0.7.0 and winapi 0.3.9: the crate's own
+    row must stand `text` with exactly the recorded licence texts.
+  - For the two codex-rs files: the Codex workspace's root LICENSE and NOTICE.
+
+`crates.py check` reads each committed manifest. It must be a regular file equal to its
+recorded identity, and must be the locked archive's `Cargo.toml` (by checksum) or the
+workspace file at the lockfile's repository and revision. The check parses the manifest
+with `tomllib` and finds every declaration of the excluded package:
+- in every dependency table (normal, dev and build);
+- whether target-specific or not;
+- by key or by `package =` rename.
+
+Each declaration must sit under a target key that is false for `aarch64-apple-darwin`:
+- `cfg(target_os = "...")`;
+- `cfg(windows)`;
+- a literal triple from the closed list `KNOWN_TRIPLES`.
+
+Any other form refuses, and so does a declaration with no target condition.
+
+The recorded reverse dependencies must equal the lockfile's exactly. The recorded edge
+lines are a cross-check: each must equal the manifest's own lines, and together they
+must equal the declarations found.
+
+`crates.py verify-manifests --archives MAP.json` requires each committed registry
+manifest to equal the `Cargo.toml` member of its checksum-verified archive. CI does not
+hold the archives, so that binding is a reviewed input like the index. The workspace
+manifests were read as pinned raw files at the full commit. Their blob and size equal
+the recursive codex-rs listing at d32063f9, the listing that binds the lockfile; that
+listing is not in the repository. No resolver was run and nothing was read from the
+binaries.
 
 `codex-0.160.0/scripts/codex_package/` keeps the received rg release selector.
 
