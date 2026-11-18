@@ -557,9 +557,9 @@ for line in sys.stdin:
         f.home.host.close_to_new_turns(&f.generation).unwrap();
         let wire = f.wire();
         let start = f.home.host.turn_start_text(&f.generation, "thread", "late text").unwrap_err();
-        assert!(start.contains("Stop Codex was confirmed") && start.contains("turn/start"), "{start}");
+        assert!(start.contains("refused-not-sent: Stopping this Codex process was confirmed. No turn/start was sent."), "{start}");
         let steer = f.home.host.turn_steer_text(&f.generation, "thread", "turn-1", "late steer").unwrap_err();
-        assert!(steer.contains("Stop Codex was confirmed") && steer.contains("turn/steer"), "{steer}");
+        assert!(steer.contains("refused-not-sent: Stopping this Codex process was confirmed. No turn/steer was sent."), "{steer}");
         assert_eq!(f.wire(), wire, "nothing written for a refused turn or steer");
         let written = f.home.host.turn_interrupt_begin(&f.generation, "thread", "turn-1", crate::stop_records::Cause::CodexStop, "H-acct", &crate::stop_records::person("fixture person")).unwrap();
         assert!(f.home.host.turn_interrupt_acknowledgment(&written, Duration::from_secs(2)).is_ok());
@@ -830,7 +830,7 @@ for line in sys.stdin:
         assert!(app.allow(&decision, |ids| {
             assert!(app.proceeding().is_none());
             let late = f.home.host.turn_start_text(&f.generation, "thread", "late text").unwrap_err();
-            assert!(late.contains("the App is quitting"), "new turns closed before settlement: {late}");
+            assert!(late.contains("A quit was in progress. No turn/start was sent."), "new turns closed before settlement: {late}");
             crate::app_quit::finish_exit(&[Arc::clone(&f.home)], Some(ids.to_vec()))
         }).unwrap());
         let ids = app.proceeding().unwrap();
@@ -896,7 +896,7 @@ for line in sys.stdin:
         assert!(app.allow(&decision, |ids| {
             assert!(app.proceeding().is_none());
             let late = f.home.host.turn_start_text(&f.generation, "thread", "late text").unwrap_err();
-            assert!(late.contains("the App is quitting"), "new turns closed before settlement: {late}");
+            assert!(late.contains("A quit was in progress. No turn/start was sent."), "new turns closed before settlement: {late}");
             crate::app_quit::finish_exit(&[Arc::clone(&f.home)], Some(ids.to_vec()))
         }).unwrap());
         let late = f.home.host.turn_start_text(&f.generation, "thread", "late text").unwrap_err();
@@ -1034,7 +1034,7 @@ for line in sys.stdin:
         assert!(matches!(decision, crate::app_quit::Decision::Cancelled(_)), "{decision:?}");
         assert_eq!(asked, 2, "the changed list was asked again");
         let late = f.home.host.turn_start_text(&f.generation, "thread", "late text").unwrap_err();
-        assert!(late.contains("Stop Codex was confirmed"), "still closed by Stop Codex: {late}");
+        assert!(late.contains("Stopping this Codex process was confirmed. No turn/start was sent."), "still closed by Stop Codex: {late}");
         assert!(!f.wire().iter().any(|m| m == "turn/start"), "{:?}", f.wire());
         assert_eq!(f.home.host.close_to_new_turns(&f.generation), Ok(false), "already closed: only its closer reopens it");
     }
@@ -1055,7 +1055,7 @@ for line in sys.stdin:
         }, || panic!("no start")).unwrap();
         assert_eq!(out["state"], "cancelled");
         let late = f.home.host.turn_start_text(&f.generation, "thread", "late text").unwrap_err();
-        assert!(late.contains("the App is quitting"), "still closed by the quit: {late}");
+        assert!(late.contains("A quit was in progress. No turn/start was sent."), "still closed by the quit: {late}");
     }
 
     /// Minor (2): a quit that closed the process itself reopens it when the

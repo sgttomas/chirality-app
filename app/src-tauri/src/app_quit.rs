@@ -11,12 +11,15 @@
 //!
 //! Sequence: assess live work across every App-owned home (the same
 //! assessment Stop/Restart Codex use); record `quit_requested` with the lists
-//! (AS-03, AS-04). With nothing live nothing is asked and the quit proceeds
-//! (AS-03). Otherwise the person is asked, with no timeout (Q-2). Cancel or
-//! Keep running records `quit_answered` *cancelled* and changes nothing else
-//! (AS-05). On Quit every home is closed to new turns, whatever its state,
-//! and live work is assessed again; a list that changed is recorded again
-//! and asked again (AS-07). On the final confirmation `quit_answered` *confirmed* is
+//! (AS-03, AS-04). If the first assessment finds nothing live, close turn
+//! starts and steers, and conversation starts, resumes and forks, on the
+//! listed homes and assess again. If the result is still idle, proceed
+//! without asking (AS-03). Otherwise ask with no timeout (Q-2). Cancel or
+//! Keep running reopens what the quit closed and records `quit_answered` as
+//! cancelled (AS-05). On Quit, close turn starts and steers, and conversation
+//! starts, resumes and forks, on the listed homes and reassess. If the list
+//! changed and still requires confirmation, reopen before recording the
+//! updated list and asking again (AS-07). On the final confirmation `quit_answered` *confirmed* is
 //! recorded, then each live turn's stop request (SR-01, cause *quit*) before
 //! its interrupt is sent (AS-06, Q-4); the App waits until each turn is
 //! observed ended or the quit wait limit passes (Q-5, AS-08). Before allowing
@@ -96,9 +99,9 @@ pub(crate) trait QuitOps: Interrupts {
     fn confirm(&mut self, view: &Value) -> Result<bool, String>;
     /// L `quit_answered` (AS-05, AS-06).
     fn record_answered(&mut self, confirmed: bool) -> Value;
-    /// Every home closed to new turns, whatever its state, until reopened or
-    /// the App exits: no new turn or steer is sent, including on a Codex that
-    /// was starting or is started meanwhile.
+    /// Close turn-start, steer, conversation-start, resume and fork admission
+    /// on the homes in this quit's roster, in every state and generation. The
+    /// closure also applies to a process that becomes ready while it is held.
     fn close_to_new_turns(&mut self);
     fn reopen_to_new_turns(&mut self);
     /// The turn's quit stop-request record as the App now holds it.
@@ -122,9 +125,10 @@ pub(crate) fn quit_sequence<O: QuitOps>(ops: &mut O, wait_limit: Duration) -> De
     let mut asked = ops.assess();
     let mut records = vec![ops.record_requested(&asked.material)];
     if !has_live_work(&asked.material) {
-        // AS-03: close every home to new turns, so that no turn starts
-        // between this assessment and the exit, and assess again. Still
-        // nothing live: nothing is asked. Work started meanwhile is asked.
+        // Close turn-start, steer, conversation-start, resume and fork
+        // admission before reassessing. If work reached admission before close
+        // and is now observed, reopen and ask. If the reassessment is still
+        // idle, proceed without asking.
         ops.close_to_new_turns();
         let current = ops.assess();
         if !has_live_work(&current.material) {
@@ -217,7 +221,7 @@ pub(crate) fn assess_home(home: &HomeSession, workflows: &Mutex<WorkflowRootSess
     let runs = generation["home"].as_str().map(|id| workflows.lock().unwrap().runs_in_force_in_home(id)).unwrap_or_default();
     let mut row = json!({"modeHomeClass":class,"generation":generation,"state":state});
     if state != "ready" {
-        row["notReady"] = json!(format!("Codex is {state}, not ready: live work cannot be observed and nothing is sent to it; its process is stopped"));
+        row["notReady"] = json!(format!("Codex is {state}. The App could not assess live work in this state. If Quit proceeds, the App will try to settle the process."));
         return (Some((row, json!({}))), runs, None);
     }
     match crate::runtime_session::assess_native_home_work(home, &generation) {
@@ -282,10 +286,10 @@ impl<C: FnMut(&Value) -> Result<bool, String>> QuitOps for HostQuit<'_, C> {
         }
     }
     fn close_to_new_turns(&mut self) {
-        // Every home whatever its state: a Codex still starting at this
-        // assessment, or started before the quit is settled, becomes ready
-        // closed. Only a home this quit closed is recorded, so the quit
-        // reopens only what it closed; a Stop/Restart closure is separate.
+        // Close the listed Hosts independently of state and generation. A
+        // process that becomes ready while closed cannot admit a turn start or
+        // steer, or a conversation start, resume or fork. Record only closures
+        // this quit took. Stop and Restart use a separate closure.
         for home in &self.homes {
             if home.host.close_for_quit() {
                 self.closed.push(Arc::clone(home));

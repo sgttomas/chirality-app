@@ -15,8 +15,9 @@ use crate::runtime_session::{HomeSession, WorkflowRootSession};
 use std::path::PathBuf;
 use std::time::Instant;
 
-/// Answers the handshake (once the file `hold-initialize` no longer exists)
-/// and `thread/start`, acknowledges an interrupt and
+/// Answers the handshake (once the file `hold-initialize` no longer exists),
+/// `thread/start` and a configuration reading that reports the built-in
+/// provider, acknowledges an interrupt and
 /// completes its turn interrupted. It reads its input without buffering, a
 /// chunk at a time; once the file `stop-reading` exists it stops reading
 /// for good (writing `stopped-reading`), so the input pipe fills and a write
@@ -49,6 +50,7 @@ def handle(f):
   t={'id':'thread' if starts[0]==1 else 'thread-%d'%starts[0],'cliVersion':'0.169.0','createdAt':1,'updatedAt':2,'cwd':os.path.join(os.getcwd(),'project'),'ephemeral':False,'modelProvider':'fixture-provider','preview':'stop fixture','projectId':None,'sessionId':'fixture-session','source':'appServer','status':{'type':'idle'},'turns':[]}
   result={'thread':t,'model':'fixture-model','modelProvider':'fixture-provider','cwd':os.path.join(os.getcwd(),'project'),'approvalPolicy':'on-request','approvalsReviewer':'user','sandbox':{'type':'workspaceWrite','writableRoots':[],'networkAccess':False,'excludeTmpdirEnvVar':True,'excludeSlashTmp':True},'instructionSources':[]}
  elif m=='turn/steer': result={'turnId':f['params']['expectedTurnId']}
+ elif m=='config/read': result={'config':{'model_provider':'openai','model_providers':{}},'origins':{}}
  elif m=='account/logout': result={}
  elif m=='turn/interrupt':
   emit({'id':f['id'],'result':{}})
@@ -1029,10 +1031,12 @@ mod a_turn_start_not_yet_answered {
         let mut asked = 0;
         let mut quit = HostQuit::new(vec![Arc::clone(&f.home)], &workflows, "Invented Person", |_: &Value| { asked += 1; Ok(true) });
         let decision = quit_sequence(&mut quit, LIMIT);
+        // The quit's own reopen, so that Stop Codex then meets an open Host;
+        // the quit is dropped before Stop is invoked.
+        crate::app_quit::QuitOps::reopen_to_new_turns(&mut quit);
         drop(quit);
         assert_eq!(asked, 1, "asked once");
         match decision { Decision::Quit(done) => assert_eq!(done["asked"], true, "{done}"), other => panic!("the confirmed quit goes on: {other:?}") }
-        f.host().reopen_to_new_turns(&f.generation);
         let mut asked = 0;
         let stopped = crate::codex_stop::stop_native_home_within(&f.home, &workflows, &f.generation, false, "Invented Person", LIMIT, |_| { asked += 1; true }, || Ok(Value::Null));
         assert_eq!(asked, 1, "asked once");
@@ -1227,16 +1231,24 @@ mod after_the_scoped_reading {
 }
 
 /// DEL-01-02 AS-03, AS-07 (REQ-005, AC-006): from the quit's last assessment
-/// until the quit is settled or abandoned no turn or steer is admitted on any
-/// home, including one whose Codex was handshaking, or not yet started, when
-/// the quit assessed it. Sends go through the Host's own send path; the
-/// stand-in's wire shows what reached Codex. Written from the assignment.
+/// until the quit is settled or abandoned no turn start or steer, and no
+/// conversation start, resume or fork, is admitted on any home, including one
+/// whose Codex was handshaking, or not yet started, when the quit assessed it.
+/// Sends go through the Host's own paths; the stand-in's wire shows what
+/// reached Codex. Written from the assignment.
 mod quit_closes_starting_homes {
     use super::*;
     use crate::app_quit::{finish_exit, quit_sequence, AppQuit, Assessment, Decision, HostQuit, QuitOps};
     use crate::codex_stop::{Interrupts, Unsent};
 
-    const QUITTING: &str = "the App is quitting";
+    const QUITTING: &str = "A quit was in progress.";
+    /// What a quit closes: the turn requests on a conversation loaded before
+    /// the close, and the conversation requests on any home.
+    const TURNS: [&str; 2] = ["turn/steer", "turn/start"];
+    const CONVERSATIONS: [&str; 3] = ["thread/start", "thread/resume", "thread/fork"];
+    /// The conversation a fork copies on a home that was starting: such a
+    /// home cannot load one while closed, so the row is planted for the fork.
+    const FORK_SOURCE: &str = "loaded-before";
 
     /// A home whose Codex has not been started: no process, no generation.
     fn unstarted() -> Fixture {
@@ -1269,52 +1281,90 @@ mod quit_closes_starting_homes {
             std::thread::sleep(Duration::from_millis(5));
         }
     }
-    /// The start has published ready; a conversation with a live turn is
-    /// open on that process (the turn Codex reports, so a steer has a target).
-    fn ready_with_a_live_turn(f: &mut Fixture, started: std::thread::JoinHandle<Result<Value, String>>) {
+    /// The start has published ready; the fixture follows its generation. The
+    /// fork's source row is planted on it, and the saved conversation's folder
+    /// is supplied for Continue as the hosting tests supply it.
+    fn ready(f: &mut Fixture, started: std::thread::JoinHandle<Result<Value, String>>) {
         assert_eq!(started.join().unwrap().unwrap()["state"], "ready");
         f.generation = f.host().snapshot()["generation"].clone();
-        f.host().thread_start_selected(&f.root.join("project").to_string_lossy(), "fixture-model", "fixture-provider").unwrap();
-        f.live_turn("thread", "turn-1");
+        let (generation, project) = (f.generation.clone(), f.root.join("project").to_string_lossy().into_owned());
+        let mut i = f.host().inner.0.lock().unwrap();
+        i.threads.push(json!({"generation":generation,"threadId":FORK_SOURCE,"cwd":project}));
+        i.threads.push(json!({"generation":generation,"threadId":"stored","cwd":project,"testOnlyKnownHistoryFolder":true}));
     }
     /// How many frames of `method` reached the stand-in.
     fn on_wire(f: &Fixture, method: &str) -> usize {
         std::fs::read_to_string(f.root.join("wire.jsonl")).unwrap_or_default().lines()
             .filter(|l| serde_json::from_str::<Value>(l).is_ok_and(|v| v["method"] == method)).count()
     }
-    /// `method` (turn/start or turn/steer of turn-1) through the Host's own
-    /// path on its own thread: Some(refusal) when it was refused and nothing
-    /// reached Codex, None once Codex received it.
+    /// A saved conversation chosen for Continue in this home's history view.
+    fn continue_query(f: &Fixture) -> crate::native_history::HistoryQuery {
+        let home = f.generation["home"].as_str().unwrap().to_owned();
+        let mut view = crate::native_history::NativeHistory::new(&home, f.generation.clone()).unwrap();
+        let list = view.list_threads(None, crate::native_history::Direction::Desc).unwrap();
+        let saved = json!({"id":"stored","cliVersion":"0.169.0","createdAt":1,"updatedAt":2,"cwd":f.root.join("project").to_string_lossy(),"ephemeral":false,"modelProvider":"openai","preview":"invented","projectId":null,"sessionId":"native-session","source":"appServer","status":{"type":"notLoaded"},"turns":[]});
+        view.receive(&list, &home, &f.generation, &json!({"data":[saved],"nextCursor":null})).unwrap();
+        view.select("stored").unwrap();
+        view.continue_query().unwrap()
+    }
+    /// `method` through the Host's own path on its own thread: Some(refusal)
+    /// when it was refused and nothing reached Codex, None once Codex received it.
     fn send(f: &mut Fixture, method: &str) -> Option<String> {
         let before = on_wire(f, method);
-        let (host, generation, steer) = (Arc::clone(f.host()), f.generation.clone(), method == "turn/steer");
+        let (host, generation, project) = (Arc::clone(f.host()), f.generation.clone(), f.root.join("project").to_string_lossy().into_owned());
+        let query = (method == "thread/resume").then(|| continue_query(f));
+        let owned = method.to_owned();
         let (tx, rx) = channel();
         f.held.push(std::thread::spawn(move || {
-            let _ = tx.send(if steer { host.turn_steer_text(&generation, "thread", "turn-1", "invented text") } else { host.turn_start_text(&generation, "thread", "invented text") });
+            let sent = match owned.as_str() {
+                "turn/start" => host.turn_start_text(&generation, "thread", "invented text").map(|_| ()),
+                "turn/steer" => host.turn_steer_text(&generation, "thread", "turn-1", "invented text").map(|_| ()),
+                "thread/start" => host.thread_start_selected(&project, "fixture-model", "fixture-provider").map(|_| ()),
+                "thread/resume" => host.history_dispatch(query.as_ref().unwrap()).map(|_| ()),
+                _ => host.thread_fork_dispatch(&generation, FORK_SOURCE).map(|_| ()),
+            };
+            let _ = tx.send(sent);
         }));
-        let deadline = Instant::now() + Duration::from_secs(5);
+        let deadline = Instant::now() + Duration::from_secs(10);
         loop {
             if on_wire(f, method) > before {
                 return None;
             }
-            if let Ok(result) = rx.try_recv() {
+            if let Ok(Err(refusal)) = rx.try_recv() {
+                std::thread::sleep(Duration::from_millis(50));
                 if on_wire(f, method) > before {
                     return None;
                 }
-                return Some(result.expect_err("answered without reaching Codex"));
+                return Some(refusal);
             }
             assert!(Instant::now() < deadline, "{method} neither refused nor received");
             std::thread::sleep(Duration::from_millis(5));
         }
     }
-    fn assert_refused_by_the_quit(refusal: Option<String>, method: &str) {
-        let refusal = refusal.unwrap_or_else(|| panic!("{method} reached Codex during the quit"));
-        assert!(refusal.contains(QUITTING) && refusal.contains(method), "{refusal}");
+    fn assert_refused_by_the_quit(f: &mut Fixture, method: &str) {
+        let refusal = send(f, method).unwrap_or_else(|| panic!("{method} reached Codex during the quit"));
+        assert!(refusal.contains(&format!("refused-not-sent: {QUITTING} No {method} was sent.")), "{refusal}");
+    }
+    /// A home that was ready with a conversation loaded before the quit
+    /// closed it; a turn of that conversation, reported by Codex after the
+    /// close, gives a steer its target.
+    fn loaded() -> Fixture {
+        Fixture::new()
     }
     /// The quit's settlement, as the App runs it once the quit is decided.
-    fn settle(f: &Fixture, decision: &Decision) {
-        assert!(AppQuit::default().allow(decision, |ids| finish_exit(&[Arc::clone(&f.home)], Some(ids.to_vec()))).unwrap());
-        assert_eq!(f.host().state(), "stopped");
+    fn settle(homes: &[&Fixture], decision: &Decision) {
+        let homes: Vec<Arc<HomeSession>> = homes.iter().map(|f| Arc::clone(&f.home)).collect();
+        assert!(AppQuit::default().allow(decision, |ids| finish_exit(&homes, Some(ids.to_vec()))).unwrap());
+        assert!(homes.iter().all(|h| h.host.state() == "stopped"));
+    }
+    /// Nothing the quit closed reached either stand-in.
+    fn nothing_closed_on_the_wire(starting: &Fixture, loaded: &Fixture) {
+        for method in CONVERSATIONS {
+            assert_eq!(on_wire(starting, method), 0, "{method}");
+        }
+        for method in TURNS {
+            assert_eq!(on_wire(loaded, method), 0, "{method}");
+        }
     }
 
     /// The real quit binding, with `hook` run just before its `at`-th
@@ -1369,94 +1419,125 @@ mod quit_closes_starting_homes {
 
     /// Codex is handshaking when the quit makes its last assessment, which
     /// finds nothing live and asks nothing; the handshake then publishes
-    /// ready. Until settlement ends that process, neither a turn start nor a
-    /// steer is admitted on it.
+    /// ready. Until settlement it admits no conversation start, resume or
+    /// fork, and the home that was ready admits no turn start or steer on the
+    /// conversation it had loaded.
     #[test]
     fn a_home_handshaking_at_the_last_assessment_takes_no_turn_before_settlement() {
-        let mut f = unstarted();
-        std::fs::write(f.root.join("hold-initialize"), "").unwrap();
-        let started = start(&f);
-        until("Codex is not handshaking", || f.host().state() == "handshaking");
+        let mut starting = unstarted();
+        let mut loaded = loaded();
+        std::fs::write(starting.root.join("hold-initialize"), "").unwrap();
+        let started = start(&starting);
+        until("Codex is not handshaking", || starting.host().state() == "handshaking");
         let workflows = Mutex::new(WorkflowRootSession::default());
-        let mut quit = HostQuit::new(vec![Arc::clone(&f.home)], &workflows, "Invented Person", |_: &Value| -> Result<bool, String> { panic!("nothing live: nothing is asked") });
+        let mut quit = HostQuit::new(vec![Arc::clone(&starting.home), Arc::clone(&loaded.home)], &workflows, "Invented Person", |_: &Value| -> Result<bool, String> { panic!("nothing live: nothing is asked") });
         let decision = quit_sequence(&mut quit, LIMIT);
         drop(quit);
         let Decision::Quit(out) = &decision else { panic!("{decision:?}") };
         assert_eq!(out["asked"], false, "{out}");
         assert_eq!(out["assessment"]["homes"][0]["state"], "handshaking", "the last assessment saw the handshake: {out}");
-        std::fs::remove_file(f.root.join("hold-initialize")).unwrap();
-        ready_with_a_live_turn(&mut f, started);
-        assert_refused_by_the_quit(send(&mut f, "turn/start"), "turn/start");
-        assert_refused_by_the_quit(send(&mut f, "turn/steer"), "turn/steer");
-        settle(&f, &decision);
-        assert_eq!((on_wire(&f, "turn/start"), on_wire(&f, "turn/steer")), (0, 0));
+        std::fs::remove_file(starting.root.join("hold-initialize")).unwrap();
+        ready(&mut starting, started);
+        loaded.live_turn("thread", "turn-1");
+        for method in CONVERSATIONS {
+            assert_refused_by_the_quit(&mut starting, method);
+        }
+        for method in TURNS {
+            assert_refused_by_the_quit(&mut loaded, method);
+        }
+        settle(&[&starting, &loaded], &decision);
+        nothing_closed_on_the_wire(&starting, &loaded);
     }
 
-    /// The same home closed at the quit's last assessment becomes ready
-    /// while closed and refuses both; the assessment then finds live work,
-    /// the person keeps the App running, and both are admitted again.
+    /// The home is still handshaking when Quit closes it. Before the second assessment it becomes ready and refuses both requests. The person keeps the App running, and both requests reach the stand-in after reopening.
     #[test]
-    fn a_home_handshaking_at_the_last_assessment_is_reopened_when_the_person_keeps_running() {
-        let mut f = unstarted();
-        std::fs::write(f.root.join("hold-initialize"), "").unwrap();
-        let started = start(&f);
-        until("Codex is not handshaking", || f.host().state() == "handshaking");
+    fn a_home_handshaking_at_close_is_reopened_when_the_person_keeps_running() {
+        let mut starting = unstarted();
+        let mut loaded = loaded();
+        std::fs::write(starting.root.join("hold-initialize"), "").unwrap();
+        let started = start(&starting);
+        until("Codex is not handshaking", || starting.host().state() == "handshaking");
         let workflows = Mutex::new(WorkflowRootSession::default());
+        let listed = json!({"generation":loaded.generation.clone(),"threadId":"thread","turnId":"turn-1"});
         let mut asked = 0;
-        let mut while_closed = None;
+        let mut while_closed = Vec::new();
         let decision = {
-            let f = &mut f;
-            let while_closed = &mut while_closed;
+            let (starting, loaded, while_closed) = (&mut starting, &mut loaded, &mut while_closed);
+            let homes = vec![Arc::clone(&starting.home), Arc::clone(&loaded.home)];
             let mut ops = Paused {
-                quit: HostQuit::new(vec![Arc::clone(&f.home)], &workflows, "Invented Person", |_: &Value| { asked += 1; Ok(false) }),
+                quit: HostQuit::new(homes, &workflows, "Invented Person", |view: &Value| {
+                    asked += 1;
+                    let turns = view["observedLiveTurns"].as_array().unwrap();
+                    assert!(turns.iter().any(|t| t["generation"] == listed["generation"] && t["threadId"] == listed["threadId"] && t["turnId"] == listed["turnId"]), "the question lists the live turn: {turns:?}");
+                    Ok(false)
+                }),
                 assessed: 0,
                 at: 2,
                 hook: Some(Box::new(move || {
-                    assert_eq!(f.host().state(), "handshaking", "still handshaking when the quit closed the homes");
-                    std::fs::remove_file(f.root.join("hold-initialize")).unwrap();
-                    ready_with_a_live_turn(f, started);
-                    *while_closed = Some((send(f, "turn/start"), send(f, "turn/steer")));
+                    assert_eq!(starting.host().state(), "handshaking", "still handshaking when the quit closed the homes");
+                    std::fs::remove_file(starting.root.join("hold-initialize")).unwrap();
+                    ready(starting, started);
+                    loaded.live_turn("thread", "turn-1");
+                    for method in CONVERSATIONS {
+                        while_closed.push((method, send(starting, method)));
+                    }
+                    for method in TURNS {
+                        while_closed.push((method, send(loaded, method)));
+                    }
                 })),
             };
             quit_sequence(&mut ops, LIMIT)
         };
         assert!(matches!(decision, Decision::Cancelled(_)), "{decision:?}");
         assert_eq!(asked, 1, "the live turn was asked about");
-        let (start_refusal, steer_refusal) = while_closed.expect("the hook ran at the last assessment");
-        assert_refused_by_the_quit(start_refusal, "turn/start");
-        assert_refused_by_the_quit(steer_refusal, "turn/steer");
-        assert_eq!(send(&mut f, "turn/steer"), None, "reopened: the steer reaches Codex");
-        assert_eq!(send(&mut f, "turn/start"), None, "reopened: the turn start reaches Codex");
+        assert_eq!(while_closed.len(), 5, "the hook ran at the last assessment");
+        for (method, refusal) in while_closed {
+            let refusal = refusal.unwrap_or_else(|| panic!("{method} reached Codex during the quit"));
+            assert!(refusal.contains(&format!("refused-not-sent: {QUITTING} No {method} was sent.")), "{refusal}");
+        }
+        for method in CONVERSATIONS {
+            assert_eq!(send(&mut starting, method), None, "reopened: {method} reaches Codex");
+        }
+        for method in TURNS {
+            assert_eq!(send(&mut loaded, method), None, "reopened: {method} reaches Codex");
+        }
     }
 
     /// A start is admitted and still verifying, with no generation, when the
     /// quit makes its last assessment; it goes on to publish ready before
-    /// settlement. No turn start or steer is admitted on that process.
+    /// settlement. No conversation start, resume or fork is admitted on that
+    /// process, nor a turn start or steer on the home that was ready.
     #[test]
     fn a_start_with_no_generation_at_the_last_assessment_takes_no_turn_before_settlement() {
-        let mut f = unstarted();
+        let mut starting = unstarted();
+        let mut loaded = loaded();
         let (at_gate, gate_reached) = channel();
         let (go, proceed) = channel::<()>();
-        *f.host().before_successor_gate.lock().unwrap() = Some(Box::new(move || {
+        *starting.host().before_successor_gate.lock().unwrap() = Some(Box::new(move || {
             at_gate.send(()).unwrap();
             let _ = proceed.recv();
         }));
-        let started = start(&f);
+        let started = start(&starting);
         gate_reached.recv_timeout(Duration::from_secs(5)).expect("the start reached its spawn admission");
-        let before = f.host().snapshot();
+        let before = starting.host().snapshot();
         assert_eq!((before["state"].as_str(), before["generation"].is_null()), (Some("verifying"), true), "{before}");
         let workflows = Mutex::new(WorkflowRootSession::default());
-        let mut quit = HostQuit::new(vec![Arc::clone(&f.home)], &workflows, "Invented Person", |_: &Value| -> Result<bool, String> { panic!("nothing live: nothing is asked") });
+        let mut quit = HostQuit::new(vec![Arc::clone(&starting.home), Arc::clone(&loaded.home)], &workflows, "Invented Person", |_: &Value| -> Result<bool, String> { panic!("nothing live: nothing is asked") });
         let decision = quit_sequence(&mut quit, LIMIT);
         drop(quit);
         let Decision::Quit(out) = &decision else { panic!("{decision:?}") };
         assert_eq!(out["asked"], false, "{out}");
         go.send(()).unwrap();
-        ready_with_a_live_turn(&mut f, started);
-        assert_refused_by_the_quit(send(&mut f, "turn/start"), "turn/start");
-        assert_refused_by_the_quit(send(&mut f, "turn/steer"), "turn/steer");
-        settle(&f, &decision);
-        assert_eq!((on_wire(&f, "turn/start"), on_wire(&f, "turn/steer")), (0, 0));
+        ready(&mut starting, started);
+        loaded.live_turn("thread", "turn-1");
+        for method in CONVERSATIONS {
+            assert_refused_by_the_quit(&mut starting, method);
+        }
+        for method in TURNS {
+            assert_refused_by_the_quit(&mut loaded, method);
+        }
+        settle(&[&starting, &loaded], &decision);
+        nothing_closed_on_the_wire(&starting, &loaded);
     }
 
     /// A process Stop Codex closed (and is waiting on) stays closed when a
@@ -1479,9 +1560,9 @@ mod quit_closes_starting_homes {
         };
         assert!(matches!(decision, Decision::Cancelled(_)), "{decision:?}");
         assert_eq!(asked, 2);
-        for method in ["turn/start", "turn/steer"] {
+        for method in TURNS {
             let refusal = send(&mut f, method).unwrap_or_else(|| panic!("{method} reached Codex"));
-            assert!(refusal.contains("Stop Codex was confirmed") && !refusal.contains(QUITTING), "still Stop Codex's closure: {refusal}");
+            assert!(refusal.contains(&format!("Stopping this Codex process was confirmed. No {method} was sent.")) && !refusal.contains(QUITTING), "still Stop Codex's closure: {refusal}");
         }
     }
 }

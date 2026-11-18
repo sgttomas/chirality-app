@@ -111,11 +111,7 @@ fn work_started_before_the_as03_close_is_asked() {
     assert_eq!(d.log, ["assess", "quit_requested 0", "close", "assess", "reopen", "quit_requested 1", "ask", "reopen", "quit_answered cancelled"]);
 }
 
-/// From the quit's last assessment until it is decided the homes are closed
-/// (every assessment after the first follows a close with no reopen between),
-/// and every ending that is not a decided quit reopens after its last close:
-/// AS-03 work found then kept running or not asked, a changed list then kept
-/// running or not asked; a decided quit stays closed through settlement.
+/// Every reassessment follows a close with no intervening reopen. The scripted cancellation and not-asked cases return open. Both decided cases return closed.
 #[test]
 fn closed_before_each_later_assessment_and_reopened_on_every_undecided_ending() {
     let idle = || material(&[], 0, 0);

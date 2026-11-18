@@ -680,10 +680,10 @@ pub(crate) mod native_statement {
         // in-app form one fixed line, whatever their number, with each named
         // (class and state) in the content the App shows in full.
         let not_ready: Vec<String> = rows(&view["homes"])
-            .filter_map(|h| h["notReady"].as_str().map(|note| format!("{}: {note}.", text_or(&h["modeHomeClass"], "home"))))
+            .filter_map(|h| h["notReady"].as_str().map(|note| format!("{}: {}.", text_or(&h["modeHomeClass"], "home"), note.trim_end_matches('.'))))
             .collect();
         let not_ready_line = (!not_ready.is_empty()).then(|| format!(
-            "{} of them not ready: live work cannot be observed in them and nothing is sent to them; they are stopped. Each is named in the App.",
+            "{} of them were not ready to assess. Quit attempts to settle those processes. Each is named in the App.",
             not_ready.len()
         ));
         let mut listed = live_work_lines(view);
@@ -1027,7 +1027,7 @@ pub(crate) mod native_statement {
                     let mut h = json!({"modeHomeClass": class, "generation": g, "state": "ready"});
                     if i >= 3 - not_ready {
                         h["state"] = json!(format!("state-{i}"));
-                        h["notReady"] = json!(format!("Codex is state-{i}, not ready: live work cannot be observed and nothing is sent to it; its process is stopped"));
+                        h["notReady"] = json!(format!("Codex is state-{i}. The App could not assess live work in this state. If Quit proceeds, the App will try to settle the process."));
                     }
                     h
                 }).collect();
@@ -1036,7 +1036,7 @@ pub(crate) mod native_statement {
                 view["observedAt"] = json!(crate::util::now_rfc3339());
                 let statement = quit_statement(&view).unwrap();
                 let in_app = statement.in_app.as_ref().expect("this many items needs the in-app form");
-                let line = statement.text.lines().find(|l| l.contains(" of them not ready: ")).expect("the sheet carries the fixed line");
+                let line = statement.text.lines().find(|l| l.contains(" of them were not ready to assess. ")).expect("the sheet carries the fixed line");
                 let counted: usize = line.split(' ').next().unwrap().parse().unwrap();
                 assert_eq!(counted, not_ready, "{line}");
                 let named: Vec<(String, String)> = in_app.content["homes"].as_array().unwrap().iter()
@@ -1083,7 +1083,7 @@ pub(crate) mod native_statement {
                     let mut h = json!({"modeHomeClass": class, "generation": g, "state": "ready"});
                     if i > 0 {
                         h["state"] = json!(LONGEST_STATE);
-                        h["notReady"] = json!(format!("Codex is {LONGEST_STATE}, not ready: live work cannot be observed and nothing is sent to it; its process is stopped"));
+                        h["notReady"] = json!(format!("Codex is {LONGEST_STATE}. The App could not assess live work in this state. If Quit proceeds, the App will try to settle the process."));
                     }
                     h
                 }).collect();
