@@ -269,22 +269,56 @@ for(const selectError of [null,'invented stored-conversation selection refusal']
   ui.recover();
  });
 });
-// After a quit with live work and a relaunch (DEL-01-02 REQ-005, AC-006): the conversation the quit interrupted is
-// named without any read, says so where it is inspected, and its offer is the same matched Continue, pressed once.
-test('a conversation the quit interrupted is said without a read and continued by the same matched resume',async()=>{
- const records=[{stopRequestId:'stop:q',appSession:'earlier',earlierSession:true,sourceSessionEnd:'established',home:'H-acct',generation:'gen',threadId:'stored',turnId:'turn-q',cause:'quit',
-  requestedAt:'2026-10-11T09:00:00Z',state:'settled',label:'interrupted by quit',labelDerived:false,reading:'Final status observed when the turn ended.',codexReported:'interrupted',persistence:'recorded in the App ledger'}];
- await mounted({view:value=>{value.stopRequests={records:structuredClone(records),limits:[],previousSession:'earlier'};}},async ui=>{
-  const notices=ui.c.querySelectorAll(e=>e.getAttribute('aria-label')==='Work interrupted when the App was last quit');
-  assert.equal(notices.length,2,'said in the workspace and in History');
-  for(const notice of notices)assert.match(notice.textContent,/the App asked Codex to interrupt 1 turn in 1 conversation of this Codex home\..*fixture.*stored · interrupted by quit/);
-  const stops=ui.c.querySelectorAll(e=>e.getAttribute('aria-label')==='Stopped turns in this conversation');
-  assert.equal(stops.length,1);
-  assert.match(stops[0].textContent,/A turn of this conversation was interrupted when you quit the App\. Codex reported it interrupted\./);
-  assert.ok(ui.calls.filter(x=>x.command==='history_action').every(x=>x.args.action==='metadata'),'nothing but the fixture\'s own metadata read; the statement needed none');
-  await React.act(async()=>{props(button(ui.c,'Hide this notice')).onClick();});
-  assert.equal(ui.c.querySelectorAll(e=>e.getAttribute('aria-label')==='Work interrupted when the App was last quit').length,1,'hidden in the workspace, kept in History');
-  await ui.press('Continue this conversation');
+// After a quit with live work and a relaunch (DEL-01-02 REQ-005, AC-006): the previous session's quit is said with
+// no further read, on the conversation and its stored turn, and the added offers are the same matched Continue.
+const quitRow=over=>({stopRequestId:'stop:q',appSession:'earlier',earlierSession:true,sourceSessionEnd:'established',home:'H-acct',generation:'gen',threadId:'stored',turnId:'turn-q',cause:'quit',send:'sent',
+ requestedAt:'2026-10-11T09:00:00Z',state:'settled',label:'interrupted by quit',labelDerived:false,reading:'Final status observed when the turn ended.',codexReported:'interrupted',persistence:'recorded in the App ledger',...over});
+const stopView=(records)=>(value,resumed)=>{
+ value.stopRequests={records:structuredClone(records()),limits:[],previousSession:'earlier',previousSessionEnd:'quit-with-live-work',previousSessionQuitStops:['stop:q']};
+ // The routing entry holds the account home's generation, so stored pages of that generation are this home's.
+ for(const entry of value.homeRouting.entries)if(entry.modeHomeClass==='account')entry.generation=structuredClone(g);
+ const selected=value.nativeHistory?.selected;
+ if(!resumed&&selected?.threadId==='stored'&&value.nativeHistory.selectionEpoch>0){
+  selected.turnsPage={data:[{id:'turn-q',status:'interrupted',items:[]}],nextCursor:null};
+  selected.streamResolutions={...selected.streamResolutions,'turn-pages':{query:{factory_id:9,query_id:9,home:g.home,generation:structuredClone(g),method:'thread/turns/list',params:{threadId:'stored',sortDirection:'desc'}},revision:1,outcome:'native-result-observed'}};
+ }
+};
+const notices=c=>c.querySelectorAll(e=>e.getAttribute('aria-label')==='Stop requests of the App\'s last quit');
+const turnPage=c=>c.querySelectorAll(e=>e.getAttribute('aria-label')==='Stored native turn page')[0];
+test('the previous session\'s quit is said without a read, and the stored turn\'s Continue is the same matched resume',async()=>{
+ await mounted({view:stopView(()=>[quitRow()])},async ui=>{
+  await ui.poll();
+  assert.equal(notices(ui.c).length,2,'said in the workspace and in History');
+  for(const notice of notices(ui.c))assert.match(notice.textContent,/The App quit with work under way\.\s+For that quit, 1 interrupt request was written to Codex in this Codex home\..*fixture.*stored.*Turn turn-q: Codex reported the turn interrupted\. App label: interrupted by quit\./);
+  const box=ui.c.querySelectorAll(e=>e.getAttribute('aria-label')==='Stop requests recorded for this conversation');
+  assert.equal(box.length,1);
+  assert.match(box[0].textContent,/Codex reported a turn of this conversation interrupted after the App sent a quit stop request\./);
+  assert.ok(ui.calls.filter(x=>x.command==='history_action').every(x=>x.args.action==='metadata'),'nothing but the fixture\'s own metadata read');
+  const page=turnPage(ui.c);
+  assert.match(page.textContent,/native status interrupted \(the App's stop record below gives the cause\)/);
+  const offer=elements(page,'button').find(e=>e.textContent==='Continue this conversation');
+  assert.ok(offer);assert.equal(props(offer).disabled,false);
+  await React.act(async()=>{ui.track(props(offer).onClick());});
   assert.equal(ui.selected(),key('stored'));assert.ok(ui.context());
+ });
+});
+test('hiding the workspace notice holds for this launch across a home change and a record change; History keeps it',async()=>{
+ let records=[quitRow()];
+ await mounted({view:stopView(()=>records)},async ui=>{
+  await ui.poll();
+  assert.equal(notices(ui.c).length,2);
+  const hide=button(ui.c,'Hide this notice');
+  await React.act(async()=>{props(hide).onClick();});
+  assert.equal(notices(ui.c).length,1,'hidden in the workspace, kept in History');
+  assert.equal(button(ui.c,'Hide this notice'),undefined);
+  await ui.observeHome('api-key');await ui.observeHome('account');
+  records=[quitRow(),quitRow({stopRequestId:'stop:q2',turnId:'turn-q2'})];await ui.poll();
+  assert.equal(button(ui.c,'Hide this notice'),undefined,'still hidden for this launch');
+  assert.equal(notices(ui.c).length,1);
+  // The selected conversation's box offers the same Continue.
+  const box=ui.c.querySelectorAll(e=>e.getAttribute('aria-label')==='Stop requests recorded for this conversation')[0];
+  const offer=elements(box,'button').find(e=>e.textContent==='Continue this conversation');
+  await React.act(async()=>{ui.track(props(offer).onClick());});
+  assert.equal(ui.selected(),key('stored'));
  });
 });

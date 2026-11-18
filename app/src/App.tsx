@@ -13,7 +13,7 @@ import { ConnectorRoutePanel, emptyRouteRead, routeReadTransition, type RouteRea
 // (HOSTING H2), writes no record and cannot capture an act: the native
 // confirmation is the host's (AAC §6.2 P-2). Views per DECISION_VIEW.md §4.
 import { Fragment, useCallback, useEffect, useRef, useState, type Ref } from "react";
-import { appHome, CodexProcessControls, ConversationStops, LastQuitNotice, lastQuitRecords, stopLabel, stopRequestsFor } from "./CodexControls";
+import { appHome, CodexProcessControls, ConversationStops, homeOfGeneration, PreviousQuitNotice, previousQuitRecords, stopLabel, stopRequestsFor } from "./CodexControls";
 import { ContinueAsPanel, ModelIdField, RoleChoice, RoleHeader, RoleHistoryReader, SupplyStatus, type ContinueStartOutcome, type HandoffSendOutcome } from "./ConversationRoles";
 import { EXACT_TEXT } from "./exactText";
 import { ArrivalRecord, CompatibilityAdvisory, HistoryReferenceNotice, RunBringBack, RunPanel, SelectedWorkflow, hasUnsavedHistoryReference, isRecordedRun, runBringBackDefault, type OpenArrivalFileAct } from "./RunPanel";
@@ -609,7 +609,8 @@ export function HistoryPanel({ host, refresh, threadKey, setThreadKey, captureCo
     : "Read turns to inspect prior work. Use Continue only when you want to open this conversation for new messages.";
   const turnPage = historyPageBinding(host, "turns");
   const itemPage = historyPageBinding(host, "items");
-  const stopHome = appHome(host?.homeRouting?.activeModeHomeClass);
+  // The App-owned home of this history's own generation; unknown associates nothing.
+  const stopHome = homeOfGeneration(host, generation);
   const storedName = (threadId: string) => <StoredConversationName id={threadId} native={received.find(row => row.native?.id === threadId)?.native} />;
   const same = (a: Json, b: Json) => JSON.stringify(a) === JSON.stringify(b);
   // Only identity/revision metadata is retained across an observer failure.
@@ -759,7 +760,7 @@ export function HistoryPanel({ host, refresh, threadKey, setThreadKey, captureCo
     <h2>Find a past conversation</h2>
     <p id="history-guidance" role="status" aria-live="polite">{guidance}</p>
     {!available && <p><a href="#workspace-connection">Open connection controls</a></p>}
-    <LastQuitNotice requests={host?.stopRequests} home={stopHome} name={storedName} select={threadId => { void select(threadId); }} selected={selected?.threadId ?? null}
+    <PreviousQuitNotice requests={host?.stopRequests} home={stopHome} name={storedName} select={threadId => { void select(threadId); }} selected={selected?.threadId ?? null}
       canSelect={available && !busy} received={threadId => received.some(row => row.native?.id === threadId)} />
     <div className="history-browser">
     <p>These disposable pages come from the selected native home. Reading history does not make a conversation operational. Original App role evidence remains unknown after a cold App restart.</p>
@@ -798,7 +799,7 @@ export function HistoryPanel({ host, refresh, threadKey, setThreadKey, captureCo
       <p>{selected.checklists}</p>
       <h3>Turns</h3>{turnPage.accepted && pageButtons("turns", turnPage.page, null, turnPage.query.params.sortDirection)}
       <StoredTurnPage binding={turnPage} canRead={available && !busy} readItems={turn => run("items", null, turn)}
-        stopFor={storedStopFor(host, selected.threadId)} onContinue={() => run("continue")} canContinue={available && !busy} />
+        stopFor={storedStopFor(host, selected.threadId, generation)} onContinue={() => run("continue")} canContinue={available && !busy} />
       <h3>Selected item page</h3>{itemPage.accepted && pageButtons("items", itemPage.page, itemPage.query.params.turnId, itemPage.query.params.sortDirection)}
       <StoredItemPage binding={itemPage} />
       <h3>Native child references</h3>
@@ -2159,11 +2160,10 @@ export function App() {
   }, [conversationReveal]);
   // A saved conversation ID as a History search hint: shows History and fills its search only.
   const [historyHint, setHistoryHint] = useState<{ sequence: number; text: string } | null>(null);
-  // The App's most recent quit of an earlier session, said in every view until the person hides it; it shows again
-  // when the records it is drawn from change. History keeps showing it.
-  const quitNoticeRows = lastQuitRecords(host?.stopRequests);
-  const quitNoticeKey = quitNoticeRows.length ? JSON.stringify(quitNoticeRows.map((r: Json) => [r.stopRequestId, r.state, r.label])) : null;
-  const [quitNoticeHidden, setQuitNoticeHidden] = useState<string | null>(null);
+  // The previous App session's quit stop requests, said in every view until the person hides the notice for this
+  // launch. History keeps showing it.
+  const quitNoticeShown = previousQuitRecords(host?.stopRequests).length > 0;
+  const [quitNoticeHidden, setQuitNoticeHidden] = useState(false);
   const findInHistory = (hint: string) => { showView("history"); setHistoryHint(previous => ({ sequence: (previous?.sequence ?? 0) + 1, text: hint })); };
   // History Continue admitted this exact conversation (source-checked there):
   // select it, show the Conversation view and focus its message box.
@@ -2887,9 +2887,9 @@ export function App() {
         {firstRead === "read" && <div hidden={setupRequired}>
         {offer && <ActControlPanel offer={offer} choice={choice} setChoice={setChoice} decide={decide} close={() => setOffer(null)} />}
         <div className="workspace-notices">
-          {quitNoticeKey && quitNoticeKey !== quitNoticeHidden && <LastQuitNotice requests={host?.stopRequests} home={appHome(host?.homeRouting?.activeModeHomeClass)}
+          {quitNoticeShown && !quitNoticeHidden && <PreviousQuitNotice requests={host?.stopRequests} home={homeOfGeneration(host, host?.nativeHistory?.generation)}
             name={threadId => <StoredConversationName id={threadId} native={(host?.nativeHistory?.threads ?? []).find((row: Json) => row?.native?.id === threadId)?.native} />}
-            open={<a href="#workspace-history">Open History</a>} dismiss={() => setQuitNoticeHidden(quitNoticeKey)} />}
+            open={<a href="#workspace-history">Open History</a>} hide={() => setQuitNoticeHidden(true)} />}
           <div id="other-requests">
             {outsideRequests.length > 0 && <h3>Requests outside the selected conversation</h3>}
             {outsideRequests.length > 0 && <p>Requests of the selected conversation are shown beside it. Select another conversation to answer its requests there.</p>}

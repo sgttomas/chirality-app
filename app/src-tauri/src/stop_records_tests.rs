@@ -419,3 +419,44 @@ fn the_view_names_the_session_this_one_followed() {
     index.update(held);
     assert_eq!(outcomes_indexed(&index, &[], "session-b")["previousSession"], "session-a");
 }
+
+// How the previous session's end was recorded, and which stop requests its
+// quit names, as the view carries them: from this session's start record and
+// the previous session's end record only. A confirmed quit that did not end
+// the session (settlement refused, then a system termination or no end
+// record) names nothing; repeated attempts in one session are told apart by
+// the requests the ending quit names.
+#[test]
+fn the_view_carries_the_previous_end_and_the_requests_its_quit_names() {
+    let quit = |turn: &str| {
+        let mut r = StopRequest::requested(&g(), "H-acct", "thread", turn, Cause::Quit, &person("p")).unwrap();
+        r.sent("cr", &json!(1)).unwrap();
+        r
+    };
+    let (first, second) = (quit("turn-1"), quit("turn-2"));
+    let start_a = json!({"kind":"session_started","session":"session-a","at":"t","previousSessionEnd":"none","candidate":"c"});
+    let rows = |end: Option<Value>, start_b_end: &str| {
+        let mut held = vec![start_a.clone(), ledger_entry("session-a", first.record()), ledger_entry("session-a", second.record())];
+        held.extend(end);
+        held.push(json!({"kind":"session_started","session":"session-b","at":"t","previousSessionEnd":start_b_end,"previousSession":"session-a","candidate":"c"}));
+        held
+    };
+    let view = |held: &[Value]| {
+        let v = outcomes(held, &[], "session-b");
+        (v["previousSession"].clone(), v["previousSessionEnd"].clone(), v["previousSessionQuitStops"].clone())
+    };
+    // A second attempt ended the session: only its request is named.
+    let ended = json!({"kind":"session_ended","session":"session-a","at":"t","how":"quit","stopRequests":[{"stopRequestId":second.id(),"state":"sent"}]});
+    assert_eq!(view(&rows(Some(ended), "quit-with-live-work")), (json!("session-a"), json!("quit-with-live-work"), json!([second.id()])));
+    // A confirmed quit whose settlement failed, then the system ended the App: no quit names anything.
+    let system = json!({"kind":"session_ended","session":"session-a","at":"t","how":"system-terminated","stopRequests":[]});
+    assert_eq!(view(&rows(Some(system), "system-terminated")), (json!("session-a"), json!("system-terminated"), Value::Null));
+    // The same, then the App ended with no end record.
+    assert_eq!(view(&rows(None, "ended-without-record")), (json!("session-a"), json!("ended-without-record"), Value::Null));
+    // The quit rows themselves are read back as before, whatever the end.
+    let v = outcomes(&rows(None, "ended-without-record"), &[], "session-b");
+    assert_eq!(v["records"].as_array().unwrap().len(), 2);
+    assert!(v["records"].as_array().unwrap().iter().all(|r| r["earlierSession"] == true && r["cause"] == "quit"));
+    // No start record for this session: nothing at all is said of a previous one.
+    assert_eq!(view(&rows(None, "ended-without-record")[..3]), (Value::Null, Value::Null, Value::Null));
+}

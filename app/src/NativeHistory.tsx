@@ -1,5 +1,5 @@
 import { NativeItemCard, StopLabel } from "./NativeActivity";
-import { appHome, labelOutcome, stopLabel } from "./CodexControls";
+import { continueEligible, homeOfGeneration, labelOutcome, storedStopLabel } from "./CodexControls";
 import { AgentText, SuppliedId, Word, Num, isoSeconds } from "./AgentText";
 import { ITEM_KIND, ITEMS_VIEW, TURN_STATUS } from "./nativeWords";
 import { useEffect, useRef, useState } from "react";
@@ -91,17 +91,27 @@ function NativeTime({ value }: { value: Json }) {
 
 /** The App's stop record for a turn of a stored conversation (REC SR, read
  *  back from the App ledger after a relaunch, or this process's Stop Codex
- *  outcome), matched in the active App-owned home. */
-export const storedStopFor = (host: Json, threadId: Json) => (turnId: string): Json | null =>
-  typeof threadId === "string" ? stopLabel(host?.codexStops, threadId, turnId, host?.stopRequests, appHome(host?.homeRouting?.activeModeHomeClass)) : null;
+ *  outcome), matched in the App-owned home that holds the page's generation.
+ *  Where that home is not known, no record is associated. */
+export const storedStopFor = (host: Json, threadId: Json, generation: Json) => {
+  const home = homeOfGeneration(host, generation);
+  return (turnId: string): Json | null =>
+    typeof threadId === "string" ? storedStopLabel(host?.codexStops, threadId, turnId, host?.stopRequests, home) : null;
+};
 
-/** A stop record's label and Codex's history status disagree on how the turn
- *  ended: both are shown, each as its source says it. A label whose final
- *  status was not observed disagrees only with a status that is not an interrupt. */
-function stopDiffers(stop: Json, status: Json): boolean {
+const FINAL = ["completed", "interrupted", "failed"];
+/** What the page may say beside a stop record about the turn's end, by
+ *  source. "cause": the record gives the cause of a native interruption (an
+ *  interrupt label whose record reports Codex said interrupted). "conflict":
+ *  both sources give a final status and they differ. "unknown": the App's
+ *  record holds no final outcome while Codex's history gives one; an unknown
+ *  is compatible with any later result, so it is never called a conflict. */
+function stopReading(stop: Json, status: Json): "cause" | "conflict" | "unknown" | null {
   const outcome = labelOutcome(stop?.label);
-  if (!outcome || typeof status !== "string") return false;
-  return outcome === "unknown" ? status !== "interrupted" && status !== "inProgress" : status !== outcome;
+  if (!outcome || typeof status !== "string" || !FINAL.includes(status)) return null;
+  if (outcome === "unknown") return "unknown";
+  if (outcome !== status) return "conflict";
+  return outcome === "interrupted" && stop?.codexReported === "interrupted" ? "cause" : null;
 }
 
 export function StoredTurnPage({ binding, canRead, readItems, stopFor, onContinue, canContinue }: { binding: HistoryPageBinding; canRead: boolean; readItems: (turnId: string) => void;
@@ -115,11 +125,13 @@ export function StoredTurnPage({ binding, canRead, readItems, stopFor, onContinu
       const user = items.find(item => item?.type === "userMessage");
       const response = [...items].reverse().find(item => item?.type === "agentMessage" || item?.type === "plan");
       const stop = valid && stopFor ? stopFor(turn.id) : null;
+      const reading = stop ? stopReading(stop, turn?.status) : null;
       return <article key={index} style={{ borderTop: "1px solid #ccc", paddingTop: 8 }}>
-        <p><b>Turn <SuppliedId value={turn?.id} label="Turn:" name="Turn identity as Codex reported it, not the App's words" /></b> · native status <Word value={turn?.status} words={TURN_STATUS} name="A turn status Codex sent that the App does not recognise, not the App's words" />{turn?.status === "inProgress" && " (in progress at the read; current outcome unknown)"}{turn?.status === "interrupted" && (stop?.label ? " (the App's stop record below gives the cause)" : " (cause not established by this page)")}</p>
+        <p><b>Turn <SuppliedId value={turn?.id} label="Turn:" name="Turn identity as Codex reported it, not the App's words" /></b> · native status <Word value={turn?.status} words={TURN_STATUS} name="A turn status Codex sent that the App does not recognise, not the App's words" />{turn?.status === "inProgress" && " (in progress at the read; current outcome unknown)"}{turn?.status === "interrupted" && (reading === "cause" ? " (the App's stop record below gives the cause)" : " (cause not established by this page)")}</p>
         {stop && <StopLabel stop={stop} />}
-        {stop && stopDiffers(stop, turn?.status) && <p role="note">Codex's history reports this turn as <Word value={turn.status} words={TURN_STATUS} name="A turn status Codex sent that the App does not recognise, not the App's words" />; the App's stop record above gives it a different label. Each is shown as its source records it.</p>}
-        {stop?.label && onContinue && <p><button disabled={!canContinue} onClick={onContinue}>Continue this conversation</button> <small>Opens this conversation again for new messages once Codex answers; nothing is sent.</small></p>}
+        {reading === "conflict" && <p role="note">Codex's history reports this turn as <Word value={turn.status} words={TURN_STATUS} name="A turn status Codex sent that the App does not recognise, not the App's words" />; the App's stop record above records a different final status. Each is shown as its source records it.</p>}
+        {reading === "unknown" && <p role="note">Codex's history reports this turn as <Word value={turn.status} words={TURN_STATUS} name="A turn status Codex sent that the App does not recognise, not the App's words" />{turn.status === "interrupted" ? "; what caused the interruption is not available from either source" : ""}. The App's stop record does not hold the turn's final outcome.</p>}
+        {stop && continueEligible(stop) && onContinue && <p><button disabled={!canContinue} onClick={onContinue}>Continue this conversation</button> <small>Continue asks Codex to reopen this conversation. It opens after a matching resume is confirmed. Continue sends no conversation message.</small></p>}
         <div><small>Items view: {turn?.itemsView === undefined ? "full (native default)" : turn.itemsView === null ? "null (as supplied)" : <Word value={turn.itemsView} words={ITEMS_VIEW} />} · {Array.isArray(turn?.items) ? `${items.length} embedded items` : "items malformed or not reported"}. {turn?.itemsView === "notLoaded" ? "Items have not been loaded in this summary." : turn?.itemsView === "summary" ? "Summary items can omit substantive activity; read the item page." : "Embedded items are not rendered as the selected item page."}</small></div>
         {turn?.startedAt !== undefined && <div><small>Native start: <NativeTime value={turn.startedAt} /></small></div>}
         {turn?.completedAt !== undefined && <div><small>Native end: <NativeTime value={turn.completedAt} /></small></div>}
@@ -239,7 +251,7 @@ export function ContinuationContext({ host, thread }: { host: Json; thread: Json
       {context.error != null && <p role="alert">Prior-work read: <AgentText value={text(context.error)} source="codex" label="Reported:" name="What the prior-work read reported, not the App's words" /></p>}
       {context.state === "unavailable" && <button disabled={!canRead} onClick={() => { void action("retry"); }}>Retry prior-work read</button>}
       <h4>Prior turn summaries</h4>{paging("turns", turns)}
-      <StoredTurnPage binding={turns} canRead={canRead} readItems={turnId => { void action("items", null, "desc", turnId); }} stopFor={storedStopFor(host, context.threadId)} />
+      <StoredTurnPage binding={turns} canRead={canRead} readItems={turnId => { void action("items", null, "desc", turnId); }} stopFor={storedStopFor(host, context.threadId, context.generation)} />
       <h4>Prior messages and work</h4>{paging("items", items)}
       <StoredItemPage binding={items} />
     </>}
