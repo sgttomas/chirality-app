@@ -191,10 +191,10 @@ body { background:var(--ground); color:var(--ink); font-family:var(--font-body);
 .daily-workspace table { display:block; overflow-x:auto; max-width:100%; border-collapse:collapse; font-size:var(--text-small); }
 .daily-workspace th,.daily-workspace td { padding:.3rem .5rem; text-align:left; vertical-align:top; border:1px solid var(--rule); }
 .daily-workspace th { font-weight:600; color:var(--ink-soft); background:var(--ground); }
-.plain-list { list-style:none; margin:var(--space-2) 0; padding:0; display:grid; gap:var(--space-2); }
-.plain-list>li { margin:0; }
-.kv { display:grid; grid-template-columns:auto minmax(0,1fr); gap:var(--space-1) var(--space-3); }
-.kv>dd { margin:0; }
+.daily-workspace .plain-list { list-style:none; margin:var(--space-2) 0; padding:0; display:grid; gap:var(--space-2); }
+.daily-workspace .plain-list>li { margin:0; }
+.daily-workspace .kv { display:grid; grid-template-columns:auto minmax(0,1fr); gap:var(--space-1) var(--space-3); }
+.daily-workspace .kv>dd { margin:0; }
 
 /* ---- Disclosures ---- */
 .daily-workspace summary { cursor:pointer; list-style:none; color:var(--ink-soft); }
