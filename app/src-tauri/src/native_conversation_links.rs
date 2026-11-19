@@ -1268,6 +1268,16 @@ fn publish_bound(
     ) {
         return Err("Fleet folder replaced before publication".into());
     }
+    // The project's fleet folder holds its briefs and graphs folders: made
+    // empty where absent, on every write, by the same means as the fleet
+    // folder (no link followed, inside the held folder, synced); a link or a
+    // file in their place refuses the write as it would for the fleet
+    // folder. Nothing is ever written into them here.
+    if phase == 1 {
+        for name in ["briefs", "graphs"] {
+            child(&folder, name)?;
+        }
+    }
     let original = read_log(&path)?;
     let prior = rows(&original, phase == 0)?;
     accept_prefix(scope, &original, phase)?;

@@ -758,7 +758,7 @@ fn fleet_reader_a_freshly_set_up_project_reads_whole_with_nothing_recorded() {
     assert_eq!(inventory(&f.root),before,"the read creates nothing");
     assert_whole_and_empty(&view);
     println!("FRESH_FLEET_DTO:{}",serde_json::to_string(&view).unwrap());
-    // A second read reads the same: the empty history accepted by the first is kept.
+    // A second read reads the same: the first registered no accepted history.
     assert_whole_and_empty(&f.read());
     // The other readings the line uses, in the same project: whole, with no entries.
     let decisions=crate::runtime_session::read_decision_packages(&f.project);
@@ -783,130 +783,6 @@ fn fleet_reader_a_store_made_before_reads_whole_by_the_same_rule() {
     assert!(crate::records_inspect::presence(&dir.join("fleet")).unwrap().is_none());
 }
 
-#[test]
-fn fleet_reader_an_absent_folder_stays_not_whole_where_the_read_cannot_establish_it() {
-    let reasons=|v:&Value|v["limits"].as_array().unwrap().iter().map(|l|l["reason"].as_str().unwrap().to_owned()).collect::<Vec<_>>();
-    let today=["fleet folder missing; no empty-work conclusion","fleet folder missing; no empty-work conclusion","source missing; no empty-work conclusion"];
-    // No identity: the store is there, the project was never given one.
-    let f=Fixture::new();records_store::use_store_for_test(Some(Ok(f.store.clone())));
-    let view=f.read();
-    assert_eq!(reasons(&view)[..3],today,"the project's absences keep their limits");
-    assert_eq!((view["coordination"]["project"]["complete"].clone(),view["coordination"]["project"]["status"].clone()),(json!(false),json!("missing")));
-    assert_eq!(view["coordination"]["protected"]["state"],"unavailable");
-    // The project's own store folder missing: not attached, nothing read as empty.
-    let f=Fixture::new();let dir=f.set_up_as_the_app_does();
-    std::fs::remove_dir_all(&dir).unwrap();
-    let view=f.read();
-    assert_eq!(reasons(&view)[..3],today);
-    assert_eq!(view["coordination"]["project"]["complete"],false);
-    assert_eq!(view["coordination"]["protected"]["state"],"unavailable");
-    assert!(view["coordination"]["protectedLog"].is_null());
-    // A link or a file in the place of the store's fleet folder.
-    for link in [true,false] {
-        let f=Fixture::new();let dir=f.set_up_as_the_app_does();
-        if link { let elsewhere=f.root.join("elsewhere");std::fs::create_dir_all(&elsewhere).unwrap();std::os::unix::fs::symlink(&elsewhere,dir.join("fleet")).unwrap(); }
-        else { f.put(&dir.join("fleet"),b""); }
-        let view=f.read();
-        assert_eq!(view["coordination"]["protectedLog"]["status"],"unreadable","{}",view["coordination"]["protectedLog"]);
-        assert_eq!(view["coordination"]["protectedLog"]["complete"],false);
-        assert!(has_limit(&view,if link {"owning path contains symlink"} else {"source metadata unavailable"}),"{}",view["limits"]);
-        assert!(!view["limits"].as_array().unwrap().is_empty());
-    }
-    // A link or a file in the place of the project's fleet folder.
-    for link in [true,false] {
-        let f=Fixture::new();f.set_up_as_the_app_does();
-        if link { let elsewhere=f.root.join("elsewhere");std::fs::create_dir_all(&elsewhere).unwrap();std::os::unix::fs::symlink(&elsewhere,f.project.join(FOLDER)).unwrap(); }
-        else { f.put(&f.project.join(FOLDER),b""); }
-        let view=f.read();
-        assert!(has_limit(&view,if link {"owning path contains symlink"} else {"source folder is not a directory"}),"{}",view["limits"]);
-        assert_eq!(view["coordination"]["project"]["status"],"unreadable");
-        assert_eq!(view["coordination"]["project"]["complete"],false);
-    }
-    // A log missing from a fleet folder that is there is not an absent folder.
-    let f=Fixture::new();let dir=f.set_up_as_the_app_does();
-    std::fs::create_dir_all(dir.join("fleet")).unwrap();std::fs::create_dir_all(f.project.join(FOLDER)).unwrap();
-    let view=f.read();
-    // The briefs and graphs folders keep their limits: the logs that could name a record in them were not
-    // read, and the limits say so.
-    let unread="; not read as nothing recorded: ";
-    assert_eq!(reasons(&view)[..3],[format!("{}{unread}the records store's fleet log was not read whole; the project's fleet log was not read whole",today[0]),
-        format!("{}{unread}the project's fleet log was not read whole",today[1]),today[2].to_owned()]);
-    assert!(has_limit(&view,"package provenance unavailable"));
-    assert_eq!((view["coordination"]["project"]["status"].clone(),view["coordination"]["protectedLog"]["status"].clone()),(json!("missing"),json!("missing")));
-}
-
-#[test]
-fn fleet_reader_a_torn_or_unreadable_record_beside_an_absent_folder_stays_not_whole() {
-    for (bytes,reason) in [(b"{".as_slice(),"unclosed final line"),(b"not JSON\n".as_slice(),"not JSON")] {
-        // In the store's log, with the project's fleet folder absent.
-        let f=Fixture::new();let dir=f.set_up_as_the_app_does();
-        f.put(&dir.join("fleet").join(LOG),bytes);
-        let view=f.read();
-        assert!(has_limit(&view,reason),"{}",view["limits"]);
-        assert_eq!(view["coordination"]["protectedLog"]["complete"],false);
-        // The store's log was not read whole, and it could name records in the project's log and briefs
-        // folder: those keep their limits, saying so. Nothing it could hold names a graph.
-        assert_eq!(view["coordination"]["project"]["status"],"missing");
-        for path in [".chirality/fleet/briefs",".chirality/fleet/coordination.fleet.jsonl"] {
-            assert!(view["limits"].as_array().unwrap().iter().any(|l|l["source"]["path"]==path
-                && l["reason"].as_str().unwrap().ends_with("not read as nothing recorded: the records store's fleet log was not read whole")),"{path}: {}",view["limits"]);
-        }
-        assert!(view["limits"].as_array().unwrap().iter().all(|l|l["source"]["path"]!=".chirality/fleet/graphs"));
-        // In the project's log, with the store's fleet folder absent.
-        let f=Fixture::new();let dir=f.set_up_as_the_app_does();
-        f.put(&f.project_log(),bytes);
-        let view=f.read();
-        assert!(has_limit(&view,reason),"{}",view["limits"]);
-        assert_eq!(view["coordination"]["project"]["complete"],false);
-        // A line in the project's log not read may be the App's copy of a store line: the store's absent
-        // folder is a missing record, not read as empty.
-        assert_eq!(view["coordination"]["protectedLog"]["status"],"missing");
-        assert!(has_limit(&view,"not read as nothing recorded: the project's fleet log was not read whole"),"{}",view["limits"]);
-        assert!(crate::records_inspect::presence(&dir.join("fleet")).unwrap().is_none());
-    }
-}
-
-#[test]
-fn fleet_reader_a_fleet_folder_appearing_during_the_read_is_not_read_as_absent() {
-    let f=Fixture::new();let dir=f.set_up_as_the_app_does();
-    let (store_fleet,project_fleet)=(dir.join("fleet"),f.project.join(FOLDER));
-    AFTER_READ.with(|h|*h.borrow_mut()=Some(Box::new(move||{std::fs::create_dir(&store_fleet).unwrap();std::fs::create_dir(&project_fleet).unwrap();})));
-    let view=f.read();
-    assert!(has_limit(&view,"changed while reading"),"{}",view["limits"]);
-}
-
-#[test]
-fn fleet_reader_records_present_read_as_before() {
-    let f=Fixture::new();f.set_up_as_the_app_does();
-    let rows=[f.row("fl:present-a","a"),f.row("fl:present-b","b")];f.pair(&rows);
-    let view=f.read();
-    assert_eq!(observations(&view).len(),2);
-    assert_eq!((view["coordination"]["project"]["status"].clone(),view["coordination"]["protectedLog"]["status"].clone()),(json!("read"),json!("read")));
-    assert_eq!(view["coordination"]["protectedLog"]["complete"],true);
-    // The project's briefs and graphs folders are not there inside its fleet folder, and nothing the
-    // store holds names a brief or graph written there: they hold nothing.
-    assert!(!has_limit(&view,"fleet folder missing"),"{}",view["limits"]);
-    assert_eq!(view["limits"],json!([]));
-}
-
-#[test]
-fn fleet_reader_the_stores_fleet_folder_named_by_its_import_records_is_a_missing_record() {
-    let f=Fixture::new();
-    let log=f.pair(&[native_package_row(&f,"fl:app:invented-imported-then-lost",1)]);
-    restore_fleet_package(&f,&log,true);
-    std::fs::remove_dir_all(log.parent().unwrap()).unwrap();
-    std::fs::remove_dir_all(f.project.join(FOLDER)).unwrap();
-    let view=f.read();
-    let store_limits:Vec<_>=view["limits"].as_array().unwrap().iter().filter(|l|l["source"]["path"]=="fleet/coordination.fleet.jsonl").map(|l|l["reason"].as_str().unwrap()).collect();
-    assert!(store_limits.iter().any(|r|r.contains("source missing")&&r.contains("a missing record: the records store's import records")),"{}",view["limits"]);
-    assert_eq!(view["coordination"]["protectedLog"]["status"],"missing");
-    // The project's side: the store's log was not read, so its absences keep their limits as before.
-    assert!(has_limit(&view,"fleet folder missing; no empty-work conclusion"));
-    assert_eq!(view["coordination"]["project"]["status"],"missing");
-}
-
-/// A briefs or graphs folder this read could not establish as absent, or in a
-/// project not attached, keeps its limit.
 #[test]
 fn fleet_reader_a_subfolder_not_established_absent_keeps_its_limit() {
     let at=|v:&Value,path:&str|v["limits"].as_array().unwrap().iter().filter(|l|l["source"]["path"]==path).map(|l|l["reason"].as_str().unwrap().to_owned()).collect::<Vec<_>>();
@@ -936,51 +812,115 @@ fn fleet_reader_a_subfolder_not_established_absent_keeps_its_limit() {
     }
 }
 
-fn packet_line(id: &str) -> Vec<u8> {
-    let line = PACKET.split_inclusive('\n').find(|l| serde_json::from_str::<Value>(l).unwrap()["recordId"] == id).unwrap();
-    line.as_bytes().to_vec()
-}
 fn limit_at(view: &Value, path: &str) -> Vec<String> {
     view["limits"].as_array().unwrap().iter().filter(|l| l["source"]["path"] == path).map(|l| l["reason"].as_str().unwrap().to_owned()).collect()
 }
 const STORE_LOG: &str = "fleet/coordination.fleet.jsonl";
-
-/// Finding 1: an import that found the store already holding a nonempty
-/// fleet log records it in its inventory (`before`), not as a copy. Both fleet
-/// folders lost afterwards: the import records name the log, so it is a
-/// missing record, though no imported prefix gives it provenance.
-#[test]
-fn fleet_reader_a_fleet_log_an_import_found_held_is_a_missing_record_when_lost() {
-    let f = Fixture::new();
-    let row = native_package_row(&f, "fl:app:held-at-import", 1);
-    let log = f.pair(&[row.clone()]);
-    let dir = log.parent().unwrap().parent().unwrap().to_owned();
-    // Another store file the package carries and the target will lack, so the import has something to copy.
-    let other = dir.join("reads").join("records-reads.jsonl");
-    f.put(&other, b"{}\n");
-    let bag = f.root.join("invented-package");
-    crate::records_export::export(&f.project, &bag).unwrap();
-    std::fs::remove_file(&other).unwrap();
-    let actor = crate::act_control::person(Some("Invented package fixture"), Some("fixture-os"));
-    let observed = json!({"fixture":"source-only package import stand-in; no live person's act"});
-    let plan = records_store::package::prepare(&f.project, &bag, &actor, &observed).unwrap();
-    let applied = records_store::package::apply(plan, &actor, &observed).unwrap();
-    assert_eq!((applied["copied"].as_u64(), applied["alreadyPresent"].as_u64().is_some_and(|n| n >= 1)), (Some(1), true), "{applied}");
-    assert_eq!(records_store::package::quoted_prefix(&dir, STORE_LOG, &row).unwrap(), 0, "held, not copied: no provenance prefix");
-    std::fs::remove_dir_all(log.parent().unwrap()).unwrap();
-    std::fs::remove_dir_all(f.project.join(FOLDER)).unwrap();
-    let view = f.read();
-    let expected = format!("source missing; no empty-work conclusion; a missing record: the records store's import records name {} bytes of this log", row.len());
-    assert!(limit_at(&view, STORE_LOG).contains(&expected), "{}", view["limits"]);
-    assert_eq!(view["coordination"]["protectedLog"]["status"], "missing");
+const FOLDER_MISSING: &str = "fleet folder missing; no empty-work conclusion";
+const SOURCE_MISSING: &str = "source missing; no empty-work conclusion";
+/// The project's three absence limits, worded as on main.
+fn assert_project_absences_as_on_main(view: &Value) {
+    assert_eq!(limit_at(view, ".chirality/fleet/briefs"), vec![FOLDER_MISSING.to_owned()], "{}", view["limits"]);
+    assert_eq!(limit_at(view, ".chirality/fleet/graphs"), vec![FOLDER_MISSING.to_owned()]);
+    assert_eq!(limit_at(view, ".chirality/fleet/coordination.fleet.jsonl"), vec![SOURCE_MISSING.to_owned()]);
+    assert_eq!((view["coordination"]["project"]["status"].as_str(), view["coordination"]["project"]["complete"].as_bool()), (Some("missing"), Some(false)));
 }
 
-/// Finding 1: import records that cannot be read are evidence not available,
-/// never evidence of bytes. The attachment's own retention reading refuses
-/// first (it requires the import records whole), so no absence is read as
-/// empty and nothing is called a missing record; the reader's own wording for
-/// this case ("could not be read") is reached only if they fail between the
-/// two readings.
+/// Every absence but both fleet folders together keeps its limit, worded as
+/// on main: no identity, the store's project folder missing, only one side's
+/// fleet folder absent, a subfolder or a log missing from a folder that is
+/// there, and a link or a file in a fleet folder's place.
+#[test]
+fn fleet_reader_every_other_absence_keeps_its_limit_as_on_main() {
+    // No identity: the store is there, the project was never given one.
+    let f = Fixture::new(); records_store::use_store_for_test(Some(Ok(f.store.clone())));
+    let view = f.read();
+    assert_project_absences_as_on_main(&view);
+    assert_eq!(view["coordination"]["protected"]["state"], "unavailable");
+    // The project's own store folder missing.
+    let f = Fixture::new(); let dir = f.set_up_as_the_app_does();
+    std::fs::remove_dir_all(&dir).unwrap();
+    let view = f.read();
+    assert_project_absences_as_on_main(&view);
+    assert!(view["coordination"]["protectedLog"].is_null());
+    // Only the project's fleet folder absent: the store's holds a line.
+    let f = Fixture::new(); let dir = f.set_up_as_the_app_does();
+    f.put(&dir.join("fleet").join(LOG), &f.row("fl:store-only", "s"));
+    let view = f.read();
+    assert_project_absences_as_on_main(&view);
+    assert_eq!(view["coordination"]["protectedLog"]["status"], "read");
+    // Only the store's fleet folder absent: the project's has its log and both subfolders.
+    let f = Fixture::new(); f.set_up_as_the_app_does();
+    f.put(&f.project_log(), b"");
+    for name in ["briefs", "graphs"] { std::fs::create_dir(f.project.join(FOLDER).join(name)).unwrap(); }
+    let view = f.read();
+    assert_eq!(limit_at(&view, STORE_LOG).first().map(String::as_str), Some(SOURCE_MISSING), "{}", view["limits"]);
+    assert_eq!(view["coordination"]["protectedLog"]["status"], "missing");
+    assert_eq!(view["coordination"]["project"]["status"], "read");
+    // A subfolder absent from a fleet folder that is there, and logs missing from folders that are there.
+    let f = Fixture::new(); let dir = f.set_up_as_the_app_does();
+    std::fs::create_dir_all(dir.join("fleet")).unwrap();
+    std::fs::create_dir_all(f.project.join(FOLDER).join("graphs")).unwrap();
+    let view = f.read();
+    assert_eq!(limit_at(&view, ".chirality/fleet/briefs"), vec![FOLDER_MISSING.to_owned()]);
+    assert!(limit_at(&view, ".chirality/fleet/graphs").is_empty());
+    assert_eq!(limit_at(&view, ".chirality/fleet/coordination.fleet.jsonl"), vec![SOURCE_MISSING.to_owned()]);
+    assert_eq!(limit_at(&view, STORE_LOG).first().map(String::as_str), Some(SOURCE_MISSING));
+    // A link or a file in the place of the store's fleet folder, then of the project's.
+    for store_side in [true, false] {
+        for link in [true, false] {
+            let f = Fixture::new(); let dir = f.set_up_as_the_app_does();
+            let place = if store_side { dir.join("fleet") } else { f.project.join(FOLDER) };
+            if link { let elsewhere = f.root.join("elsewhere"); std::fs::create_dir_all(&elsewhere).unwrap(); std::os::unix::fs::symlink(&elsewhere, &place).unwrap(); }
+            else { f.put(&place, b""); }
+            let view = f.read();
+            let (log, status) = if store_side { (&view["coordination"]["protectedLog"], "unreadable") } else { (&view["coordination"]["project"], "unreadable") };
+            assert_eq!((log["status"].as_str(), log["complete"].as_bool()), (Some(status), Some(false)), "{}", view["limits"]);
+            assert!(has_limit(&view, if link { "owning path contains symlink" } else if store_side { "source metadata unavailable" } else { "source folder is not a directory" }), "{}", view["limits"]);
+        }
+    }
+}
+
+/// Both fleet folders absent, but an import the store holds names a fleet log
+/// for the project, found there or copied there: the limits stay as on main.
+#[test]
+fn fleet_reader_both_folders_absent_with_an_import_naming_the_log_keep_their_limits() {
+    for held in [true, false] {
+        let f = Fixture::new();
+        let row = native_package_row(&f, "fl:app:named-by-import", 1);
+        let log = f.pair(&[row.clone()]);
+        let dir = log.parent().unwrap().parent().unwrap().to_owned();
+        if held {
+            // Another store file the package carries and the target will lack, so the import copies it and records
+            // the fleet log it found there.
+            let other = dir.join("reads").join("records-reads.jsonl");
+            f.put(&other, b"{}\n");
+            let bag = f.root.join("invented-package");
+            crate::records_export::export(&f.project, &bag).unwrap();
+            std::fs::remove_file(&other).unwrap();
+            let actor = crate::act_control::person(Some("Invented package fixture"), Some("fixture-os"));
+            let observed = json!({"fixture":"source-only package import stand-in; no live person's act"});
+            let plan = records_store::package::prepare(&f.project, &bag, &actor, &observed).unwrap();
+            let applied = records_store::package::apply(plan, &actor, &observed).unwrap();
+            assert_eq!(applied["copied"].as_u64(), Some(1), "{applied}");
+            assert_eq!(records_store::package::quoted_prefix(&dir, STORE_LOG, &row).unwrap(), 0, "held, not copied");
+        } else {
+            restore_fleet_package(&f, &log, true);
+        }
+        assert!(records_store::package::named_bytes(&dir, STORE_LOG).unwrap() > 0);
+        std::fs::remove_dir_all(log.parent().unwrap()).unwrap();
+        std::fs::remove_dir_all(f.project.join(FOLDER)).unwrap();
+        let view = f.read();
+        assert_project_absences_as_on_main(&view);
+        assert_eq!(limit_at(&view, STORE_LOG).first().map(String::as_str), Some(SOURCE_MISSING), "held {held}: {}", view["limits"]);
+        assert_eq!(view["coordination"]["protectedLog"]["status"], "missing");
+    }
+}
+
+/// Import records that cannot be read keep the limits. The attachment's own
+/// retention reading refuses first (it requires the import records whole), so
+/// no absence is read as empty; the reader's own check (`named_bytes` must
+/// answer 0) would keep them too.
 #[test]
 fn fleet_reader_unreadable_import_records_keep_the_absent_store_folder_limited() {
     let f = Fixture::new();
@@ -997,50 +937,13 @@ fn fleet_reader_unreadable_import_records_keep_the_absent_store_folder_limited()
     let view = f.read();
     assert_eq!(view["coordination"]["protected"]["state"], "unavailable", "{}", view["limits"]);
     assert!(has_limit(&view, "fleet folder missing; no empty-work conclusion") && has_limit(&view, "source missing; no empty-work conclusion"));
-    assert!(!has_limit(&view, "a missing record") && !has_limit(&view, "not read as nothing recorded"), "{}", view["limits"]);
+    assert_eq!(view["coordination"]["project"]["status"], "missing");
 }
 
-/// Finding 2: a record the read did read names a record in an absent briefs
-/// or graphs folder: a graph item's brief, a return's brief, a 0.1 dispatch
-/// carrying a brief, a selector naming a graph revision. Each keeps its
-/// limit as a missing record, saying what names it.
-#[test]
-fn fleet_reader_a_surviving_project_record_naming_a_brief_or_graph_keeps_its_folder_a_missing_record() {
-    let briefs = ".chirality/fleet/briefs"; let graphs = ".chirality/fleet/graphs";
-    let base = "fleet folder missing; no empty-work conclusion; ";
-    let case = |log: &[&str], graph: Option<&[u8]>| {
-        let f = Fixture::new(); f.set_up_as_the_app_does();
-        f.put(&f.project_log(), &log.iter().flat_map(|id| packet_line(id)).collect::<Vec<u8>>());
-        if let Some(bytes) = graph { f.put(&f.project.join(FOLDER).join("graphs/FX-U1/r1.json"), bytes); }
-        f.read()
-    };
-    let r1 = include_bytes!("../../tests/fixtures/FX-FL1/graphs/FX-U1/r1.json");
-    // A review names neither: both folders hold nothing.
-    let view = case(&["fl:log:0012"], None);
-    assert!(limit_at(&view, briefs).is_empty() && limit_at(&view, graphs).is_empty(), "{}", view["limits"]);
-    // A graph revision's items name briefs.
-    let view = case(&["fl:log:0012"], Some(r1));
-    assert_eq!(limit_at(&view, briefs), vec![format!("{base}a missing record: the graph revisions read holds 1 record naming a brief")]);
-    // A return names its brief; a 0.1 dispatch carries one.
-    for id in ["fl:log:0011", "fl:log:0003"] {
-        let view = case(&[id], None);
-        assert_eq!(limit_at(&view, briefs), vec![format!("{base}a missing record: the project's fleet log holds 1 record naming a brief")], "{id}");
-        assert!(limit_at(&view, graphs).is_empty(), "{id}");
-    }
-    // A selector names a graph revision.
-    let view = case(&["fl:log:0001"], None);
-    assert_eq!(limit_at(&view, graphs), vec![format!("{base}a missing record: the project's fleet log holds 1 selector naming a graph revision")]);
-    assert!(limit_at(&view, briefs).is_empty());
-    // A graph revision not read whole could name a brief: the briefs folder keeps its limit, saying so.
-    let view = case(&["fl:log:0012"], Some(b"{}"));
-    assert_eq!(limit_at(&view, briefs), vec![format!("{base}not read as nothing recorded: the graph revisions read was not read whole")]);
-}
-
-/// Finding 3: a store project folder that can be searched but not listed
-/// answers NotFound for its fleet folder. The attachment's retention reading
-/// already refuses such a folder, so no absence is read as empty there; the
-/// listing the rule now requires is shown by the next test, through the
-/// folder's stamp.
+/// A store project folder that can be searched but not listed answers
+/// NotFound for its fleet folder. The attachment's retention reading already
+/// refuses such a folder, so no absence is read as empty there; the listing
+/// the rule requires is shown by the next test, through the folder's stamp.
 #[test]
 fn fleet_reader_a_store_project_folder_that_cannot_be_listed_does_not_establish_an_absence() {
     use std::os::unix::fs::PermissionsExt;
@@ -1050,8 +953,12 @@ fn fleet_reader_a_store_project_folder_that_cannot_be_listed_does_not_establish_
     std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o700)).unwrap();
     assert_eq!(view["coordination"]["protected"]["state"], "unavailable", "{}", view["limits"]);
     assert!(view["coordination"]["protectedLog"].is_null());
-    assert!(has_limit(&view, "source missing; no empty-work conclusion") && !has_limit(&view, "nothing recorded"), "{}", view["limits"]);
+    assert_project_absences_as_on_main(&view);
 }
+
+/// Finding 3: absence needs the parent's listing not to hold the name, and is
+/// checked again at the end through the parent's stamp: a fleet folder made
+/// and removed again during the read is caught on either side.
 
 /// Finding 3: absence needs the parent's listing not to hold the name, and is
 /// checked again at the end through the parent's stamp: a fleet folder made
@@ -1081,6 +988,10 @@ fn fleet_reader_absence_needs_a_listing_without_the_name_and_a_folder_come_and_g
 /// Finding 4: an absent store fleet folder read as empty registers no
 /// accepted prefix, so a later write that makes the folder and stops before
 /// its log meets only the true missing-log limit.
+
+/// Finding 4: an absent store fleet folder read as empty registers no
+/// accepted prefix, so a later write that makes the folder and stops before
+/// its log meets only the true missing-log limit.
 #[test]
 fn fleet_reader_an_absence_read_as_empty_registers_no_accepted_history() {
     let f = Fixture::new(); let dir = f.set_up_as_the_app_does();
@@ -1090,4 +1001,27 @@ fn fleet_reader_an_absence_read_as_empty_registers_no_accepted_history() {
     let view = f.read();
     assert_eq!(limit_at(&view, STORE_LOG).iter().filter(|r| r.starts_with("source missing; no empty-work conclusion")).count(), 1, "{}", view["limits"]);
     assert!(!has_limit(&view, "previously accepted protected fleet history"), "{}", view["limits"]);
+}
+
+#[test]
+fn fleet_reader_a_fleet_folder_appearing_during_the_read_is_not_read_as_absent() {
+    let f=Fixture::new();let dir=f.set_up_as_the_app_does();
+    let (store_fleet,project_fleet)=(dir.join("fleet"),f.project.join(FOLDER));
+    AFTER_READ.with(|h|*h.borrow_mut()=Some(Box::new(move||{std::fs::create_dir(&store_fleet).unwrap();std::fs::create_dir(&project_fleet).unwrap();})));
+    let view=f.read();
+    assert!(has_limit(&view,"changed while reading"),"{}",view["limits"]);
+}
+
+
+#[test]
+fn fleet_reader_records_present_read_as_before() {
+    let f=Fixture::new();f.set_up_as_the_app_does();
+    let rows=[f.row("fl:present-a","a"),f.row("fl:present-b","b")];f.pair(&rows);
+    let view=f.read();
+    assert_eq!(observations(&view).len(),2);
+    assert_eq!((view["coordination"]["project"]["status"].clone(),view["coordination"]["protectedLog"]["status"].clone()),(json!("read"),json!("read")));
+    assert_eq!(view["coordination"]["protectedLog"]["complete"],true);
+    // Logs written by hand with no briefs or graphs folder beside them: those absences keep their limits, as on main.
+    assert_eq!(limit_at(&view,".chirality/fleet/briefs"),vec![FOLDER_MISSING.to_owned()]);
+    assert_eq!(limit_at(&view,".chirality/fleet/graphs"),vec![FOLDER_MISSING.to_owned()]);
 }

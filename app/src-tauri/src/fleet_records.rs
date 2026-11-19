@@ -210,40 +210,6 @@ impl LogRead {
         self.view["complete"] = json!(true);
     }
 }
-/// What the records this read did read say of an absent source: what names a
-/// record written there, and which source that could name one was not read
-/// whole. Only where both are empty is the absence read as nothing recorded.
-#[derive(Default)]
-struct Named { records: Vec<String>, unread: Vec<String> }
-impl Named {
-    fn records(&mut self, count: usize, what: impl FnOnce(usize) -> String) { if count > 0 { self.records.push(what(count)); } }
-    fn unread(&mut self, whole: bool, what: &str) { if !whole { self.unread.push(what.to_owned()); } }
-    /// Settles the limit at `index` that says the source is missing: `true`
-    /// where nothing names a record and every source that could was read
-    /// whole (the caller withdraws it); otherwise the limit stays and says
-    /// what names a record there (a missing record), or which source was not
-    /// read whole, and nothing more.
-    fn settle(&self, limits: &mut [Value], index: usize) -> bool {
-        let said = if !self.records.is_empty() { format!("a missing record: {}", self.records.join("; ")) }
-            else if !self.unread.is_empty() { format!("not read as nothing recorded: {}", self.unread.join("; ")) }
-            else { return true; };
-        let reason = format!("{}; {said}", limits[index]["reason"].as_str().unwrap_or_default());
-        limits[index]["reason"] = json!(reason);
-        false
-    }
-}
-/// The records that name a brief in the briefs folder: a dispatch observation
-/// carrying a brief (both schema versions' positive association states), a
-/// return naming its brief, a graph revision with an item naming one.
-fn names_brief(row: &Row) -> bool {
-    let body = &row.record["body"];
-    (row.kind() == "dispatch_observed" && body["association"]["brief"].is_string())
-        || (row.kind() == "return_recorded" && body["brief"].is_string())
-        || (row.kind() == "work_graph" && body["items"].as_array().is_some_and(|items| items.iter().any(|item| item["brief"].is_string())))
-}
-/// The records that name a graph revision in the graphs folder: a selector.
-fn names_graph(row: &Row) -> bool { row.kind() == "current_graph" && row.record["body"]["graph"].is_string() }
-fn plural(n: usize, one: &str) -> String { if n == 1 { format!("1 {one}") } else { format!("{n} {one}s") } }
 /// The status of a log whose folder is not there, read as recording nothing.
 const ABSENT_FOLDER: &str = "folder absent; nothing recorded";
 /// A pathname replacement cannot reset proof for this source. Paths retain
@@ -260,6 +226,10 @@ struct AcceptedPrefix { length: usize, digest: String }
 static ACCEPTED_PREFIXES: std::sync::LazyLock<
     std::sync::Mutex<BTreeMap<HistorySource, AcceptedPrefix>>,
 > = std::sync::LazyLock::new(|| std::sync::Mutex::new(BTreeMap::new()));
+/// Whether this App has accepted any history of the protected log.
+fn accepted_history(source: &HistorySource) -> bool {
+    ACCEPTED_PREFIXES.lock().unwrap_or_else(|p|p.into_inner()).contains_key(source)
+}
 fn observe_prefix(source: &HistorySource, bytes: Option<&[u8]>, accept: bool) -> Result<(), String> {
     let mut known = ACCEPTED_PREFIXES.lock().unwrap_or_else(|p|p.into_inner());
     if let Some(prefix) = known.get(source) {
@@ -317,15 +287,13 @@ fn read_log(census: &mut Census, path: &Path, root: &Path, protected: bool, vali
     LogRead { rows, bytes, complete, view: json!({"source":origin,"status":status,"complete":complete}), missing }
 }
 
-/// The folder's records; where the folder was not there, the index in
-/// `limits` of the limit that says so; and whether every member was read
-/// (no limit but that one).
-fn files(census: &mut Census, root: &Path, folder: &Path, graphs: bool, validation: &jsonschema::Validator, limits: &mut Vec<Value>) -> (Vec<Row>, Option<usize>, bool) {
+/// The folder's records, and where the folder was not there, the index in
+/// `limits` of the limit that says so.
+fn files(census: &mut Census, root: &Path, folder: &Path, graphs: bool, validation: &jsonschema::Validator, limits: &mut Vec<Value>) -> (Vec<Row>, Option<usize>) {
     let mut rows = Vec::new();
-    let at_start = limits.len();
     let paths = match census.directory(folder) {
         Ok(paths) => paths,
-        Err(reason) => { limits.push(issue(&source(folder,root,false,None), &reason)); return (rows, None, false); },
+        Err(reason) => { limits.push(issue(&source(folder,root,false,None), &reason)); return (rows, None); },
     };
     let mut missing = None;
     if census.stamps.get(folder) == Some(&None) {
@@ -343,8 +311,7 @@ fn files(census: &mut Census, root: &Path, folder: &Path, graphs: bool, validati
             read_record_file(census, root, &path, "brief", validation, limits, &mut rows);
         }
     }
-    let whole = limits.len() - at_start == usize::from(missing.is_some());
-    (rows, missing, whole)
+    (rows, missing)
 }
 fn read_record_file(census: &mut Census, root: &Path, path: &Path, kind: &str, validation: &jsonschema::Validator, limits: &mut Vec<Value>, rows: &mut Vec<Row>) {
     let origin = source(path,root,false,None);
@@ -497,45 +464,36 @@ pub(crate) fn read_for_workspace(workspace: Option<&Path>) -> Result<Value,Strin
     let _ = census.directory(&root.join(".chirality")).map_err(|e| limits.push(issue(&source(&root.join(".chirality"),&root,false,None),&e)));
     let folder = root.join(FOLDER);
     let _ = census.directory(&folder).map_err(|e| limits.push(issue(&source(&folder,&root,false,None),&e)));
-    let (briefs, briefs_missing, _) = files(&mut census,&root,&folder.join("briefs"),false,validation,&mut limits);
-    let (graphs, graphs_missing, graphs_whole) = files(&mut census,&root,&folder.join("graphs"),true,validation,&mut limits);
+    let (briefs, briefs_missing) = files(&mut census,&root,&folder.join("briefs"),false,validation,&mut limits);
+    let (graphs, graphs_missing) = files(&mut census,&root,&folder.join("graphs"),true,validation,&mut limits);
     let mut project_log = read_log(&mut census,&folder.join(LOG),&root,false,validation,&mut limits);
     let mut all_project = briefs.clone(); all_project.extend(graphs.clone()); all_project.extend(project_log.rows.clone());
     let project_duplicates = duplicates(&all_project,&mut limits,"project fleet sources");
     let attachment = protected(&mut census,&root,&mut limits);
-    // "Not there" is read as "nothing recorded" only for a folder this read
-    // found absent (`Census::absent`), only once the project is established
-    // as the App's (attached: its identity, link, registry and store folder
-    // read), only where no record this read did read names a record written
-    // there, and only where every source that could name one was read whole.
-    // A folder deleted with its records is a missing record: its limit stays,
-    // and says what names a record there. Anything not examinable, a link or
-    // a file in a folder's place, the log missing from a fleet folder that is
-    // there, or an unattached project keeps its limit as before.
-    let project_fleet_absent = census.absent(&folder);
-    // The project's log was read whole, or is absent with its whole folder.
-    let project_log_whole = (project_log.bytes.is_some() && project_log.complete) || (project_log.missing.is_some() && project_fleet_absent);
     let (mut protected_view, mut protected_log, healthy) = match &attachment {
         Ok(attached) => {
             let mut log = read_log(&mut census,&attached.dir.join("fleet").join(LOG),&attached.dir,true,validation,&mut limits);
-            // The store's fleet folder, absent from the project's store folder
-            // as this read listed it. Named as written by the store's import
-            // records (what an import found there or copied there), or by an
-            // App observation in the project's log (the App writes each there
-            // only after the store holds the line).
-            if let Some(index) = log.missing {
+            // The fleet records read as recording nothing, whole and empty,
+            // only where all of these hold: the project is attached; its
+            // fleet folder and the store's fleet folder for it are both absent
+            // (`Census::absent`: NotFound in a folder this read listed, whose
+            // listing omits the name, checked again at the end); no import the
+            // store holds names a fleet log for it (an import record that
+            // cannot be read keeps the limits); and this App holds no accepted
+            // history of the protected log. Every other absence keeps its
+            // limit. The App's writer makes the fleet folder with its log and
+            // its briefs and graphs folders, so a project it has written to
+            // has no absent subfolder.
+            if let (true, Some(store_at), Some(briefs_at), Some(graphs_at), Some(log_at)) =
+                (census.absent(&folder), log.missing, briefs_missing, graphs_missing, project_log.missing) {
                 let fleet = attached.dir.join("fleet");
                 let listed = matches!(census.metadata(&fleet), Ok(None)) && census.directory(&attached.dir).is_ok();
-                if listed && census.absent(&fleet) {
-                    let mut named = Named::default();
-                    match records_store::package::named_bytes(&attached.dir,&format!("fleet/{LOG}")) {
-                        Ok(bytes) => named.records(usize::try_from(bytes).unwrap_or(usize::MAX), |n| format!("the records store's import records name {} of this log", plural(n,"byte"))),
-                        Err(reason) => named.unread.push(format!("the records store's import records could not be read ({reason})")),
-                    }
-                    named.records(project_log.rows.iter().filter(|row| OBSERVED.contains(&row.kind()) && row.record["recorder"]["kind"] == "App").count(),
-                        |n| format!("the project's fleet log holds {}, which the App writes to this log first", plural(n,"App observation")));
-                    named.unread(project_log_whole, "the project's fleet log was not read whole");
-                    if named.settle(&mut limits, index) { limits.remove(index); log.read_as_empty(); }
+                if listed && census.absent(&fleet)
+                    && records_store::package::named_bytes(&attached.dir,&format!("fleet/{LOG}")) == Ok(0)
+                    && !accepted_history(&attached.history) {
+                    for index in [store_at, log_at, graphs_at, briefs_at] { limits.remove(index); }
+                    log.read_as_empty();
+                    project_log.read_as_empty();
                 }
             }
             let duplicate = duplicates(&log.rows,&mut limits,"protected fleet log");
@@ -548,41 +506,6 @@ pub(crate) fn read_for_workspace(workspace: Option<&Path>) -> Result<Value,Strin
             (json!({"state":"unavailable","reason":reason}), None, false)
         }
     };
-    // The project's side. Its log, absent with its whole folder, is named by
-    // the store's log: each App observation recorded there (not an imported
-    // one) was written to this log as well. Its briefs folder is named by any
-    // record read that names a brief; its graphs folder by any selector read.
-    if let (Ok(attached), Some(store)) = (&attachment, protected_log.as_ref()) {
-        let store_whole = store.bytes.is_some() && store.complete;
-        let mut withdrawn = Vec::new();
-        if let (true, Some(index)) = (project_fleet_absent, project_log.missing) {
-            let mut named = Named::default();
-            match store.bytes.as_deref().map(|bytes| records_store::package::quoted_prefix(&attached.dir,&format!("fleet/{LOG}"),bytes)) {
-                Some(Ok(prefix)) => named.records(store.rows.iter().filter(|row| row.follows_quoted_prefix(prefix)).count(),
-                    |n| format!("the records store's fleet log holds {} recorded by this App, each also written to this log", plural(n,"App observation"))),
-                Some(Err(reason)) => named.unread.push(format!("the records store's import records could not be compared with its fleet log ({reason})")),
-                None => {},
-            }
-            named.unread(store_whole, "the records store's fleet log was not read whole");
-            if named.settle(&mut limits, index) { withdrawn.push(index); project_log.read_as_empty(); }
-        }
-        if let Some(index) = briefs_missing.filter(|_| census.absent(&folder.join("briefs"))) {
-            let mut named = Named::default();
-            for (what, rows, whole) in [("the records store's fleet log", &store.rows, store_whole), ("the project's fleet log", &project_log.rows, project_log_whole), ("the graph revisions read", &graphs, graphs_whole)] {
-                named.records(rows.iter().filter(|row| names_brief(row)).count(), |n| format!("{what} holds {} naming a brief", plural(n,"record")));
-                named.unread(whole, &format!("{what} was not read whole"));
-            }
-            if named.settle(&mut limits, index) { withdrawn.push(index); }
-        }
-        if let Some(index) = graphs_missing.filter(|_| census.absent(&folder.join("graphs"))) {
-            let mut named = Named::default();
-            named.records(project_log.rows.iter().filter(|row| names_graph(row)).count(), |n| format!("the project's fleet log holds {} naming a graph revision", plural(n,"selector")));
-            named.unread(project_log_whole, "the project's fleet log was not read whole");
-            if named.settle(&mut limits, index) { withdrawn.push(index); }
-        }
-        withdrawn.sort_unstable();
-        for index in withdrawn.into_iter().rev() { limits.remove(index); }
-    }
     let mut complete_copy = healthy && protected_log.as_ref().is_some_and(|log|log.complete);
     let quoted_prefix = match (&attachment, &protected_log) {
         (Ok(attached),Some(log)) => {
