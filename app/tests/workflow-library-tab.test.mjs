@@ -4,13 +4,15 @@ import {installMiniDom} from './support/mini-dom.mjs';
 import {loadSrc} from './support/load-src.mjs';
 import {agentBlocks, agentBlockText} from './support/agent-text.mjs';
 
-// The right panel's Workflows tab (3.0.1's library) over the host state the Run guide reads. Controlled host views
-// with invented entries in the shapes the host gives (runtime_session.rs snapshot, workflow_library.rs
-// registered_listing); no native App, supplier, model or person act.
+// The right panel's Workflows tab (3.0.1's library) over the host state the Run guide reads. "Use in message" picks a
+// workflow for the next message: the renderer holds the pick (WorkflowPick.tsx) and the tab issues no host command
+// for it. Controlled host views with invented entries in the shapes the host gives (runtime_session.rs snapshot,
+// workflow_library.rs registered_listing); no native App, supplier, model or person act.
 if (!globalThis.document) installMiniDom();
 const React = (await import('react')).default;
 const {createRoot} = await import('react-dom/client');
-const {WorkflowLibrary, chooseBlock} = loadSrc('WorkflowLibrary');
+const {WorkflowLibrary} = loadSrc('WorkflowLibrary');
+const {pickScope} = loadSrc('WorkflowPick');
 const {includedSections} = loadSrc('IncludedWorkflows');
 const {RunWorkflowGuide} = loadSrc('RunJourney');
 const {WorkflowRootPanel} = loadSrc('App');
@@ -54,11 +56,12 @@ const card = (c, name) => labelled(c, `Included workflow ${name}`) ?? labelled(c
 const notes = c => c.querySelectorAll(node => node.getAttribute('class') === 'method-library-note').map(n => n.textContent);
 
 async function mount(view) {
-  const c = document.createElement('div'); const root = createRoot(c); const calls = [];
-  const render = () => root.render(React.createElement(WorkflowLibrary, {data:view.data ?? data(), host:view.host ?? host(), thread:view.thread ?? 'T1', busy:!!view.busy,
-    act:async (command, args) => { calls.push([command, args]); }, outcome:view.outcome ?? null, viewStale:!!view.viewStale}));
+  const c = document.createElement('div'); const root = createRoot(c); const picks = [];
+  // The pick is the App's state; here the test holds it, as App.tsx does, and every setPick is recorded.
+  const render = () => root.render(React.createElement(WorkflowLibrary, {data:view.data ?? data(), host:view.host ?? host(), busy:!!view.busy, pick:view.pick ?? null,
+    setPick:next => { picks.push(next); view.pick = next; render(); }, viewStale:!!view.viewStale}));
   await React.act(async () => render());
-  return {c, calls,
+  return {c, picks, get pick() { return view.pick ?? null; },
     search:async value => React.act(async () => props(c.querySelectorAll(n => n.localName === 'input' && props(n)?.type === 'search')[0]).onChange({target:{value}})),
     press:async node => { assert.ok(node, 'the control is drawn'); assert.equal(!!props(node).disabled, false, `${node.textContent} enabled`); await React.act(async () => props(node).onClick()); },
     rerender:async next => { Object.assign(view, next); await React.act(async () => render()); },
@@ -120,21 +123,33 @@ test('an included card: its title and identifier, its description, where it come
   await ui.close();
 });
 
-test('choosing an included workflow issues exactly the Run guide\'s command with its arguments', async () => {
-  const ui = await mount({});
-  await ui.press(button(card(ui.c, 'plan-work'), 'Use in message'));
-  assert.deepEqual(ui.calls, [['workflow_select_production_bundle', {name:'plan-work'}]]);
-  // The Run guide's own press for the same workflow, through its own act, is the same call.
-  const c = document.createElement('div'); const root = createRoot(c); const guide = [];
-  await React.act(async () => root.render(React.createElement(RunWorkflowGuide, {data:data(), host:host(), thread:'T1', busy:false, text:'', chooseThread:() => {}, setText:() => {},
-    act:async (command, args) => { guide.push([command, args]); }, outcome:null})));
-  await React.act(async () => props(button(c, 'Use plan-work')).onClick());
-  assert.deepEqual(guide, ui.calls);
-  await React.act(async () => root.unmount());
-  await ui.close();
+test('Use in message picks an included workflow for the next message: no host command, the card then offers Remove, one pick at a time', async () => {
+  const previous = window.__TAURI_INTERNALS__; const issued = [];
+  window.__TAURI_INTERNALS__ = {invoke: async command => { issued.push(command); return null; }};
+  try {
+    const ui = await mount({});
+    await ui.press(button(card(ui.c, 'plan-work'), 'Use in message'));
+    assert.deepEqual(ui.pick, {kind:'included', name:'plan-work', revision:'plan-work-revision-0123456789abcdef', title:'Plan the work', from:'Chirality Library 9.9.9', scope:pickScope(host())});
+    assert.deepEqual(issued, [], 'picking sends nothing to the host');
+    const picked = button(card(ui.c, 'plan-work'), 'Remove');
+    assert.equal(picked.getAttribute('aria-pressed'), 'true');
+    assert.equal(card(ui.c, 'plan-work').getAttribute('data-chosen'), 'true');
+    assert.equal(button(card(ui.c, 'plan-work'), 'Use in message'), undefined);
+    // Another card replaces the pick; only one card is pressed.
+    await ui.press(button(card(ui.c, 'loose'), 'Use in message'));
+    assert.equal(ui.pick.name, 'loose');
+    assert.equal(buttons(ui.c).filter(b => b.getAttribute('aria-pressed') === 'true').length, 1);
+    assert.ok(button(card(ui.c, 'plan-work'), 'Use in message'));
+    // Remove drops the pick, and sends nothing either.
+    await ui.press(button(card(ui.c, 'loose'), 'Remove'));
+    assert.equal(ui.pick, null);
+    assert.equal(buttons(ui.c).filter(b => b.getAttribute('aria-pressed') === 'true').length, 0);
+    assert.deepEqual(issued, []);
+    await ui.close();
+  } finally { window.__TAURI_INTERNALS__ = previous; }
 });
 
-test('this project\'s workflows: a registered one is chosen with the guide\'s list command; one to re-confirm or review says so and is not chosen here', async () => {
+test('this project\'s workflows: a registered revision is picked with its library and revision; one to re-confirm or review says so and cannot be picked', async () => {
   const ui = await mount({data:data({activeLibrary:LIB, libraries:[projectLibrary()]})});
   const project = labelled(ui.c, 'Workflows').querySelectorAll(n => n.getAttribute('aria-labelledby') === 'method-group-project')[0];
   assert.deepEqual(all(project, 'li').map(li => li.getAttribute('aria-label')), ['Project workflow site-check', 'Project workflow site-check', 'Project workflow cold-flow', 'Project workflow new-flow']);
@@ -143,7 +158,10 @@ test('this project\'s workflows: a registered one is chosen with the guide\'s li
   assert.equal(first.querySelectorAll(n => n.getAttribute('class') === 'method-card-meta')[0].textContent, 'project workflow library · revision 1 · another revision has the same name');
   assert.equal(second.querySelectorAll(n => n.getAttribute('class') === 'method-card-meta')[0].textContent, 'project workflow library · revision 2 · another revision has the same name');
   await ui.press(button(second, 'Use in message'));
-  assert.deepEqual(ui.calls, [['workflow_select_listed', {libraryRef:LIB, name:'site-check', revision:'site-check-2-rev-0123456789abcdef'}]]);
+  assert.deepEqual(ui.pick, {kind:'listed', name:'site-check', revision:'site-check-2-rev-0123456789abcdef', libraryRef:LIB, sequence:2,
+    label:'registered — approved in this App session (native A15)', title:'site-check', from:'project workflow library', scope:pickScope(host())}, 'the arguments workflow_select_listed will take, held until Start run');
+  const rows = all(ui.c, 'li').filter(li => li.getAttribute('aria-label') === 'Project workflow site-check');
+  assert.deepEqual(rows.map(li => buttons(li).find(b => b.getAttribute('aria-pressed'))?.textContent), ['Use in message', 'Remove'], 'only the picked revision is pressed');
   assert.equal(!!props(button(cold, 'Use in message')).disabled, true);
   assert.match(cold.textContent, /registered — approval authenticity unverified; re-confirm to use in this App session\. Re-confirm cold-flow in the workflow studio/);
   assert.equal(button(fresh, 'Use in message'), undefined, 'an entry not approved for use has no choosing control');
@@ -168,50 +186,41 @@ test('where the project\'s workflows come from, and a library or list that could
   await ui.close();
 });
 
-test('the pressed state follows the host\'s selection for this conversation; the App has no clearing command, so a chosen card offers no Remove', async () => {
+test('the pressed state follows the pick, not any conversation\'s selection; a pick from another source is not this card\'s', async () => {
+  // A conversation's selection no longer marks a card: the tab is about the next message.
   const ui = await mount({data:data({selections:selection(identity('plan-work'))})});
-  const chosen = button(card(ui.c, 'plan-work'), 'Chosen');
-  assert.equal(chosen.getAttribute('aria-pressed'), 'true');
-  assert.equal(!!props(chosen).disabled, true);
+  assert.equal(buttons(ui.c).filter(b => b.getAttribute('aria-pressed') === 'true').length, 0);
+  assert.equal(buttons(ui.c).filter(b => b.textContent === 'Chosen').length, 0);
+  assert.doesNotMatch(ui.c.textContent, /chosen under Run a workflow|can't run:/);
+  // A pick of the same name at another revision, or of a registered revision in another library, is not this card's.
+  await ui.rerender({pick:{kind:'included', name:'plan-work', revision:'another-revision', title:'Plan the work', from:'', scope:pickScope(host())}});
+  assert.equal(button(card(ui.c, 'plan-work'), 'Remove'), undefined);
+  await ui.rerender({data:data({activeLibrary:LIB, libraries:[projectLibrary()]}), pick:{kind:'listed', name:'site-check', revision:'site-check-2-rev-0123456789abcdef', libraryRef:'workflow-library:other', title:'site-check', from:'', scope:pickScope(host())}});
   assert.equal(buttons(ui.c).filter(b => b.textContent === 'Remove').length, 0);
-  assert.deepEqual(buttons(ui.c).filter(b => b.getAttribute('aria-pressed') === 'true').length, 1);
-  // Its subgroup opens, and the details hold what the Run guide says beside the chosen workflow.
-  const plan = all(ui.c, 'details').find(d => all(d, 'h4')[0]?.textContent === 'Plan & organize');
-  assert.equal(props(plan).open, true);
-  assert.match(all(card(ui.c, 'plan-work'), 'details')[0].textContent, /required tools aren't declared/);
-  // A selection of another conversation, a copy the host does not admit, or the same name in another source is not this card's.
-  await ui.rerender({thread:'T2', host:host([{threadId:'T1', generation:g}, {threadId:'T2', generation:g}])});
-  assert.equal(button(card(ui.c, 'plan-work'), 'Chosen'), undefined);
-  await ui.rerender({thread:'T1', host:host(), data:data({selections:selection(identity('plan-work'), {runnable:false, runLimit:'not resolved'})})});
-  assert.equal(button(card(ui.c, 'plan-work'), 'Chosen'), undefined);
-  assert.ok(notes(ui.c).includes("plan-work can't run: not resolved"));
-  await ui.rerender({data:data({selections:selection(identity('plan-work', {origin:'project', source_root:PROJECT_ROOT}))})});
-  assert.equal(button(card(ui.c, 'plan-work'), 'Chosen'), undefined);
-  // A registered revision chosen for this conversation is pressed on its own card only.
-  await ui.rerender({data:data({activeLibrary:LIB, libraries:[projectLibrary()], selections:selection(projectIdentity('site-check', 'site-check-2-rev-0123456789abcdef'), {assurance:null})})});
-  const rows = all(ui.c, 'li').filter(li => li.getAttribute('aria-label') === 'Project workflow site-check');
-  assert.deepEqual(rows.map(li => buttons(li).find(b => b.getAttribute('aria-pressed'))?.textContent), ['Use in message', 'Chosen']);
-  assert.match(rows[1].textContent, /Approval evidence unknown \(not recorded\)\./);
+  // The picked card's subgroup opens.
+  await ui.rerender({data:data(), pick:{kind:'included', name:'review-a', revision:'review-a-revision-0123456789abcdef', title:'review-a', from:'', scope:pickScope(host())}});
+  const review = all(ui.c, 'details').find(d => all(d, 'h4')[0]?.textContent === 'Review & check');
+  assert.equal(props(review).open, true);
+  assert.equal(button(card(ui.c, 'review-a'), 'Remove').getAttribute('aria-pressed'), 'true');
   await ui.close();
 });
 
-test('choosing is disabled, with one line saying why, under the Run guide\'s conditions', async () => {
-  assert.equal(chooseBlock({busy:false, sourceCurrent:true, thread:'T1', conversations:1}), null);
+test('picking needs no conversation; it waits only for a current view, and says so in one line', async () => {
   const enabled = c => buttons(c).filter(b => b.textContent === 'Use in message' && !props(b).disabled).length;
-  const ui = await mount({thread:''});
-  assert.equal(enabled(ui.c), 0);
-  assert.ok(notes(ui.c).includes('Choose the conversation that will run the workflow, under Run a workflow.'));
+  const runnable = entries.filter(e => e.runnable === true).length;
+  // No conversation at all, and a press in progress elsewhere: picking sends nothing, so neither stops it.
+  const ui = await mount({host:host([]), busy:true});
+  assert.equal(enabled(ui.c), runnable);
+  assert.doesNotMatch(ui.c.textContent, /Choose the conversation|Start a new conversation|Run a workflow\./);
+  assert.equal(!!props(button(card(ui.c, 'plan-work'), 'Inspect')).disabled, true, 'reading the text still waits for the press in progress');
+  await ui.rerender({busy:false});
   assert.equal(!!props(button(card(ui.c, 'plan-work'), 'Inspect')).disabled, false, 'reading needs no conversation, as in the Run guide');
-  await ui.rerender({host:host([])});
-  assert.ok(notes(ui.c).includes('No conversation in this session yet. Start a new conversation, then choose it under Run a workflow.'));
-  await ui.rerender({thread:'T1', host:{...host(), workflowRoot:{context:{sourceRef:'other', generation:g}}}});
+  // A view of another workflow source: nothing can be picked, and the tab says why.
+  await ui.rerender({host:{...host(), workflowRoot:{context:{sourceRef:'other', generation:g}}}});
   assert.equal(enabled(ui.c), 0);
   assert.ok(notes(ui.c).includes('The workflow view is out of date. Wait for it to refresh, or reopen the App view.'));
-  await ui.rerender({host:host(), busy:true});
-  assert.equal(enabled(ui.c), 0, 'not while a press is in progress');
-  await ui.rerender({busy:false});
-  assert.equal(enabled(ui.c), entries.filter(e => e.runnable === true).length);
-  assert.ok(notes(ui.c).some(n => /^For Conversation .+, chosen under Run a workflow\.$/.test(n)), 'the conversation it chooses for is named');
+  await ui.rerender({host:host()});
+  assert.equal(enabled(ui.c), runnable);
   // A view that may be from before the last press shows no cards and offers no control.
   await ui.rerender({viewStale:true});
   assert.equal(buttons(ui.c).length, 0);
@@ -245,7 +254,7 @@ test('supplied text (names, titles, descriptions, groups, labels) is never insid
     await ui.press(button(card(ui.c, 'odd-flow'), 'Inspect'));
     assert.deepEqual(pending.map(p => [p.command, p.args.target]), [['workflow_read_text', {kind:'included', name:'odd-flow', revision:'odd-flow-revision-0123456789abcdef'}]]);
     assert.equal(pending[0].args.context.threadId, null, 'read with no conversation, as the Run guide reads an included entry');
-    assert.equal(ui.calls.length, 0, 'reading chooses nothing');
+    assert.deepEqual(ui.picks, [], 'reading picks nothing');
     const TEXT = `# ${POISON}\n<b>not markup</b>\n`;
     await React.act(async () => { pending[0].resolve({state:'read', identity:identity('odd-flow'), text:TEXT, bytes:TEXT.length, files:[], matched:true}); await Promise.resolve(); });
     const shown = labelled(ui.c, 'Text of odd-flow');
@@ -260,25 +269,21 @@ test('supplied text (names, titles, descriptions, groups, labels) is never insid
   await ui.close();
 });
 
-test('in the panel, the tab chooses for the conversation chosen in the Run guide, through the panel\'s own press with its context', async () => {
-  const c = document.createElement('div'); const root = createRoot(c); const calls = [];
+test('in the panel, the tab picks through the App\'s setPick with no conversation chosen, and issues no command', async () => {
+  const c = document.createElement('div'); const root = createRoot(c); const calls = [], picks = [];
   const d = data(), h = {...host(), workflowRoot:d};
-  await React.act(async () => root.render(React.createElement(WorkflowRootPanel, {data:d, host:h, view:'workflows', act:async (command, args) => { calls.push([command, args]); return {}; }})));
+  await React.act(async () => root.render(React.createElement(WorkflowRootPanel, {data:d, host:h, view:'workflows', pick:null, setPick:next => { picks.push(next); }, act:async (command, args) => { calls.push([command, args]); return {}; }})));
   const library = c.querySelectorAll(n => n.getAttribute('id') === 'view-library')[0];
   assert.equal(props(library).hidden, false, 'the Workflows view is shown');
   assert.equal(props(c.querySelectorAll(n => n.getAttribute('id') === 'view-run')[0]).hidden, true, 'the Run guide is mounted and hidden');
   assert.equal(props(c.querySelectorAll(n => n.getAttribute('id') === 'workflow-studio')[0]).hidden, true, 'the studio is not shown under Workflows');
-  assert.equal(buttons(library).filter(b => b.textContent === 'Use in message' && !props(b).disabled).length, 0, 'no conversation chosen yet');
   const reads = buttons(c).find(b => b.textContent === 'Read recorded workflow supply (durable, read-only)');
   assert.equal(props(reads.parentNode).hidden, true, 'the studio\'s record reads are not shown under Workflows');
-  const radio = c.querySelectorAll(n => n.localName === 'input' && props(n)?.name === 'run-conversation' && props(n)?.value === 'T1')[0];
-  await React.act(async () => props(radio).onChange({target:{checked:true}}));
+  // No conversation is chosen in the Run guide, and the card can still be used.
   await React.act(async () => props(button(card(library, 'plan-work'), 'Use in message')).onClick());
-  assert.equal(calls.length, 1);
-  assert.equal(calls[0][0], 'workflow_select_production_bundle');
-  assert.equal(calls[0][1].name, 'plan-work');
-  assert.equal(calls[0][1].context.threadId, 'T1');
-  assert.equal(calls[0][1].context.sourceRef, 'src');
-  assert.deepEqual(Object.keys(calls[0][1]).sort(), ['context', 'name']);
+  assert.deepEqual(calls, [], 'picking issues no host command');
+  assert.equal(picks.length, 1);
+  assert.equal(picks[0].name, 'plan-work');
+  assert.equal(picks[0].scope, pickScope(h));
   await React.act(async () => root.unmount());
 });

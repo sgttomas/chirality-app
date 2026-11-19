@@ -3653,3 +3653,21 @@ div.woven-chat-section-heading--folder:hover { background:transparent; }
 .method-card-details { margin-top:6px; font-size:12px; color:var(--ink-soft); }
 .method-card-details > summary { width:fit-content; cursor:pointer; color:var(--ink-faint); }
 .method-library-group > p[role="note"] { color:var(--ink-soft); }
+/* v4: a workflow picked for the next message (WorkflowPick.tsx): its chip at the top of the composer with a short
+   line of what it needs, the Workflows button beside Attach, and "Start run" on the send button. */
+.chat-input-row .v4-pick { display:grid; gap:4px; padding:2px 4px 0; min-width:0; }
+.v4-pick .method-chip { padding:3px 6px 3px 10px; font-size:12.5px; color:var(--ink); }
+.v4-pick .method-chip > span { white-space:nowrap; }
+.v4-pick .method-chip small { font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.v4-pick .method-chip code { font-size:10.5px; }
+.v4-pick .method-chip button { min-height:0; width:18px; height:18px; line-height:1; color:var(--ink-faint); }
+.v4-pick .method-chip button:hover { color:var(--ink); }
+.v4-pick-note { margin:0; font-size:12px; line-height:1.45; color:var(--ink-soft); }
+.v4-pick-details { font-size:12px; color:var(--ink-soft); }
+.v4-pick-details > summary { width:fit-content; cursor:pointer; color:var(--ink-faint); }
+.v4-pick-details[open] { max-height:30vh; overflow:auto; padding-bottom:4px; }
+.v4-pick-details p, .v4-pick-details ul { margin:4px 0; }
+.chat-composer-line > button.chat-workflow-button { padding:4px 8px; font-size:13px; font-weight:500; color:var(--ink-soft); white-space:nowrap; }
+.chat-composer-line > button.chat-workflow-button:hover { color:var(--ink); }
+.chat-composer-line > button[type="submit"].v4-send-run { width:auto; height:30px; padding:0 14px 0 12px; border-radius:999px; display:inline-flex; align-items:center; gap:7px; font-weight:600; font-size:12.5px; white-space:nowrap; }
+.v4-mark { display:inline-block; width:7px; height:7px; transform:rotate(45deg); border:1.5px solid currentColor; border-radius:1px; flex:none; }

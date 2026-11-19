@@ -49,6 +49,7 @@ import { FirstUseSetup } from "./FirstUse";
 import { AccountStatus, DIDNT_SAY, accountReadError, accountReadRef, accountReading, reportedPlan, signInCompletion, type ReadAccountStatus } from "./AccountStatus";
 import { RunWorkflowGuide, registeredRevisionAnchor, runEvidenceAnchor } from "./RunJourney";
 import { WorkflowLibrary } from "./WorkflowLibrary";
+import { PICK_STEPS, PickChip, conversationRuns, pickLimit, pickScope, runPickedWorkflow, type PickRunOutcome, type WorkflowPick } from "./WorkflowPick";
 import { PermissionLevel, PermissionLevelActions, PermissionLevelSummary, levelInForce, levelOwner } from "./PermissionLevel";
 import { MakeWorkflowGuide } from "./MakeJourney";
 import { acknowledgeBringBackDoubt, beginBringBack, bringBackRefusal, doubtDestination, endBringBack, noteBringBackDoubt, resetBringBackDoubts, sendKey, useBringBackDoubts, type BringBackDoubt } from "./bringBackDoubts";
@@ -151,7 +152,7 @@ export type StartOutcome = { opened: string } | { failed: string } | { notConfir
 /** The new conversation's own settings, which the App holds: its role and model, with their panels. */
 export type StartSettings = { role: string; model: string; blocked: string; rolePanel: ReactNode; modelPanel: ReactNode; notice?: ReactNode; start: () => Promise<StartOutcome | null> };
 
-export function ConversationPanel({ reportChooser, localRoute = null, focusComposer, startAct, composerOffer, host, threadKey, setThreadKey, answer, readRequest, replyObservations, runAct, trialRunAct, send, observeOrdinaryView, steer, submitAttachments, observeAttachmentView, interrupt, checkPlanMode, codexBusy, forkConversation, handoffSend, handoffRead, activityNavigationRef, activityLink, preparedReveal, toolsHost = null, showTools, before, attachments, actionOutcome, startNew }: { /** Receives the view's own choice of a conversation while the view takes a choice, else null. */
+export function ConversationPanel({ reportChooser, localRoute = null, focusComposer, startAct, composerOffer, host, threadKey, setThreadKey, answer, readRequest, replyObservations, runAct, trialRunAct, send, observeOrdinaryView, steer, submitAttachments, observeAttachmentView, interrupt, checkPlanMode, codexBusy, forkConversation, handoffSend, handoffRead, activityNavigationRef, activityLink, preparedReveal, toolsHost = null, showTools, before, attachments, actionOutcome, startNew, pick = null, setPick, clearPick, pickDropped = false, showWorkflows, readStatus }: { /** Receives the view's own choice of a conversation while the view takes a choice, else null. */
   reportChooser?: (choose: ((key: string) => void) | null) => void; localRoute?: LocalView | null; focusComposer?: number; startAct?: RunAct; composerOffer?: ComposerOffer | null; preparedReveal?: PreparedComposerReveal | null; activityNavigationRef?: Ref<NativeActivityHandle>; activityLink?: RequestActivityLink; forkConversation?: (generation: Json, sourceThread: string) => Promise<void>; handoffSend?: (id: string, text: string) => Promise<HandoffSendOutcome>; handoffRead?: (id: string) => Promise<HandoffSendOutcome>; codexBusy: boolean; host: Json; threadKey: string; setThreadKey: (key: string) => void; trialRunAct?: RunAct; answer: RequestAnswer; readRequest?: ReadRequestCustody; replyObservations?: Record<string, RequestReplyObservation>; runAct: RunAct; checkPlanMode: (generation: Json) => Promise<void>; submitAttachments: (generation: Json, thread: string, expected: string | null, text: string, owner: string, revision: number, refs: string[]) => Promise<Json>; observeAttachmentView?: (request: AttachmentRequest) => Promise<void>; send: (generation: Json, thread: string, text: string, mode?: "plan" | "default", model?: string, effort?: string) => Promise<Json>; observeOrdinaryView?: (request: OrdinaryTextRequest, isCurrent: () => boolean) => Promise<void>; steer: (generation: Json, thread: string, expected: string, text: string) => Promise<boolean | void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<boolean | void>;
   /** The right panel's "Conversation tools" element, where the conversation's other tools are drawn; without it they are drawn after the transcript. */
   toolsHost?: HTMLElement | null;
@@ -164,7 +165,17 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
   /** The outcome of the last steering or interrupt request, as the App reports it. */
   actionOutcome?: ReactNode;
   /** The new conversation's settings and its start, for the empty conversation. */
-  startNew?: StartSettings }) {
+  startNew?: StartSettings;
+  /** The workflow picked in the Workflows tab for the next message, which makes Send "Start run" (WorkflowPick.tsx). */
+  pick?: WorkflowPick | null; setPick?: (pick: WorkflowPick | null) => void;
+  /** Clears the pick a run was started with, unless another has been picked since. */
+  clearPick?: (pick: WorkflowPick) => void;
+  /** The pick was dropped because the workflow source, the Codex generation or the home changed. */
+  pickDropped?: boolean;
+  /** Shows the right panel's Workflows tab. */
+  showWorkflows?: () => void;
+  /** Reads host_status and applies it, resolving to the snapshot read. */
+  readStatus?: () => Promise<Json> }) {
   const [turnId, setTurnId] = useState<string>("");
   const [offerBusy, setOfferBusy] = useState(false);
   const [text, setText] = useState<string>("");
@@ -472,6 +483,56 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
   // header and the activity view once shared the thread ID as key, and React then
   // left the previous conversation's header mounted on every switch (witness
   // 2026-10-10 D-1). Each per-conversation child keys on its own prefix.
+  // ---- A picked workflow: Send is "Start run", which runs the Run guide's steps in order (WorkflowPick.tsx) ----
+  // The last press's outcome, for the conversation it concerns ("" for a new chat that was not started).
+  const [pickOutcomeHeld, setPickOutcome] = useState<{ owner: string; kind: "alert" | "status"; words: string } | null>(null);
+  const pickOutcome = pickOutcomeHeld && pickOutcomeHeld.owner === (selected ? threadKey : "") ? pickOutcomeHeld : null;
+  // The guide's acknowledgement of a start whose outcome is unknown names those runs; a later one starts unacknowledged.
+  const [checkedRun, setCheckedRun] = useState<string | null>(null);
+  const pickPrepared = useRef(new Map<string, { reference: string; text: string }>());
+  const pickAttempted = useRef(new Set<string>());
+  // A new pick, or a Remove, starts afresh; a pick the App dropped keeps what its last press came to.
+  useEffect(() => { if (pick || !pickDropped) setPickOutcome(null); }, [pick]); // eslint-disable-line react-hooks/exhaustive-deps
+  const pickCurrent = !!pick && pick.scope === pickScope(host);
+  const pickStop = pick && pickCurrent ? pickLimit(pick, host) : null;
+  const pickRuns = pick && selected ? conversationRuns(host, selected.threadId) : null;
+  const pickHeld = !!pickRuns?.unresolvedStart && checkedRun !== pickRuns.holdKey;
+  const projectMissing = !!pick && host?.workflowRoot?.projectLibraryAvailable !== true;
+  const heldHereNow = !!selected && unconfirmed.some(row => !row.acknowledged && row.request.threadId === selected.threadId);
+  const pickReadiness: ReactNode = !pick ? null
+    : !sourceReady ? "Connect to Codex before starting a run. Your draft stays here."
+    : busy ? (Object.values(PICK_STEPS).includes(busy as never) ? busy : "An operation is pending. New messages are paused until its result is received.")
+    : !pickCurrent ? "Codex or the workflow source changed. Pick the workflow again under Workflows."
+    : pickStop ? pickStop
+    : projectMissing ? <>A run needs a project folder. <a href="#desktop-setup">Choose one in Desktop setup</a>; it applies the next time you open the App.</>
+    : !selected ? (startNew?.blocked ? `${startNew.blocked}${text ? " Your draft stays here." : ""}` : !text ? "Say what the workflow should work on." : "Ready to start a new conversation and run the workflow.")
+    : heldHereNow ? "An earlier message to this conversation wasn't confirmed and may have been sent. Read the conversation, then confirm below before sending again. Your text is kept."
+    : pickRuns?.inProgress ? "A workflow run is still open in this conversation. End it under Run a workflow before starting another."
+    : pickHeld ? (pickRuns?.latest ? "Read the conversation: the last start's outcome is unknown and it may have run."
+      : "Read the conversation: a start here has an unknown outcome and may have run; the App can't tell which run is latest.")
+    : !text ? "Say what the workflow should work on."
+    : "Ready to start the run in this conversation.";
+  const pickReady = !!pick && sourceReady && !busy && pickCurrent && !pickStop && !projectMissing && !!text
+    && (selected ? !heldHereNow && !pickRuns?.inProgress && !pickHeld : !!startNew && !startNew.blocked);
+  const startPickedRun = async () => {
+    if (!pick || !pickReady || turnActionPending.current) return;
+    const picked = pick, draft = text, revision = textRevision.current, owner = selected ? threadKey : "";
+    turnActionPending.current = true;
+    setError(""); setStartOutcome(null); setPickOutcome(null);
+    let outcome: PickRunOutcome;
+    try {
+      outcome = await runPickedWorkflow({ pick: picked, text: draft, thread: selected?.threadId ?? null, host,
+        start: () => startNew ? startNew.start() : Promise.resolve(null),
+        act: (command, args) => (startAct ?? runAct)(command, args),
+        read: () => readStatus ? readStatus() : Promise.reject(Error("The App can't read its state here.")),
+        step: words => setBusy(words), prepared: pickPrepared.current, attempted: pickAttempted.current, acknowledged: checkedRun });
+    } finally { turnActionPending.current = false; setBusy(""); }
+    if (outcome.state === "started") {
+      if (textRevision.current === revision) setText(current => current === draft ? "" : current);
+      clearPick?.(picked);
+    } else if (outcome.state === "review") setPickOutcome({ owner: outcome.opened ?? owner, kind: "status", words: "Chosen for this conversation. Nothing has been sent: read what it needs, then press Start run." });
+    else if (outcome.state === "stopped") setPickOutcome({ owner: outcome.opened ?? owner, kind: "alert", words: outcome.words });
+  };
   const sendReadiness = !sourceReady ? "Connect to Codex before sending. Your draft stays here."
     : !selected && startNew ? (busy ? "An operation is pending. New messages are paused until its result is received."
       : startNew.blocked ? `${startNew.blocked}${text ? " Your draft stays here." : ""}`
@@ -494,10 +555,10 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
   const attachmentsSelected = (host?.attachmentSelections?.selections ?? []).length > 0;
   const running = liveTurns.length > 0;
   const heldHere = !!selected && unconfirmed.some(row => !row.acknowledged && row.request.threadId === selected.threadId);
-  const sendDisabled = !sourceReady || !text || !!busy || (selected ? heldHere : !startNew || !!startNew.blocked);
+  const sendDisabled = pick ? !pickReady : !sourceReady || !text || !!busy || (selected ? heldHere : !startNew || !!startNew.blocked);
   const updateDisabled = !sourceReady || !selected || !steeringTarget?.turnId || !text || !!busy;
   const stopDisabled = !sourceReady || !stopTarget || !!ownBusy || requestedFor(stopTarget);
-  const submit = () => { if (selected) void sendText(sendMode); else void startAndSend(); };
+  const submit = () => { if (pick) void startPickedRun(); else if (selected) void sendText(sendMode); else void startAndSend(); };
   // The agent's label in the composer and the settings line: the conversation's role, where the App established it.
   const appRole = selected?.appRole;
   const roleWord = selected ? (appRole?.standing === "app-observed" ? wordOf(ROLE_SPEAKER, appRole?.role) ?? (appRole?.role ? "Role not established" : "No role") : "Role not established") : null;
@@ -596,7 +657,8 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
             offerControls={{ generation: host?.generation, ready: host?.state === "ready", busy: offerBusy, act: offerAct }} />
             : threadKey ? <p className="panel-empty">Selected conversation is no longer available in this generation; choose a current conversation.</p>
             : !sourceReady ? <p className="panel-empty">Connect to Codex before sending. Your draft stays here. <a href="#workspace-connection">Open connection controls</a></p>
-            : <>{startNew?.notice}<p className="panel-empty">Write your first message below. Sending starts a new conversation with the settings under it.</p></>}
+            : <>{startNew?.notice}{pick ? <p className="panel-empty"><strong>{pick.title}</strong> is ready. Say what it should work on.</p>
+              : <p className="panel-empty">Write your first message below. Sending starts a new conversation with the settings under it.</p>}</>}
           {selected && ordered.length > 0 && <section id="conversation-requests" className="permission-card-list" aria-label="Requests from Codex in this conversation" aria-live="polite">
             {ordered.map((request: Json) => answerable(request) ? <Fragment key={JSON.stringify([request.generation, request.requestIdentity])}>
               <NativeRequestCard activityLink={activityLink} request={request} view={host?.nativeView} answer={answer} readRequest={readRequest} place={requestPlace(request, host, appProjectFolder(host))} observation={replyObservations?.[requestScopeKey(request)]} />
@@ -660,28 +722,34 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
       </div>}
       {actionOutcome}
       {text && selected && textWrittenFor.current && textWrittenFor.current !== threadKey && <p role="note" aria-label="Where your text goes">Your unsent text was written while another conversation was shown. It is kept; if you send it now it goes to {conversationLabel(host, selected)}.</p>}
-      {ownBusy && <p>{ownBusy}: waiting for protocol response; no automatic retry.</p>}
+      {pickDropped && !pick && <p role="status">The workflow you picked was removed: Codex or the workflow source changed. Pick it again under Workflows.</p>}
+      {pickOutcome && (pickOutcome.kind === "alert" ? <p role="alert">{pickOutcome.words}</p> : <p role="status">{pickOutcome.words}</p>)}
+      {pick && pickRuns?.unresolvedStart && <p><label><input type="checkbox" checked={checkedRun === pickRuns.holdKey} disabled={!!busy} onChange={event => setCheckedRun(event.target.checked ? pickRuns.holdKey : null)}/> I read the conversation and want to prepare a new run anyway</label>{" "}
+        <small>The earlier start may have run; a new run sends the workflow again.</small></p>}
+      {ownBusy && !Object.values(PICK_STEPS).includes(ownBusy as never) && <p>{ownBusy}: waiting for protocol response; no automatic retry.</p>}
       {!ownBusy && codexBusy && <p>Stop or Restart Codex is in progress: sending text, steering and attachments is paused; interrupting a live turn stays available.</p>}
       {error && <p role="alert">{error} No automatic retry.</p>}
     </div>
     <form className="chat-input-row" onSubmit={event => { event.preventDefault(); submit(); }}>
+      {pick && <PickChip pick={pick} host={host} thread={selected?.threadId ?? ""} disabled={!!busy} remove={() => setPick?.(null)}/>}
       <div className="chat-composer-line">
         <textarea id="ordinary-composer-text" ref={composerField} rows={1} aria-label="Chat input" aria-describedby="ordinary-send-readiness" disabled={!!busy} value={text}
-          placeholder={running && steeringTarget ? "Add to the running turn…" : selected ? `Message ${speaker}…` : "Write your first message…"}
+          placeholder={pick ? "What should the workflow work on?" : running && steeringTarget ? "Add to the running turn…" : selected ? `Message ${speaker}…` : "Write your first message…"}
           onChange={e => { textRevision.current += 1; textWrittenFor.current = threadKey; setText(e.target.value); }}
           onKeyDown={event => {
             if (event.key !== "Enter" || event.shiftKey || event.nativeEvent?.isComposing) return;
             event.preventDefault();
-            if (running && steeringTarget) { if (!updateDisabled) void steerText(); }
+            if (running && steeringTarget && !pick) { if (!updateDisabled) void steerText(); }
             else if (!sendDisabled) submit();
           }} />
         <button type="button" aria-label="Attach files" title="Attach files" aria-expanded={attachOpen} onClick={() => setAttachOpen(open => !open)}>⊕</button>
-        <button type="submit" aria-label={attachmentsSelected ? "Send text only" : "Send text"} aria-describedby="ordinary-send-readiness" disabled={sendDisabled}
-          onClick={event => { event?.preventDefault(); if (!sendDisabled) submit(); }}>↑</button>
+        {showWorkflows && <button type="button" className="chat-workflow-button" title="Open workflows" onClick={showWorkflows}>Workflows</button>}
+        <button type="submit" className={pick ? "v4-send-run" : undefined} aria-label={pick ? undefined : attachmentsSelected ? "Send text only" : "Send text"} aria-describedby="ordinary-send-readiness" disabled={sendDisabled}
+          onClick={event => { event?.preventDefault(); if (!sendDisabled) submit(); }}>{pick ? <><span className="v4-mark" aria-hidden="true"/>Start run</> : "↑"}</button>
         {running && steeringTarget && <button type="button" className="chat-submit-update" aria-label="Update running turn" disabled={updateDisabled} onClick={() => { void steerText(); }}>Update</button>}
         {running && <button type="button" className="button-muted" aria-label="Stop the running turn" disabled={stopDisabled} onClick={() => { void interruptTurn(stopTarget); }}>Stop</button>}
       </div>
-      <p id="ordinary-send-readiness" role="status" aria-live="polite" className={sendBlocked ? "v4-composer-status" : "visually-hidden"}>{sendReadiness}</p>
+      <p id="ordinary-send-readiness" role="status" aria-live="polite" className={(pick ? !pickReady && (!!text || projectMissing || !!pickStop || !pickCurrent) : sendBlocked) ? "v4-composer-status" : "visually-hidden"}>{pick ? pickReadiness : sendReadiness}</p>
     </form>
     <div ref={contextLine} id={selected ? undefined : "workspace-start"} className="chat-context" role="group" aria-label="Chat context">
       <span>{selected ? "Working in" : "Start in"}</span>
@@ -1216,7 +1284,7 @@ export function NewerRevisionNotice({ selection, busy, act }:{ selection: Json; 
       : ` ${String(newer.offered)}.`}</p>;
 }
 
-export function WorkflowRootPanel({ viewStale = false, readFailure = null, data, host, act, observeView, openFileAct, fileActBusy = false, openPreparedMessage, operationalReference, offerComposer, showConversation, view, findInHistory }:{ viewStale?: boolean; readFailure?: string | null; findInHistory?: (hint: string) => void; view?: string; showConversation?: (threadId: string, target?: string) => void; offerComposer?: (threadKey: string, text: string) => void; data: Json; host: Json; act: (command:string,args:Record<string,unknown>)=>Promise<Json>; observeView?: ()=>Promise<unknown>; openFileAct?: OpenArrivalFileAct; fileActBusy?: boolean; openPreparedMessage?: (item: PreparedMessage) => void; operationalReference?: Json }) {
+export function WorkflowRootPanel({ viewStale = false, readFailure = null, data, host, act, observeView, openFileAct, fileActBusy = false, openPreparedMessage, operationalReference, offerComposer, showConversation, view, findInHistory, pick = null, setPick }:{ pick?: WorkflowPick | null; setPick?: (pick: WorkflowPick | null) => void; viewStale?: boolean; readFailure?: string | null; findInHistory?: (hint: string) => void; view?: string; showConversation?: (threadId: string, target?: string) => void; offerComposer?: (threadKey: string, text: string) => void; data: Json; host: Json; act: (command:string,args:Record<string,unknown>)=>Promise<Json>; observeView?: ()=>Promise<unknown>; openFileAct?: OpenArrivalFileAct; fileActBusy?: boolean; openPreparedMessage?: (item: PreparedMessage) => void; operationalReference?: Json }) {
   const [name,setName]=useState("");
   const [revision,setRevision]=useState("");
   const [draftsState,setDraftsState]=useState<DraftsState>(initialDraftsState);
@@ -1333,9 +1401,9 @@ export function WorkflowRootPanel({ viewStale = false, readFailure = null, data,
     <RunWorkflowGuide data={data} host={host} thread={thread} chooseThread={chooseWorkflowChat} act={action} busy={busy} text={text} setText={setText}
       outcome={guideOutcome} showConversation={showConversation} viewStale={viewStale} readFailure={readFailure}/>
     </div>
-    {/* The Workflows tab chooses for the conversation chosen in the Run guide, through the same press and state. */}
+    {/* The Workflows tab picks a workflow for the next message; the composer's Start run uses the pick. */}
     {view !== undefined && <div id="view-library" data-workspace-view="workflows" hidden={view !== "workflows"}>
-    <WorkflowLibrary data={data} host={host} thread={thread} act={action} busy={busy} outcome={guideOutcome} viewStale={viewStale} readFailure={readFailure}/>
+    <WorkflowLibrary data={data} host={host} busy={busy} pick={pick} setPick={setPick} viewStale={viewStale} readFailure={readFailure}/>
     </div>}
     <div id="view-make" data-workspace-view="make" hidden={view !== undefined && view !== "make"}>
     {offerComposer && <MakeWorkflowGuide data={data} host={host} act={action} busy={busy} outcome={guideOutcome} viewStale={viewStale} readFailure={readFailure} offerComposer={offerComposer} openPreparedMessage={openPreparedMessage} showConversation={showConversation} findInHistory={findInHistory}/>}
@@ -2273,6 +2341,14 @@ export function App() {
   // tabs, one selected at a time, all mounted. Showing a tab opens the right region if it is collapsed. An intent that
   // navigates sets its view in the same update as its own state, so the reveal that follows finds its target visible.
   const [rightTab, setRightTab] = useState<RightPanelTab>("run");
+  // The workflow picked in the Workflows tab for the next message (WorkflowPick.tsx): the renderer's alone, nothing
+  // sent or stored. It is dropped when the workflow source, the Codex generation or the home changes, since its name
+  // may then no longer name the same workflow; the composer says so in one line.
+  const [pick, setPickState] = useState<WorkflowPick | null>(null);
+  const [pickDropped, setPickDropped] = useState(false);
+  const pickScopeNow = pickScope(host);
+  useEffect(() => { if (pick && pick.scope !== pickScopeNow) { setPickState(null); setPickDropped(true); } }, [pick, pickScopeNow]);
+  const setPick = (next: WorkflowPick | null) => { setPickState(next); setPickDropped(false); };
   // The conversation view's own choice of a conversation, as it reports it (null while it takes none).
   const [conversationChooser, setConversationChooser] = useState<{ choose: ((key: string) => void) | null }>({ choose: null });
   const [rightCollapsed, setRightCollapsed] = useState(false);
@@ -3197,7 +3273,8 @@ export function App() {
           </div>}
           strip={<ActivityStrip phase={statusCurrent ? turnPhase(shownRow, !!shownRow && waitingThreads.has(shownRow.threadId)) : null}/>}
           centre={<div id="view-conversation" data-workspace-view="conversation" className="v4-centre" onFocus={enterConversation} onPointerDown={enterConversation}>
-            <ConversationPanel toolsHost={toolsHost} showTools={showToolsTarget} before={centreNotices} attachments={attachmentPanel} actionOutcome={actionOutcome} startNew={startNew} reportChooser={choose => setConversationChooser({ choose })} localRoute={fixedLocal} focusComposer={conversationReveal?.target === "ordinary-composer-text" ? conversationReveal.sequence : undefined} composerOffer={composerOffer} preparedReveal={preparedReveal} activityNavigationRef={activityNavigationRef} activityLink={activityLink} forkConversation={forkConversation} handoffSend={(id, text) => handoffAction("continue_as_send", { id, text })} handoffRead={id => handoffAction("continue_as_send_read", { id })} codexBusy={processBusy} host={host} threadKey={threadKey} setThreadKey={setThreadKey} answer={answerRequest} readRequest={readRequestCustody} replyObservations={replyObservations} runAct={runAct} trialRunAct={trialRunAct} startAct={startRunAct} send={ordinarySend} observeOrdinaryView={observeOrdinaryView} checkPlanMode={async (generation) => {
+            <ConversationPanel pick={pick} setPick={setPick} clearPick={done => setPickState(current => current === done ? null : current)} pickDropped={pickDropped} showWorkflows={() => showView("workflows")}
+              readStatus={async () => { const read = await readHost(invoke<Json>("host_status")); applyHost(read); return read.snapshot; }} toolsHost={toolsHost} showTools={showToolsTarget} before={centreNotices} attachments={attachmentPanel} actionOutcome={actionOutcome} startNew={startNew} reportChooser={choose => setConversationChooser({ choose })} localRoute={fixedLocal} focusComposer={conversationReveal?.target === "ordinary-composer-text" ? conversationReveal.sequence : undefined} composerOffer={composerOffer} preparedReveal={preparedReveal} activityNavigationRef={activityNavigationRef} activityLink={activityLink} forkConversation={forkConversation} handoffSend={(id, text) => handoffAction("continue_as_send", { id, text })} handoffRead={id => handoffAction("continue_as_send_read", { id })} codexBusy={processBusy} host={host} threadKey={threadKey} setThreadKey={setThreadKey} answer={answerRequest} readRequest={readRequestCustody} replyObservations={replyObservations} runAct={runAct} trialRunAct={trialRunAct} startAct={startRunAct} send={ordinarySend} observeOrdinaryView={observeOrdinaryView} checkPlanMode={async (generation) => {
           // The check's own failure stands, with the fixed line after it when the refresh failed too.
           // A completed check whose refresh fails rejects with the fixed line alone: its result is
           // visible only through the refreshed status, and that line says the status was not read.
@@ -3234,7 +3311,7 @@ export function App() {
         </div>
         <div id="view-workflows" className="workspace-view workspace-view-narrow" hidden={rightTab !== "run" && rightTab !== "make" && rightTab !== "workflows"}>
           <div className="workspace-primary-column" aria-label="Workflow studio">
-            <WorkflowRootPanel viewStale={shownBeforePress(hostReads)} readFailure={hostReads.failure} findInHistory={findInHistory} view={rightTab} showConversation={showConversation} offerComposer={offerComposer} data={host?.workflowRoot} host={host} operationalReference={threadKey ? conversationFromKey(threadKey) ?? undefined : null} openFileAct={openArrivalFileAct} fileActBusy={fileActBusy} act={(command, args) => { const refusal = bringBackRefusal(command, args, currentHost.current); return refusal ? Promise.reject(Error(refusal)) : invoke<Json>(command, args); }} observeView={refresh} openPreparedMessage={item => { void openPreparedMessage(item); }}/>
+            <WorkflowRootPanel pick={pick} setPick={setPick} viewStale={shownBeforePress(hostReads)} readFailure={hostReads.failure} findInHistory={findInHistory} view={rightTab} showConversation={showConversation} offerComposer={offerComposer} data={host?.workflowRoot} host={host} operationalReference={threadKey ? conversationFromKey(threadKey) ?? undefined : null} openFileAct={openArrivalFileAct} fileActBusy={fileActBusy} act={(command, args) => { const refusal = bringBackRefusal(command, args, currentHost.current); return refusal ? Promise.reject(Error(refusal)) : invoke<Json>(command, args); }} observeView={refresh} openPreparedMessage={item => { void openPreparedMessage(item); }}/>
         {preparedNotice && <p role="status">{preparedNotice}</p>}
           </div>
         </div>
