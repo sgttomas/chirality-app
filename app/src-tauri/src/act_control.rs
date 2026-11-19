@@ -22,6 +22,8 @@
 #[path = "act_control_assurance.rs"]
 mod assurance;
 pub(crate) use assurance::{ConfirmedAssuranceAct, confirm_assurance_lowering};
+#[cfg(test)]
+pub(crate) use assurance::assurance_lowering;
 
 #[path = "act_control_file.rs"]
 mod file_act;
@@ -916,7 +918,8 @@ pub(crate) mod native_statement {
         )
     }
     /// F4: a host refusal is reported as a refusal with its cause, never as the
-    /// person's cancel. `refused` is set when the statement was not presented.
+    /// person's cancel. The refusal carries the reason the host could not
+    /// obtain or validate a usable answer.
     pub(crate) fn refusal_or(
         refused: Option<String>,
         result: Result<Value, String>,

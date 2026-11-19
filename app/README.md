@@ -468,8 +468,9 @@ implemented behavior and qualification limits.
     App writes SR-08 for each stop request an earlier session left sent with
     no final status (AS-02, R-2), and RQ-06 for the requests such a session left
     listed (*app-ended-without-record*; no reply is sent).
-22a. **Quit asks first** (DEL-01-02 DEF-6, K-4, SQ-Q; DEL-01-04 §5.2). Quit is
-    the App's own menu item (Cmd/Ctrl+Q). The host assesses live work across
+22a. **Quit asks first** (DEL-01-02 DEF-6, K-4, SQ-Q; DEL-01-04 §5.2). The
+    App's own Quit is available from its menu (Cmd/Ctrl+Q) and Setup's Quit
+    button. The host assesses live work across
     every App-owned home and records `quit_requested` with the lists. When the
     first assessment finds nothing live, the host closes admission for turn
     starts and steers on every listed home and assesses again. If it still
@@ -532,15 +533,17 @@ implemented behavior and qualification limits.
     Conversation shows the same stored-turn stop labels after a matched resume
     and adds no Continue.
 
-    An exit nobody decided is held and asked as Quit. **Closing the window is
+    An ordinary programmatic exit request without a decided Quit is held and
+    handled as the App's own Quit. **Closing the window is
     not quit** (DEF-1, SQ-W): it hides the window (macOS; the Dock icon shows
     it again) or minimizes it; work and requests continue, and the view
     re-reads the host's snapshot when shown. The Dock icon shows the number of
     supplier requests waiting for the person (C-24; macOS only). Quit and
-    Stop/Restart Codex refuse each other while one is under way. *Limits:* on macOS the
-    Dock's Quit, logout and shutdown reach the App as `terminate:` and cannot
-    be held; they are recorded as `session_ended` *system-terminated* with no
-    question. The Dock indicator gives a count only, and clicking it opens the
+    Stop/Restart Codex refuse each other while one is under way. *Limits:* on macOS, Quit in
+    the App's Dock menu, Command-Tab then Q in the app switcher, and logout,
+    restart and shutdown use system termination. If the App receives the final
+    termination notification without a decided Quit, it attempts to record
+    `session_ended` as *system-terminated* and asks no quit question (LIM-036). The Dock indicator gives a count only, and clicking it opens the
     App. The macOS App's **Waiting requests** menu additionally names current
     source-qualified conversation groups; a person selection shows the window
     and uses guarded navigation to that original source. A process-owned,

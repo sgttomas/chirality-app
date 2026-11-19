@@ -95,8 +95,10 @@ pub(crate) trait QuitOps: Interrupts {
     fn assess(&mut self) -> Assessment;
     /// L `quit_requested` with the lists (AS-03, AS-04, AS-07).
     fn record_requested(&mut self, material: &Value) -> Value;
-    /// The native question: Ok(true) only for the explicit Quit button;
-    /// Err when the question could not be presented (never the person's cancel).
+    /// The native question: Ok(true) only for the explicit Quit button. A
+    /// refusal means the App could not obtain or validate a usable answer.
+    /// The App keeps running without recording an answer, sending an
+    /// interrupt, stopping a home or answering a supplier request.
     fn confirm(&mut self, view: &Value) -> Result<bool, String>;
     /// L `quit_answered` (AS-05, AS-06).
     fn record_answered(&mut self, confirmed: bool) -> Value;
@@ -114,8 +116,9 @@ pub(crate) trait QuitOps: Interrupts {
 pub(crate) enum Decision {
     /// AS-05: nothing was interrupted, stopped or sent.
     Cancelled(Value),
-    /// The question could not be presented: no answer is recorded, nothing
-    /// was interrupted, stopped or sent, and the App keeps running.
+    /// A refusal means the App could not obtain or validate a usable answer.
+    /// The App keeps running without recording an answer, sending an
+    /// interrupt, stopping a home or answering a supplier request.
     NotAsked(Value),
     /// AS-03 or AS-06…AS-08: the App may now exit; `stopRequests` names the
     /// quit stop requests whose final state `session_ended` carries.
@@ -148,7 +151,7 @@ pub(crate) fn quit_sequence<O: QuitOps>(ops: &mut O, wait_limit: Duration) -> De
             Ok(chosen) => chosen,
             Err(refusal) => {
                 ops.reopen_to_new_turns();
-                return Decision::NotAsked(json!({"state":"not asked","reading":format!("The quit question could not be shown ({refusal}); the App keeps running. Nothing was interrupted, stopped or sent."),"assessment":view,"records":records}));
+                return Decision::NotAsked(json!({"state":"not asked","reading":format!("The App could not establish a usable answer to the Quit question ({refusal}). The App keeps running. This attempt sent no interrupt, stopped no home and answered no supplier request."),"assessment":view,"records":records}));
             }
         };
         if !chosen {

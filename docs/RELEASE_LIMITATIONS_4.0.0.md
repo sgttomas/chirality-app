@@ -634,3 +634,24 @@ An entry is added in the same pull request that makes the limitation standing.
   check the Unix permission bits on newly created and existing folders
   (`records_store_tests.rs`). The App does not check effective permissions
   at the default location.
+
+### LIM-036: Quit from the Dock or the app switcher can end the App without asking
+
+- **Id:** LIM-036
+- **Exit criteria:** 4
+- **What is unavailable:** the quit question for Quit in the App's Dock menu,
+  Command-Tab then Q in the app switcher, and logging out, restarting or
+  shutting down the Mac. These routes can end the App without asking about
+  live work. If macOS delivers the final termination notification before the
+  App has allowed its own Quit to proceed, the App attempts to record a system
+  termination and stop the Codex processes it started. This path sends no turn
+  interrupt and creates no new turn stop request. On relaunch, the system end
+  itself supplies no turn outcome. The App shows what it can recover from
+  Codex, with unknown outcomes stated.
+- **Why:** these macOS commands use the system termination path. The App's
+  quit question is on its own Quit path.
+- **What the person does instead:** use Quit in the App menu, or Command-Q
+  with the App in front. When work is live, the App asks before proceeding
+  with that Quit. If the App has already ended, reopen it and check the
+  conversation's recovered history before continuing.
+- **Basis:** DEL-01-02 REQ-005 and AC-006.

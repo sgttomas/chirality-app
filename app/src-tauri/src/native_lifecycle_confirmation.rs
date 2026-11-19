@@ -1,16 +1,78 @@
 //! Stop/Restart and Quit questions attached to their retained App window.
 //! No parentless fallback: rfd's macOS parentless path is a CF user alert,
 //! whereas a supplied parent selects the App's NSAlert sheet path.
+//!
+//! The App catches unwinds in the work passed to its containment helper
+//! ([`contained`]). Each task posted to the main thread and the dialog's
+//! answer callback are given their fault sender ready-made, so their body is
+//! the call into that helper.
 use crate::act_control::native_statement as ns;
 use raw_window_handle::{
     DisplayHandle, HandleError, HasDisplayHandle, HasWindowHandle, WindowHandle,
 };
+use std::io::Write;
+use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::mpsc;
+use tauri::Runtime;
 use tauri_plugin_dialog::{
     DialogExt, MessageDialogButtons, MessageDialogKind, MessageDialogResult,
 };
 
 const UNAVAILABLE: &str = "Original App window unavailable; native lifecycle confirmation refused";
+/// The refusal a waiting caller receives when work posted for its question
+/// faults. It is an `Err`, never an answer: no caller reads it as Keep running
+/// or as the act.
+pub(crate) const FAULTED: &str = "A fault interrupted the native lifecycle confirmation; no act authorized";
+
+type Reply<T> = mpsc::Sender<Result<T, String>>;
+
+/// Run work where it was posted. An unwind stops here instead of reaching the
+/// event loop: `fault`, prepared by the caller, receives [`FAULTED`] and a
+/// best-effort line goes to standard error. A fault never sends `Ok`.
+fn contained<T>(fault: Reply<T>, work: impl FnOnce()) {
+    if let Err(payload) = catch_unwind(AssertUnwindSafe(work)) {
+        // Dropping the payload could run code that unwinds again here.
+        std::mem::forget(payload);
+        let _ = writeln!(std::io::stderr(), "chirality: {FAULTED}");
+        let _ = fault.send(Err(FAULTED.into()));
+    }
+}
+
+/// Post `work` to the main thread with its fault contained. Every main-thread
+/// task of this module goes through here. The caller prepares `fault` (a
+/// clone of `reply`) before posting, so the posted task's body is only the
+/// call into [`contained`].
+fn post<R: Runtime, T: Send + 'static>(
+    window: &tauri::Window<R>,
+    fault: Reply<T>,
+    reply: Reply<T>,
+    work: impl FnOnce(Reply<T>) + Send + 'static,
+) -> Result<(), String> {
+    window
+        .run_on_main_thread(move || contained(fault, move || work(reply)))
+        .map_err(|_| UNAVAILABLE.to_owned())
+}
+
+/// The dialog's answer callback, which the plugin calls on its own thread.
+/// With `fault` prepared by the caller, its body is only the call into
+/// [`contained`].
+fn on_answer<T: Send + 'static>(
+    fault: Reply<T>,
+    handle: impl FnOnce(MessageDialogResult) + Send + 'static,
+) -> impl FnOnce(MessageDialogResult) + Send + 'static {
+    move |result| contained(fault, move || handle(result))
+}
+
+/// Post `work` and wait, off the main thread, for its one result.
+fn ask<R: Runtime, T: Send + 'static>(
+    window: &tauri::Window<R>,
+    ended: &str,
+    work: impl FnOnce(Reply<T>) + Send + 'static,
+) -> Result<T, String> {
+    let (send, receive) = mpsc::channel();
+    post(window, send.clone(), send, work)?;
+    receive.recv().map_err(|_| ended.to_owned())?
+}
 
 // The plugin silently ignores failed handle lookups. Cache both successful
 // borrows so its .parent() call cannot fall back to a parentless dialog.
@@ -72,21 +134,24 @@ fn choose(
 /// Called only by async IPC/workers. Validate, parent and schedule the sheet
 /// in one main-thread turn; never block that thread awaiting the answer.
 /// Stop supplies its IPC invoker; menu Quit supplies its already-retained main.
-pub(crate) fn confirm(
-    window: &tauri::Window,
+/// A fault in the posted work, or in the answer's handling, is a refusal.
+pub(crate) fn confirm<R: Runtime>(
+    window: &tauri::Window<R>,
     title: &str,
     statement: Result<ns::NativeStatement, String>,
     dont: &str,
     act: &str,
 ) -> Result<bool, String> {
     choose(statement, dont, act, |text, buttons| {
-        let (send, receive) = mpsc::channel();
         let original = window.clone();
         let title = title.to_owned();
         let act = act.to_owned();
-        window
-            .run_on_main_thread(move || {
+        ask(
+            window,
+            "Native lifecycle confirmation ended without a result; no act authorized",
+            move |send| {
                 let failure = send.clone();
+                let fault = send.clone();
                 if let Err(error) = checked(&original, |parent| {
                     original
                         .dialog()
@@ -97,51 +162,60 @@ pub(crate) fn confirm(
                         .parent(parent)
                         .show_with_result({
                             let original = original.clone();
-                            move |result| {
-                                if !ns::chose(&result, &act) {
-                                    let _ = send.send(Ok(result));
-                                    return;
-                                }
-                                // The answer cannot authorize a lifecycle act if
-                                // the original App window has since been destroyed.
-                                let retained = original.clone();
-                                let failure = send.clone();
-                                if original
-                                    .run_on_main_thread(move || {
-                                        let _ =
-                                            send.send(result_in_original(&retained, result, &act));
-                                    })
-                                    .is_err()
-                                {
-                                    let _ = failure.send(Err(UNAVAILABLE.into()));
-                                }
-                            }
+                            on_answer(fault, move |result| answered(&original, result, act, send))
                         });
                 }) {
                     let _ = failure.send(Err(error));
                 }
-            })
-            .map_err(|_| UNAVAILABLE.to_string())?;
-        receive.recv().map_err(|_| {
-            "Native lifecycle confirmation ended without a result; no act authorized".to_string()
-        })?
+            },
+        )
     })
+}
+
+/// The dialog's answer. Anything but the act is sent as it is. The act cannot
+/// authorize a lifecycle act if the original App window has since been
+/// destroyed, which is checked on the main thread.
+fn answered<R: Runtime>(
+    original: &tauri::Window<R>,
+    result: MessageDialogResult,
+    act: String,
+    send: Reply<MessageDialogResult>,
+) {
+    if !ns::chose(&result, &act) {
+        let _ = send.send(Ok(result));
+        return;
+    }
+    let retained = original.clone();
+    let failure = send.clone();
+    if post(original, send.clone(), send, move |send| {
+        let _ = send.send(result_in_original(&retained, result, &act));
+    })
+    .is_err()
+    {
+        let _ = failure.send(Err(UNAVAILABLE.into()));
+    }
 }
 
 /// Read-only final check for a retained original, from an off-main-thread
 /// worker. This establishes handle availability at this check, not an atomic
 /// lifetime lease throughout subsequent provider work. Never reselect a window.
-pub(crate) fn revalidate_original(window: &tauri::Window) -> Result<(), String> {
-    let (send, receive) = mpsc::channel();
+pub(crate) fn revalidate_original<R: Runtime>(window: &tauri::Window<R>) -> Result<(), String> {
     let original = window.clone();
-    window
-        .run_on_main_thread(move || {
-            let _ = send.send(checked(&original, |_| ()));
-        })
-        .map_err(|_| UNAVAILABLE.to_owned())?;
-    receive
-        .recv()
-        .map_err(|_| "Original-window validation ended without a result".to_owned())?
+    ask(window, "Original-window validation ended without a result", move |send| {
+        let _ = send.send(checked(&original, |_| ()));
+    })
+}
+
+/// A caller that keeps a refusal apart from the answer: the refusal is kept
+/// for its report and the act is not chosen.
+pub(crate) fn refusal_kept(refused: &mut Option<String>, answer: Result<bool, String>) -> bool {
+    match answer {
+        Ok(chosen) => chosen,
+        Err(cause) => {
+            *refused = Some(cause);
+            false
+        }
+    }
 }
 
 /// Explanatory Quit refusals also must not fall back to an unowned alert.

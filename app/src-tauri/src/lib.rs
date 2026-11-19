@@ -1598,10 +1598,7 @@ fn codex_stop(window: tauri::Window, state: State<'_, AppState>, generation: Val
     let mut refused = None;
     let person = stop_person(&state, &home);
     let result = codex_stop::stop_native_home(&home, &state.workflows, &generation, restart, &person,
-        |view| match native_lifecycle_confirmation::confirm(&window, title, act_control::native_statement::codex_stop_statement(view), act_control::native_statement::KEEP_CODEX, act) {
-            Ok(chosen) => chosen,
-            Err(cause) => { refused = Some(cause); false }
-        },
+        |view| native_lifecycle_confirmation::refusal_kept(&mut refused, native_lifecycle_confirmation::confirm(&window, title, act_control::native_statement::codex_stop_statement(view), act_control::native_statement::KEEP_CODEX, act)),
         || { let started = start_home(&state, &home, "the person: Restart Codex"); read_account_after_start(&home, &started); started });
     codex_stop::finish(&state.codex_stops, title, refused, result)
 }
@@ -1734,7 +1731,7 @@ fn request_quit(app: tauri::AppHandle) {
         });
         let decision = app_quit::quit_sequence(&mut ops, app_quit::QUIT_WAIT_LIMIT);
         if let app_quit::Decision::NotAsked(outcome) = &decision {
-            eprintln!("chirality: {}", outcome["reading"].as_str().unwrap_or("quit question not shown"));
+            eprintln!("chirality: {}", outcome["reading"].as_str().unwrap_or("no usable answer to the Quit question"));
         }
         match state.app_quit.allow(&decision, |ids| app_quit::finish_exit(&homes, Some(ids.to_vec()))) {
             Ok(true) => app.exit(0),
