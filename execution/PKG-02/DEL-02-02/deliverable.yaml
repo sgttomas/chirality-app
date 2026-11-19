@@ -158,6 +158,11 @@ code_paths:
 - app/src/WorkspaceShell.tsx
 - app/src/Navigator.tsx
 - app/src/workspace.css
+# The Workflows tab (the included workflows and the opened library's registered revisions as cards) and
+# the workflow picked there for the next message, with the composer's press that chooses, prepares and
+# starts the run through the run guide's own commands.
+- app/src/WorkflowLibrary.tsx
+- app/src/WorkflowPick.tsx
 # Development tooling for looking at the views without running the App: a stand-in host that
 # answers from one constructed state. Not in the product build and not evidence for a criterion.
 - app/examination/visual_preview/**
@@ -216,3 +221,5 @@ checks:
 - app/tests/trial-continue-model-choice.test.mjs
 - app/tests/prepared-message-navigation.test.mjs
 - app/tests/run-panel.test.mjs
+- app/tests/workflow-library-tab.test.mjs
+- app/tests/workflow-pick-run.test.mjs

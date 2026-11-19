@@ -348,10 +348,10 @@ const TURN_STATUS_WORDS: Record<string, string> = { inProgress: "in progress", c
 /** What the App holds of the notice's own turn, in Codex's terms; nothing where it holds no status. */
 export const turnStatusWords = (status: string | null): string => (status === null ? "" : `The App holds Codex's report of that turn as ${TURN_STATUS_WORDS[status] ?? `“${status}”`}.`);
 
-function declaredRows(declaration: Json, key: string): Json[] {
+export function declaredRows(declaration: Json, key: string): Json[] {
   return list(declaration?.elements?.[key]).map((element: Json) => element?.value ?? {});
 }
-const INPUT_KIND: Record<string, string> = { host_read: "read by Codex from the project", file_supplied: "a file you name", person_supplied: "you describe it", workflow_output: "another workflow's result" };
+export const INPUT_KIND: Record<string, string> = { host_read: "read by Codex from the project", file_supplied: "a file you name", person_supplied: "you describe it", workflow_output: "another workflow's result" };
 
 /**
  * J1 — use an existing workflow. A guided reading over the workflow studio's

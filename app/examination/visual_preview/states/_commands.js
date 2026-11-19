@@ -77,3 +77,20 @@ export const availableModels = (args = {}) => ({ state: "observed", generation: 
 export const chooseWorkflowsTab = doc => doc.getElementById("right-tab-workflows");
 /** The right panel's Run tab (WorkspaceShell.tsx RIGHT_PANEL_TABS, id current-run). */
 export const chooseRunTab = doc => doc.getElementById("right-tab-current-run");
+/** "Use in message" on the Workflows tab's card for an included workflow (WorkflowLibrary.tsx), by its name. */
+export const pickIncludedCard = name => doc => doc.getElementById("view-library")?.querySelector(`li[aria-label="Included workflow ${name}"] button[aria-pressed="false"]`) ?? null;
+/** The person writes in the composer (App.tsx ConversationPanel, "Chat input"): React's own value setter, then an input
+ * event, as typing gives. Returns a stand-in with click() so pressesAfterMount moves on. */
+export const typeInComposer = text => doc => {
+  const field = doc.getElementById("ordinary-composer-text");
+  if (!field) return null;
+  Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value").set.call(field, text);
+  field.dispatchEvent(new Event("input", { bubbles: true }));
+  return { click() {} };
+};
+/** The composer's send button, which reads Start run while a workflow is picked; only once it is offered. */
+export const pressStartRun = doc => { const button = doc.querySelector("form.chat-input-row button[type=submit]"); return button && !button.disabled ? button : null; };
+/** "New chat" in the navigator (Navigator.tsx). */
+export const pressNewChat = doc => doc.querySelector("button.woven-new-chat");
+/** "Use model <id>" in the new conversation's model panel (ModelChoice.tsx AvailableModels), once the list is read. */
+export const chooseListedModel = id => doc => [...doc.querySelectorAll("button")].find(button => button.textContent === `Use model ${id}`) ?? null;
