@@ -1556,26 +1556,35 @@ class FolderPerConversation(Probing):
             self.succeeded(probe(run, client, thread, 'in', **FULL))  # the control: A's refusal was the sandbox's
 
     def test_a_thread_started_in_b_loads_bs_instructions_and_not_as(self):
-        """An invented `AGENTS.md` in each of A and B, each with its own marker line. The start reply's
-        `instructionSources` names B's file and not A's, and the requests the stub receives for that conversation's
-        turn carry B's marker and not A's. The control: a conversation started in A names and carries A's."""
+        """An invented `AGENTS.md` in each of A and B, each with its own marker line. For a conversation started in
+        B and, as the control, one started in A, each with its one trust entry untrusted and then trusted: which of
+        the two files the start reply's `instructionSources` names, and which marker lines the requests the stub
+        receives for that conversation's turn carry. Every case is observed before anything is asserted, so a
+        failure states all of them."""
         with L.Run(SCRATCH, BINARY, second_project=SECOND, instructions=True) as run:
             run.stub.watched = (run.markers['a'], run.markers['b'])
+            files = {side: os.path.realpath(str(f / 'AGENTS.md')) for side, f in
+                     (('a', run.project), ('b', run.project_b))}
             client = run.start()
-            for folder, own, other, key in ((run.project_b, 'b', 'a', 'instr_b'), (run.project, 'a', 'b', 'instr_a')):
-                reply, turn = self.start_in(run, client, folder)
-                sources = [os.path.realpath(path) for path in reply.get('instructionSources') or []]
-                files = {side: os.path.realpath(str(f / 'AGENTS.md')) for side, f in
-                         (('a', run.project), ('b', run.project_b))}
-                self.assertEqual((files[own] in sources, files[other] in sources), (True, False),
-                                 'started in %s, instructionSources was %r' % (own.upper(), sources))
-                _, done = client.turn(reply['thread']['id'], 'LEVEL[%s] go' % key, **turn)
-                self.assertEqual(done and done['turn']['status'], 'completed')
-                requests = [r for r in run.stub.requests if r['key'] == key]
-                self.assertTrue(requests, 'no request reached the stub for the turn in %s' % own.upper())
-                carried = sorted({m for r in requests for m in r['markers']})
-                self.assertEqual(carried, [run.markers[own]], 'started in %s, the turn carried the markers %r '
-                                 '(A: %s, B: %s)' % (own.upper(), carried, run.markers['a'], run.markers['b']))
+            observed = {}
+            for own, folder in (('b', run.project_b), ('a', run.project)):
+                for trust in ('untrusted', 'trusted'):
+                    key = 'instr_%s_%s' % (own, trust)
+                    reply, turn = self.start_in(run, client, folder, trust)
+                    sources = [os.path.realpath(path) for path in reply.get('instructionSources') or []]
+                    _, done = client.turn(reply['thread']['id'], 'LEVEL[%s] go' % key, **turn)
+                    self.assertEqual(done and done['turn']['status'], 'completed')
+                    requests = [r for r in run.stub.requests if r['key'] == key]
+                    self.assertTrue(requests, 'no request reached the stub for the turn of %s' % key)
+                    carried = {m for r in requests for m in r['markers']}
+                    observed[(own, trust)] = {
+                        'named': sorted(side for side, path in files.items() if path in sources),
+                        'other sources': sorted(path for path in sources if path not in files.values()),
+                        'carried': sorted(side for side, marker in run.markers.items() if marker in carried)}
+            expected = {(own, trust): {'named': [own], 'other sources': [], 'carried': [own]}
+                        for own in ('b', 'a') for trust in ('untrusted', 'trusted')}
+            self.assertEqual(observed, expected, 'by (the folder the conversation was started in, its trust entry): '
+                             'which AGENTS.md the reply named and which marker the turn carried: %r' % (observed,))
 
     def test_a_thread_started_in_b_loads_bs_own_settings_and_only_when_b_is_trusted(self):
         """The setting: `sandbox_workspace_write.writable_roots` in a project's own `.codex/config.toml`. The
