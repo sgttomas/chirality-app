@@ -33,6 +33,18 @@ needs:
   condition: The run-record format has entries for a turn's model and destination, for supplied
     guidance and for tool-permission settlements, and its writer appends them.
   gating: false
+- from: DEL-01-05
+  condition: A launch says whether its project came from the App's saved setup request (the person
+    set the project up through the App) or from the environment route.
+  gating: true
+  when: Deciding the App's default trust choice for the launched project
+- from: DEL-04-03
+  condition: The records store keeps an App-owned line file in a project's own store folder that
+    follows the project's identity, admitted through the project's retention control (a closed or
+    disposed project refuses the write), appended and read by the store's one line appender and
+    reading, and carried in the store's census and exports.
+  gating: true
+  when: Reading and writing the person's trust switches for a project
 code_paths:
 - app/src-tauri/resources/supplier/0.167.0
 - app/src-tauri/resources/supplier/0.169.0
@@ -89,6 +101,13 @@ code_paths:
 - app/src-tauri/src/codex_level.rs
 - app/src-tauri/src/codex_level_tests.rs
 - app/src-tauri/src/codex_level_host_tests.rs
+# The App's trust choice for a project it knows (the owner's decision of 19 November 2026): how the
+# project came to be known, the one lookup of a frame's folder, the person's switches kept in the
+# project's store folder (the store's own files are DEL-04-03's), the switch-on confirmation, the
+# effects text and the per-project view. lib.rs is shared; here, the three commands and the view.
+- app/src-tauri/src/project_trust.rs
+- app/src-tauri/src/project_trust_tests.rs
+- app/src-tauri/src/lib.rs
 # model_turn_recorder.rs is shared with DEL-04-03. Here: handing over the model and destination
 # the supplier reported. Writing them as the run record's model entries is DEL-04-03's.
 - app/src-tauri/src/model_turn_recorder.rs
