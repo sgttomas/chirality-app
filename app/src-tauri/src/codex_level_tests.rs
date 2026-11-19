@@ -257,7 +257,7 @@ fn row_3_the_apps_off_wins_over_the_settings_trusted_mark() {
         assert_eq!((r.row(), r.trust_level()), (TrustRow::SwitchedOff, "untrusted"), "{case:?}");
         let status = r.status();
         assert_eq!(status["case"], "switched-off");
-        assert_eq!(status["lines"], json!(["Chirality's choice for this project is off (switched off in Chirality at 2026-11-19T01:00:00Z), so the App sent an untrusted entry for the project root shown below."]));
+        assert_eq!(status["lines"], json!(["Chirality's choice for this project is off (switched off at 2026-11-19T01:00:00Z), so the App sent an untrusted entry for the project root shown below."]));
         assert_eq!(status["appChoiceAt"], "2026-11-19T01:00:00Z");
     }
 }
@@ -281,7 +281,7 @@ fn row_5_unmarked_with_the_apps_on_is_trusted_and_says_why() {
     assert_eq!(r.projects(), json!({"/invented/project": {"trust_level": "trusted"}}));
     let r = reading(TrustCase::Unmarked, Some(AppTrust::OnBySwitch { at: "2026-11-19T02:00:00Z".into() }));
     assert_eq!((r.row(), r.trust_level()), (TrustRow::AppOn, "trusted"));
-    assert_eq!(r.status()["lines"], json!(["Chirality's choice for this project is on (switched on in Chirality at 2026-11-19T02:00:00Z), so the App sent a trusted entry for the project root shown below."]));
+    assert_eq!(r.status()["lines"], json!(["Chirality's choice for this project is on (switched on at 2026-11-19T02:00:00Z), so the App sent a trusted entry for the project root shown below."]));
 }
 
 #[test]
@@ -313,8 +313,8 @@ fn row_7_an_unreadable_choice_is_untrusted_over_every_mark() {
 fn the_apps_sentences_say_tried_to_send_for_an_unwritten_frame() {
     for (case, choice, want) in [
         (TrustCase::Unmarked, on(), "Chirality's choice for this project is on (you set it up in Chirality and have not switched its trust off), so the App tried to send a trusted entry for the project root shown below."),
-        (TrustCase::Unmarked, AppTrust::OnBySwitch { at: "T".into() }, "Chirality's choice for this project is on (switched on in Chirality at T), so the App tried to send a trusted entry for the project root shown below."),
-        (trusted(), off(), "Chirality's choice for this project is off (switched off in Chirality at 2026-11-19T01:00:00Z), so the App tried to send an untrusted entry for the project root shown below."),
+        (TrustCase::Unmarked, AppTrust::OnBySwitch { at: "T".into() }, "Chirality's choice for this project is on (switched on at T), so the App tried to send a trusted entry for the project root shown below."),
+        (trusted(), off(), "Chirality's choice for this project is off (switched off at 2026-11-19T01:00:00Z), so the App tried to send an untrusted entry for the project root shown below."),
         (trusted(), choice_not_read(), "The App could not read its record of this project's trust choice, so it tried to send an untrusted entry for the project root shown below."),
     ] {
         let status = reading(case, Some(choice)).status_for_write(false);
@@ -377,10 +377,14 @@ fn an_unusable_settings_shape_is_a_limited_reading_never_an_absent_mark() {
     for config in [json!({}), json!({"projects": {}}), json!({"projects": {"/elsewhere": {"trust_level": 7}}}), json!({"projects": {key.clone(): {}}})] {
         assert_eq!(person_mark(&layers(vec![user_layer(config.clone())]), &root), Ok(TrustCase::Unmarked), "{config}");
     }
-    // Unusable: not taken for absent.
-    for config in [json!("text"), json!(null), json!([]), json!({"projects": "text"}), json!({"projects": {key.clone(): "trusted"}}),
-                   json!({"projects": {key.clone(): {"trust_level": "yes"}}}), json!({"projects": {key.clone(): {"trust_level": true}}})] {
+    // Unusable: not taken for absent. A layer whose settings are not a table is a limited reading; an unusable mark is
+    // said as one.
+    for config in [json!("text"), json!(null), json!([])] {
         assert_eq!(person_mark(&layers(vec![user_layer(config.clone())]), &root), Err(TRUST_READ_LIMITED.into()), "{config}");
+    }
+    for config in [json!({"projects": "text"}), json!({"projects": {key.clone(): "trusted"}}),
+                   json!({"projects": {key.clone(): {"trust_level": "yes"}}}), json!({"projects": {key.clone(): {"trust_level": true}}})] {
+        assert_eq!(person_mark(&layers(vec![user_layer(config.clone())]), &root), Err(TRUST_MARK_UNREADABLE.into()), "{config}");
     }
     let missing = json!({"name": {"type": "user", "file": "/invented/config.toml"}});
     assert_eq!(person_mark(&layers(vec![missing]), &root), Err(TRUST_READ_LIMITED.into()), "a user layer with no config");

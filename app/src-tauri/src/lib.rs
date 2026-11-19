@@ -1123,7 +1123,7 @@ fn records_store_identity(state: State<'_, AppState>, action: String) -> Result<
         "new-identity" => {
             let _switches = state.project_trust.hold_switches();
             match state.project_trust.new_identity_off_line(project) {
-                Some(line) => records_store::new_identity_with_trust_off(project, Some(&line)).map(|mut done| {
+                Some((line, not_set_off)) => records_store::new_identity_with_trust_off(project, Some((&line, not_set_off))).map(|mut done| {
                     done["trustLine"] = json!(project_trust::NEW_IDENTITY_TRUST_LINE);
                     done
                 }),

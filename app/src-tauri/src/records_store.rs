@@ -3395,13 +3395,12 @@ pub fn adopt(root: &Path) -> Result<Value, String> {
 pub fn new_identity(root: &Path) -> Result<Value, String> {
     new_identity_with_trust_off(root, None)
 }
-/// The new-identity act's error when the identity was made and its off line could not be written; the reason follows.
-pub(crate) const TRUST_NOT_SET_OFF: &str = "the new identity was made, and its trust could not be set off: ";
-/// [`new_identity`], and, where `trust_off` is given (a project the App holds; DEL-01-01), one trust switch line it
-/// makes for the new store and project identities, written in the new identity's folder as soon as the identity is
+/// [`new_identity`], and, where `trust_off` is given (a project the App holds; DEL-01-01), one trust switch line its
+/// first part makes for the new store and project identities, its second part the error's text, before the reason,
+/// where the identity is made and that line cannot be written, written in the new identity's folder as soon as the identity is
 /// registered. The caller holds the App's trust switches across the
 /// act (`ProjectTrust::hold_switches`), so no frame is written on the new identity's default meanwhile.
-pub fn new_identity_with_trust_off(root: &Path, trust_off: Option<&dyn Fn(&str, &str) -> Value>) -> Result<Value, String> {
+pub fn new_identity_with_trust_off(root: &Path, trust_off: Option<(&dyn Fn(&str, &str) -> Value, &str)>) -> Result<Value, String> {
     let (store, store_id) = created()?;
     let canonical = std::fs::canonicalize(root).map_err(|e| e.to_string())?;
     let _lock = store_lock(&store)?;
@@ -3429,12 +3428,12 @@ pub fn new_identity_with_trust_off(root: &Path, trust_off: Option<&dyn Fn(&str, 
     // After registration: the store writes the link first and its records after, and its recovery registers a
     // link's identity it does not know yet, so no earlier point keeps every reader from the new identity until its
     // off line exists. Either step failing after registration is said as the identity made with its trust not set
-    // off (`TRUST_NOT_SET_OFF`).
-    if let Some(line) = trust_off {
+    // off, in the caller's words.
+    if let Some((line, not_set_off)) = trust_off {
         // Attached as any reader attaches it, then the one line, through the project's write admission.
         attach(&canonical, false)
             .and_then(|_| append_line(&project_dir(&store, &project).join(TRUST_SWITCHES), &line(&store_id, &project)))
-            .map_err(|e| format!("{TRUST_NOT_SET_OFF}{e}"))?;
+            .map_err(|e| format!("{not_set_off}{e}"))?;
     }
     Ok(json!({"state":"new identity","projectId":project,"root":at,"limit":"records of the identity this folder had stay with that identity","trustOff":trust_off.is_some()}))
 }

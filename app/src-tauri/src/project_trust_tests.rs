@@ -355,26 +355,45 @@ fn the_repository_sentence_appears_only_where_the_root_codex_computes_is_not_the
     assert_eq!(sentence, json!({"before": INSIDE_REPOSITORY_BEFORE, "root": own.to_string_lossy(), "after": INSIDE_REPOSITORY_AFTER, "standing": "The folder is supplied text."}));
     assert_eq!(cl::project_root(&below), own, "the same function the trust entry uses");
     assert_eq!(format!("{INSIDE_REPOSITORY_BEFORE}<root>{INSIDE_REPOSITORY_AFTER}"),
-        "This project's folder is inside the Git repository at <root>. Trust is marked for that repository's top folder, so Codex also loads the AGENTS.md files in the folders from there down to this one, and can load .codex settings in those folders.");
+        "This project's folder is inside the Git repository at <root>. A trusted mark is made for that repository's top folder, so Codex then also loads the AGENTS.md files in the folders from there down to this one, and can load .codex settings in those folders.");
     std::fs::remove_dir_all(own).unwrap();
 }
 
 #[test]
 fn the_words_are_the_agreed_sentences() {
-    assert_eq!(WILL_TRUST, "Setting this project up switches Chirality's trust on for it.");
+    assert_eq!(WILL_TRUST, "Chirality's trust is on for a project you set up here, unless you have switched it off.");
     assert_eq!(CHOICE_ON_BY_SETUP, "Chirality's choice for this project is on: you set it up in Chirality and have not switched its trust off.");
-    assert_eq!(format!("{CHOICE_ON_BY_SWITCH_PREFIX}T."), "Chirality's choice for this project is on: you switched it on in Chirality at T.");
-    assert_eq!(format!("{CHOICE_OFF_BY_SWITCH_PREFIX}T."), "Chirality's choice for this project is off: you switched it off in Chirality at T.");
-    assert_eq!(CHOICE_NOT_READ, "The App could not read its record of this project's trust choice, so a conversation started in this project's folder is sent as untrusted until the record can be read.");
+    assert_eq!(format!("{CHOICE_ON_BY_SWITCH_PREFIX}T."), "Chirality's choice for this project is on: it was switched on at T.");
+    assert_eq!(format!("{CHOICE_OFF_BY_SWITCH_PREFIX}T."), "Chirality's choice for this project is off: it was switched off at T.");
+    assert_eq!(CHOICE_OFF_BY_NEW_IDENTITY, "Chirality's choice for this project is off: its records say the project was given a new identity, and trust is not carried to a new identity. Switch it on to have Chirality trust the project again.");
+    assert_eq!(CHOICE_NOT_READ, "The App could not read its record of this project's trust choice, so Chirality marks a conversation started in this project's folder as untrusted until the record can be read.");
+    assert_eq!(CHOICE_FOLDER_CHANGED, "The project's folder is no longer the folder Chirality opened, so Chirality marks a conversation started in it as untrusted.");
+    assert_eq!(CHOICE_SETTINGS_CAN_OVERRIDE, "The Codex settings Chirality uses make a conversation untrusted where they mark this project untrusted or cannot be read. What each start sent is shown with the conversation's access level.");
+    assert_eq!(NEW_IDENTITY_TRUST_LINE, "Giving this folder a new identity also sets the project's trust off under it, until you switch it on. If Chirality cannot record that, it says so.");
+    assert_eq!(format!("{NEW_IDENTITY_NOT_SET_OFF}<reason>"), "The new identity was made, but Chirality could not record its trust as off, so Chirality's trust is on for this project now. You can switch it off in Settings. <reason>");
     assert_eq!(CANNOT_SWITCH, "Trust can be switched only for a project that is open in Chirality with its identity in the App's records store. A closed or disposed project, or one with no identity, cannot be switched, and the records store can refuse a switch; its reason is shown.");
-    assert_eq!(setup_trust_pointer("D"), "Setting this project up switches Chirality's trust on for it. What that turns on is shown in full in the App now, under \"Content named by an open native confirmation\". Its sha-256 digest: D");
-    assert_eq!(SETUP_TRUST_AMONG_EFFECTS, "Setting this project up switches Chirality's trust on for it; what that turns on is among the complete effects shown in the App.");
+    assert_eq!(setup_trust_pointer("D"), "Chirality's trust is on for a project you set up here, unless you have switched it off. What trust turns on is shown in full in the App now, under \"Content named by an open native confirmation\". Its sha-256 digest: D");
+    assert_eq!(SETUP_TRUST_AMONG_EFFECTS, "Chirality's trust is on for a project you set up here, unless you have switched it off; what trust turns on is among the complete effects shown in the App.");
+    // The status sentences and the settings-file message.
+    assert_eq!(format!("{}T{}", cl::TRUST_ON_BY_SWITCH_PREFIX, cl::TRUST_ON_BY_SWITCH_SUFFIX), "Chirality's choice for this project is on (switched on at T), so the App sent a trusted entry for the project root shown below.");
+    assert_eq!(format!("{}T{}", cl::TRUST_OFF_BY_SWITCH_PREFIX, cl::TRUST_OFF_BY_SWITCH_SUFFIX), "Chirality's choice for this project is off (switched off at T), so the App sent an untrusted entry for the project root shown below.");
+    assert_eq!(cl::TRUST_OFF_BY_NEW_IDENTITY, "Chirality's choice for this project is off (its records say the project was given a new identity), so the App sent an untrusted entry for the project root shown below.");
+    assert_eq!(cl::TRUST_MARK_UNREADABLE, "The App's reading of the Codex settings it uses held a project mark it could not read.");
+    assert_eq!(format!("{}T{}", cl::PROJECT_SETTINGS_AT_BEFORE, cl::PROJECT_SETTINGS_AT_AFTER), "At T, Codex could not load its settings, so it did not start the conversation. This project was marked trusted in that request, so one of its own settings files may be the cause.");
+    assert_eq!(cl::PROJECT_SETTINGS_FILES, "The project's own settings files Codex may have read:");
+    assert_eq!(cl::PROJECT_SETTINGS_REASON, "Codex's reason:");
+    assert_eq!(cl::PROJECT_SETTINGS_REMEDY, "You can fix the file, or switch this project's trust off in Chirality, and start the conversation again.");
+    assert_eq!(cl::PROJECT_SETTINGS_COMMAND_ERROR, "Codex could not load its settings, so it did not start the conversation. This project was marked trusted in that request, so one of its own settings files may be the cause. See the project's trust in Chirality for the files and Codex's reason.");
 }
 
 #[test]
 fn the_effects_text_is_the_owners_words() {
-    assert_eq!(EFFECTS_TEXT, "Chirality marks this project as trusted when it starts, continues or forks a conversation in it, unless your own Codex settings mark the project untrusted or cannot be read. Codex then loads the project's own instructions (its AGENTS.md files) and its own Codex settings and rules (in the project's .codex folder). With them, the project's own files can:\n- start MCP server programs on this Mac when a conversation starts, outside the sandbox, and have Codex connect to MCP servers at addresses they name;\n- set the shell environment of every command the agent runs, and through it have a start-up file of the project's own run inside each command, under the same access level as that command;\n- let commands run outside the sandbox without asking you, through the project's rules. Chirality cannot switch that off while the project is trusted;\n- stop new conversations from starting in this project, where Codex cannot load the project's settings file, until the file is fixed or trust is switched off.\nYou can switch trust off for this project in Chirality while the project is open.");
-    assert!(ns::bounded("project trust", format!("{EFFECTS_TEXT}\n{INSIDE_REPOSITORY_BEFORE}/a/b{INSIDE_REPOSITORY_AFTER}\n{TAKES_EFFECT} {RUNNING_UNCHANGED}")).is_ok(), "the whole text fits the native confirmation");
+    assert_eq!(EFFECTS_TEXT, "While Chirality's trust is on for this project, Chirality marks the project as trusted when it starts, continues or forks a conversation in the project's folder, except in the cases named with the project's trust in Settings. With a trusted mark, Codex loads the project's own instructions (its AGENTS.md files) and its own Codex settings and rules (in the project's .codex folder). With them, the project's own files can:\n- start MCP server programs on this Mac when a conversation starts, outside the sandbox, and have Codex connect to MCP servers at addresses they name;\n- set the shell environment of the commands the agent runs, and through it have a start-up file of the project's own run inside each of those commands, under the same access level as that command;\n- let commands run outside the sandbox without asking you, through the project's rules. Chirality cannot switch that off while the project is trusted;\n- stop new conversations from starting in this project, where Codex cannot load the project's settings file, until the file is fixed or trust is switched off.\nYou can switch trust off for this project in Chirality while the project is open and its records can be written.");
+    // With these words the switch-on statement fits the native confirmation whole for a project that is its own
+    // root; with the repository sentence it does not, and the confirmation shows the whole text in the App
+    // (`a_preview_whose_effects_changed_is_refused_before_any_confirmation` reads either form).
+    assert!(ns::bounded("project trust", format!("{EFFECTS_TEXT}\n{TAKES_EFFECT} {RUNNING_UNCHANGED}")).is_ok(), "whole, its own root");
+    assert!(ns::bounded("project trust", format!("{EFFECTS_TEXT}\n{INSIDE_REPOSITORY_BEFORE}/a/b{INSIDE_REPOSITORY_AFTER}\n{TAKES_EFFECT} {RUNNING_UNCHANGED}")).is_err(), "in the App, inside a repository");
 }
 
 // ---- A run with no records store ----
@@ -656,8 +675,9 @@ fn the_commands_name_their_project_and_the_labels_are_the_fixed_strings() {
 fn the_new_identity_act_writes_off_under_the_new_identity_for_a_project_on_by_setup() {
     let (project, trust) = set_up("trust-new-identity-");
     confirmed_on(&trust);
-    let line = trust.new_identity_off_line(&project).expect("on by its setup: the act writes off");
-    let done = records_store::new_identity_with_trust_off(&project, Some(&line)).unwrap();
+    let (line, not_set_off) = trust.new_identity_off_line(&project).expect("on by its setup: the act writes off");
+    assert_eq!(not_set_off, NEW_IDENTITY_NOT_SET_OFF);
+    let done = records_store::new_identity_with_trust_off(&project, Some((&line, not_set_off))).unwrap();
     assert_eq!(done["trustOff"], true);
     let written = lines(&project);
     assert_eq!(written.len(), 1);
@@ -672,7 +692,7 @@ fn the_new_identity_act_writes_off_under_the_new_identity_for_a_project_on_by_se
     // An environment-route project the App holds gets the line too (point 5 of the second repair); a folder the
     // App does not hold gets none.
     let opened = ProjectTrust::for_launch(Some(&project), "explicit Root native environment path inputs");
-    assert!(opened.new_identity_off_line(&project).is_some());
+    assert_eq!(opened.new_identity_off_line(&project).map(|(_, text)| text), Some(NEW_IDENTITY_NOT_SET_OFF_ENVIRONMENT));
     assert_eq!(opened.view()["newIdentity"], NEW_IDENTITY_TRUST_LINE);
     assert_eq!(trust.view()["newIdentity"], NEW_IDENTITY_TRUST_LINE);
     let other = folder("trust-new-identity-other-");
@@ -716,13 +736,13 @@ fn the_revision_covers_every_line_so_an_earlier_decisive_line_replaced_under_the
 fn a_new_identity_whose_off_line_cannot_be_written_says_the_identity_was_made_and_its_trust_is_on() {
     let (project, trust) = set_up("trust-new-identity-fails-");
     let old = ids(&project).1;
-    let line = trust.new_identity_off_line(&project).unwrap();
+    let (line, not_set_off) = trust.new_identity_off_line(&project).unwrap();
     // The act's store line writes complete (the old identity's release, the new one's roots line); the off line,
     // the next, is stopped before it is put in place.
     records_store::interrupt_append_after_for_test(2, Some(records_store::AppendStop::BeforeWrite));
-    let refused = records_store::new_identity_with_trust_off(&project, Some(&line)).unwrap_err();
+    let refused = records_store::new_identity_with_trust_off(&project, Some((&line, not_set_off))).unwrap_err();
     records_store::interrupt_append_for_test(None);
-    assert!(refused.starts_with(records_store::TRUST_NOT_SET_OFF), "{refused}");
+    assert!(refused.starts_with(NEW_IDENTITY_NOT_SET_OFF) && refused.len() > NEW_IDENTITY_NOT_SET_OFF.len(), "the agreed text, then the reason: {refused}");
     // The identity was made: the folder is attached to a new identity, with no switch line under it.
     let now = ids(&project).1;
     assert_ne!(now, old, "the new identity was made");

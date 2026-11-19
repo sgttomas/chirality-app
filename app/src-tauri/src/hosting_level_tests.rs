@@ -2040,8 +2040,8 @@ fn an_environment_project_switched_on_then_given_a_new_identity_is_sent_untruste
     let (host, trust) = app_project_host(&base, &project, ENVIRONMENT);
     let token = trust.preview_on_launched().unwrap()["token"].as_str().unwrap().to_owned();
     trust.confirm_on(&token, |_, _, _| Ok(true)).unwrap();
-    let line = trust.new_identity_off_line(&project).expect("every held project");
-    crate::records_store::new_identity_with_trust_off(&project, Some(&line)).unwrap();
+    let (line, not_set_off) = trust.new_identity_off_line(&project).expect("every held project");
+    crate::records_store::new_identity_with_trust_off(&project, Some((&line, not_set_off))).unwrap();
     let k = key(&project);
     let wire = Responder::attach(&host, move |_| layers_with(json!({k.clone(): {"trust_level": "trusted"}})));
     send(&host, "thread/start", json!({"cwd": project})).unwrap();

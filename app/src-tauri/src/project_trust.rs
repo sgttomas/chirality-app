@@ -21,18 +21,18 @@ use std::sync::{Mutex, MutexGuard};
 
 /// What trust turns on, said wherever the person meets trust: setup's review, the switch-on confirmation and the
 /// per-project view (and, later, the add confirmation). One source; no softer summary anywhere.
-pub const EFFECTS_TEXT: &str = "Chirality marks this project as trusted when it starts, continues or forks a conversation in it, unless your own Codex settings mark the project untrusted or cannot be read. Codex then loads the project's own instructions (its AGENTS.md files) and its own Codex settings and rules (in the project's .codex folder). With them, the project's own files can:
+pub const EFFECTS_TEXT: &str = "While Chirality's trust is on for this project, Chirality marks the project as trusted when it starts, continues or forks a conversation in the project's folder, except in the cases named with the project's trust in Settings. With a trusted mark, Codex loads the project's own instructions (its AGENTS.md files) and its own Codex settings and rules (in the project's .codex folder). With them, the project's own files can:
 - start MCP server programs on this Mac when a conversation starts, outside the sandbox, and have Codex connect to MCP servers at addresses they name;
-- set the shell environment of every command the agent runs, and through it have a start-up file of the project's own run inside each command, under the same access level as that command;
+- set the shell environment of the commands the agent runs, and through it have a start-up file of the project's own run inside each of those commands, under the same access level as that command;
 - let commands run outside the sandbox without asking you, through the project's rules. Chirality cannot switch that off while the project is trusted;
 - stop new conversations from starting in this project, where Codex cannot load the project's settings file, until the file is fixed or trust is switched off.
-You can switch trust off for this project in Chirality while the project is open.";
+You can switch trust off for this project in Chirality while the project is open and its records can be written.";
 /// Setup's review, before the effects text, where a route names a project.
-pub const WILL_TRUST: &str = "Setting this project up switches Chirality's trust on for it.";
+pub const WILL_TRUST: &str = "Chirality's trust is on for a project you set up here, unless you have switched it off.";
 /// After the effects text, only where the root Codex computes is not the project's folder; the root between them,
 /// as supplied text.
 pub const INSIDE_REPOSITORY_BEFORE: &str = "This project's folder is inside the Git repository at ";
-pub const INSIDE_REPOSITORY_AFTER: &str = ". Trust is marked for that repository's top folder, so Codex also loads the AGENTS.md files in the folders from there down to this one, and can load .codex settings in those folders.";
+pub const INSIDE_REPOSITORY_AFTER: &str = ". A trusted mark is made for that repository's top folder, so Codex then also loads the AGENTS.md files in the folders from there down to this one, and can load .codex settings in those folders.";
 pub const TAKES_EFFECT: &str = "A change applies to conversations you start, continue or fork after it.";
 pub const RUNNING_UNCHANGED: &str = "Conversations already running are not changed.";
 /// The control's limit sentence; the store's own reason follows as detail.
@@ -43,22 +43,27 @@ pub const PERFORM: &str = "Trust this project";
 pub const DECLINE: &str = "Keep untrusted";
 /// The view's sentences for the App's choice.
 pub const CHOICE_ON_BY_SETUP: &str = "Chirality's choice for this project is on: you set it up in Chirality and have not switched its trust off.";
-pub const CHOICE_ON_BY_SWITCH_PREFIX: &str = "Chirality's choice for this project is on: you switched it on in Chirality at ";
-pub const CHOICE_OFF_BY_SWITCH_PREFIX: &str = "Chirality's choice for this project is off: you switched it off in Chirality at ";
+pub const CHOICE_ON_BY_SWITCH_PREFIX: &str = "Chirality's choice for this project is on: it was switched on at ";
+pub const CHOICE_OFF_BY_SWITCH_PREFIX: &str = "Chirality's choice for this project is off: it was switched off at ";
 pub const CHOICE_NONE: &str = "Chirality makes no trust choice for this project: it was opened from the environment, not set up in Chirality, so the Codex settings the App uses decide.";
-pub const CHOICE_NOT_READ: &str = "The App could not read its record of this project's trust choice, so a conversation started in this project's folder is sent as untrusted until the record can be read.";
-pub const CHOICE_OFF_BY_NEW_IDENTITY: &str = "Chirality's choice for this project is off: the project was given a new identity in the App's records store, and trust is not carried to a new identity. Switch it on to trust the project again.";
-/// Not among the agreed sentences: the view's own account of `AppTrust::FolderChanged` (the status has its own).
-pub const CHOICE_FOLDER_CHANGED: &str = "The project's folder is no longer the folder Chirality opened, so a conversation started in it is sent as untrusted.";
+pub const CHOICE_NOT_READ: &str = "The App could not read its record of this project's trust choice, so Chirality marks a conversation started in this project's folder as untrusted until the record can be read.";
+pub const CHOICE_OFF_BY_NEW_IDENTITY: &str = "Chirality's choice for this project is off: its records say the project was given a new identity, and trust is not carried to a new identity. Switch it on to have Chirality trust the project again.";
+/// The view's account of `AppTrust::FolderChanged` (the status has its own).
+pub const CHOICE_FOLDER_CHANGED: &str = "The project's folder is no longer the folder Chirality opened, so Chirality marks a conversation started in it as untrusted.";
 /// Beside any "on": the App's choice is not the entry itself.
-pub const CHOICE_SETTINGS_CAN_OVERRIDE: &str = "Your own Codex settings can still make a conversation untrusted. What each start sent is shown with the conversation's access level.";
+pub const CHOICE_SETTINGS_CAN_OVERRIDE: &str = "The Codex settings Chirality uses make a conversation untrusted where they mark this project untrusted or cannot be read. What each start sent is shown with the conversation's access level.";
 /// Where an on line made for another store or identity was passed over.
 pub const CHOICE_PASSED_OVER: &str = "A switch-on recorded for another installation or another project identity is not used here.";
 /// The switch-on confirmation's native line naming its content, where the whole does not fit (not among the agreed
 /// sentences: setup's pointer without its setup line, which would be false here).
 pub const SWITCH_ON_POINTER: &str = "What trust turns on for this project is shown in full in the App now, under \"Content named by an open native confirmation\". Its sha-256 digest: ";
-/// The new-identity act's added line, for a project whose trust would otherwise be on.
-pub const NEW_IDENTITY_TRUST_LINE: &str = "The project's trust will be off under its new identity until you switch it on.";
+/// The new-identity act's added line, for every project the App holds.
+pub const NEW_IDENTITY_TRUST_LINE: &str = "Giving this folder a new identity also sets the project's trust off under it, until you switch it on. If Chirality cannot record that, it says so.";
+/// The new-identity act's error where the identity was made and its off line could not be written, before the
+/// reason: for a project set up in the App (its trust is then on by its setup), and for a project opened from the
+/// environment (it then has no choice; not among the agreed sentences, the earlier text kept).
+pub const NEW_IDENTITY_NOT_SET_OFF: &str = "The new identity was made, but Chirality could not record its trust as off, so Chirality's trust is on for this project now. You can switch it off in Settings. ";
+pub const NEW_IDENTITY_NOT_SET_OFF_ENVIRONMENT: &str = "the new identity was made, and its trust could not be set off: ";
 /// The refusal when what the person reviewed changed while the confirmation was open.
 pub const CHANGED_WHILE_OPEN: &str = "The project or its trust changed while the confirmation was open; nothing written; review it again";
 /// The schema word of a switch line, and the reason the new-identity act's off line carries. A line is exactly
@@ -164,10 +169,10 @@ pub(crate) fn setup_trust_content(lines: &str) -> Value {
 }
 /// The native line that names that content.
 pub(crate) fn setup_trust_pointer(digest: &str) -> String {
-    format!("{WILL_TRUST} What that turns on is shown in full in the App now, under \"Content named by an open native confirmation\". Its sha-256 digest: {digest}")
+    format!("{WILL_TRUST} What trust turns on is shown in full in the App now, under \"Content named by an open native confirmation\". Its sha-256 digest: {digest}")
 }
 /// The line the whole fallback adds, when even the setup lines do not fit the native statement.
-pub const SETUP_TRUST_AMONG_EFFECTS: &str = "Setting this project up switches Chirality's trust on for it; what that turns on is among the complete effects shown in the App.";
+pub const SETUP_TRUST_AMONG_EFFECTS: &str = "Chirality's trust is on for a project you set up here, unless you have switched it off; what trust turns on is among the complete effects shown in the App.";
 
 /// The effects as one plain text, for a native confirmation.
 fn effects_plain(project: &Path) -> String {
@@ -467,10 +472,13 @@ impl ProjectTrust {
     }
     /// For the new-identity act on `root`: the off line it writes under the new identity, where the App holds the
     /// project, however it was opened (DEL-01-01); None otherwise.
-    pub(crate) fn new_identity_off_line(&self, root: &Path) -> Option<impl Fn(&str, &str) -> Value> {
+    /// With it, the act's error text, before the reason, where the identity is made and that line cannot be written:
+    /// a project set up in the App is then on by its setup; one opened from the environment has no choice.
+    pub(crate) fn new_identity_off_line(&self, root: &Path) -> Option<(impl Fn(&str, &str) -> Value, &'static str)> {
         let physical = std::fs::canonicalize(root).ok()?;
-        let held = self.projects.lock().unwrap_or_else(|p| p.into_inner()).iter().any(|p| p.physical == physical);
-        held.then_some(|store: &str, project: &str| switch_line(false, store, project, Some(NEW_IDENTITY_REASON)))
+        let known = self.projects.lock().unwrap_or_else(|p| p.into_inner()).iter().find(|p| p.physical == physical).map(|p| p.known)?;
+        let not_set_off = match known { Known::SetUpInApp => NEW_IDENTITY_NOT_SET_OFF, Known::EnvironmentRoute => NEW_IDENTITY_NOT_SET_OFF_ENVIRONMENT };
+        Some((|store: &str, project: &str| switch_line(false, store, project, Some(NEW_IDENTITY_REASON)), not_set_off))
     }
 
     // ---- What the person is shown ----

@@ -393,6 +393,7 @@ pub const TRUST_NOT_READ: &str = "The App could not read the Codex settings it u
 /// The reasons a reading is not whole and current (`TrustCase::NotRead`), in the App's own words.
 pub const TRUST_READ_FAILED: &str = "The App's reading of the Codex settings it uses did not complete.";
 pub const TRUST_READ_LIMITED: &str = "The App's reading of the Codex settings it uses did not include the settings files.";
+pub const TRUST_MARK_UNREADABLE: &str = "The App's reading of the Codex settings it uses held a project mark it could not read.";
 pub const TRUST_READ_TIMED_OUT: &str = "The App's reading of the Codex settings it uses did not complete in time.";
 pub const TRUST_READ_STALE: &str = "The App's reading of the Codex settings it uses was no longer the latest when the request was built.";
 
@@ -425,12 +426,12 @@ impl AppTrust {
 
 /// The status's sentences for the App's own choice, beside the closed sentences above.
 pub const TRUST_ON_BY_SETUP: &str = "Chirality's choice for this project is on (you set it up in Chirality and have not switched its trust off), so the App sent a trusted entry for the project root shown below.";
-pub const TRUST_ON_BY_SWITCH_PREFIX: &str = "Chirality's choice for this project is on (switched on in Chirality at ";
+pub const TRUST_ON_BY_SWITCH_PREFIX: &str = "Chirality's choice for this project is on (switched on at ";
 pub const TRUST_ON_BY_SWITCH_SUFFIX: &str = "), so the App sent a trusted entry for the project root shown below.";
-pub const TRUST_OFF_BY_SWITCH_PREFIX: &str = "Chirality's choice for this project is off (switched off in Chirality at ";
+pub const TRUST_OFF_BY_SWITCH_PREFIX: &str = "Chirality's choice for this project is off (switched off at ";
 pub const TRUST_OFF_BY_SWITCH_SUFFIX: &str = "), so the App sent an untrusted entry for the project root shown below.";
 pub const TRUST_CHOICE_NOT_READ: &str = "The App could not read its record of this project's trust choice, so it sent an untrusted entry for the project root shown below.";
-pub const TRUST_OFF_BY_NEW_IDENTITY: &str = "Chirality's choice for this project is off (the project was given a new identity), so the App sent an untrusted entry for the project root shown below.";
+pub const TRUST_OFF_BY_NEW_IDENTITY: &str = "Chirality's choice for this project is off (its records say the project was given a new identity), so the App sent an untrusted entry for the project root shown below.";
 pub const TRUST_FOLDER_CHANGED: &str = "The project's folder is no longer the folder Chirality opened, so the App sent an untrusted entry for the project root shown below.";
 
 /// The project trust the App sends on one start, resume or fork, and why.
@@ -617,9 +618,9 @@ pub fn project_settings_files(root: &Path, folder: &Path) -> Vec<(PathBuf, bool)
 
 /// The person's mark for `root` in a `config/read` result with layers: the user layers' `projects` table, looked
 /// up by Codex's spellings in Codex's order, so a mark under either spelling is honoured. `Err` (a limited reading)
-/// when the result carries no layers or no user layer, or when a user layer's settings cannot be read for the mark:
-/// its `config` is not a table, its `projects` is present and not a table, or an entry or its `trust_level` under
-/// one of the root's spellings is present and not one Codex accepts. An absent mark is `Unmarked`; an unusable one
+/// (`TRUST_READ_LIMITED`) when the result carries no layers or no user layer, or a user layer's `config` is not a
+/// table; `Err` (`TRUST_MARK_UNREADABLE`) when its `projects` is present and not a table, or an entry or its
+/// `trust_level` under one of the root's spellings is present and not one Codex accepts. An absent mark is `Unmarked`; an unusable one
 /// is never taken for absent. Where the spellings carry conflicting marks, untrusted wins.
 pub fn person_mark(result: &Value, root: &Path) -> Result<TrustCase, String> {
     let layers = result.get("layers").and_then(Value::as_array).ok_or(TRUST_READ_LIMITED)?;
@@ -634,15 +635,15 @@ pub fn person_mark(result: &Value, root: &Path) -> Result<TrustCase, String> {
             let config = layer.get("config").and_then(Value::as_object).ok_or(TRUST_READ_LIMITED)?;
             let projects = match config.get("projects") {
                 None => continue,
-                Some(projects) => projects.as_object().ok_or(TRUST_READ_LIMITED)?,
+                Some(projects) => projects.as_object().ok_or(TRUST_MARK_UNREADABLE)?,
             };
             let entry = match projects.get(&key) {
                 None => continue,
-                Some(entry) => entry.as_object().ok_or(TRUST_READ_LIMITED)?,
+                Some(entry) => entry.as_object().ok_or(TRUST_MARK_UNREADABLE)?,
             };
             let level = match entry.get("trust_level") {
                 None => continue,
-                Some(level) => level.as_str().filter(|l| matches!(*l, "trusted" | "untrusted")).ok_or(TRUST_READ_LIMITED)?,
+                Some(level) => level.as_str().filter(|l| matches!(*l, "trusted" | "untrusted")).ok_or(TRUST_MARK_UNREADABLE)?,
             };
             // The first user layer that marks this spelling, as before.
             if mark.is_none() { mark = Some(level); }
