@@ -181,8 +181,9 @@ function assertBoundary(markup, what) {
   assert.equal((raw.match(/class="agent-text(?: agent-text-block)?"/g) ?? []).length, boxes.length, `${what}: the box's class on something that is not a box`);
   assert.equal((raw.match(/class="agent-text-value"/g) ?? []).length, boxes.length, `${what}: a value with the box's class outside a box`);
   for (const [, name, style, label] of boxes) assert.ok(name.trim() !== '' && label.trim() !== '' && /(^|;)border:/.test(style), `${what}: a box without its source label, its accessibility name or its border`);
-  // An agent's message (AgentProse): a group named as text the App did not write, after its bubble's speaker label.
-  const proses = [...raw.matchAll(/<div role="group" aria-label="([^"]*)" class="agent-prose chat-markdown">/g)];
+  // An agent's message (AgentProse) and the person's own (PersonText): a group named as text the App did not write,
+  // after its bubble's speaker label.
+  const proses = [...raw.matchAll(/<div role="group" aria-label="([^"]*)" class="agent-prose (?:chat-markdown|person-text)">/g)];
   assert.equal((raw.match(/class="agent-prose/g) ?? []).length, proses.length, `${what}: the prose box's class on something that is not one`);
   for (const m of proses) {
     assert.match(m[1], /not the App&#x27;s words/, `${what}: prose not named as the agent's`);

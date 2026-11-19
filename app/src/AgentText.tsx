@@ -398,6 +398,15 @@ export function AgentProse({ value, name = AGENT_PROSE_NAME }: { value: Json; na
   return <div role="group" aria-label={name} className="agent-prose chat-markdown"><ProseBlocks value={proseBlocks(agentTextValue(value))} /></div>;
 }
 
+/** The accessibility name of the person's own message as Codex recorded it. */
+export const PERSON_TEXT_NAME = AGENT_TEXT_WORDS.person.name;
+/** The person's own message in the conversation, as Codex recorded it, under the "You" label of its bubble. Nothing
+ * in it is formatted: it is its text and its line breaks, with its invisible and direction-changing characters as
+ * marks, so it can draw no control, heading or card. */
+export function PersonText({ value, name = PERSON_TEXT_NAME }: { value: Json; name?: string }) {
+  return <div role="group" aria-label={name} className="agent-prose person-text">{agentTextValue(value, true).split(/\r?\n/).map((line, i) => <Fragment key={i}>{i > 0 && "\n"}<ProseText value={line} /></Fragment>)}</div>;
+}
+
 export const RECORDED_DATA_LABEL = "Recorded data (JSON):";
 /** A diagnostic record shown as indented JSON, in a marked box since it may hold values the App did not write. JSON
  * escapes line breaks but not direction or other format characters, so the marking matters inside JSON too. */

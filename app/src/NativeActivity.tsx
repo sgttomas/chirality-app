@@ -1,5 +1,5 @@
 import { Component, useEffect, useImperativeHandle, useRef, useState, type ReactNode, type Ref } from "react";
-import { AgentProse, AgentText, type AgentTextSource, plainId, SuppliedId, Word, Num, Flag, wordOf, numberWords } from "./AgentText";
+import { AgentProse, AgentText, PersonText, type AgentTextSource, plainId, SuppliedId, Word, Num, Flag, wordOf, numberWords } from "./AgentText";
 import { RunOffer, type RunAct } from "./RunOffers";
 import { AGENT_STATUS, AGENT_TOOL, CHANGE_KIND, CHILD_STATUS, COMMAND_SOURCE, ITEM_IN_PROGRESS, ITEM_KIND, ITEM_STATUS, MESSAGE_PHASE, REASONING_EFFORT, ROLE_SPEAKER, STEP_STATUS, SUBAGENT_ACTIVITY, TURN_STATUS } from "./nativeWords";
 type Json = any;
@@ -235,13 +235,13 @@ function messageText(content: Json): string {
 // wrote (WR-FRAME-1, its first line App-written) is folded and openable; the rest
 // of the message, and any other message, shows as received.
 const RUN_TEXT = /^\[Chirality\] (Workflow run start:|Previous workflow run ended:)/;
-function UserMessage({ content, fold }: { content: Json; fold: boolean }) {
+function UserMessage({ content, fold, plain = false }: { content: Json; fold: boolean; plain?: boolean }) {
   const parts = Array.isArray(content) ? content : [];
   const folded = parts.filter((part: Json) => fold && part?.type === "text" && typeof part.text === "string" && RUN_TEXT.test(part.text));
   const rest = parts.filter((part: Json) => !folded.includes(part));
   return <>
     {folded.map((part: Json, i: number) => <details key={i}><summary>Workflow run text the App supplied ({numberWords(part.text.length)} characters)</summary><AgentText block value={part.text} source="file" label="The run text, with the workflow's files as the App read them:" name="Workflow run text from the workflow's files, not the App's words" /></details>)}
-    {(rest.length > 0 || folded.length === 0) && <AgentText block value={messageText(rest)} source="person" />}
+    {(rest.length > 0 || folded.length === 0) && (plain ? <PersonText value={messageText(rest)} /> : <AgentText block value={messageText(rest)} source="person" />)}
   </>;
 }
 
@@ -595,10 +595,10 @@ function TurnActivity({ turn, folded, messages, live, plans, ownRuns, turnIds, o
   </details>;
 }
 
-/** One message of the person, or of what Codex recorded as input, in its bubble: marked as today. */
+/** One message of the person, as Codex recorded it, in its bubble under "You": its text, unformatted (PersonText). */
 function YourMessage({ row, runStart }: { row: Json; runStart: boolean }) {
   return <RowBoundary value={row.native} row={row} label="native item"><div className="chat-user-text" id={itemAnchorId(row.threadId, row.turnId, row.native?.id)}>
-    <Unfinished row={row} /><UserMessage content={row.native?.content} fold={runStart} />
+    <Unfinished row={row} /><UserMessage content={row.native?.content} fold={runStart} plain />
   </div></RowBoundary>;
 }
 /** One message of the agent: its prose, formatted; a message that is not complete says so. */

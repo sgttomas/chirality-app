@@ -65,9 +65,9 @@ test('turns follow native start time and items follow receipt order, scoped to t
 test('messages are readable, escaped and never presented as acts',()=>{
   const html=render();
   assert.ok(html.includes('Please &lt;b&gt;list&lt;/b&gt; files'));assert.ok(!html.includes('<b>list</b>'));
-  // The person's message under "You", in the box for what Codex recorded as their message, with no control in it.
+  // The person's message under "You": its text as Codex recorded it, named as that, unformatted, with no control in it.
   const yours=html.match(/<article class="chat-bubble chat-bubble--operator" data-role="operator" aria-label="Your message"><p class="chat-speaker">You<\/p>[\s\S]*?<\/article>/)?.[0]??'';
-  assert.match(yours,/⟦Recorded as your message:\nPlease &lt;b&gt;list&lt;\/b&gt; files⟧/);assert.doesNotMatch(yours,/<button|<a |<input|<select|<textarea/);
+  assert.match(yours,/<div class="chat-user-text" id="[^"]+">⟦Text Codex recorded as your message, not the App&#x27;s words: Please &lt;b&gt;list&lt;\/b&gt; files⟧<\/div>/);assert.doesNotMatch(yours,/<button|<a |<input|<select|<textarea/);
   // The agent's message under the agent's label, with the phase Codex gave it.
   assert.match(html,/<p class="chat-speaker">Agent<\/p><div class="v4-agent-message" id="[^"]+"><p class="v4-message-phase"><small>final answer<\/small><\/p>/);assert.ok(html.includes('Thinking about listing'));
   assert.ok(html.includes('Goal (⟦Source: thread/goal/updated⟧): ⟦Codex sent: Ship the slice⟧'));

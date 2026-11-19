@@ -3635,3 +3635,5 @@ div.woven-chat-section-heading--folder:hover { background:transparent; }
 .v4-level-pop li[aria-current=true] b::after { content:" ●"; color:var(--accent); font-size:9px; vertical-align:middle; }
 .v4-level-pop fieldset { border:0; margin:0; padding:0; }
 .v4-mode-choice label { display:block; margin:4px 0; }
+/* The person's own message in its bubble: its text as Codex recorded it, unformatted, with its line breaks. */
+.chat-user-text > .person-text { white-space:pre-wrap; overflow-wrap:anywhere; }

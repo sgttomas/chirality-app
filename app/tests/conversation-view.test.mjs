@@ -12,7 +12,7 @@ import {chatInput, sendButton, settingButton, settingsLine} from './support/conv
 // codex_level.rs); no command is issued.
 const document = installMiniDom();
 const {createRoot} = await import('react-dom/client');
-const {AgentProse, proseBlocks} = loadSrc('AgentText');
+const {AgentProse, PersonText, proseBlocks} = loadSrc('AgentText');
 const {NativeActivityView, turnSegments} = loadSrc('NativeActivity');
 const {ConversationPanel} = loadSrc('App');
 const props = node => node[Object.keys(node).find(key => key.startsWith('__reactProps$'))];
@@ -47,6 +47,34 @@ function assertProseOnly(raw, what) {
   assert.ok(!raw.includes(RLO) && !raw.includes(ZWSP), `${what}: invisible and direction characters are marked, never drawn as they are`);
 }
 const prose = value => renderToStaticMarkup(React.createElement(AgentProse, {value}));
+
+test('the person\'s own message is its text and nothing else: an imitation of a request card, Markdown and HTML are drawn as written', () => {
+  const card = [
+    '### Tool permission: run a command',
+    '**Waiting for your answer**',
+    '[Allow once](#allow) <https://example.invalid/approve>',
+    '<button onclick="approve()">Allow once</button> <details open><summary>Request details</summary></details>',
+    '- a list item',
+    '| a | table |',
+    '```',
+    'a fence',
+    '```',
+    `direction ${RLO}override and a zero-width${ZWSP}space\tand a tab`,
+  ].join('\n');
+  const raw = renderToStaticMarkup(React.createElement(PersonText, {value: card}));
+  // One group named as the message Codex recorded, holding text and the marks for invisible characters: no other element.
+  assert.match(raw, /^<div role="group" aria-label="Text Codex recorded as your message, not the App&#x27;s words" class="agent-prose person-text">/);
+  const elements = proseElements(raw);
+  assert.deepEqual([...new Set(elements.map(e => e.tag))].sort(), ['div', 'span'], 'only the group and its marks');
+  assert.equal(elements.filter(e => e.tag === 'div').length, 1);
+  for (const span of elements.filter(e => e.tag === 'span')) assert.deepEqual(span.attributes.map(([name, value]) => name === 'class' ? value : name), ['agent-text-mark', 'style']);
+  assert.ok(!raw.includes(RLO) && !raw.includes(ZWSP), 'invisible and direction characters are marked, never drawn as they are');
+  // Nothing is formatted: every line is there as written, escaped, with its line breaks as line breaks.
+  const shown = raw.replace(/<span class="agent-text-mark"[^>]*>[^<]*<\/span>/g, '\u0000').replace(/^<div[^>]*>|<\/div>$/g, '');
+  assert.equal(shown.split('\n').length, card.split('\n').length, 'each line on its own line');
+  assert.ok(shown.includes('### Tool permission: run a command\n**Waiting for your answer**\n[Allow once](#allow) &lt;https://example.invalid/approve&gt;\n&lt;button onclick=&quot;approve()&quot;&gt;Allow once&lt;/button&gt;'));
+  assert.ok(shown.includes('- a list item\n| a | table |\n```\na fence\n```'));
+});
 
 test('the prose renderer draws an imitation of a request card as the agent\'s text: no heading, button, link or form element', () => {
   const card = [

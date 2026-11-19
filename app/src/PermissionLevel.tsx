@@ -105,7 +105,8 @@ export function PermissionLevelSummary({ host, threadId, change }: { host: Json;
     <p><strong>{level ? name(level.id) : "No permission level reported"}</strong>{threadId ? " · this conversation" : " · new conversations"}</p>
     {level && <>
       <p>{wordOf(WRITES, level.dimensions?.writes) ?? "Write access was not reported."} {wordOf(NETWORK, level.dimensions?.network) ?? "Network access was not reported."} {wordOf(ASKS, level.dimensions?.asks) ?? "When Codex asks was not reported."}</p>
-      <p className="v4-faint">{wordOf(ORIGINS, level.origin) ?? "The origin of this level was not reported."}{typeof level.originSentence === "string" && <> {level.originSentence}</>}</p>
+      {/* The host's sentence says the origin in full; the origin's own words stand only where the host sent none. */}
+      <p className="v4-faint">{typeof level.originSentence === "string" ? level.originSentence : wordOf(ORIGINS, level.origin) ?? "The origin of this level was not reported."}</p>
       {typeof level.readingSentence === "string" ? <p className="v4-faint">{level.readingSentence}</p> : <p className="v4-faint">The reading limit was not reported.</p>}
     </>}
     {ask && <p role="alert">{ask.sentence}</p>}

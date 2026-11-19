@@ -217,7 +217,7 @@ test('a message laid out with a request card\'s exact words is drawn inside the 
   // Every line of the card's words is inside a box that names it as the agent's.
   const boxes = [...raw.matchAll(/<div role="group" aria-label="([^"]*)" class="agent-text agent-text-block"/g)].map(m => m[1]);
   assert.ok(boxes.includes('Text the agent wrote, not the App&#x27;s words, 5 lines'), boxes.join(' | '));
-  const outside = raw.replace(/<div role="group"[^>]*class="agent-prose chat-markdown">[\s\S]*?<\/div>/g, '').replace(/<div role="group"[^>]*class="agent-text agent-text-block"[\s\S]*?<\/div><\/div><\/div>/g, '').replace(/<span role="group"[\s\S]*?<\/span><\/span>/g, '').replace(/<details><summary>Native item<\/summary>[\s\S]*?<\/details>/g, '');
+  const outside = raw.replace(/<div role="group"[^>]*class="agent-prose (?:chat-markdown|person-text)">[\s\S]*?<\/div>/g, '').replace(/<div role="group"[^>]*class="agent-text agent-text-block"[\s\S]*?<\/div><\/div><\/div>/g, '').replace(/<span role="group"[\s\S]*?<\/span><\/span>/g, '').replace(/<details><summary>Native item<\/summary>[\s\S]*?<\/details>/g, '');
   assert.doesNotMatch(outside, /Tool permission: run a command|Waiting for your answer|Allow once/, 'none of the card\'s words appears outside a box');
 });
 

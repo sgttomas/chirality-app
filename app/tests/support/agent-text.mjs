@@ -9,9 +9,9 @@ const inline = new RegExp(`<span role="group" aria-label${attr} class="agent-tex
 const line = `<div class="agent-text-line"><span class="agent-text-line-number" style${attr}>\\d+</span>((?:[^<]|${mark.replace('([^<]*)', '[^<]*')})*)</div>`;
 const block = new RegExp(`<div role="group" aria-label${attr} class="agent-text agent-text-block" style${attr}><div class="agent-text-label" style${attr}>([^<]*)</div><div class="agent-text-value" style${attr}>((?:${line.replace('((?:', '(?:').replace(')*)</div>', ')*</div>')})*)</div></div>`, 'g');
 
-// An AgentProse box (an agent's message in the transcript): its rendered prose kept as markup inside ⟦label: …⟧, its
-// marks as shown. The box holds no div, so it ends at the first closing div.
-const prose = new RegExp(`<div role="group" aria-label="([^"]*)" class="agent-prose chat-markdown">((?:(?!</div>)[\\s\\S])*)</div>`, 'g');
+// An AgentProse box (an agent's message in the transcript) or a PersonText box (the person's own message there): its
+// rendered text kept as markup inside ⟦label: …⟧, its marks as shown. The box holds no div, so it ends at the first closing div.
+const prose = new RegExp(`<div role="group" aria-label="([^"]*)" class="agent-prose (?:chat-markdown|person-text)">((?:(?!</div>)[\\s\\S])*)</div>`, 'g');
 
 export function agentPlain(html) {
   return html
