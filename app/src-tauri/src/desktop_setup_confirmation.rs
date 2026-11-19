@@ -515,7 +515,7 @@ mod tests {
     #[test]
     fn the_scripted_setup_scenarios_sheet_is_this_statement_on_the_runners_paths() {
         let scenario: Value = serde_json::from_str(include_str!("../../examination/scripted_driver/setup-complete.scenario.json")).unwrap();
-        let home = "/Users/runner/work/_temp/driver/setup-run/home";
+        let home = "/Users/runner/work/_temp/driver/set/home";
         let app_data = format!("{home}/Library/Application Support/dev.chirality.app-v4.scripted-driver");
         let project = format!("{home}/Projects/setup-scenario-project");
         let id = "00000000-0000-4000-8000-000000000000";

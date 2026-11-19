@@ -451,7 +451,7 @@ def setup(bundle, out, timeout, scenario_path, hold_awake=None):
         print(f'refused: no {EXECUTABLE} in {bundle}', file=sys.stderr)
         return 2
     walked = json.loads(Path(scenario_path).read_text())
-    run = out / 'setup-run'
+    run = out / 'set'
     home = run / 'home'
     project = home / 'Projects/setup-scenario-project'
     project.mkdir(parents=True)

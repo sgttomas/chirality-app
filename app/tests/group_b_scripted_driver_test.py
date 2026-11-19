@@ -608,7 +608,7 @@ class TheSetupRunPassesOnlyWhatItsScenarioSays(unittest.TestCase):
         try:
             code = self.proof.setup(self.app, out, 30, APP / 'examination/scripted_driver/setup-complete.scenario.json', hold_awake=False)
         finally:
-            for hidden in out.glob('setup-run/home/Library/Caches/*/hidden'):
+            for hidden in out.glob('set/home/Library/Caches/*/hidden'):
                 hidden.chmod(0o700)
         return code, json.loads((out / 'setup-report.json').read_text())
 
