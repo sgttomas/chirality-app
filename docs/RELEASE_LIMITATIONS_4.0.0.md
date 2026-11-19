@@ -552,7 +552,8 @@ An entry is added in the same pull request that makes the limitation standing.
 - **Exit criteria:** 4
 - **What is unavailable:** the new answer-confirmation sheet for forms and
   extra-permission requests. They keep the current sheet in 4.0.0; the new
-  sheet covers command requests, file-change requests and questions.
+  sheet covers command requests and file-change requests. A question's
+  answers are sent from its card with no confirmation sheet.
 - **Why:** this release's answer-sheet work covers the requests needed to walk
   criterion 4. The form and extra-permission sheets have not been rebuilt.
 - **What the person does instead:** read the request card before opening its
@@ -655,3 +656,33 @@ An entry is added in the same pull request that makes the limitation standing.
   with that Quit. If the App has already ended, reopen it and check the
   conversation's recovered history before continuing.
 - **Basis:** DEL-01-02 REQ-005 and AC-006.
+
+### LIM-037: An agent's question is lost when Codex stops, and a delegated agent cannot ask one
+
+- **Id:** LIM-037
+- **Exit criteria:** 4
+- **What is unavailable:** three things about a question an agent puts to you
+  as a request. A question still waiting when Codex stops (you stop or restart
+  Codex, quit the App, or Codex ends unexpectedly) is not asked again when the
+  conversation is continued: Chirality shows the question as a past request
+  when its record is available. It shows the turn status Codex reports, or an
+  unknown outcome if the turn was last observed in progress and no later
+  status is available. An agent that was delegated work cannot ask
+  this way at all. And an agent may also ask in a message. Chirality shows the
+  message and uses Codex's reported turn status. Only a request makes the
+  question count as waiting for your answer.
+- **Why:** the question is Codex's own request, which belongs to the running
+  turn and is not kept across a stop, and which Codex allows only to the
+  conversation's own agent. Codex allows it in an ordinary conversation only
+  through a feature it marks as under development, which the App turns on for
+  its own Codex and lists among the settings it applies. Whether an agent uses
+  the request when it needs an answer is the model's choice; the App's
+  guidance asks it to, and the App does not guess from the wording of a
+  message.
+- **What the person does instead:** after a stop, send a message to continue.
+  Read a completed turn's last message for a question. The agent you are
+  talking with can relay a delegated agent's question.
+- **Basis:** DEL-01-04 REQ-001 (requests and their answers); DEL-01-05 (the
+  settings the App gives its Codex); DEL-02-04 (the guidance). The level
+  fixtures show the behaviour at the pinned Codex version
+  (`app/supplier_checks/level`, the question rows).

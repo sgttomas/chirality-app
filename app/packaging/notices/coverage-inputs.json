@@ -162,7 +162,7 @@
    "source_record": {
     "path": "app/src-tauri/resources/instructions/ROLE_SET_SOURCE_BINDING.json",
     "kind": "role-set-binding",
-    "sha256": "26254a7f0463665e791d46771a87a97e543f9f4762dade1293ddd244f876278d"
+    "sha256": "bdee8f2d9d01aecd52bb157c59dae0b05c62798b6d856949d44b575bdcf77870"
    }
   },
   {
