@@ -67,9 +67,9 @@ every possible false pass is excluded.
 
 ## Files
 
-- `level_fixture.py`: the stub, a fresh root per run, the App side of the
-  JSON-RPC exchange, and `judge`. Every approval request the fixture receives
-  is declined.
+- `level_fixture.py`: the stub, a fresh root per run (with, where a test asks,
+  a second project folder), the App side of the JSON-RPC exchange, and
+  `judge`. Every approval request the fixture receives is declined.
 - `test_level_live.py`: one fact per test.
   - It needs `CHIRALITY_CODEX_BIN` set to the pinned binary, whose digest is
     checked before every start, and is skipped otherwise.
@@ -97,7 +97,12 @@ app-server`), with an environment built whole:
 
 The stub answers the WebSocket upgrade with 426, so Codex uses HTTP at once.
 The project has no `.git` above it, as the launcher requires; some cases put a
-`.git` folder inside the project. The cases that write to `/tmp` use a folder
+`.git` folder inside the project. The app server is always started in the
+project, A. The folder-per-conversation rows add a second project, B, beside
+A in the run's root (`Run(second_project=...)`), made with the same care, and,
+as each row says, an invented `AGENTS.md` with a marker line of its own or an
+invented `.codex/config.toml` naming a writable root of its own under
+`outside`, in each of A and B. The cases that write to `/tmp` use a folder
 `/private/tmp/chirality-level-<run>/` that the run refuses to start if it
 exists, makes itself, and removes afterwards; the case that writes to
 `/private/var/tmp` uses `/private/var/tmp/chirality-level-<run>/` on the same
@@ -179,6 +184,28 @@ control.
 | **Observation:** after the restart, the call outstanding when the server ended, and the interrupted one, were never raised again in the second server's whole life, read to its end (from resume to its stop, 10 s and more). | New calls on the same client were raised. | same test |
 | A child is not offered the App-supplied tool, and Codex answers its call as unsupported; nothing reaches the client. | The parent's own call reaches the client. | `AppTool.test_a_child_is_not_given_the_app_tool` |
 | `request_user_input` is listed in an ordinary conversation, but a call to it is refused in Default mode, and nothing reaches the client. In plan mode the call reaches the client as `item/tool/requestUserInput`. | Each mode, on one client, is the other's. | `Question.test_refused_in_default_mode_and_reaches_the_client_in_plan_mode` |
+
+### One app server, a folder per conversation
+
+What the tests assert about a conversation given its own folder, B, by an app
+server started in another, A. These rows state what each test asserts; they
+have not been run against the pinned binary, and become facts only once they
+pass there. Each start and resume is the App's frame at the edits level: the
+folder, the level's approval, reviewer, mode name and workspace options, and
+one trust entry for the folder's root, `untrusted`, as the App sends it for a
+folder the person's settings do not mark; each turn sends the edits level and
+no folder. Where a test fails, its message names the folder observed.
+
+| Asserted | Control | Test |
+| --- | --- | --- |
+| **Reported and listed.** The start reply's `cwd` and its thread's `cwd` are B. In `thread/list` (`sortDirection` `desc`, as the App sends it), the conversation's row reports B. With the `cwd` filter set to B, the list holds that conversation and not one started in A; set to A, the reverse. | A conversation started in A on the same server, reported and listed under A. | `FolderPerConversation.test_a_thread_started_in_b_reports_b_and_is_listed_under_b_alone` |
+| **Where a command runs.** `/bin/pwd -P` prints B. A write to a relative name succeeds and its file lands in B, not in A. | Each of the two landings is the other's. | `FolderPerConversation.test_a_command_in_a_thread_started_in_b_runs_in_b` |
+| **The sandbox's project.** At edits, the write in B succeeds; the write in A, the server's own folder, runs and is refused by the sandbox, as is the write outside. | On the same thread at full access, the write in A succeeds. | `FolderPerConversation.test_at_the_edits_level_the_sandbox_takes_b_as_the_project_and_refuses_a` |
+| **The project's instructions.** The start reply's `instructionSources` names B's `AGENTS.md` and not A's, and the requests the stub receives for that conversation's turn carry B's marker line and not A's. | A conversation started in A names A's file and carries A's marker alone. | `FolderPerConversation.test_a_thread_started_in_b_loads_bs_instructions_and_not_as` |
+| **The project's own settings.** The setting is `sandbox_workspace_write.writable_roots` in a project's `.codex/config.toml`, chosen because the rows above show it in the start reply's `sandbox.writableRoots` and in effect, and show that a turn's `writableRoots: []` does not remove it. A's names `outside/root-a`, B's `outside/root-b`, and the home's own settings mark A trusted. The start departs from the App's frame in one field: it sends no `config.sandbox_workspace_write`, whose `writable_roots = []` would remove the setting from sight. With B's entry `trusted`, the reply lists root-b alone, the write in root-b succeeds and the write in root-a is refused by the sandbox. With B's entry `untrusted`, neither is listed and both writes are refused. | A conversation started in A with its entry `trusted` lists root-a; the write in B succeeds in each case. | `FolderPerConversation.test_a_thread_started_in_b_loads_bs_own_settings_and_only_when_b_is_trusted` |
+| **The trust mark written.** As the trust-mark rows: at full access, in the App's layout with the home's new, empty settings, with A and B both git projects. A start in B with no trust entry writes `[projects."<B>"] trust_level = "trusted"` into the home's `config.toml`, and nothing for A. With the App's one entry for B, nothing is written. | Each start is the other's control. | `FolderPerConversation.test_a_start_in_b_marks_b_in_the_settings_unless_an_entry_for_b_is_sent` |
+| **Resumed with B.** A conversation started in B and saved; the server stopped; a second server started, again in A; the conversation resumed with B as the App resumes it. The resume reply's `cwd` is B; `/bin/pwd -P` prints B; the relative write lands in B; the write in B succeeds; the write in A runs and is refused by the sandbox. | The write in B, against the write in A. | `FolderPerConversation.test_resumed_with_b_in_a_new_server_started_in_a_the_thread_is_governed_by_b` |
+| **Resumed with no folder** (the App never sends this): the same resume with no `cwd`. The test asserts that the saved folder, B, wins over the server's own folder, A: in the resume reply's `cwd`, where a command runs, and which folder is writable. | As above. | `FolderPerConversation.test_resumed_with_no_folder_in_a_new_server_started_in_a` |
 
 One further observation about the supplier is held out of this folder pending
 the owner's decision.
