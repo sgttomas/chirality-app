@@ -7,6 +7,7 @@ type Json = any;
  * show (its role and continuation options, trials, the detailed panels). */
 export const RIGHT_PANEL_TABS = [
   { id: "run", label: "Run a workflow", target: "view-run" },
+  { id: "workflows", label: "Workflows", target: "view-library" },
   { id: "make", label: "Make a workflow", target: "view-make" },
   { id: "history", label: "History", target: "workspace-history" },
   { id: "settings", label: "Settings & tools", target: "workspace-tools" },

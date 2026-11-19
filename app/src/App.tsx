@@ -48,6 +48,7 @@ import { REFRESH_FAILED, commandThenRefresh, observationLine, observationText, r
 import { FirstUseSetup } from "./FirstUse";
 import { AccountStatus, DIDNT_SAY, accountReadError, accountReadRef, accountReading, reportedPlan, signInCompletion, type ReadAccountStatus } from "./AccountStatus";
 import { RunWorkflowGuide, registeredRevisionAnchor, runEvidenceAnchor } from "./RunJourney";
+import { WorkflowLibrary } from "./WorkflowLibrary";
 import { PermissionLevel, PermissionLevelActions, PermissionLevelSummary, levelInForce, levelOwner } from "./PermissionLevel";
 import { MakeWorkflowGuide } from "./MakeJourney";
 import { acknowledgeBringBackDoubt, beginBringBack, bringBackRefusal, doubtDestination, endBringBack, noteBringBackDoubt, resetBringBackDoubts, sendKey, useBringBackDoubts, type BringBackDoubt } from "./bringBackDoubts";
@@ -1332,11 +1333,15 @@ export function WorkflowRootPanel({ viewStale = false, readFailure = null, data,
     <RunWorkflowGuide data={data} host={host} thread={thread} chooseThread={chooseWorkflowChat} act={action} busy={busy} text={text} setText={setText}
       outcome={guideOutcome} showConversation={showConversation} viewStale={viewStale} readFailure={readFailure}/>
     </div>
+    {/* The Workflows tab chooses for the conversation chosen in the Run guide, through the same press and state. */}
+    {view !== undefined && <div id="view-library" data-workspace-view="workflows" hidden={view !== "workflows"}>
+    <WorkflowLibrary data={data} host={host} thread={thread} act={action} busy={busy} outcome={guideOutcome} viewStale={viewStale} readFailure={readFailure}/>
+    </div>}
     <div id="view-make" data-workspace-view="make" hidden={view !== undefined && view !== "make"}>
     {offerComposer && <MakeWorkflowGuide data={data} host={host} act={action} busy={busy} outcome={guideOutcome} viewStale={viewStale} readFailure={readFailure} offerComposer={offerComposer} openPreparedMessage={openPreparedMessage} showConversation={showConversation} findInHistory={findInHistory}/>}
     </div>
     {/* The detailed studio follows the guides, collapsed, in both workflow views. */}
-    <details id="workflow-studio" className="workspace-disclosure workspace-advanced" data-workspace-view="make" open={view === undefined ? true : undefined}>
+    <details id="workflow-studio" className="workspace-disclosure workspace-advanced" data-workspace-view="make" open={view === undefined ? true : undefined} hidden={view === "workflows"}>
     <summary><strong>Advanced: workflow studio</strong><span>Every selection, library, draft, trial, review, registration and run control in detail</span></summary>
     <div className="workspace-disclosure-content">
     <h2>Workflow selection and native registration</h2>
@@ -1455,6 +1460,8 @@ export function WorkflowRootPanel({ viewStale = false, readFailure = null, data,
     </article>;})}
     </div>
     </details>
+    {/* The studio's record reads and the last press's exact reply follow the guides; the Workflows tab says its own result. */}
+    <div hidden={view === "workflows"}>
     <button disabled={busy} onClick={()=>action("workflow_read_records",{})}>Read recorded workflow supply (durable, read-only)</button>
     <CompareResult result={draftsState.compared}/>
     <button disabled={busy} onClick={()=>action("workflow_reopen",{})}>Reopen recorded workflow runs (read-only)</button>
@@ -1490,6 +1497,7 @@ export function WorkflowRootPanel({ viewStale = false, readFailure = null, data,
       {outcome.message&&<ActionFeedback message={`${outcome.relation.command}: ${outcome.message}`} label="Workflow command result"/>}
       <details><summary>Original workflow request</summary><RecordedData value={outcome.relation} /></details>
     </div>}
+    </div>
     {outcome?.limits.map((message,index)=><p role="status" aria-label="Workflow observation limit" key={index}><AgentText value={message} source="record" label="Observation limit:" name="An observation limit, which may carry text the App received, not only the App's words" /></p>)}
   </section>;
 }
@@ -3224,7 +3232,7 @@ export function App() {
           <h2>Conversation tools</h2>
           <div ref={setToolsHost}/>
         </div>
-        <div id="view-workflows" className="workspace-view workspace-view-narrow" hidden={rightTab !== "run" && rightTab !== "make"}>
+        <div id="view-workflows" className="workspace-view workspace-view-narrow" hidden={rightTab !== "run" && rightTab !== "make" && rightTab !== "workflows"}>
           <div className="workspace-primary-column" aria-label="Workflow studio">
             <WorkflowRootPanel viewStale={shownBeforePress(hostReads)} readFailure={hostReads.failure} findInHistory={findInHistory} view={rightTab} showConversation={showConversation} offerComposer={offerComposer} data={host?.workflowRoot} host={host} operationalReference={threadKey ? conversationFromKey(threadKey) ?? undefined : null} openFileAct={openArrivalFileAct} fileActBusy={fileActBusy} act={(command, args) => { const refusal = bringBackRefusal(command, args, currentHost.current); return refusal ? Promise.reject(Error(refusal)) : invoke<Json>(command, args); }} observeView={refresh} openPreparedMessage={item => { void openPreparedMessage(item); }}/>
         {preparedNotice && <p role="status">{preparedNotice}</p>}

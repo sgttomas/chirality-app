@@ -3637,3 +3637,19 @@ div.woven-chat-section-heading--folder:hover { background:transparent; }
 .v4-mode-choice label { display:block; margin:4px 0; }
 /* The person's own message in its bubble: its text as Codex recorded it, unformatted, with its line breaks. */
 .chat-user-text > .person-text { white-space:pre-wrap; overflow-wrap:anywhere; }
+/* v4: the Workflows tab (WorkflowLibrary.tsx), 3.0.1's library. It sits unboxed in its column, its headings keep the
+   display face the hosted views' rule takes away, and a card says on its own line what it cannot do. */
+.workspace-primary-column:has(> section > #view-library:not([hidden])) { padding:0; border-top:0; background:transparent; }
+#view-library .method-library { padding:2px 2px 24px; }
+.daily-workspace .method-library :where(h3,h4) { font-family:var(--font-display); }
+.daily-workspace .method-library-subgroup > summary h4 { font-size:14px; font-weight:500; }
+.daily-workspace .method-library-list > li { padding:12px 14px; }
+.method-card-heading strong { min-width:0; font-size:14px; overflow-wrap:anywhere; }
+.method-card-heading .method-card-identifier { flex:0 1 auto; min-width:0; text-align:right; overflow-wrap:anywhere; }
+.daily-workspace .method-library-list button { padding:4px 10px; font-size:12.5px; }
+.daily-workspace .method-library-list button[aria-pressed="true"] { border-color:var(--ink); background:var(--accent-soft); color:var(--ink); }
+.method-library-list > li[data-chosen="true"] { border-color:var(--accent); }
+.method-library-list .method-card-limit { color:var(--ink-soft); }
+.method-card-details { margin-top:6px; font-size:12px; color:var(--ink-soft); }
+.method-card-details > summary { width:fit-content; cursor:pointer; color:var(--ink-faint); }
+.method-library-group > p[role="note"] { color:var(--ink-soft); }

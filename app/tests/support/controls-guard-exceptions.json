@@ -100,7 +100,7 @@
   "component": "GuideResult",
   "count": 1,
   "basis": "an App-owned literal vocabulary",
-  "reason": "Every caller passes a string literal or a word of the App's table: MakeJourney.tsx:292 and RunJourney.tsx:398 pass literals; RunJourney.tsx:277 passes wordOf(GUIDE_RESULT_LABEL, guide) ?? \"\" (table at RunJourney.tsx:265). The guard does not follow an exported component's prop to its callers."
+  "reason": "Every caller passes a string literal or a word of the App's table: MakeJourney.tsx:292, RunJourney.tsx:398 and WorkflowLibrary.tsx (twice, \"Workflows — last result\") pass literals; RunJourney.tsx:277 passes wordOf(GUIDE_RESULT_LABEL, guide) ?? \"\" (table at RunJourney.tsx:265). The guard does not follow an exported component's prop to its callers."
  },
  {
   "file": "ConnectorSourcePanel.tsx",
@@ -613,7 +613,7 @@
   "component": "RightPanel",
   "count": 1,
   "basis": "an App-owned literal vocabulary",
-  "reason": "t is an element of RIGHT_PANEL_TABS, a literal array of literal labels (WorkspaceShell.tsx:6-11). The guard does not take a .map callback's element of a literal array as App-made."
+  "reason": "t is an element of RIGHT_PANEL_TABS, a literal array of literal labels (WorkspaceShell.tsx:8-15). The guard does not take a .map callback's element of a literal array as App-made."
  },
  {
   "file": "WorkspaceShell.tsx",
@@ -622,7 +622,7 @@
   "component": "RightPanel",
   "count": 1,
   "basis": "an App-owned literal vocabulary",
-  "reason": "tab is one of the literal ids of RIGHT_PANEL_TABS (WorkspaceShell.tsx:6-11, typed RightPanelTab), so this names exactly one of the tab buttons written in the same file, id right-tab-<id>, whose content is that tab's literal label. The guard takes only a literal id list."
+  "reason": "tab is one of the literal ids of RIGHT_PANEL_TABS (WorkspaceShell.tsx:8-15, typed RightPanelTab), so this names exactly one of the tab buttons written in the same file, id right-tab-<id>, whose content is that tab's literal label. The guard takes only a literal id list."
  },
  {
   "file": "App.tsx",
@@ -677,5 +677,14 @@
   "count": 1,
   "basis": "an App-owned literal vocabulary",
   "reason": "level.name as for the access level's aria-label."
+ },
+ {
+  "file": "WorkflowLibrary.tsx",
+  "where": "<h4>",
+  "expr": "section.label",
+  "component": "WorkflowLibrary",
+  "count": 1,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "section is an element of includedSections(found) (imported from IncludedWorkflows.tsx), so section.label is a literal set there (core, superseded, other) or a word of LIBRARY_GROUPS, the App's table of the shipped Library groups, taken by wordOf only when the entry's key and label are both in it, as the IncludedWorkflows entry above records; workflow-library-tab.test.mjs shows an unknown group under Other workflows here. The guard does not follow a field of a returned object."
  }
 ]

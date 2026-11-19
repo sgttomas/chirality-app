@@ -178,10 +178,10 @@ test('mounted: the status strip speaks only for the conversation chosen in the c
 
 test('mounted: the right panel\'s tabs show the App\'s other views and the conversation\'s tools, all mounted; a reveal selects the tab that holds its target', async () => {
   await mountApp(baseHost(), async ({c, calls}) => {
-    assert.deepEqual(tabs(c).map(t => t.textContent), ['Run a workflow', 'Make a workflow', 'History', 'Settings & tools', 'Conversation tools']);
+    assert.deepEqual(tabs(c).map(t => t.textContent), ['Run a workflow', 'Workflows', 'Make a workflow', 'History', 'Settings & tools', 'Conversation tools']);
     assert.deepEqual(RIGHT_PANEL_TABS.map(t => t.label), tabs(c).map(t => t.textContent));
     assert.equal(selectedTab(c), 'Run a workflow', 'at launch, with nothing to move for');
-    const views = {'Run a workflow':'view-run', 'Make a workflow':'view-make', 'History':'view-history', 'Settings & tools':'workspace-tools', 'Conversation tools':'view-conversation-tools'};
+    const views = {'Run a workflow':'view-run', 'Workflows':'view-library', 'Make a workflow':'view-make', 'History':'view-history', 'Settings & tools':'workspace-tools', 'Conversation tools':'view-conversation-tools'};
     for (const tab of tabs(c)) {
       await React.act(async () => props(tab).onClick());
       assert.equal(selectedTab(c), tab.textContent);
@@ -399,7 +399,7 @@ test('mounted: moving along the tabs by the arrow keys opens nothing; a link tha
     history.open = false;
     const list = c.querySelectorAll(n => n.getAttribute('role') === 'tablist')[0];
     await React.act(async () => props(tabs(c).find(t => t.textContent === 'Run a workflow')).onClick());
-    for (let i = 0; i < 2; i++) await React.act(async () => props(list).onKeyDown({key:'ArrowRight', preventDefault() {}}));
+    for (let i = 0; i < tabs(c).length && selectedTab(c) !== 'History'; i++) await React.act(async () => props(list).onKeyDown({key:'ArrowRight', preventDefault() {}}));
     assert.equal(selectedTab(c), 'History', 'the arrow keys reach History');
     assert.equal(history.open, false, 'and leave closed what the person closed');
     await React.act(async () => props(tabs(c).find(t => t.textContent === 'History')).onClick());

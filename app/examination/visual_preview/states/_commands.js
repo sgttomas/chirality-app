@@ -73,3 +73,5 @@ export const availableModels = (args = {}) => ({ state: "observed", generation: 
   complete: true, limits: [], readAt: "2026-11-19T09:02:30Z",
   standing: "Models Codex reports for the app-server's own provider in this Codex generation. A listed model is the supplier's reported availability for that provider, not your account's entitlement or access; Start still checks the current configuration.",
   serverProvider: "openai", serverProviderState: "named", modeHomeClass: args.modeHomeClass ?? "account" });
+/** The right panel's Workflows tab (WorkspaceShell.tsx RIGHT_PANEL_TABS). */
+export const chooseWorkflowsTab = doc => doc.getElementById("right-tab-workflows");
