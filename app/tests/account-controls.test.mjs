@@ -10,7 +10,7 @@ const document = installMiniDom();
 const React = (await import('react')).default;
 const {createRoot} = await import('react-dom/client');
 const {AccountRow, accountRowWords, accountAction, connectionFacts, sourceKey, useAccountController} = loadSrc('AccountControls');
-const {accountReading, DIDNT_SAY, signInUnresolved} = loadSrc('AccountStatus');
+const {accountReading, DIDNT_SAY, reportedPlan, signInUnresolved, CHATGPT_DETAILS_WITHHELD} = loadSrc('AccountStatus');
 const {WorkspaceConnectionStatus, connectionWords} = loadSrc('DailyWorkspace');
 const {App} = loadSrc('App');
 
@@ -24,16 +24,24 @@ const group = (c, name) => nodes(c, 'section').find(s => s.getAttribute('aria-la
 const avatarOf = c => nodes(c, 'span').find(s => /account-controls-avatar/.test(s.getAttribute('class') ?? ''));
 
 const base = (over = {}) => ({state: 'ready', generationClosed: false, generation: g, threads: [], roleLimits: {account: {roles: []}},
-  homeRouting: {activeModeHomeClass: 'account', entries: [{modeHomeClass: 'account'}]}, serverRequests: [], ...over});
+  homeRouting: {activeModeHomeClass: 'account', entries: [{modeHomeClass: 'account'}]}, serverRequests: [], clientRequests: [], reservedNativeRequests: [], ...over});
+// The request identity (the JSON-RPC id the host wrote) of the read each test names by its reference: read-n is n.
+const identityOf = ref => typeof ref === 'string' && /^read-\d+$/.test(ref) ? Number(ref.slice(5)) : null;
+// The host registers each request in `clientRequests` (or, before its record is written, `reservedNativeRequests`)
+// before it writes it (hosting.rs snapshot_fields): every account read a status lists is registered there, with others
+// a test adds.
+const registered = (status, more = []) => ({...status, clientRequests: [...(status.homeAccess?.observations ?? []).map(row => row.source.requestIdentity), ...more]
+  .filter(id => id !== null && id !== undefined).map(requestIdentity => ({recordKind: 'client-request', generation: status.generation, requestIdentity, method: 'account/read'})),
+  reservedNativeRequests: []});
 // One account read as the host records it (hosting.rs SourceRequest::evidence; access.rs AccountObservation), as the
 // first-view tests construct it, with the field each reading turns on.
 const read = ({answer, outcome = 'response-observed-result', source = {}, observed, current, mode = 'account', host = base()} = {}) => {
-  const answered = outcome === 'response-observed-result';
-  const row = {source: {generation: g, home: g.home, requestIdentity: 1, requestRef: 'read-1', sourceCurrent: true, attemptedFrame: {method: 'account/read', params: {}},
+  const answered = outcome === 'response-observed-result', requestRef = 'requestRef' in source ? source.requestRef : 'read-1';
+  const row = {source: {generation: g, home: g.home, requestIdentity: identityOf(requestRef), requestRef: 'read-1', sourceCurrent: true, attemptedFrame: {method: 'account/read', params: {}},
     outcome, authResponseShapeValid: answered, lastClientObservation: {initiator: {kind: 'app-rule', name: 'app-at-ready'}}, ...source},
     accountObservation: observed ?? (answered ? {state: answer === null ? 'native account null observed' : 'native account type observed', account: answer, identityVerified: false} : null)};
-  return {...host, homeRouting: {...host.homeRouting, activeModeHomeClass: mode}, homeAccess: {modeHomeClass: mode, observations: [row]},
-    accountObservation: current ?? (answered ? {generation: g, home: g.home, state: 'observed', nativeAccount: answer, codexAccount: answer?.email ?? null, identityVerified: false} : null)};
+  return registered({...host, homeRouting: {...host.homeRouting, activeModeHomeClass: mode}, homeAccess: {modeHomeClass: mode, observations: [row]},
+    accountObservation: current ?? (answered ? {generation: g, home: g.home, state: 'observed', nativeAccount: answer, codexAccount: answer?.email ?? null, identityVerified: false} : null)});
 };
 const chatgpt = (plan = 'plus') => ({type: 'chatgpt', email: EMAIL, planType: plan});
 // Each of the twelve readings (AccountStatus.tsx accountReading), from the host fields that produce it.
@@ -77,21 +85,21 @@ const noCommands = () => ({async checkAgain() {}, async startSignIn() {}, async 
 const noReveals = {openSettings() {}, openConnection() {}};
 // One controller, as the App holds one, and the account rows that share it: the navigator's, and with `rows: 2` the
 // collapsed strip's beside it; with `line`, the workspace line above the conversation, wired as the App wires it.
-function Surfaces({host, latest, commands, reveals, rows, line, moving}) {
-  const account = useAccountController(host, latest, commands, moving);
+function Surfaces({host, latest, commands, reveals, rows, line, moving, baselineWait}) {
+  const account = useAccountController(host, latest, commands, moving, baselineWait);
   return React.createElement(React.Fragment, null, ...Array.from({length: rows}, (_, i) =>
     React.createElement('div', {key: i, 'data-surface': String(i)}, React.createElement(AccountRow, {host, account, reveals}))),
-    line ? React.createElement(WorkspaceConnectionStatus, {key: 'line', ...connectionFacts(host), source: sourceKey(host), signIn: accountReading(host), completed: account.completed,
+    line ? React.createElement(WorkspaceConnectionStatus, {key: 'line', ...connectionFacts(host), source: sourceKey(host), signIn: accountReading(host), completed: account.completed, plan: reportedPlan(host),
       busy: account.acting || signInUnresolved(host), checkAgain: () => account.act('check-again', host), startSignIn: () => account.act('sign-in', host)}) : null);
 }
-async function mountRow(host, check, {commands = noCommands(), reveals = noReveals, rows = 1, line = false, strict = false} = {}) {
+async function mountRow(host, check, {commands = noCommands(), reveals = noReveals, rows = 1, line = false, strict = false, baselineWait} = {}) {
   const container = document.createElement('div'); document.body.appendChild(container); const root = createRoot(container);
   // `latest` is the latest status the App has accepted when an action is sent: the status rendered, unless a test
   // moves it ahead. The status read the controller asks for returns it, unless the commands say otherwise.
   let current = host, moving = false, statusReads = 0;
   const all = {readStatus: async () => current, ...commands};
   const counted = {...all, readStatus: async () => { statusReads++; return all.readStatus(); }};
-  const view = next => { const surfaces = React.createElement(Surfaces, {host: next, latest: () => current, commands: counted, reveals, rows, line, moving: () => moving});
+  const view = next => { const surfaces = React.createElement(Surfaces, {host: next, latest: () => current, commands: counted, reveals, rows, line, moving: () => moving, baselineWait});
     return strict ? React.createElement(React.StrictMode, null, surfaces) : surfaces; };
   const render = async next => { current = next; await React.act(async () => root.render(view(next))); };
   const surface = i => container.childNodes[i];
@@ -104,7 +112,7 @@ const g2 = {...g, spawnCounter: 2};
 const restartedAs = (status, generation = g2) => JSON.parse(JSON.stringify(status).replaceAll(JSON.stringify(g), JSON.stringify(generation)));
 // A status that also lists account reads issued before its latest one, as the host lists every read it issued.
 const withEarlier = (status, refs) => { const latest = status.homeAccess.observations.at(-1);
-  return {...status, homeAccess: {...status.homeAccess, observations: [...refs.map(ref => ({...latest, source: {...latest.source, requestRef: ref}})), latest]}}; };
+  return registered({...status, homeAccess: {...status.homeAccess, observations: [...refs.map(ref => ({...latest, source: {...latest.source, requestRef: ref, requestIdentity: identityOf(ref)}})), latest]}}); };
 const deferred = () => { let resolve, reject; const promise = new Promise((a, b) => { resolve = a; reject = b; }); return {promise, resolve, reject}; };
 const lineOf = c => nodes(c, 'section').find(e => e.getAttribute('aria-label') === 'Workspace connection status');
 const oauth = (phase, over = {}) => ({homeOAuth: {state: 'source-observed', source: {generation: g, requestIdentity: 31, phase, mode: 'Browser', ...over}}});
@@ -397,7 +405,7 @@ test('an action that was refused or failed is said beside it in the App\'s words
   }
 });
 
-test('a sign-in Codex reports completed is said as completed until an account read issued after it answers; a read made while it was pending, or one with no reference, is not that read', async () => {
+test('a sign-in Codex reports completed is said as completed until an account read issued after it answers with a result; a read made while it was pending, or one with no request identity, is not that read', async () => {
   const pending = withEarlier({...READINGS['no-account'], ...oauth('Pending')}, []);
   // A status that reports the completion, with the account reads it lists (the latest last).
   const after = (ref, answer, earlier = [], outcome) => withEarlier(read({answer, outcome, source: {requestRef: ref}, host: {...base(), ...completedOAuth()}}), earlier);
@@ -425,9 +433,9 @@ test('a sign-in Codex reports completed is said as completed until an account re
     assert.ok(said(container).includes('Codex reports the sign-in completed. The account has not been read since.'));
     assert.doesNotMatch(dialogOf(container).textContent, /not signed in|Not signed in/);
     assert.deepEqual(nodes(group(container, 'Account'), 'button').map(b => b.textContent), ['Check again']);
-    // A newer read the status lists without a reference proves nothing.
+    // A newer read the status lists without a request identity proves nothing.
     await render(after(undefined, chatgpt(), ['read-1', 'read-2']));
-    assert.equal(nodes(rowOf(container), 'strong')[0].textContent, 'Sign-in completed', 'a read without a reference is not the read after it');
+    assert.equal(nodes(rowOf(container), 'strong')[0].textContent, 'Sign-in completed', 'a read without a request identity is not the read after it');
     // The status after the controller's read lists it (read-3): that is the read after the completion.
     await render(after('read-3', chatgpt(), ['read-1', 'read-2']));
     assert.ok(!dialogOf(container), 'closed when the read after it confirms the account');
@@ -451,13 +459,15 @@ test('a sign-in Codex reports completed is said as completed until an account re
     assert.ok(button(container, SIGN_IN));
     assert.ok(dialogOf(container));
   }, {commands});
-  // The read after it fails: the reading is said as Codex didn't say, with Check again to try once more.
+  // The read after it is answered with an error: that is not an answer with a result, so the completion is still held,
+  // never said as the earlier reading, with Check again to try once more.
   await mountRow(pending, async ({container, open, render}) => {
     await open();
     await render(after('read-1', null));
     await render(after('read-2', undefined, ['read-1'], 'response-observed-error'));
-    assert.equal(nodes(rowOf(container), 'strong')[0].textContent, 'Sign-in unknown');
-    assert.ok(button(container, 'Check again'));
+    assert.equal(nodes(rowOf(container), 'strong')[0].textContent, 'Sign-in completed');
+    assert.equal(nodes(rowOf(container), 'small')[0].textContent, 'Account not read yet');
+    assert.deepEqual(nodes(group(container, 'Account'), 'button').map(b => b.textContent), ['Check again']);
   }, {commands});
   // The status read for the baseline fails, before any account read: a clear retry, and the retry makes both reads.
   let statusFails = true;
@@ -472,15 +482,18 @@ test('a sign-in Codex reports completed is said as completed until an account re
     await React.act(async () => props(button(container, 'Check again')).onClick());
     assert.equal(statusReads(), 2); assert.deepEqual(calls, ['checkAgain']);
   }, {commands: {...commands, readStatus: async () => { if (statusFails) throw Error('invented status failure'); return after('read-1', null); }}});
-  // A completion already there when this App view first saw the Codex process was not watched completing: no status
-  // or account read is made for it, it moves and closes nothing, and the row says the reading the status shows.
+  // A completion already there when this App view first saw the Codex process was not watched completing, and nothing
+  // here shows which reads came after it: it is held the same way, and confirmed the same way, by one status read and
+  // one account read; it closes and moves nothing.
   calls.length = 0;
   await mountRow(after('read-1', null), async ({container, open, render, statusReads}) => {
-    assert.equal(nodes(rowOf(container), 'strong')[0].textContent, 'Not signed in', 'what the status shows');
+    assert.equal(nodes(rowOf(container), 'strong')[0].textContent, 'Sign-in completed', 'not the reading the status shows');
+    assert.equal(statusReads(), 1); assert.deepEqual(calls, ['checkAgain']);
     await open();
-    await render({...READINGS['chatgpt-account'], ...completedOAuth()});
-    assert.ok(dialogOf(container));
-    assert.equal(statusReads(), 0); assert.deepEqual(calls, []);
+    await render(after('read-2', chatgpt(), ['read-1']));
+    assert.equal(nodes(rowOf(container), 'strong')[0].textContent, 'Signed in');
+    assert.ok(dialogOf(container), 'it closes nothing');
+    assert.equal(statusReads(), 1); assert.deepEqual(calls, ['checkAgain']);
   }, {commands});
   // Under React's strict rendering (renders and effects run twice): still one status read and one account read.
   calls.length = 0;
@@ -497,6 +510,129 @@ test('a sign-in Codex reports completed is said as completed until an account re
     await render({...READINGS['no-account'], ...oauth('CompletedFailure')});
     assert.ok(dialogOf(container));
     assert.equal(props(button(container, SIGN_IN)).disabled, false);
+  });
+});
+
+// A status that reports the completion, with the account reads it lists (the latest last) and any other account reads
+// the host has registered (`more`, by request identity) that its account reads do not list yet.
+const afterCompletion = (ref, answer, earlier = [], {outcome, source = {}, more = []} = {}) =>
+  registered(withEarlier(read({answer, outcome, source: {requestRef: ref, ...source}, host: {...base(), ...completedOAuth()}}), earlier), more);
+const stateOf = c => nodes(rowOf(c), 'strong')[0].textContent;
+const detailOf = c => nodes(rowOf(c), 'small')[0]?.textContent ?? null;
+const pendingSignIn = withEarlier({...READINGS['no-account'], ...oauth('Pending')}, []);
+
+test('a read registered before the baseline is never the read after the completion, even where the account reads list it only after the baseline, answered with an old result', async () => {
+  for (const [name, old, settled] of [['an old ChatGPT result', chatgpt(), 'Signed in'], ['an old null result', null, 'Not signed in']]) {
+    const calls = [], answer = deferred();
+    const commands = {...noCommands(), checkAgain: async () => { calls.push('checkAgain'); await answer.promise; }};
+    await mountRow(registered(pendingSignIn, [2]), async ({container, open, render, statusReads}) => {
+      await open();
+      // The completion arrives. read-2, written while the sign-in was pending, is registered with the host, but its
+      // account reads list only read-1 so far.
+      await render(afterCompletion('read-1', null, [], {more: [2]}));
+      assert.equal(statusReads(), 1); assert.deepEqual(calls, ['checkAgain'], `${name}: the controller's own read is out`);
+      // read-2 is listed now, answered with its old result, before the controller's read (read-3) answers.
+      await render(afterCompletion('read-2', old, ['read-1']));
+      assert.equal(stateOf(container), 'Sign-in completed', `${name}: the row`);
+      assert.equal(avatarOf(container).getAttribute('data-signed-in'), 'false', `${name}: the avatar`);
+      assert.equal(!!dialogOf(container), true, `${name}: the popover stays open`);
+      assert.match(lineOf(container).textContent, /^Codex is running\. Codex reports the sign-in completed\./, `${name}: the line`);
+      assert.doesNotMatch(lineOf(container).textContent, /You're not signed in|you're signed in/, `${name}: the line says neither`);
+      await React.act(async () => answer.resolve());
+      assert.equal(stateOf(container), 'Sign-in completed', `${name}: still, once the controller's read has returned`);
+      // The status lists the controller's read (read-3), answered: that is the read after the completion.
+      await render(afterCompletion('read-3', old, ['read-1', 'read-2']));
+      assert.equal(stateOf(container), settled, `${name}: the read after it settles it`);
+    }, {commands, line: true});
+  }
+});
+
+test('a read after the completion that ended without a reply settles nothing: the completion is held and Check again is offered', async () => {
+  const calls = [];
+  const commands = {...noCommands(), checkAgain: async () => { calls.push('checkAgain'); }};
+  await mountRow(pendingSignIn, async ({container, open, render, statusReads}) => {
+    await open();
+    await render(afterCompletion('read-1', null));
+    assert.deepEqual(calls, ['checkAgain']);
+    // The controller's read (read-2) is listed, still waiting: the account is being checked, and nothing is offered.
+    await render(afterCompletion('read-2', undefined, ['read-1'], {outcome: 'pending'}));
+    assert.equal(stateOf(container), 'Sign-in completed'); assert.equal(detailOf(container), 'Checking the account…');
+    assert.deepEqual(nodes(group(container, 'Account'), 'button').map(b => b.textContent), []);
+    // Its wait ends without a reply: still held, never "Sign-in unknown", and Check again is offered on the row's
+    // popover and on the line, never a sign-in.
+    await render(afterCompletion('read-2', undefined, ['read-1'], {outcome: 'pending', source: {waitingEnded: true}}));
+    assert.equal(stateOf(container), 'Sign-in completed'); assert.equal(detailOf(container), 'Account not read yet');
+    assert.deepEqual(nodes(group(container, 'Account'), 'button').map(b => b.textContent), ['Check again']);
+    assert.deepEqual(nodes(lineOf(container), 'button').map(b => b.textContent), ['Check again']);
+    await React.act(async () => props(button(container, 'Check again')).onClick());
+    assert.deepEqual(calls, ['checkAgain', 'checkAgain'], 'Check again reads the account again');
+    assert.equal(statusReads(), 1, 'against the same baseline');
+    await render(afterCompletion('read-3', chatgpt(), ['read-1', 'read-2']));
+    assert.equal(stateOf(container), 'Signed in');
+  }, {commands, line: true});
+});
+
+test('a status read for the baseline that never returns does not hold the account checks: it is given up, with Check again', async () => {
+  const calls = [];
+  let status = () => new Promise(() => {});
+  const commands = {...noCommands(), checkAgain: async () => { calls.push('checkAgain'); }, readStatus: () => status()};
+  await mountRow(pendingSignIn, async ({container, open, render, statusReads}) => {
+    await open();
+    await render(afterCompletion('read-1', null));
+    assert.equal(statusReads(), 1); assert.equal(detailOf(container), 'Checking the account…');
+    await React.act(async () => { await new Promise(resolve => setTimeout(resolve, 80)); });
+    assert.deepEqual(calls, [], 'no account read without a baseline');
+    assert.equal(stateOf(container), 'Sign-in completed'); assert.equal(detailOf(container), 'Account not read yet');
+    assert.ok(said(container).includes('Account status could not be confirmed. Try checking again; this does not mean you are signed out.'));
+    assert.equal(props(button(container, 'Check again')).disabled, false, 'Check again can be pressed');
+    status = async () => afterCompletion('read-1', null);
+    await React.act(async () => props(button(container, 'Check again')).onClick());
+    assert.equal(statusReads(), 2); assert.deepEqual(calls, ['checkAgain']);
+  }, {commands, baselineWait: 20});
+});
+
+test('a remount that loses a watched completion still holds it: the old answer beside it is not said, and the read after it confirms', async () => {
+  const calls = [];
+  const commands = {...noCommands(), checkAgain: async () => { calls.push('checkAgain'); }};
+  // Watched completing, beside the old null answer of read-1.
+  await mountRow(pendingSignIn, async ({container, render}) => {
+    await render(afterCompletion('read-1', null));
+    assert.equal(stateOf(container), 'Sign-in completed');
+  }, {commands, line: true});
+  // The App view is mounted again on the same status: it has not seen the completion complete, but says no reading.
+  calls.length = 0;
+  await mountRow(afterCompletion('read-1', null), async ({container, open, render, statusReads}) => {
+    assert.equal(stateOf(container), 'Sign-in completed', 'not "Not signed in" from the old answer');
+    assert.doesNotMatch(lineOf(container).textContent, /You're not signed in/);
+    assert.equal(statusReads(), 1); assert.deepEqual(calls, ['checkAgain'], 'the read after it is made');
+    await open();
+    assert.equal(button(container, SIGN_IN), undefined, 'no second sign-in');
+    await render(afterCompletion('read-2', chatgpt(), ['read-1']));
+    assert.equal(stateOf(container), 'Signed in');
+  }, {commands, line: true});
+});
+
+test('the email and plan said with a ChatGPT reading come only from the read that gave it: where it withholds them none are said, and none are taken from another projection', async () => {
+  const OTHER = 'earlier.account@example.com';
+  // The host's account projection, from another read, names another account and plan.
+  const projection = {generation: g, home: g.home, state: 'observed', nativeAccount: {type: 'chatgpt', email: OTHER, planType: 'pro'}, codexAccount: OTHER, identityVerified: false};
+  // The read withholds the details, as the host gives every ChatGPT account read (auth_rpc.rs project_frame).
+  const withheld = read({answer: {type: 'chatgpt', detailsUnavailable: true}, current: projection});
+  assert.equal(accountReading(withheld), 'chatgpt-account');
+  await mountRow(withheld, async ({container, open}) => {
+    assert.equal(stateOf(container), 'Signed in'); assert.equal(detailOf(container), 'ChatGPT account', 'no plan on the row');
+    assert.equal(lineOf(container).textContent.includes('Plan:'), false, 'no plan on the line');
+    await open();
+    assert.ok(said(container).includes(CHATGPT_DETAILS_WITHHELD));
+    assert.equal(dialogOf(container).textContent.includes(OTHER), false, 'no email from the other projection');
+    assert.equal(/plan pro|Plan: pro/.test(dialogOf(container).textContent), false, 'no plan from the other projection');
+  }, {line: true});
+  // A read that gives them: its own email and plan, and none of the other projection's.
+  await mountRow(read({answer: chatgpt('team'), current: projection}), async ({container, open}) => {
+    assert.equal(detailOf(container), 'Plan: team');
+    await open();
+    assert.ok(said(container).includes(`Codex reports a ChatGPT account for this connection: ${EMAIL} · plan team.`));
+    assert.equal(dialogOf(container).textContent.includes(OTHER), false);
   });
 });
 

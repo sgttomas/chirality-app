@@ -34,14 +34,19 @@ const currentChoices = c => elements(c, 'input').filter(i => props(i).name === '
 const viewNow = ui => ui.revealedSinceLastLook().some(id => id === 'workspace-start' || id === 'ordinary-composer-text') ? 'Conversation' : currentTab(ui.container);
 
 const base = (over = {}) => ({state: 'ready', generationClosed: false, generation: g, threads: [], roleLimits: {account: {roles: []}},
-  homeRouting: {activeModeHomeClass: 'account', entries: [{modeHomeClass: 'account'}]}, serverRequests: [], ...over});
+  homeRouting: {activeModeHomeClass: 'account', entries: [{modeHomeClass: 'account'}]}, serverRequests: [], clientRequests: [], reservedNativeRequests: [], ...over});
+// The request identity (the JSON-RPC id the host wrote) of each read the tests name by its reference, one per reference.
+const identities = new Map();
+const identityOf = ref => { if (!identities.has(ref)) identities.set(ref, identities.size + 1); return identities.get(ref); };
 // One account read as the host records it: the App's own read at ready, answered (account, or null), or still waiting.
-const reading = (host, answer, {ref = 'read-1', outcome = 'response-observed-result', extra = {}} = {}) => {
+// The host registers it in `clientRequests` before writing it (hosting.rs snapshot_fields), with any reads in `more`.
+const reading = (host, answer, {ref = 'read-1', outcome = 'response-observed-result', extra = {}, more = []} = {}) => {
   const answered = outcome === 'response-observed-result';
-  const row = {source: {generation: host.generation, home: host.generation.home, requestIdentity: 1, requestRef: ref, sourceCurrent: true,
+  const clientRequests = [ref, ...more].map(r => ({recordKind: 'client-request', generation: host.generation, requestIdentity: identityOf(r), method: 'account/read'}));
+  const row = {source: {generation: host.generation, home: host.generation.home, requestIdentity: identityOf(ref), requestRef: ref, sourceCurrent: true,
     attemptedFrame: {method: 'account/read', params: {}}, outcome, authResponseShapeValid: answered, lastClientObservation: {initiator: {kind: 'app-rule', name: 'app-at-ready'}}, ...extra},
     accountObservation: answered ? {state: answer === null ? 'native account null observed' : 'native account type observed', account: answer, identityVerified: false} : null};
-  return {...host, homeAccess: {modeHomeClass: 'account', observations: [row]},
+  return {...host, clientRequests, reservedNativeRequests: [], homeAccess: {modeHomeClass: 'account', observations: [row]},
     accountObservation: answered ? {generation: host.generation, home: host.generation.home, state: 'observed', nativeAccount: answer, identityVerified: false} : null};
 };
 const noAccount = (host = base(), o) => reading(host, null, o);
@@ -545,6 +550,31 @@ test('the move after a sign-in, the row and the line rest on one proof: an accou
     assert.doesNotMatch(ui.container.textContent, signedInLine, 'the earlier notice does not survive an unconfirmed completion');
     assert.match(connectionLine(ui.container)[0].textContent, /^Codex is running\. Codex reports the sign-in completed\./);
     assert.equal(reads(), 2);
+  });
+});
+
+test('the launch move rests on the reading the account row says: not on an answer beside a completed sign-in that no read after it has confirmed', async () => {
+  // A fresh view sees a sign-in pending and the launch read still waiting, then the completion beside that read's old
+  // null answer: the row holds the completion, and the App does not move to the sign-in.
+  const pendingSignIn = host => ({...host, homeOAuth: {state: 'source-observed', source: {generation: g, requestIdentity: 31, phase: 'Pending', mode: 'Browser'}}});
+  await mountedApp(pendingSignIn(underWay()), async ui => {
+    assert.equal(viewNow(ui), 'Run a workflow');
+    await ui.observe(completed(noAccount()));
+    assert.equal(accountRowOf(ui.container).getAttribute('aria-label'), 'Account and settings, Sign-in completed');
+    assert.equal(viewNow(ui), 'Run a workflow', 'no move on the answer beside the completion');
+    assert.equal(ui.calls.filter(c => c.command === 'read_home_access').length, 1, 'the read after it is made');
+    // The read after it answers with a ChatGPT account: the App moves to a new conversation.
+    await ui.observe(historyEmpty(completed(signedIn(base(), {ref: 'launch-after-sign-in'}))));
+    assert.equal(accountRowOf(ui.container).getAttribute('aria-label'), 'Account and settings, Signed in');
+    assert.equal(viewNow(ui), 'Conversation');
+  });
+  // A completion already in the first status, beside an answer: held until the read after it, which then decides.
+  await mountedApp(completed(signedIn(base(), {ref: 'launch-first'})), async ui => {
+    assert.equal(accountRowOf(ui.container).getAttribute('aria-label'), 'Account and settings, Sign-in completed');
+    assert.equal(viewNow(ui), 'Run a workflow', 'no move on the answer beside the completion');
+    await ui.observe(completed(noAccount(base(), {ref: 'launch-first-after'})));
+    assert.equal(accountRowOf(ui.container).getAttribute('aria-label'), 'Account and settings, Not signed in');
+    assert.equal(viewNow(ui), 'Settings & tools', 'the read after it decides the launch move');
   });
 });
 

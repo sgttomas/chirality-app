@@ -697,7 +697,8 @@ test('with Codex running, the workspace line and the account panel say the same 
   'api key':[host({type:'apiKey'}),/^Codex is running\. Codex reports an API key for this connection, not a ChatGPT sign-in\./,/^Codex reports an API key for this connection\.$/],
   unsupported:[host({type:'other'}),DIDNT_SAY,/^Codex did not provide a supported account status\./],
   chatgpt:[host({type:'chatgpt'}),/^Codex is running and you're signed in with your ChatGPT account\.$/,/^Codex reports a ChatGPT account for this connection: /],
-  'chatgpt with a plan':[host({type:'chatgpt'},h=>{h.accountObservation.nativeAccount={type:'chatgpt',planType:'plus'};}),/^Codex is running and you're signed in with your ChatGPT account\. Plan: plus\.$/,/^Codex reports a ChatGPT account for this connection: /],
+  // The plan is the one the read that reported the account gives.
+  'chatgpt with a plan':[host({type:'chatgpt',planType:'plus'}),/^Codex is running and you're signed in with your ChatGPT account\. Plan: plus\.$/,/^Codex reports a ChatGPT account for this connection: /],
  };
  const didntSay=new Set(['stale','failed','pending','unanswered','unavailable','omitted','changed','unsupported']);
  for(const [name,[h,workspace,account]] of Object.entries(states)){

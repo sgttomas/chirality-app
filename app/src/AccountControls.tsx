@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { ACCOUNT_PANEL_WORDS, DIDNT_SAY, SIGN_IN_COMPLETED, SIGN_IN_PHASE_WORDS, accountReadError, accountReadRef, accountReadRefs, accountReading, accountSummary, reportedPlan, signInCompletion, signInPhase, signInUnresolved, type ReadAccountStatus } from "./AccountStatus";
+import { ACCOUNT_PANEL_WORDS, DIDNT_SAY, SIGN_IN_COMPLETED, SIGN_IN_PHASE_WORDS, accountReadError, accountReadIdentities, accountReadIdentity, accountReadReplied, accountReading, accountSummary, reportedPlan, signInCompletion, signInPhase, signInUnresolved, type ReadAccountStatus } from "./AccountStatus";
 import { connectionWords, signInSentence, type ConnectionFacts } from "./DailyWorkspace";
 import { AgentText } from "./AgentText";
 import { readingSentence } from "./readingSentences";
@@ -33,8 +33,10 @@ export type AccountController = {
   /** What the App says of the last attempt that was not sent, was declined at its confirmation or did not go through,
    * while the account of the Codex process and home it was made for still stands as it did then; else null. */
   feedback: string | null;
-  /** A sign-in Codex reports completed, watched completing here, that no account read made after it has answered yet:
-   * the account is being read, or has not been read since; else null. */
+  /** A sign-in Codex reports completed for the current process and home that no account read made after it has
+   * answered with a result: the account is being read, or has not been read since; else null. A completion this view
+   * did not watch completing (one already there when it was mounted) is held the same way, since nothing here shows
+   * which reads came after it. */
   completed: CompletedState | null;
   /** `completed` is not null. */
   awaiting: boolean;
@@ -131,25 +133,29 @@ export const accountDeclined = (action: AccountActionName, result: Json): boolea
 
 /** Which Codex processes, and which completed sign-ins in them, this App view has seen. A completion first seen in a
  * status of a process seen before without it was watched completing; one already there when the process was first
- * seen was not. */
+ * seen was not. Only a watched completion closes the popover and moves to a new conversation once confirmed. */
 type Seen = { generations: string[]; completions: Record<string, boolean> };
 const generationKey = (host: Json): string | null => host?.generation ? JSON.stringify(host.generation) : null;
 const watchedIn = (seen: Seen, completion: string, generation: string | null) =>
   Object.hasOwn(seen.completions, completion) ? seen.completions[completion] : !!generation && seen.generations.includes(generation);
-/** The latest account read of the status is not one the baseline lists, so it was issued after the completion, and
- * it has answered. */
-function answeredAfter(baseline: string[] | undefined, host: Json): boolean {
-  const ref = accountReadRef(host);
-  return !!baseline && ref !== null && !baseline.includes(ref) && accountReading(host) !== "reading";
+/** The latest account read of the status was registered after the baseline was taken: its request identity is not
+ * one the baseline lists (the reads are already of the status's own process: AccountStatus.tsx accountReads). */
+function madeAfter(baseline: string[] | undefined, host: Json): boolean {
+  const identity = accountReadIdentity(host);
+  return !!baseline && identity !== null && !baseline.includes(identity);
 }
-function completedIn(seen: Seen, baselines: Record<string, string[]>, host: Json, reading: boolean): CompletedState | null {
+/** The latest account read was made after the completion and has answered with a result. A read whose wait ended
+ * without a reply, or that was answered with an error, settles nothing. */
+const answeredAfter = (baseline: string[] | undefined, host: Json): boolean => madeAfter(baseline, host) && accountReadReplied(host);
+function completedIn(baselines: Record<string, string[]>, host: Json, reading: boolean): CompletedState | null {
   const completion = signInCompletion(host);
-  if (!completion || !watchedIn(seen, completion, generationKey(host))) return null;
+  if (!completion) return null;
   const baseline = baselines[completion];
   if (answeredAfter(baseline, host)) return null;
-  const ref = accountReadRef(host);
-  return reading || (!!baseline && ref !== null && !baseline.includes(ref)) ? "checking" : "unread";
+  return reading || (madeAfter(baseline, host) && accountReading(host) === "reading") ? "checking" : "unread";
 }
+/** How long the controller waits for the status read that gives a baseline before it gives up and offers Check again. */
+export const BASELINE_STATUS_WAIT_MS = 10_000;
 type Acting = "sign-in" | "sign-out" | "read" | null;
 
 /**
@@ -158,15 +164,19 @@ type Acting = "sign-in" | "sign-out" | "read" | null;
  * to the Codex process and home shown when it was pressed and checked against the latest status the App has accepted
  * (`latest`), none while the App is moving between homes (`moving`).
  *
- * A completed sign-in watched completing is confirmed only by an account read issued after the completion. The host
- * status gives no order between its account reads and the completion, so the controller makes one: on seeing the
- * completion it reads the host's status once (a read started after the status that showed the completion arrived),
- * keeps the account reads that status lists as the baseline, and then issues one account read. A read the baseline
- * does not list was issued after that status was taken, so after the completion; the latest such read, once it has
- * answered, is the confirmation. Until then the completion is `completed`. Every check of the account made while it
- * is unconfirmed does the same. Nothing is stored, and nothing is recorded during render.
+ * A completed sign-in is confirmed only by an account read issued after the completion. The host status gives no
+ * order between its account reads and the completion, so the controller makes one: on seeing the completion it reads
+ * the host's status once (a read started after the status that showed the completion arrived) and keeps, as the
+ * baseline, the request identity of every account read the host had registered for that process by then
+ * (accountReadIdentities), whether or not its account reads list it yet; then it issues one account read. A read whose
+ * identity the baseline does not hold was registered after that status was taken, so after the completion; the latest
+ * such read, once it has answered with a result, is the confirmation. A read registered earlier is never taken for it,
+ * even one the status lists only later. Until then the completion is `completed`, and a read that ended without a
+ * result leaves it so, with Check again. A status read that does not return within `baselineWait` (ms) is given up,
+ * with Check again. Every check of the account made while it is unconfirmed does the same. Nothing is stored, and
+ * nothing is recorded during render.
  */
-export function useAccountController(host: Json, latest: () => Json, commands: AccountCommands, moving: () => boolean = () => false): AccountController {
+export function useAccountController(host: Json, latest: () => Json, commands: AccountCommands, moving: () => boolean = () => false, baselineWait: number = BASELINE_STATUS_WAIT_MS): AccountController {
   const mounted = useRef(true);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const inFlight = useRef(false);
@@ -175,9 +185,8 @@ export function useAccountController(host: Json, latest: () => Json, commands: A
   const [seen, setSeen] = useState<Seen>({ generations: [], completions: {} });
   const [baselines, setBaselines] = useState<Record<string, string[]>>({});
   const [autoRead, setAutoRead] = useState<string[]>([]);
-  // The same, for a press or a read: kept by effects and by the read that takes a baseline, never during render.
-  const seenNow = useRef(seen), baselinesNow = useRef(baselines);
-  useEffect(() => { seenNow.current = seen; }, [seen]);
+  // The baselines, for a press or a read: kept by an effect and by the read that takes a baseline, never during render.
+  const baselinesNow = useRef(baselines);
   useEffect(() => { baselinesNow.current = { ...baselines, ...baselinesNow.current }; }, [baselines]);
   const generation = generationKey(host), completion = signInCompletion(host);
   useEffect(() => {
@@ -190,9 +199,9 @@ export function useAccountController(host: Json, latest: () => Json, commands: A
     });
   }, [generation, completion]);
   const watched = !!completion && watchedIn(seen, completion, generation);
-  const completed = completedIn(seen, baselines, host, acting === "read");
+  const completed = completedIn(baselines, host, acting === "read");
   const confirmed = completion && watched && answeredAfter(baselines[completion], host) && accountReading(host) === "chatgpt-account" ? completion : null;
-  const completedNow = (status: Json) => completedIn(seenNow.current, baselinesNow.current, status, false);
+  const completedNow = (status: Json) => completedIn(baselinesNow.current, status, false);
   const checkpoint = (status: Json, held: CompletedState | null) => JSON.stringify([sourceKey(status), accountReading(status), signInPhase(status), held !== null]);
   const admit = (kind: Exclude<Acting, null>): (() => void) | null => {
     if (inFlight.current || moving()) return null;
@@ -202,10 +211,14 @@ export function useAccountController(host: Json, latest: () => Json, commands: A
   // One check of the account for the status shown, by `reader`; false where the status changed first and nothing was read.
   const readFor = async (shown: Json, reader: ReadAccountStatus, isCurrent: () => boolean = () => true): Promise<boolean> => {
     const key = signInCompletion(shown);
-    if (key && watchedIn(seenNow.current, key, generationKey(shown)) && !baselinesNow.current[key]) {
-      const status = await commands.readStatus();
+    if (key && !baselinesNow.current[key]) {
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const status = await Promise.race([commands.readStatus(),
+        new Promise<never>((_, reject) => { timer = setTimeout(() => reject(Error("The status read for the account check did not return.")), baselineWait); })])
+        .finally(() => clearTimeout(timer));
       if (sourceKey(status) !== sourceKey(shown) || signInCompletion(status) !== key) return false;
-      const baseline = accountReadRefs(status);
+      const baseline = accountReadIdentities(status);
+      if (!baseline) throw Error("The status did not list the account reads under way.");
       baselinesNow.current = { ...baselinesNow.current, [key]: baseline };
       if (mounted.current) setBaselines(old => old[key] ? old : { ...old, [key]: baseline });
     }
@@ -235,9 +248,9 @@ export function useAccountController(host: Json, latest: () => Json, commands: A
       if (mounted.current) setFeedback({ checkpoint: attempt, words: (action === "check-again" ? readingSentence(error) : null) ?? FAILED[action] });
     } finally { release(); }
   };
-  // A completion watched completing, for the status shown: one account read, made after a baseline, without a press.
+  // A completion not yet confirmed, for the status shown: one account read, made after a baseline, without a press.
   useEffect(() => {
-    if (!completion || !watched || baselines[completion] || autoRead.includes(completion) || acting) return;
+    if (!completion || baselines[completion] || autoRead.includes(completion) || acting) return;
     const now = latest();
     if (!sameSource(now, host) || signInCompletion(now) !== completion) return;
     const release = admit("read");
@@ -247,7 +260,7 @@ export function useAccountController(host: Json, latest: () => Json, commands: A
     void readFor(now, commands.checkAgain).catch(error => {
       if (mounted.current) setFeedback({ checkpoint: attempt, words: readingSentence(error) ?? FAILED["check-again"] });
     }).finally(release);
-  }, [completion, watched, baselines, autoRead, acting]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [completion, baselines, autoRead, acting]); // eslint-disable-line react-hooks/exhaustive-deps
   const run = async (command: PanelAccountCommand, send: () => Promise<void>) => {
     const now = latest();
     if (command === "sign-in" && (signInUnresolved(now) || completedNow(now) !== null)) return false;

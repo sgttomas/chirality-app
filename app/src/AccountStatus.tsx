@@ -10,7 +10,8 @@ export type ReadAccountStatus = (generation: Json, modeHomeClass: string, isCurr
 // no other response string, native detail or diagnostic is summarized.
 const PLAN_TYPES = ["free", "go", "plus", "pro", "prolite", "promax", "team", "self_serve_business_prolite", "self_serve_business_usage_based", "business", "ent26",
   "enterprise_cbp_automation", "enterprise_cbp_usage_based", "enterprise", "edu", "edu_plus", "edu_pro", "sci", "sci_plus", "unknown"];
-/** The ChatGPT account as Codex reports it for this home: the email, or that none was reported, and the plan type. */
+/** A ChatGPT account as a read reports it (`codexAccount`, the email; `nativeAccount.planType`): the email, or that none
+ * was reported, and the plan type. */
 export function reportedChatgptAccount(current: Json): string {
   const who = typeof current?.codexAccount === "string" && current.codexAccount !== "" && current.codexAccount.length <= 254 && !/[\u0000-\u001f\u007f]/.test(current.codexAccount)
     ? current.codexAccount : "ChatGPT account (no email reported)";
@@ -24,12 +25,27 @@ function accountReads(host: Json): Json[] {
       && sameActivityGeneration(row.source.generation, generation) && row.source.home === generation.home) : [];
 }
 const latestAccountRead = (host: Json): Json => accountReads(host).at(-1);
-const refOf = (row: Json): string | null => typeof row?.source?.requestRef === "string" && row.source.requestRef ? row.source.requestRef : null;
-/** The latest account read of this connection, by its request reference; null before any, or where it has none. */
-export const accountReadRef = (host: Json): string | null => refOf(latestAccountRead(host));
-/** Every account read of this connection the status lists, by request reference. The host lists each read as it is
- * issued, in that order (runtime_session.rs read_native_home_access, account_view). */
-export const accountReadRefs = (host: Json): string[] => accountReads(host).map(refOf).filter((ref): ref is string => ref !== null);
+/** A request identity as the host gives it (the JSON-RPC id it wrote: hosting.rs SourceRequest::request_id), as a key;
+ * null where there is none. */
+const identityKey = (identity: Json): string | null =>
+  (typeof identity === "number" && Number.isSafeInteger(identity)) || (typeof identity === "string" && identity !== "") ? JSON.stringify(identity) : null;
+/** The latest account read of this connection, by its request identity; null before any, or where it has none. */
+export const accountReadIdentity = (host: Json): string | null => identityKey(latestAccountRead(host)?.source?.requestIdentity);
+/** Every account read the host has registered for this connection's Codex process, by request identity: those it lists
+ * in `clientRequests` and those still reserved in `reservedNativeRequests` (hosting.rs snapshot_fields). The host
+ * registers each request in one of the two before writing it and takes both lists under one lock, so a read already
+ * written when the status was taken is here even where the account reads (`homeAccess`) do not list it yet. Null where
+ * the status does not carry both lists. */
+export function accountReadIdentities(host: Json): string[] | null {
+  const generation = host?.generation, client = host?.clientRequests, reserved = host?.reservedNativeRequests;
+  if (!generation || !Array.isArray(client) || !Array.isArray(reserved)) return null;
+  return [...client, ...reserved].filter((row: Json) => row?.method === "account/read" && sameActivityGeneration(row?.generation, generation))
+    .map((row: Json) => identityKey(row.requestIdentity)).filter((key): key is string => key !== null);
+}
+/** The latest account read of this connection was answered with a result: Codex replied, and not with an error. A read
+ * still waiting, one whose wait ended without a reply, or one answered with an error has not said whether anyone is
+ * signed in. */
+export const accountReadReplied = (host: Json): boolean => latestAccountRead(host)?.source?.outcome === "response-observed-result";
 /** Codex's own message for the latest account read of this connection, where that read answered with an error. */
 export function accountReadError(host: Json): string | null {
   if (accountReading(host) !== "failed") return null;
@@ -37,10 +53,18 @@ export function accountReadError(host: Json): string | null {
   const message = source?.lastClientObservation?.error?.message ?? source?.response?.error?.message;
   return typeof message === "string" && message !== "" ? message : null;
 }
-/** The plan Codex reports for a current ChatGPT account reading, from the App's own list of plan types; else null. */
-export function reportedPlan(host: Json): string | null {
+/** The account a current ChatGPT account reading reports, as that same read gives it, where it gives the details; else
+ * null. Where the host withholds them from the read (auth_rpc.rs project_frame: `{type: "chatgpt", detailsUnavailable:
+ * true}`), none are shown, and none are taken from another projection, which may be of another read. */
+function chatgptReadDetails(host: Json): Json {
   if (accountReading(host) !== "chatgpt-account") return null;
-  const plan = host?.accountObservation?.nativeAccount?.planType;
+  const account = latestAccountRead(host)?.accountObservation?.account;
+  return account?.type === "chatgpt" && account.detailsUnavailable !== true ? account : null;
+}
+/** The plan Codex reports for a current ChatGPT account reading, from the read that reported the account and the App's
+ * own list of plan types; else null. */
+export function reportedPlan(host: Json): string | null {
+  const plan = chatgptReadDetails(host)?.planType;
   return PLAN_TYPES.includes(plan) && plan !== "unknown" ? plan : null;
 }
 const accountCheckpoint = (host: Json) => {
@@ -172,10 +196,15 @@ export const SIGN_IN_COMPLETED: Record<"checking" | "unread", { detail: string; 
   checking: { detail: "Checking the account…", sentence: "Codex reports the sign-in completed. Checking the account with Codex…" },
   unread: { detail: "Account not read yet", sentence: "Codex reports the sign-in completed. The account has not been read since." },
 };
-/** The account panel's sentence for the current reading: for a ChatGPT account, the account as Codex reports it. */
+/** The account panel's sentence for a ChatGPT account reading whose read does not give the email and plan. */
+export const CHATGPT_DETAILS_WITHHELD = "Codex reports a ChatGPT account for this connection. The email and plan are not shown for this reading.";
+/** The account panel's sentence for the current reading: for a ChatGPT account, the account as the read that reported
+ * it gives it. */
 export function accountSummary(host: Json): string {
   const reading = accountReading(host);
-  return reading === "chatgpt-account" ? `Codex reports a ChatGPT account for this connection: ${reportedChatgptAccount(host?.accountObservation)}.` : ACCOUNT_PANEL_WORDS[reading];
+  if (reading !== "chatgpt-account") return ACCOUNT_PANEL_WORDS[reading];
+  const account = chatgptReadDetails(host);
+  return account ? `Codex reports a ChatGPT account for this connection: ${reportedChatgptAccount({ codexAccount: account.email, nativeAccount: account })}.` : CHATGPT_DETAILS_WITHHELD;
 }
 
 /** The account panel. `auto` (default true): it reads the account itself when it sees a completed sign-in; the App

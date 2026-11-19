@@ -139,7 +139,7 @@ test('a failed status poll shows the fixed line alone and withholds the raw diag
 // status read follows it.
 const statusLine = (c, label) => nodes(region(c, label), 'p').find(node => node.getAttribute('role') === 'status').textContent;
 const accountRead = {homeAccess:{modeHomeClass:'account', observations:[{source:{attemptedFrame:{method:'account/read'}, generation:g, home:'account', sourceCurrent:true, outcome:'response-observed-result', authResponseShapeValid:true},
-  accountObservation:{state:'native account type observed', account:{type:'chatgpt'}}}]},
+  accountObservation:{state:'native account type observed', account:{type:'chatgpt', email:'invented@example.invalid', planType:'plus'}}}]},
   accountObservation:{generation:g, home:'account', state:'observed', nativeAccount:{type:'chatgpt', planType:'plus'}, codexAccount:'invented@example.invalid'}};
 test('an action that succeeds with a successful refresh shows no refresh line', async () => {
   await mounted({read_home_access:() => ({value:{state:'read'}, host:accountRead})}, async (c, calls) => {

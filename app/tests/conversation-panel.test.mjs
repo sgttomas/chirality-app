@@ -1076,7 +1076,7 @@ test('the App start display has its own role group and one shared model field an
 const {AccountStatus} = loadSrc('AccountStatus');
 const accountCanary = 'INVENTED_ACCOUNT_PRIVATE_913@example.invalid';
 const accountHost = (extra={}) => ({state:'ready',generationClosed:false,generation:g,
-  homeRouting:{activeModeHomeClass:'account',entries:[{modeHomeClass:'account'},{modeHomeClass:'api-key'}]},...extra});
+  homeRouting:{activeModeHomeClass:'account',entries:[{modeHomeClass:'account'},{modeHomeClass:'api-key'}]},clientRequests:[],reservedNativeRequests:[],...extra});
 const completionPacket = (extra={}) => ({state:'source-observed',source:{generation:g,requestIdentity:31,
   observationRef:'original-login-31',phase:'CompletedSuccess',mode:'Browser',actualWriteObserved:true,...extra}});
 function accountReadPacket(kind='chatgpt', extra={}) {
@@ -1085,8 +1085,10 @@ function accountReadPacket(kind='chatgpt', extra={}) {
     attemptedFrame:{method:'account/read',params:{}},outcome:'response-observed-result',authResponseShapeValid:true},
     accountObservation:{state:kind === null ? 'native account null observed':'native account type observed',account,identityVerified:false},...extra};
 }
+// The host registers each account read in clientRequests before writing it (hosting.rs snapshot_fields).
 function withAccountRead(base, row=accountReadPacket()) {
-  return {...base,homeAccess:{modeHomeClass:base.homeRouting.activeModeHomeClass,observations:[row]},
+  return {...base,clientRequests:[{recordKind:'client-request',generation:row.source.generation,requestIdentity:row.source.requestIdentity,method:'account/read'}],reservedNativeRequests:[],
+    homeAccess:{modeHomeClass:base.homeRouting.activeModeHomeClass,observations:[row]},
     accountObservation:{generation:base.generation,home:base.generation.home,state:'observed',
       nativeAccount:row.accountObservation?.account,codexAccount:accountCanary,identityVerified:false}};
 }
@@ -1171,9 +1173,11 @@ test('ordinary account summary distinguishes kinds, absence, omission, pending, 
       const source=withAccountRead(accountHost(),row);
       source.homeAccess.observations.unshift(accountReadPacket());
       await ui.show(source);assert.match(ui.container.textContent,expected,'latest read controls; no fallback to old success');
-      // DEL-01-05 REQ-001: the email and plan appear only with a current ChatGPT account report, never with any other outcome.
-      if(row===cases[0][0]) assert.match(ui.container.textContent,new RegExp(`reports a ChatGPT account for this connection: ${accountCanary.replace('.','\\.')} · plan not reported\\.`));
-      else assert.doesNotMatch(ui.container.textContent,new RegExp(accountCanary));
+      // DEL-01-05 REQ-001: the email and plan appear only with a current ChatGPT account report, never with any other
+      // outcome, and only as the read that reported the account gives them: this read withholds them (auth_rpc.rs
+      // project_frame), so none are said, and the account projection's are not borrowed.
+      if(row===cases[0][0]) assert.match(ui.container.textContent,/Codex reports a ChatGPT account for this connection\. The email and plan are not shown for this reading\./);
+      assert.doesNotMatch(ui.container.textContent,new RegExp(accountCanary));
     }
     const invalidated=withAccountRead(accountHost());invalidated.accountObservation.state='unknown';
     await ui.show(invalidated);assert.match(ui.container.textContent,/changed or is no longer confirmed/);
@@ -1237,7 +1241,7 @@ test('App matching completion dispatches only the existing non-forced read and s
     await ui.press('Sign in with your ChatGPT account (through Codex)…');
     assert.deepEqual(ui.calls.filter(c=>c.command==='read_home_access'),[{command:'read_home_access',args:{generation:g,modeHomeClass:'account'}}]);
     assert.match(ui.summary().textContent,/reports a ChatGPT account/);
-    assert.match(ui.summary().textContent,new RegExp(accountCanary),'the account Codex reports is shown');
+    assert.doesNotMatch(ui.summary().textContent,new RegExp(accountCanary),'the read withholds the email, so none is shown; the account projection\'s is not borrowed');
     // The confirmed sign-in moves to New conversation, where the App reads Codex's model list (a catalogue read,
     // no model is called and nothing is chosen).
     assert.ok(ui.calls.every(c=>['host_status','decision_view','native_confirmation_content','oauth_start','read_home_access','read_available_models'].includes(c.command)),

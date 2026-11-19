@@ -3149,8 +3149,9 @@ export function App() {
   const signInReading = accountReading(host);
   // The first view at launch follows state once, when the launch's account reading arrives: no account, Settings &
   // tools at the sign-in; signed in with no conversation yet in this project's history, a new conversation;
-  // otherwise, while the read is under way, or when Codex didn't say, Run a workflow stays. Signed in, the App's own
-  // history list read at ready is waited for, and only its reaching the end with none listed counts as no
+  // otherwise, while the read is under way, or when Codex didn't say, Run a workflow stays. While a sign-in Codex
+  // reports completed is not yet confirmed by a read made after it (the account controller's hold, which the row says),
+  // the move waits. Signed in, the App's own history list read at ready is waited for, and only its reaching the end with none listed counts as no
   // conversation: one that stopped short, or never ran, establishes nothing. Never after the person has navigated
   // (including while the history list is still being read), and never over unsent work or a waiting request. Only the
   // move waits for the reads: nothing in the App is disabled or covered while they are under way. A reading that
@@ -3163,19 +3164,6 @@ export function App() {
   useEffect(() => {
     if (readyKey && !readySince.current.has(readyKey)) readySince.current.set(readyKey, Date.now());
   }, [readyKey]);
-  useEffect(() => {
-    if (launchViewDecided.current || !host || setupRequired || firstRead !== "read") return;
-    if (navigated.current) { launchViewDecided.current = true; return; }
-    if (host.state !== "ready" || host.generationClosed || signInReading === "unread" || signInReading === "reading") return;
-    if (signInReading === "chatgpt-account" && historyAtReady === "reading") return;
-    launchViewDecided.current = true;
-    // A reading that settles after the bound is shown where it belongs, and moves nothing.
-    const since = readyKey ? readySince.current.get(readyKey) : undefined;
-    if (since === undefined || Date.now() - since > FIRST_VIEW_MOVE_BOUND_MS) return;
-    if (holdsUnsent() || requestWaiting) return;
-    if (signInReading === "no-account") autoMove("settings", "workspace-sign-in");
-    else if (signInReading === "chatgpt-account" && historyAtReady !== "stopped" && noConversationInHistory(host)) autoMove("conversation", "workspace-start");
-  }, [host, signInReading, historyAtReady, requestWaiting, setupRequired, firstRead]); // eslint-disable-line react-hooks/exhaustive-deps
   // The account's actions, shared by the account row (in the navigator and in its collapsed strip), the workspace
   // line and Connection and access: the present commands under their present conditions, each failure said on the App
   // line. That line is the attempt's: a later attempt of the same action for the same Codex process and home that goes
@@ -3206,6 +3194,21 @@ export function App() {
   };
   // Each press is checked against the latest status the App has accepted, which may not be rendered yet.
   const account = useAccountController(host, () => accepted() ?? currentHost.current, accountCommands, () => homePendingRef.current);
+  // The first view at launch (described above), on the reading the account row says.
+  useEffect(() => {
+    if (launchViewDecided.current || !host || setupRequired || firstRead !== "read") return;
+    if (navigated.current) { launchViewDecided.current = true; return; }
+    // A completed sign-in not yet confirmed holds the reading, as it holds the row's: the move waits for the read after it.
+    if (host.state !== "ready" || host.generationClosed || account.completed || signInReading === "unread" || signInReading === "reading") return;
+    if (signInReading === "chatgpt-account" && historyAtReady === "reading") return;
+    launchViewDecided.current = true;
+    // A reading that settles after the bound is shown where it belongs, and moves nothing.
+    const since = readyKey ? readySince.current.get(readyKey) : undefined;
+    if (since === undefined || Date.now() - since > FIRST_VIEW_MOVE_BOUND_MS) return;
+    if (holdsUnsent() || requestWaiting) return;
+    if (signInReading === "no-account") autoMove("settings", "workspace-sign-in");
+    else if (signInReading === "chatgpt-account" && historyAtReady !== "stopped" && noConversationInHistory(host)) autoMove("conversation", "workspace-start");
+  }, [host, signInReading, account.completed, historyAtReady, requestWaiting, setupRequired, firstRead]); // eslint-disable-line react-hooks/exhaustive-deps
   // A sign-in completed in this process and an account read made after it confirms an account (the account
   // controller's proof, the one the row and the line use): a new conversation, with a line saying so. Signing in is the
   // act that asks for this, so the person's navigation does not block it; unsent work and a waiting request do. Once
