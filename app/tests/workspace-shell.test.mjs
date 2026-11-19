@@ -241,8 +241,12 @@ test('mounted: closing the right panel collapses its region, and the toggle ther
     await React.act(async () => props(accountRow(strip)).onClick());
     assert.ok(accountPopover(strip), 'the popover opens from the collapsed strip');
     assert.ok(nodes(accountPopover(strip), 'button').some(b => b.textContent === 'Settings & tools…'));
-    await React.act(async () => props(accountRow(strip)).onClick());
-    assert.equal(accountPopover(c), undefined);
+    // From the strip, Settings & tools… goes there: the popover closes and the tab is selected.
+    await React.act(async () => props(nodes(accountPopover(strip), 'button').find(b => b.textContent === 'Settings & tools…')).onClick());
+    assert.ok(!accountPopover(c), 'the popover closes');
+    assert.equal(selectedTab(c), 'Settings & tools');
+    // In the strip the row is the avatar alone: its name and tooltip say the state.
+    assert.equal(accountRow(labelled(c, 'Collapsed chat navigation')).getAttribute('title'), accountRow(labelled(c, 'Collapsed chat navigation')).getAttribute('aria-label').replace('Account and settings, ', ''));
     await React.act(async () => props(labelled(c, 'Open Navigator')).onClick());
     assert.ok(navigator(c));
     // The handles resize by keyboard, within 3.0.1's bounds.

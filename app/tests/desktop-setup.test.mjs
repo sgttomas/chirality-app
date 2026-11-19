@@ -597,6 +597,9 @@ test('the mounted App shows only the welcome while setup is required and keeps c
     assert.ok(region(c,'Welcome'));assert.equal(hiddenUp(region(c,'Welcome')),false);
     for(const label of ['Workspace Navigator','Workspace connection status','Run a workflow','Right panel','Activity status'])assert.equal(hiddenUp(region(c,label)),true,label);
     assert.equal(nodes(c,'main')[0].getAttribute('class'),'shell shell--stone','the welcome takes the whole window: no three-region shell');
+    // Under the welcome, the line above the conversation and the account row say the same of the connection.
+    assert.match(region(c,'Workspace connection status').textContent,/^Setup needed/);
+    assert.equal(nodes(c,'button').find(b=>b.getAttribute('class')==='account-controls-row').getAttribute('aria-label'),'Account and settings, Setup needed');
     assert.equal(hiddenUp(region(c,'Content named by an open native confirmation')),false,'native confirmation content stays visible');
     host.state='ready';host.desktopSetup={...packet.retained.initial};host.generation={appSession:'s',home:'h',spawnCounter:1};
     await React.act(async()=>{for(const t of timers.values())await t.fn();});

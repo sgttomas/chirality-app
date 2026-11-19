@@ -3648,3 +3648,5 @@ div.woven-chat-section-heading--folder:hover { background:transparent; }
 .account-controls-popover .account-controls-menu-action:focus-visible { background:var(--accent-soft); }
 .account-controls-popover .account-controls-group:last-child { gap:2px; }
 .account-controls-popover:focus { outline:none; }
+.account-controls-avatar-mark { position:absolute; right:-4px; bottom:-4px; width:14px; height:14px; border-radius:50%; background:var(--ink); color:var(--ground, #fff); font-size:9px; font-weight:700; line-height:14px; text-align:center; box-shadow:0 0 0 2px var(--ground, #fff); }
+.account-controls-popover .account-controls-group p[role="status"] { color:var(--ink); font-weight:600; }

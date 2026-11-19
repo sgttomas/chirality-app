@@ -422,37 +422,73 @@ test('the automatic first-view move has its own bound of 10 s from the renderer 
 });
 
 // The centre beside the account row: the row carries the sign-in once it is established, and the empty conversation
-// invites a first message only where one could start.
+// invites a first message only where Codex is connected and does not report that there is no account.
+const connectionLine = container => container.querySelectorAll(e => e.getAttribute('aria-label') === 'Workspace connection status');
+const accountRowOf = container => elements(container, 'button').find(b => b.getAttribute('class') === 'account-controls-row');
+const messageBox = container => byId(container, 'ordinary-composer-text');
 test('signed in on a ready connection, the conversation carries no line about it: the account row says it', async () => {
   await mountedApp(historyEmpty(signedIn()), async ui => {
-    const status = ui.container.querySelectorAll(e => e.getAttribute('aria-label') === 'Workspace connection status');
-    assert.equal(status.length, 0, 'no connection line above the conversation');
-    const row = elements(ui.container, 'button').find(b => b.getAttribute('class') === 'account-controls-row');
-    assert.equal(row.getAttribute('aria-label'), 'Account and settings, Signed in');
+    assert.equal(connectionLine(ui.container).length, 0, 'no connection line above the conversation');
+    assert.equal(accountRowOf(ui.container).getAttribute('aria-label'), 'Account and settings, Signed in');
     assert.match(byId(ui.container, 'conversation').textContent, /Write your first message below\. Sending starts a new conversation with the settings under it\./);
+    assert.equal(messageBox(ui.container).getAttribute('placeholder'), 'Write your first message…');
+  });
+});
+
+// (Setup needed: desktop-setup.test.mjs, on the host status a setup-required launch gives.)
+test('the line gives way only where the row says "Signed in": not while the generation is closed or a completed sign-in is unconfirmed', async () => {
+  // A ChatGPT account was read, but this Codex process has closed: the row says the connection, and the line stays.
+  await mountedApp(signedIn(base({generationClosed: true})), async ui => {
+    assert.equal(accountRowOf(ui.container).getAttribute('aria-label'), 'Account and settings, Codex is not connected');
+    assert.equal(connectionLine(ui.container).length, 1);
+    assert.match(connectionLine(ui.container)[0].textContent, /^Codex is not connected/);
+    assert.equal(messageBox(ui.container).getAttribute('placeholder'), 'Connect to Codex to send…');
+  });
+  // A sign-in Codex reports completed, before the read after it: neither "not signed in" nor "signed in", and no
+  // second sign-in is offered; once the read confirms the account, the line gives way to the row.
+  await mountedApp(noAccount(), async ui => {
+    await ui.navigate('History');
+    assert.ok(elements(connectionLine(ui.container)[0], 'button').some(b => /^Sign in with your ChatGPT account/.test(b.textContent)), 'signed out, the line offers the sign-in');
+    await ui.observe(completed(noAccount()));
+    assert.equal(accountRowOf(ui.container).getAttribute('aria-label'), 'Account and settings, Sign-in completed');
+    const line = connectionLine(ui.container)[0];
+    assert.doesNotMatch(line.textContent, /You're not signed in|and you're signed in/);
+    assert.match(line.textContent, /The App hasn't established whether you're signed in/);
+    assert.deepEqual(elements(line, 'button').map(b => b.textContent), [], 'no sign-in is offered again');
+    assert.doesNotMatch(byId(ui.container, 'conversation').textContent, /Sign in with your ChatGPT account, then write/);
+    await ui.observe(completed(signedIn(base(), {ref: 'read-after-sign-in'})));
+    assert.equal(connectionLine(ui.container).length, 0);
+    assert.equal(accountRowOf(ui.container).getAttribute('aria-label'), 'Account and settings, Signed in');
   });
 });
 
 test('not signed in, the line stays and the empty conversation says to sign in, not to write; where Codex did not say, it claims neither', async () => {
   await mountedApp(noAccount(), async ui => {
     const centre = byId(ui.container, 'conversation');
-    assert.equal(ui.container.querySelectorAll(e => e.getAttribute('aria-label') === 'Workspace connection status').length, 1);
+    assert.equal(connectionLine(ui.container).length, 1);
     assert.match(centre.textContent, /Codex is running\. You're not signed in\./);
     assert.match(centre.textContent, /Sign in with your ChatGPT account, then write your first message here\./);
     assert.doesNotMatch(centre.textContent, /Write your first message below/);
+    assert.equal(messageBox(ui.container).getAttribute('placeholder'), 'Sign in to send…', 'the message box does not invite a first message either');
   });
   await mountedApp(failed(), async ui => {
     const centre = byId(ui.container, 'conversation');
     assert.match(centre.textContent, /It didn't say whether you're signed in\./);
     assert.doesNotMatch(centre.textContent, /You're not signed in|Sign in with your ChatGPT account, then write/, 'an unanswered read is never taken for signed out');
     assert.match(centre.textContent, /Write your first message below/);
+    assert.equal(messageBox(ui.container).getAttribute('placeholder'), 'Write your first message…');
   });
 });
 
-test('while Codex is not ready, the empty conversation invites nothing: the line above says why', async () => {
-  await mountedApp(base({state: 'starting'}), async ui => {
-    const centre = byId(ui.container, 'conversation');
-    assert.match(centre.textContent, /Codex is starting…/);
-    assert.doesNotMatch(centre.textContent, /Write your first message|then write your first message/);
-  });
+test('while Codex is not connected, the empty conversation invites no first message, in the transcript or in the message box', async () => {
+  for (const [name, host, title] of [['starting', base({state: 'starting'}), /Codex is starting…/], ['stopped', base({state: 'stopped'}), /Codex is not connected/],
+    ['closed', noAccount(base({generationClosed: true})), /Codex is not connected/]]) {
+    await mountedApp(host, async ui => {
+      const centre = byId(ui.container, 'conversation');
+      assert.match(centre.textContent, title, name);
+      assert.match(centre.textContent, /Connect to Codex before sending\. Your draft stays here\./, name);
+      assert.doesNotMatch(centre.textContent, /Write your first message|then write your first message/, name);
+      assert.equal(messageBox(ui.container).getAttribute('placeholder'), 'Connect to Codex to send…', name);
+    });
+  }
 });

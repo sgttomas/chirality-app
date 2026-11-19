@@ -122,7 +122,7 @@ export function connectionWords(facts: ConnectionFacts): { title: string; guidan
 export function signInSentence(signIn: AccountReading, plan: string | null): string {
   return `${SIGN_IN_WORDS[signIn]}${signIn === "chatgpt-account" ? planWords(plan) : ""}`;
 }
-export function WorkspaceConnectionStatus({ state, setupRequired, savedSetup, generationClosed, startRefusal, codexHome, refusalCause, build, signIn = "unread", plan = null, codexError = null, checkAgain, startSignIn }: ConnectionFacts & {
+export function WorkspaceConnectionStatus({ state, setupRequired, savedSetup, generationClosed, startRefusal, codexHome, refusalCause, build, signIn = "unread", plan = null, codexError = null, busy = false, checkAgain, startSignIn }: ConnectionFacts & {
   /** What the App has established of this connection's sign-in (AccountStatus.tsx, accountReading): the same
    * reading the account panel shows, so the two never disagree. */
   signIn?: AccountReading;
@@ -130,6 +130,8 @@ export function WorkspaceConnectionStatus({ state, setupRequired, savedSetup, ge
   plan?: string | null;
   /** Codex's own message where the account read answered with an error (AccountStatus.tsx, accountReadError). */
   codexError?: string | null;
+  /** An account action is under way elsewhere, or a sign-in is waiting to complete: neither button is pressed then. */
+  busy?: boolean;
   /** Reads the account again, as the account panel's check does: offered when Codex didn't say. */
   checkAgain?: () => Promise<void>;
   /** The sign-in Connection and access starts: offered here when Codex reports no account. */
@@ -152,8 +154,8 @@ export function WorkspaceConnectionStatus({ state, setupRequired, savedSetup, ge
   return <section className="workspace-connection-status" aria-label="Workspace connection status">
     <p role="status" aria-live="polite"><strong>{title}</strong>{guidance ? <> <span>{guidance}</span></> : null}</p>
     {didntSay && codexError && <p aria-label="What Codex said"><AgentText value={codexError} source="codex"/></p>}
-    {didntSay && checkAgain && <p><button disabled={acting} onClick={() => { void act(checkAgain); }}>Check again</button></p>}
-    {offerSignIn && <p><button className="setup-primary" disabled={acting} onClick={() => { void act(startSignIn); }}>Sign in with your ChatGPT account (through Codex)…</button></p>}
+    {didntSay && checkAgain && <p><button disabled={acting || busy} onClick={() => { void act(checkAgain); }}>Check again</button></p>}
+    {offerSignIn && <p><button className="setup-primary" disabled={acting || busy} onClick={() => { void act(startSignIn); }}>Sign in with your ChatGPT account (through Codex)…</button></p>}
     {/* Only while no start is under way, and only for the home being shown. */}
     {homeRefusal && startRefusal?.reason
       && <p role="alert" aria-label="Why Codex was not started">{startRefusal.reason.startsWith("Codex was not started") ? startRefusal.reason : `Codex was not started: ${startRefusal.reason}`}</p>}
