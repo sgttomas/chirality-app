@@ -177,7 +177,7 @@ test('a freshly set-up project: the host readings the waiting line uses are whol
   for(const key of ['returns','decisions','hot-runs','reopened'])assert.equal(readings.find(r=>r.key===key)?.state,'whole',key);
   const {observed,complete,notes}=waitingView(readings);
   assert.deepEqual(notes,[]);assert.equal(complete,true);
-  assert.equal(waitingLine(observed,complete),'Waiting on you: 0');
+  assert.equal(waitingLine(observed,complete),'Nothing is waiting');
 });
 test('after the App\'s own first fleet write: the host readings the waiting line uses are whole, and the line says so',()=>{
   // The actual readers' outputs after the record tick's writer recorded a spawn (native_delegation_records_tests.rs).
@@ -197,5 +197,5 @@ test('after the App\'s own first fleet write: the host readings the waiting line
   for(const key of ['returns','decisions','hot-runs','reopened'])assert.equal(readings.find(r=>r.key===key)?.state,'whole',key);
   const {observed,complete,notes}=waitingView(readings);
   assert.deepEqual(notes,[]);assert.equal(complete,true);
-  assert.equal(waitingLine(observed,complete),'Waiting on you: 0');
+  assert.equal(waitingLine(observed,complete),'Nothing is waiting');
 });

@@ -190,7 +190,7 @@ test('the commands that mark nothing are a closed table of self-issued commands,
   }
   assert.deepEqual(takesPlatform, ['hostReads.ts']);
   const shell = readFileSync(new URL('App.tsx', src), 'utf8');
-  assert.match(shell, /import \{ invoke, invokeTimedRead, useOrderedHost, shownBeforePress, POLL_MS \} from "\.\/hostReads";/, 'the shell issues every command through the marking function, or a listed read through the timed route');
+  assert.match(shell, /import \{ invoke, invokeTimedRead, useOrderedHost, useRunsAsLastRead, shownBeforePress, POLL_MS \} from "\.\/hostReads";/, 'the shell issues every command through the marking function, or a listed read through the timed route');
   assert.deepEqual([...shell.matchAll(/invokeTimedRead<[^>]*>\(([^)]*)\)/g)].map(m => m[1]), ['command'], 'the shell uses the timed route in one place');
   assert.match(shell, /readHost\(invoke<Json>\("host_status"\)\)\.then\(applyHost\)[^\n]*, POLL_MS\);/, 'the poll runs at the stated interval');
   assert.doesNotMatch(shell, /setHost\(/);
