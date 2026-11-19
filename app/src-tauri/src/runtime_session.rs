@@ -1787,18 +1787,30 @@ pub(crate) fn read_reopened_history(workflows: &std::sync::Mutex<WorkflowRootSes
     // When this reading of the records began, given on the view it stores and returns.
     let read_at = crate::util::now_rfc3339();
     let reading = crate::records_store::HistoryRead::begin(project);
-    let (view, generation) = {
+    let (outcome, generation) = {
         let mut root = workflows.lock().unwrap();
         root.reopened_generation += 1;
-        (root.reopen_for_learning(project, events, homes)?, root.reopened_generation)
+        (root.reopen_for_learning(project, events, homes), root.reopened_generation)
     };
-    let (view, runs) = view;
+    let (view, runs) = match outcome {
+        Ok(read) => read,
+        Err(reason) => {
+            // The navigator's note only: `reopened` and `reopened_not_read` stay as they were.
+            let mut root = workflows.lock().unwrap();
+            if root.reopened_generation == generation {
+                root.navigator_reading = crate::navigator_read::HeldReading::Failed { reason: reason.clone(), at: read_at };
+            }
+            return Err(reason);
+        }
+    };
     let mut view = reading.attach(project, view);
     view["readAt"] = json!(read_at);
+    let words = |v: &Value| v.as_array().into_iter().flatten().filter_map(|x| x.as_str().map(str::to_owned)).collect::<Vec<_>>();
+    let note = crate::navigator_read::HeldReading::Read { read_at: Some(read_at), limits: words(&view["limits"]), notices: words(&view["historyNotices"]), runs };
     let mut root = workflows.lock().unwrap();
     if root.reopened_generation == generation {
         root.reopened = Some(view.clone());
-        root.reopened_runs = runs;
+        root.navigator_reading = note;
     }
     Ok(view)
 }
@@ -4720,9 +4732,11 @@ pub(crate) struct WorkflowRootSession {
     /// Why the latest reading of the recorded runs did not read, while it did not; `reopened`,
     /// if present, is then from an earlier reading.
     reopened_not_read: Option<Value>,
-    /// The runs of the reading `reopened` shows, as the navigator takes them;
-    /// set with `reopened`, from the same reading.
-    reopened_runs: Vec<crate::navigator_read::RunInput>,
+    /// The navigator's note of the latest reading's outcome, from every entry
+    /// point (`read_reopened_history`): read, with when, its limits, notices
+    /// and runs; or failed, with the reason and when. Set under the same
+    /// generation check as `reopened`; no view carries it.
+    navigator_reading: crate::navigator_read::HeldReading,
     /// V10 G-5: per-run "end notice must go first" flags, readable without the
     /// run's lock, so a busy run never blocks ordinary text by itself.
     notice_flags: std::collections::HashMap<String, std::sync::Arc<std::sync::atomic::AtomicBool>>,
@@ -4777,7 +4791,7 @@ impl Default for WorkflowRootSession {
             reopened: None,
             reopened_generation: 0,
             reopened_not_read: None,
-            reopened_runs: Vec::new(),
+            navigator_reading: Default::default(),
             notice_flags: Default::default(),
             held_successors: Default::default(),
             app_user_data: None,
@@ -6337,27 +6351,16 @@ impl WorkflowRootSession {
         Ok((view, runs))
     }
     /// The navigator's read of the runs this root holds, taken in one brief
-    /// hold: the latest reading of the project's recorded runs (`reopened`,
-    /// with when it began, its limits and history notices, or the App's words
-    /// for why the latest reading did not read), and the runs this process
+    /// hold: the outcome of the latest reading of the project's recorded runs
+    /// (`navigator_reading`, whichever entry point made it), and the runs this process
     /// holds, each from its own scope and lifecycle. A run's lock is tried,
     /// never waited for: a run whose operation is pending is given as unknown,
     /// with its conversation from this root's own index of runs. A run only
     /// prepared (not sent) is not a run and is not given. Reads no file.
     /// `home_ids` maps a home's identity (a generation's `home`) to its class word.
     pub(crate) fn navigator_held(&self, home_ids: &std::collections::BTreeMap<String, String>) -> crate::navigator_read::HeldRuns {
-        use crate::navigator_read::{HeldReading, RunInput};
-        let words = |v: &Value| v.as_array().into_iter().flatten().filter_map(|x| x.as_str().map(str::to_owned)).collect::<Vec<_>>();
-        let recorded = match (&self.reopened, &self.reopened_not_read) {
-            (_, Some(not_read)) => HeldReading::NotRead(not_read["words"].as_str().unwrap_or(REOPEN_NOT_READ_WORDS[1]).to_owned()),
-            (Some(view), None) => HeldReading::Read {
-                read_at: view["readAt"].as_str().map(str::to_owned),
-                limits: words(&view["limits"]),
-                notices: words(&view["historyNotices"]),
-                runs: self.reopened_runs.clone(),
-            },
-            (None, None) => HeldReading::NotYet,
-        };
+        use crate::navigator_read::RunInput;
+        let recorded = self.navigator_reading.clone();
         let mut process: Vec<RunInput> = self.runs.iter().filter_map(|(reference, run)| match run.try_lock() {
             Ok(run) => run.navigator_row(reference),
             Err(_) => {

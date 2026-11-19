@@ -26,8 +26,9 @@
 //! - **The launched project's runs are the ones the workflow root holds**:
 //!   its reading of the project's recorded runs as last made (at launch, when
 //!   the person chooses Reopen, and after a recorded run is ended), with when
-//!   it began, its limits and its history notices, and the runs this process
-//!   holds, as it holds them.
+//!   it began, its limits and its history notices (where that latest reading
+//!   failed, not read, and no earlier reading's rows are given as current),
+//!   and the runs this process holds, as it holds them.
 //! - **Codex's side is memory.** Each home's Host is read through
 //!   `Host::navigator_projection` (no reply write is settled, unlike
 //!   `snapshot`), its history view through the rows it has received, and its
@@ -460,8 +461,9 @@ pub(crate) enum HeldReading {
     /// No reading has finished in this running App yet.
     #[default]
     NotYet,
-    /// The latest reading did not read: the App's own words.
-    NotRead(String),
+    /// The latest reading failed: its reason and when it began. An earlier
+    /// reading's rows are not given as current.
+    Failed { reason: String, at: String },
     /// The reading held: when it began, its limits and history notices as
     /// worded, and its runs.
     Read { read_at: Option<String>, limits: Vec<String>, notices: Vec<String>, runs: Vec<RunInput> },
@@ -584,7 +586,7 @@ struct PlacedRun<'a> {
 fn held_runs(held: &HeldRuns) -> (RunsRead, Vec<RunInput>) {
     let (runs_read, mut runs) = match &held.recorded {
         HeldReading::NotYet => (RunsRead { outcome: RunsOutcome::NotRead { reason: RUNS_NOT_YET.into() }, read_at: None, limits: vec![] }, vec![]),
-        HeldReading::NotRead(words) => (RunsRead { outcome: RunsOutcome::NotRead { reason: words.clone() }, read_at: None, limits: vec![] }, vec![]),
+        HeldReading::Failed { .. } => (RunsRead { outcome: RunsOutcome::NotRead { reason: crate::runtime_session::REOPEN_NOT_READ_WORDS[1].into() }, read_at: None, limits: vec![] }, vec![]),
         HeldReading::Read { read_at, notices, .. } if notices.iter().any(|n| n == crate::records_store::HISTORY_CHANGED_VIEW) =>
             (RunsRead { outcome: RunsOutcome::NotRead { reason: crate::records_store::HISTORY_CHANGED_VIEW.into() }, read_at: read_at.clone(), limits: vec![] }, vec![]),
         HeldReading::Read { read_at, limits, notices, runs } => {

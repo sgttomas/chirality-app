@@ -432,7 +432,7 @@ fn the_launched_projects_runs_are_as_the_app_holds_them() {
     let not_yet = compose_with(HeldRuns::default());
     assert_eq!(project(&not_yet, "/w/alpha").runs_read, RunsRead { outcome: RunsOutcome::NotRead { reason: RUNS_NOT_YET.into() }, read_at: None, limits: vec![] });
     let words = crate::runtime_session::REOPEN_NOT_READ_WORDS[1];
-    let not_read = compose_with(HeldRuns { recorded: HeldReading::NotRead(words.into()), process: vec![] });
+    let not_read = compose_with(HeldRuns { recorded: HeldReading::Failed { reason: "invented".into(), at: "2026-11-18T09:00:00.000Z".into() }, process: vec![] });
     assert_eq!(project(&not_read, "/w/alpha").runs_read.outcome, RunsOutcome::NotRead { reason: words.into() });
 
     // The routing changed while the reading read: none of its runs, but this
@@ -694,6 +694,58 @@ fn the_whole_read_writes_nothing_and_remembers_no_other_folder() {
     assert_eq!(read.projects.len(), 3, "the complete lines still list every folder");
     assert!(read.registry_limits.iter().any(|l| l.contains("roots.jsonl")), "{:?}", read.registry_limits);
     assert_eq!(crate::records_store::root_for_dir(&two_dir), None);
+}
+
+/// The launched project's section, and whether any of its entries carries a run.
+fn launched_section(read: &NavigatorRead) -> (RunsOutcome, bool) {
+    let current = read.projects.iter().find(|p| p.current).unwrap();
+    (current.runs_read.outcome.clone(), current.entries.iter().any(|e| e.run.is_some()))
+}
+
+// The runs shown follow the latest reading, whichever entry point made it:
+// launch and Reopen (`reopen_recorded`), and the refresh after a recorded run
+// is ended (`workflow_end_recorded`'s `read_reopened_history(...).ok()`).
+// A reading fails here because the project folder is away while it reads.
+#[test]
+fn a_failed_reopen_then_a_post_end_refresh_shows_the_refreshed_rows() {
+    let f = Fixture::new("navigator-latest-read");
+    let launched = folder(&f.base, "proj");
+    let away = f.base.join("proj-away");
+    crate::records_store::attach(&launched, true).unwrap();
+    open_run(&launched, "run:a", "thread:a");
+    as_at_launch();
+    let workflows = std::sync::Mutex::new(crate::runtime_session::WorkflowRootSession::default());
+    std::fs::rename(&launched, &away).unwrap();
+    assert!(crate::runtime_session::reopen_recorded(&workflows, Ok(launched.as_path()), &[], &[]).is_err());
+    std::fs::rename(&away, &launched).unwrap();
+    crate::runtime_session::read_reopened_history(&workflows, &launched, &[], &[]).ok();
+    let read = read_as_command(&launched, vec![], &workflows, &StatusSlot::default());
+    assert_eq!(launched_section(&read), (RunsOutcome::Read, true));
+    // The existing views are as they were: the failed Reopen's note stands there.
+    assert!(!workflows.lock().unwrap().snapshot()["reopenedNotRead"].is_null());
+    drop(f);
+}
+
+#[test]
+fn a_failed_post_end_refresh_does_not_present_the_earlier_rows_as_current() {
+    let f = Fixture::new("navigator-latest-failed");
+    let launched = folder(&f.base, "proj");
+    let away = f.base.join("proj-away");
+    crate::records_store::attach(&launched, true).unwrap();
+    open_run(&launched, "run:a", "thread:a");
+    as_at_launch();
+    let workflows = std::sync::Mutex::new(crate::runtime_session::WorkflowRootSession::default());
+    crate::runtime_session::reopen_recorded(&workflows, Ok(launched.as_path()), &[], &[]).unwrap();
+    assert_eq!(launched_section(&read_as_command(&launched, vec![], &workflows, &StatusSlot::default())), (RunsOutcome::Read, true));
+    std::fs::rename(&launched, &away).unwrap();
+    assert!(crate::runtime_session::read_reopened_history(&workflows, &launched, &[], &[]).is_err());
+    std::fs::rename(&away, &launched).unwrap();
+    let read = read_as_command(&launched, vec![], &workflows, &StatusSlot::default());
+    assert_eq!(launched_section(&read), (RunsOutcome::NotRead { reason: crate::runtime_session::REOPEN_NOT_READ_WORDS[1].into() }, false));
+    // The existing views are as they were: the earlier reading is still the reopened view.
+    let snapshot = workflows.lock().unwrap().snapshot();
+    assert!(snapshot["reopened"].is_object() && snapshot["reopenedNotRead"].is_null());
+    drop(f);
 }
 
 // Point 2: the attachment shown is host status's own observation while it is
