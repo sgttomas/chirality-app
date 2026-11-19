@@ -653,7 +653,7 @@ class TheSetupRunPassesOnlyWhatItsScenarioSays(unittest.TestCase):
         named = iter(['{settings}', '{account}', '{project}', '{app_data}/desktop-startup/request.json'])
         expected = re.sub(r'\{\}', lambda _: next(named), statement.replace('{SUPPLIER}', supplier)).split('\\n')
         sheet = json.loads((APP / 'examination/scripted_driver/setup-complete.scenario.json').read_text())['sheet']
-        # Then the one line saying Chirality will trust the project, naming by digest what that turns on (shown in the
+        # Then the one line saying that setting the project up switches Chirality's trust on, naming by digest what that turns on (shown in the
         # App); the Rust test the_scripted_setup_scenarios_sheet_is_this_statement_on_the_runners_paths pins its digest.
         trust = (APP / 'src-tauri/src/project_trust.rs').read_text()
         will = re.search(r'pub const WILL_TRUST: &str = "([^"]+)";', trust).group(1)

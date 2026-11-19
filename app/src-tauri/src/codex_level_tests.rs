@@ -257,7 +257,7 @@ fn row_3_the_apps_off_wins_over_the_settings_trusted_mark() {
         assert_eq!((r.row(), r.trust_level()), (TrustRow::SwitchedOff, "untrusted"), "{case:?}");
         let status = r.status();
         assert_eq!(status["case"], "switched-off");
-        assert_eq!(status["lines"], json!(["You switched trust off for this project in Chirality (at 2026-11-19T01:00:00Z), so the App sent an untrusted entry for the project root shown below."]));
+        assert_eq!(status["lines"], json!(["Chirality's choice for this project is off (switched off in Chirality at 2026-11-19T01:00:00Z), so the App sent an untrusted entry for the project root shown below."]));
         assert_eq!(status["appChoiceAt"], "2026-11-19T01:00:00Z");
     }
 }
@@ -277,11 +277,11 @@ fn row_5_unmarked_with_the_apps_on_is_trusted_and_says_why() {
     let r = reading(TrustCase::Unmarked, Some(on()));
     assert_eq!((r.row(), r.trust_level()), (TrustRow::AppOn, "trusted"));
     assert_eq!(r.status()["case"], "app-on-by-setup");
-    assert_eq!(r.status()["lines"], json!(["You set this project up in Chirality and have not switched its trust off, so the App sent a trusted entry for the project root shown below."]));
+    assert_eq!(r.status()["lines"], json!(["Chirality's choice for this project is on (you set it up in Chirality and have not switched its trust off), so the App sent a trusted entry for the project root shown below."]));
     assert_eq!(r.projects(), json!({"/invented/project": {"trust_level": "trusted"}}));
     let r = reading(TrustCase::Unmarked, Some(AppTrust::OnBySwitch { at: "2026-11-19T02:00:00Z".into() }));
     assert_eq!((r.row(), r.trust_level()), (TrustRow::AppOn, "trusted"));
-    assert_eq!(r.status()["lines"], json!(["You switched trust on for this project in Chirality (at 2026-11-19T02:00:00Z), so the App sent a trusted entry for the project root shown below."]));
+    assert_eq!(r.status()["lines"], json!(["Chirality's choice for this project is on (switched on in Chirality at 2026-11-19T02:00:00Z), so the App sent a trusted entry for the project root shown below."]));
 }
 
 #[test]
@@ -304,7 +304,7 @@ fn row_7_an_unreadable_choice_is_untrusted_over_every_mark() {
         assert_eq!((r.row(), r.trust_level()), (TrustRow::ChoiceNotRead, "untrusted"), "{case:?}");
         let status = r.status();
         assert_eq!(status["case"], "choice-not-read");
-        assert_eq!(status["lines"], json!(["The App could not read this project's trust choice, so it sent an untrusted entry for the project root shown below."]));
+        assert_eq!(status["lines"], json!(["The App could not read its record of this project's trust choice, so it sent an untrusted entry for the project root shown below."]));
         assert_eq!(status["detail"], json!({"text": "invented store limit", "standing": NOT_THE_APPS_TEXT}));
     }
 }
@@ -312,10 +312,10 @@ fn row_7_an_unreadable_choice_is_untrusted_over_every_mark() {
 #[test]
 fn the_apps_sentences_say_tried_to_send_for_an_unwritten_frame() {
     for (case, choice, want) in [
-        (TrustCase::Unmarked, on(), "You set this project up in Chirality and have not switched its trust off, so the App tried to send a trusted entry for the project root shown below."),
-        (TrustCase::Unmarked, AppTrust::OnBySwitch { at: "T".into() }, "You switched trust on for this project in Chirality (at T), so the App tried to send a trusted entry for the project root shown below."),
-        (trusted(), off(), "You switched trust off for this project in Chirality (at 2026-11-19T01:00:00Z), so the App tried to send an untrusted entry for the project root shown below."),
-        (trusted(), choice_not_read(), "The App could not read this project's trust choice, so it tried to send an untrusted entry for the project root shown below."),
+        (TrustCase::Unmarked, on(), "Chirality's choice for this project is on (you set it up in Chirality and have not switched its trust off), so the App tried to send a trusted entry for the project root shown below."),
+        (TrustCase::Unmarked, AppTrust::OnBySwitch { at: "T".into() }, "Chirality's choice for this project is on (switched on in Chirality at T), so the App tried to send a trusted entry for the project root shown below."),
+        (trusted(), off(), "Chirality's choice for this project is off (switched off in Chirality at 2026-11-19T01:00:00Z), so the App tried to send an untrusted entry for the project root shown below."),
+        (trusted(), choice_not_read(), "The App could not read its record of this project's trust choice, so it tried to send an untrusted entry for the project root shown below."),
     ] {
         let status = reading(case, Some(choice)).status_for_write(false);
         assert_eq!(status["lines"], json!([want]));
@@ -342,7 +342,7 @@ fn a_trusted_projects_settings_file_that_stops_a_start_is_said_plainly_for_both_
     assert_eq!(said["lines"][0], "This project's own Codex settings file could not be loaded, so Codex did not start the conversation.");
     assert_eq!((said["fileSentence"].as_str(), said["files"].clone()), (Some(PROJECT_SETTINGS_FILE_NAMED), json!([file.to_string_lossy()])));
     assert_eq!(said["codexReason"], json!({"text": parse["message"], "standing": NOT_THE_APPS_TEXT}));
-    assert_eq!(said["remedy"], "You can fix the file, or switch this project's trust off in Chirality and start the conversation again.");
+    assert_eq!(said["remedy"], "You can fix the file, or switch this project's trust off in Chirality, and start the conversation again.");
     // A key no longer supported: Codex names no path, so the candidates from the root to the folder are said.
     let mut below = TrustReading::not_read(cwd.clone(), TRUST_READ_FAILED, None);
     below.root = project.clone();

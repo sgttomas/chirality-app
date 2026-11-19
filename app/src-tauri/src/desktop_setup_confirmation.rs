@@ -443,7 +443,7 @@ mod tests {
         });
     }
 
-    /// DEL-01-01: setup's confirmation carries "Chirality will trust this project." and the whole effects text
+    /// DEL-01-01: setup's confirmation carries the trust line (`project_trust::WILL_TRUST`) and the whole effects text
     /// where the route names a project, in three forms by what fits the native statement: whole; the setup lines
     /// whole with the trust line naming the effects the App shows beside it; or the whole statement in the App.
     #[test]
@@ -479,11 +479,11 @@ mod tests {
         // No project: the statement as before, in each form.
         for setup in [short, setup, long] {
             let none = statement(setup, setup, None, "Save project for next launch").unwrap();
-            assert!(!none.text.contains(pt::WILL_TRUST) && !none.text.contains("Chirality will trust"));
+            assert!(!none.text.contains(pt::WILL_TRUST) && !none.text.contains("trust on for it"));
         }
         std::fs::remove_dir_all(project).unwrap();
     }
-    /// The retained-project route names a project: its confirmation says Chirality will trust it.
+    /// The retained-project route names a project: its confirmation says setting it up switches Chirality's trust on.
     #[test]
     fn retained_project_confirmation_says_chirality_will_trust_the_project() {
         let f = Fixture::admitted_project();

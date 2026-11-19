@@ -1599,7 +1599,7 @@ impl DesktopSetup {
         }
     }
     /// The whole statement setup's confirmation shows: the setup lines and, where the route names a project,
-    /// "Chirality will trust this project." followed by the whole effects text (DEL-01-01). What the native
+    /// the trust line (`project_trust::WILL_TRUST`) followed by the whole effects text (DEL-01-01). What the native
     /// confirmation shows of it, when it does not fit, is `desktop_setup_confirmation::statement`'s.
     pub fn preview_statement(&self, token: &str) -> Result<String, String> {
         let setup = self.preview_setup_statement(token)?;
@@ -7154,7 +7154,7 @@ mod tests {
             assert!(!text.contains("read-only") && !text.contains("auth.json") && !text.contains("by default"), "no default is restated as the settings in use");
         }
     }
-    /// DEL-01-01: a review that names a project says, where its effects are listed, that Chirality will trust
+    /// DEL-01-01: a review that names a project says, where its effects are listed, that setting the project up switches Chirality's trust on
     /// it, then the whole effects text; `projectTrust` says the same with the repository sentence where it applies.
     fn assert_project_trust_said(review: &Value, project: &Path) {
         let effects: Vec<&str> = review["effects"].as_array().unwrap().iter().map(|e| e.as_str().unwrap()).collect();

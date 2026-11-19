@@ -402,12 +402,12 @@ impl AppTrust {
 }
 
 /// The status's sentences for the App's own choice, beside the closed sentences above.
-pub const TRUST_ON_BY_SETUP: &str = "You set this project up in Chirality and have not switched its trust off, so the App sent a trusted entry for the project root shown below.";
-pub const TRUST_ON_BY_SWITCH_PREFIX: &str = "You switched trust on for this project in Chirality (at ";
+pub const TRUST_ON_BY_SETUP: &str = "Chirality's choice for this project is on (you set it up in Chirality and have not switched its trust off), so the App sent a trusted entry for the project root shown below.";
+pub const TRUST_ON_BY_SWITCH_PREFIX: &str = "Chirality's choice for this project is on (switched on in Chirality at ";
 pub const TRUST_ON_BY_SWITCH_SUFFIX: &str = "), so the App sent a trusted entry for the project root shown below.";
-pub const TRUST_OFF_BY_SWITCH_PREFIX: &str = "You switched trust off for this project in Chirality (at ";
+pub const TRUST_OFF_BY_SWITCH_PREFIX: &str = "Chirality's choice for this project is off (switched off in Chirality at ";
 pub const TRUST_OFF_BY_SWITCH_SUFFIX: &str = "), so the App sent an untrusted entry for the project root shown below.";
-pub const TRUST_CHOICE_NOT_READ: &str = "The App could not read this project's trust choice, so it sent an untrusted entry for the project root shown below.";
+pub const TRUST_CHOICE_NOT_READ: &str = "The App could not read its record of this project's trust choice, so it sent an untrusted entry for the project root shown below.";
 pub const TRUST_OFF_BY_NEW_IDENTITY: &str = "Chirality's choice for this project is off (the project was given a new identity), so the App sent an untrusted entry for the project root shown below.";
 pub const TRUST_FOLDER_CHANGED: &str = "The project's folder is no longer the folder Chirality opened, so the App sent an untrusted entry for the project root shown below.";
 
@@ -543,7 +543,7 @@ impl TrustReading {
 pub const CONFIG_LOAD_ERROR_CODE: i64 = -32600;
 pub const CONFIG_LOAD_ERROR_PREFIX: &str = "failed to load configuration:";
 pub const PROJECT_SETTINGS_NOT_LOADED: &str = "This project's own Codex settings file could not be loaded, so Codex did not start the conversation.";
-pub const PROJECT_SETTINGS_REMEDY: &str = "You can fix the file, or switch this project's trust off in Chirality and start the conversation again.";
+pub const PROJECT_SETTINGS_REMEDY: &str = "You can fix the file, or switch this project's trust off in Chirality, and start the conversation again.";
 pub const PROJECT_SETTINGS_FILE_NAMED: &str = "The file Codex named:";
 pub const PROJECT_SETTINGS_FILE_CANDIDATES: &str = "Codex did not name the file. The project's own settings files it may have read are among these:";
 /// Where Codex's text names none of the project's own settings files as a whole path.

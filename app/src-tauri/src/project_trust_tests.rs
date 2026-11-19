@@ -249,8 +249,14 @@ fn a_preview_whose_effects_changed_is_refused_before_any_confirmation() {
     let preview = trust.preview_on_launched().unwrap();
     assert_eq!(preview["content"]["effects"]["insideRepository"]["root"], json!(base.to_string_lossy()));
     let mut shown = String::new();
-    trust.confirm_on(preview["token"].as_str().unwrap(), |s, _, _| { shown = s.text.clone(); Ok(true) }).unwrap();
+    // Whole where it fits the native confirmation; otherwise named natively and shown in full, as plain text, in
+    // the App.
+    trust.confirm_on(preview["token"].as_str().unwrap(), |s, _, _| {
+        shown = s.in_app.as_ref().map_or_else(|| s.text.clone(), |c| { assert!(s.text.starts_with(SWITCH_ON_POINTER)); c.content.as_str().unwrap().to_owned() });
+        Ok(true)
+    }).unwrap();
     assert!(shown.contains(&format!("{INSIDE_REPOSITORY_BEFORE}{}{INSIDE_REPOSITORY_AFTER}", base.to_string_lossy())));
+    assert!(shown.contains(EFFECTS_TEXT) && shown.contains(TAKES_EFFECT));
     assert_eq!(lines(&project).len(), 1);
     std::fs::remove_dir_all(base).unwrap();
 }
@@ -317,7 +323,7 @@ fn the_effects_text_is_whole_in_the_confirmation_content_and_the_view() {
     assert_eq!(view["sentence"], CHOICE_ON_BY_SETUP);
     assert_eq!(view["effects"]["text"], EFFECTS_TEXT);
     assert_eq!(view["effects"]["insideRepository"], Value::Null, "the project is its own root");
-    assert_eq!(view["takesEffect"], "A change applies from the next conversation you start, continue or fork.");
+    assert_eq!(view["takesEffect"], "A change applies to conversations you start, continue or fork after it.");
     assert_eq!(view["offers"], json!(["switch-off"]));
     let preview = trust.preview_on_launched().unwrap();
     assert_eq!(preview["content"]["effects"]["text"], EFFECTS_TEXT);
@@ -349,13 +355,25 @@ fn the_repository_sentence_appears_only_where_the_root_codex_computes_is_not_the
     assert_eq!(sentence, json!({"before": INSIDE_REPOSITORY_BEFORE, "root": own.to_string_lossy(), "after": INSIDE_REPOSITORY_AFTER, "standing": "The folder is supplied text."}));
     assert_eq!(cl::project_root(&below), own, "the same function the trust entry uses");
     assert_eq!(format!("{INSIDE_REPOSITORY_BEFORE}<root>{INSIDE_REPOSITORY_AFTER}"),
-        "This project's folder is inside the Git repository at <root>. Trust is sent for that repository's top folder, so Codex also loads the AGENTS.md files and .codex settings in the folders between it and this one.");
+        "This project's folder is inside the Git repository at <root>. Trust is marked for that repository's top folder, so Codex also loads the AGENTS.md files in the folders from there down to this one, and can load .codex settings in those folders.");
     std::fs::remove_dir_all(own).unwrap();
 }
 
 #[test]
+fn the_words_are_the_agreed_sentences() {
+    assert_eq!(WILL_TRUST, "Setting this project up switches Chirality's trust on for it.");
+    assert_eq!(CHOICE_ON_BY_SETUP, "Chirality's choice for this project is on: you set it up in Chirality and have not switched its trust off.");
+    assert_eq!(format!("{CHOICE_ON_BY_SWITCH_PREFIX}T."), "Chirality's choice for this project is on: you switched it on in Chirality at T.");
+    assert_eq!(format!("{CHOICE_OFF_BY_SWITCH_PREFIX}T."), "Chirality's choice for this project is off: you switched it off in Chirality at T.");
+    assert_eq!(CHOICE_NOT_READ, "The App could not read its record of this project's trust choice, so a conversation started in this project's folder is sent as untrusted until the record can be read.");
+    assert_eq!(CANNOT_SWITCH, "Trust can be switched only for a project that is open in Chirality with its identity in the App's records store. A closed or disposed project, or one with no identity, cannot be switched, and the records store can refuse a switch; its reason is shown.");
+    assert_eq!(setup_trust_pointer("D"), "Setting this project up switches Chirality's trust on for it. What that turns on is shown in full in the App now, under \"Content named by an open native confirmation\". Its sha-256 digest: D");
+    assert_eq!(SETUP_TRUST_AMONG_EFFECTS, "Setting this project up switches Chirality's trust on for it; what that turns on is among the complete effects shown in the App.");
+}
+
+#[test]
 fn the_effects_text_is_the_owners_words() {
-    assert_eq!(EFFECTS_TEXT, "Chirality sends this project to Codex as trusted. Codex then loads the project's own instructions (AGENTS.md) and its own Codex settings (the .codex folder in the project). With them:\n- MCP servers that the project's settings name are started on this Mac when a conversation starts, outside the sandbox.\n- The project's shell environment applies to every command the agent runs, and a start-up file of the project's own runs inside each command, under the same access level as that command.\n- The project's rules can let commands run outside the sandbox without asking you.\n- If Codex cannot load the project's settings file, no new conversation starts in this project until the file is fixed or trust is switched off.\nYou can switch trust off for this project in Chirality at any time.");
+    assert_eq!(EFFECTS_TEXT, "Chirality marks this project as trusted when it starts, continues or forks a conversation in it, unless your own Codex settings mark the project untrusted or cannot be read. Codex then loads the project's own instructions (its AGENTS.md files) and its own Codex settings and rules (in the project's .codex folder). With them, the project's own files can:\n- start MCP server programs on this Mac when a conversation starts, outside the sandbox, and have Codex connect to MCP servers at addresses they name;\n- set the shell environment of every command the agent runs, and through it have a start-up file of the project's own run inside each command, under the same access level as that command;\n- let commands run outside the sandbox without asking you, through the project's rules. Chirality cannot switch that off while the project is trusted;\n- stop new conversations from starting in this project, where Codex cannot load the project's settings file, until the file is fixed or trust is switched off.\nYou can switch trust off for this project in Chirality while the project is open.");
     assert!(ns::bounded("project trust", format!("{EFFECTS_TEXT}\n{INSIDE_REPOSITORY_BEFORE}/a/b{INSIDE_REPOSITORY_AFTER}\n{TAKES_EFFECT} {RUNNING_UNCHANGED}")).is_ok(), "the whole text fits the native confirmation");
 }
 
