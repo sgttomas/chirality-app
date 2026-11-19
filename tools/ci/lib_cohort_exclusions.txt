@@ -116,6 +116,7 @@ schema_validation::tests: full route only; left out of the pull-request shards w
 storage::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
 util::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
 workflow_assurance::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+workflow_declaration::requirement_declaration_tests::write_the_shared_cases: ignored (#[ignore]): opt-in, run by no hosted job; run by hand after the cases of app/tests/fixtures/requirement_declaration_cases.json change, to write the values the host computes for them. workflow_declaration::requirement_declaration_tests::the_shared_cases_are_what_the_host_reads (selected on pull requests by the cohort workflow_declaration::requirement_declaration_tests) refuses a table that differs
 workflow_root_context_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
 workflow_trial_transcript::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
 workflow_workspace::publication::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)

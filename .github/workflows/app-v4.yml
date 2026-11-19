@@ -134,6 +134,9 @@ jobs:
           execution_compatibility::report::tests::an_undeclared_workflow_reads_undeclared_
           execution_compatibility::report::tests::a_host_operation_without_a_connected_host_
           runtime_session::workflow_root_tests::the_requirement_check_inventory_
+          workflow_declaration::requirement_declaration_tests
+          execution_compatibility::report::tests::the_entry_reading_and_the_check_agree_
+          runtime_session::workflow_root_tests::a_catalogue_entry_carries_
           continuation_context::tests history_bridge conversation_roles::tests
           workflow_role_tests desktop_startup instruction_seed_tests
           workflow_catalog_tests recorded_replay_tests native_delivery::tests
