@@ -559,28 +559,31 @@ export type OfferControls = { generation: Json; ready: boolean; busy: boolean; a
 const MESSAGE_KINDS = new Set(["userMessage", "agentMessage"]);
 type TurnSegment = { kind: "you" | "agent"; rows: Json[] };
 /** A turn's messages in their order: consecutive messages of one speaker together. The other items are folded. */
-export function turnSegments(items: Json[]): { segments: TurnSegment[]; folded: Json[]; messages: Json[] } {
-  const segments: TurnSegment[] = [], folded: Json[] = [], messages: Json[] = [];
+/** A turn's items as the transcript draws them: the messages as bubbles (consecutive messages of one speaker share a
+ * bubble); a failed item and an item of a kind the App does not know stay in view at the turn (`atTurn`); every other
+ * item is folded under the turn's details. */
+export function turnSegments(items: Json[]): { segments: TurnSegment[]; folded: Json[]; atTurn: Json[]; messages: Json[] } {
+  const segments: TurnSegment[] = [], folded: Json[] = [], atTurn: Json[] = [], messages: Json[] = [];
   for (const row of items) {
     const type = row?.native?.type;
-    if (!MESSAGE_KINDS.has(type)) { folded.push(row); continue; }
+    if (!MESSAGE_KINDS.has(type)) { (row?.displayState === "failed" || !KNOWN.has(type) ? atTurn : folded).push(row); continue; }
     messages.push(row);
     const kind = type === "userMessage" ? "you" : "agent";
     const last = segments[segments.length - 1];
     if (last?.kind === kind) last.rows.push(row); else segments.push({ kind, rows: [row] });
   }
-  return { segments, folded, messages };
+  return { segments, folded, atTurn, messages };
 }
 /** Whether a turn is under way as the activity view reads it: Codex reported it in progress and the App still receives from that process. */
 export const turnLive = (turn: ActivityTurn, observationEnded: boolean) => turn.native?.status === "inProgress" && !observationEnded;
 const IN_PROGRESS = new Set(["in-progress", "waiting-on-request"]);
 /** The folded activity line: while the turn runs, its latest item in progress (or "Working"); after, "Turn details". Counts are observed rows, never work done. */
 function TurnActivity({ turn, folded, messages, live, plans, ownRuns, turnIds, offersFor }: { turn: ActivityTurn; folded: Json[]; messages: Json[]; live: boolean; plans: Json[]; ownRuns: Json[]; turnIds: string[]; offersFor: (row: Json) => ReactNode }) {
-  const count = folded.length, failed = folded.filter(row => row?.displayState === "failed").length;
+  const count = folded.length;
   const latest = live ? [...folded].reverse().find(row => IN_PROGRESS.has(row?.displayState)) : undefined;
-  return <details className={live ? "turn-activity turn-activity--live" : "turn-activity"} data-failed={failed > 0 || undefined}>
+  return <details className={live ? "turn-activity turn-activity--live" : "turn-activity"}>
     <summary><span className="turn-activity-summary">{!live ? "Turn details" : latest?.displayState === "waiting-on-request" ? "Waiting on a request" : (latest ? wordOf(ITEM_IN_PROGRESS, latest.native?.type) : null) ?? "Working"}
-      {count > 0 && ` · ${numberWords(count)} ${count === 1 ? "action" : "actions"}`}{failed > 0 && ` · ${numberWords(failed)} failed`}</span></summary>
+      {count > 0 && ` · ${numberWords(count)} ${count === 1 ? "action" : "actions"}`}</span></summary>
     <div className="v4-turn-activity-body">
       <details><summary>Turn source and timing</summary><small>Turn <SuppliedId value={turn.turnId} label="Turn:" name="Turn identity as Codex reported it, not the App's words" /> · {turn.native ? <>native status <Word value={turn.native.status} words={TURN_STATUS} name="A turn status Codex sent that the App does not recognise, not the App's words" /></> : "turn status not observed"}{turn.native?.durationMs != null && <> · <Num value={turn.native.durationMs} /> ms</>}</small></details>
       {folded.map((row, i) => <NativeItemCard key={text(row.native?.id) || `row-${i}`} row={row} plans={plans} runStart={ownRuns.some((run: Json) => run.turn === row.turnId)} after={offersFor(row)}>
@@ -693,7 +696,7 @@ export function NativeActivityView({ view, threadId, offers, offerControls, runs
     {model.turns.length === 0 && <p className="panel-empty">No activity observed for this conversation in the current Codex generation.</p>}
     {model.turns.map((turn, index) => {
       const live = turnLive(turn, observationEnded);
-      const { segments, folded, messages } = turnSegments(turn.items);
+      const { segments, folded, atTurn, messages } = turnSegments(turn.items);
       // The fold and the turn's end belong to the turn's last agent bubble; a turn whose last message is the
       // person's (or that has none) gets an agent bubble for them.
       if (segments[segments.length - 1]?.kind !== "agent") segments.push({ kind: "agent", rows: [] });
@@ -714,6 +717,9 @@ export function NativeActivityView({ view, threadId, offers, offerControls, runs
             {segment.rows.map((row, i) => <AgentMessage key={text(row.native?.id) || `agent-${i}`} row={row} after={offersFor(row)} />)}
             {last && live && waiting && target === threadId && <p className="chat-runtime-status" data-turn-phase="waiting" role="status">Waiting for you</p>}
             {last && <TurnEnd turn={turn} observationEnded={observationEnded} stop={stopLabelFor?.(target, text(turn.turnId)) ?? null} live={live} />}
+            {last && atTurn.map((row, i) => <NativeItemCard key={text(row.native?.id) || `at-turn-${i}`} row={row} plans={plans} runStart={ownRuns.some((run: Json) => run.turn === row.turnId)} after={offersFor(row)}>
+              {!UNLABELLED.has(text(row.native?.type)) && <RunLabel run={runInForce(ownRuns, turnIds, text(turn.turnId))} />}
+            </NativeItemCard>)}
             {last && !live && fold}
           </article>;
         })}
