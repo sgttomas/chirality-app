@@ -86,6 +86,7 @@ checks:
 - app/packaging/notices/coverage.py
 - app/tests/notice_coverage_test.py
 - app/packaging/supplier_notices/crates.py
+- app/packaging/supplier_notices/voice.py
 - app/tests/supplier_crate_notices_test.py
 - app/tests/group_b_packaging_test.py
 - app/tests/compiled_selection_packaging_test.py

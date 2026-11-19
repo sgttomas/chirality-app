@@ -11,8 +11,11 @@ coverage-inputs.json (owner readings, permitted texts, Library content). Each co
 
 `check` regenerates and requires the committed account to be identical (it runs every underlying check).
 `check --strict` also exits non-zero while any component is held or uncovered, naming each.
-Never fetches, builds, executes supplier code or reads a cache. `--vendor DIR` additionally reads an
-extracted supplier tree and checks the voice component versions against its sources.json.
+Never fetches, builds, executes supplier code or reads a cache. When the table is reviewed for the pin and the
+supplier's own voice records are held (committed under supplier_notices/voice_records/<pin>/ and bound to the
+distribution record; supplier_notices/voice.py), the voice rows' versions and source URLs are compared with them.
+`--vendor DIR` additionally reads an extracted supplier tree and applies the same comparison to its own sources.json
+and manifest.json.
 """
 import argparse
 import hashlib
@@ -93,6 +96,10 @@ transitive = texts.transitive
 direct_check = _load('coverage_direct_check', HERE / 'check.py')
 font_check = _load('coverage_font_check', HERE.parent / 'font_notice/check.py')
 bundle = _load('coverage_bundle_resources', HERE.parent / 'production_inputs/bundle_resources.py')
+voice_records = _load('coverage_voice_records', HERE.parent / 'supplier_notices/voice.py')
+# The repository identity (supplier_notices/crates.py), used only where it makes a check stricter than comparing as
+# written: the reading rule and the Codex membership of a compiled row. Curated values are otherwise compared exactly.
+same_repository = texts.supplier_crates.same_repository
 require, sha = transitive.require, transitive.sha
 
 
@@ -113,7 +120,12 @@ def text_entry(repo, path, destination):
 
 def build(repo=REPO, vendor=None):
     repo = Path(repo)
-    # First: the curated inputs and cache-made indexes must be the content the review record names.
+    # A voice row's revision key is present (refused by name before anything, the review record's entries included,
+    # indexes it); that its value is null is checked with the voice route below.
+    for item in texts.load(repo, texts.SUPPLIER)['components']:
+        require(not voice_records.is_voice(item) or 'revision' in item,
+                'a voice component\'s revision must be present and null: ' + str(item.get('id')))
+    # Then: the curated inputs and cache-made indexes must be the content the review record names.
     check_review_record(repo, texts.load(repo, texts.SUPPLIER))
     # Then: no copy route the account cannot name (a platform or alternate configuration, or a bundle key beyond
     # resources and the icon) before anything reads the configuration.
@@ -226,7 +238,8 @@ def build(repo=REPO, vendor=None):
                  'version': row['version'], 'declared_license': row['declared_license'],
                  'source': {'registry': 'crates.io', 'archive_sha256': row['archive_sha256']}, 'texts': shipped_texts}
         kind = row['text']['kind']
-        needs_reading = kind == 'received-upstream-text' or row['text'].get('repository') in READING_REQUIRED_REPOSITORIES
+        needs_reading = kind == 'received-upstream-text' or any(
+            same_repository(row['text'].get('repository'), r) for r in READING_REQUIRED_REPOSITORIES)
         reading = readings.pop(key, None)
         if needs_reading:
             require(shipped_texts, 'a crate awaiting a reading must ship its held text: ' + row['package'])
@@ -295,15 +308,58 @@ def build(repo=REPO, vendor=None):
     digest(record_path)
     table = texts.load(repo, texts.SUPPLIER)
     tree = {e['path']: e for e in record['inventory']['entries'] if e['kind'] == 'file'}
+    require(len(tree) == sum(e['kind'] == 'file' for e in record['inventory']['entries']), 'the distribution record repeats a file')
     reviewed = table['reviewed_for_pin'] == pin
-    by_path = {t['path']: t for t in texts.supplier_texts(repo)}
+    supplier_texts = list(texts.supplier_texts(repo))
+    by_path = {t['path']: t for t in supplier_texts}
+    require(len(by_path) == len(supplier_texts), 'the supplier table repeats a text path')
+    executables = texts.executables(record)
+    # A component a lockfile association names is a compiled-dependencies component, covered only by its crate group,
+    # and has at least one executable member. Which executable is built from which lockfile is the supplier's statement
+    # in its source's build files: a review duty (README).
+    locked_components = [lock['component'] for lock in texts.supplier_crates.load_associations(repo)['locks']]
+    # When the table is reviewed for the pin and the records are held, the voice rows (components with a member or
+    # supplier-tree text in the three folders voice.is_voice names) are compared with the supplier's own voice records
+    # for this pin; any disagreement refuses. A voice row is covered only
+    # when the comparison established its version and source URL and it ships only its texts from the supplier tree.
+    require(table['voice_sources']['path'] == voice_records.MEMBERS['sources.json'], 'the table names another voice sources member')
+    # Voice membership is decided before anything else: a component with a member or text in the voice library folders
+    # takes the voice route and only that route, each voice member belongs to one component, and only a voice component
+    # names supplier-tree texts, each under the voice licences folder.
+    voice_owner = {}
+    for item in table['components']:
+        is_voice = voice_records.is_voice(item)
+        require(not is_voice or (item.get('kind') != COMPILED and item['id'] not in SUPPLIER_READINGS
+                                 and item['id'] not in DEFERRED and 'owner_licence_reading' not in item),
+                'a voice component takes only the voice route (not compiled, reading or deferred): ' + item['id'])
+        # No revision is recorded for a voice row: its source is the release URL the supplier states, and none is invented.
+        require(not is_voice or item['revision'] is None, 'a voice component\'s revision must be present and null: ' + item['id'])
+        require(not item['supplier_tree_texts'] or is_voice, 'only a voice component may name supplier-tree texts: ' + item['id'])
+        require(all(t.startswith(voice_records.LICENCE_FOLDER) for t in item['supplier_tree_texts']),
+                'a supplier-tree text must be a member under ' + voice_records.LICENCE_FOLDER + ': ' + item['id'])
+        for member in item['members']:
+            if member.startswith(voice_records.FOLDERS):
+                require(member not in voice_owner, f'a voice member belongs to two components: {member} '
+                        f'({voice_owner.get(member)} and {item["id"]})')
+                voice_owner[member] = item['id']
+    voice = voice_records.establish(repo, pin, record, [c for c in table['components'] if voice_records.is_voice(c)]) if reviewed else None
+    for path in (voice or {}).get('records', {}).values():
+        digest(path)
     claimed = {}
     ids = [item['id'] for item in table['components']]
     require(len(ids) == len(set(ids)), 'duplicate supplier component id')
+    rows_by_id = {item['id']: item for item in table['components']}
+    for component in locked_components:
+        row = rows_by_id.get(component)
+        require(row is not None and row.get('kind') == COMPILED,
+                'a lockfile association names a component that is not a compiled-dependencies row: ' + component)
+        require(any(m in executables for m in row['members']),
+                'a compiled-dependencies component with a lockfile has no executable member: ' + component)
     require(set(DEFERRED) <= set(ids), 'a deferred supplier row is missing: ' + str(sorted(set(DEFERRED) - set(ids))))
     require(set(SUPPLIER_READINGS) <= set(ids), 'a supplier row awaiting a reading is missing: ' + str(sorted(set(SUPPLIER_READINGS) - set(ids))))
     compiled_members = set()
     for item in table['components']:
+        is_voice = voice_records.is_voice(item)
         missing = [m for m in item['members'] + item['supplier_tree_texts'] if m not in tree]
         require(not reviewed or not missing, 'supplier component names a path not in the tree: ' + item['id'])
         for member in item['members']:
@@ -343,6 +399,8 @@ def build(repo=REPO, vendor=None):
         foreign = [p for p in item['texts'] if (item['repository'], item['revision']) not in text_identities(by_path[p])
                    and p not in exceptions]
         if item.get('kind') == COMPILED:
+            twice = sorted(set(item['members']) & compiled_members & set(executables))
+            require(not twice, 'an executable belongs to two compiled-dependencies components: ' + ', '.join(twice))
             compiled_members.update(item['members'])
         if item['id'] in DEFERRED:
             add(entry, UNCOVERED, reason=item.get('reason') or 'deferred: this row has no route to covered in this change',
@@ -362,10 +420,12 @@ def build(repo=REPO, vendor=None):
             # Checked before any text or exception: a component without its own identity has nothing to match texts to.
             add(entry, UNCOVERED, reason='the component\'s own identity is incomplete: ' + '; '.join(identity_gaps(item)),
                 would_close='record the component\'s repository (or, for a supplier-tree text, its source URL) and revision')
+        elif is_voice:
+            voice_route(item, entry, voice, pin, add)
         elif item['standing'] == 'covered' and foreign:
             add(entry, UNCOVERED, reason='a shipped text records another repository or revision than the component: ' + ', '.join(foreign),
                 would_close='ship the component\'s own texts, or name each other text as an exception with its reason')
-        elif item['standing'] == 'covered' and not item['texts'] and not item['supplier_tree_texts']:
+        elif item['standing'] == 'covered' and not item['texts']:
             raise ValueError('covered supplier component ships no text: ' + item['id'])
         elif item['id'] in SUPPLIER_READINGS and not (item['standing'] == 'covered' and supplier_reading_valid(reading, item['id'])):
             add(entry, HELD, reason=item.get('reason') or 'the held text ships; its adequacy awaits the owner\'s licence reading'
@@ -374,13 +434,14 @@ def build(repo=REPO, vendor=None):
             add(entry, COVERED, basis=f'owner licence reading ({reading["date"]}): {reading["answer"]}; the text recorded at the '
                                       'component\'s own repository and revision ships unchanged')
         elif item['standing'] == 'covered':
-            add(entry, COVERED, basis='texts recorded at the component\'s own repository and revision' if item['texts']
-                else 'licence texts the supplier ships in its tree, identified by the distribution record\'s digests; the '
-                     'component is identified by its source URL')
+            add(entry, COVERED, basis='texts recorded at the component\'s own repository and revision')
         elif item['standing'] == 'pending':
             add(entry, HELD, reason=item['reason'])
         else:
             add(entry, UNCOVERED, reason=item['reason'], would_close=item['would_close'])
+    # After the rows, so that each comparison above refuses first with its own message; then the form of the non-voice
+    # repository fields (check_repository_forms), an additional refusal.
+    check_repository_forms(table)
     unclaimed = sorted(set(tree) - set(claimed))
     if reviewed:
         require(not unclaimed, 'supplier members claimed by no component: ' + str(unclaimed))
@@ -393,7 +454,6 @@ def build(repo=REPO, vendor=None):
             would_close='review components.json against the declared pin\'s tree and set reviewed_for_pin')
     # Expectations that do not come from the table. The executable rule fits this distribution record; the record's own
     # Mach-O count must equal executables plus .dylib members, and every one of them must belong to a component.
-    executables = texts.executables(record)
     machos = executables + sorted(p for p in tree if p.endswith('.dylib'))
     require(len(machos) == record['macho_files'], f'executables and libraries ({len(machos)}) differ from the record\'s '
             f'Mach-O count ({record["macho_files"]}); the executable rule does not fit this record')
@@ -409,7 +469,7 @@ def build(repo=REPO, vendor=None):
     members = [{'path': p, 'size': tree[p]['size'], 'sha256': tree[p]['sha256'], 'package_path': VENDOR_DESTINATION + p,
                 'components': claimed.get(p, [])} for p in sorted(tree)]
     if vendor is not None:
-        check_vendor(vendor, table, tree)
+        check_vendor(vendor, table, tree, pin, record)
 
     # Every mapping the bundle is given is named in the account by its exact source and destination: in a row's
     # mappings, or as the repository path and package path of a text a row ships. A folder mapping is named only with
@@ -465,7 +525,8 @@ def build(repo=REPO, vendor=None):
             'compiled_program_rule': 'for this distribution record, every regular file with an execute bit that is neither a .dylib '
                                      'library nor .json data is a compiled program (checked against the record\'s Mach-O count); '
                                      'each has a compiled-dependencies component, covered only when every package its associated '
-                                     'lockfile locks has its text (supplier_notices/crates.py)',
+                                     'lockfile locks has its text or is recorded absent from the macOS target by declared target '
+                                     'condition (supplier_notices/crates.py)',
             'review_record': REVIEW,
             'supplier_table_reviewed_for_pin': table['reviewed_for_pin'], 'supplier_executables': executables,
             'inputs_sha256': dict(sorted(inputs_read.items())), 'counts': {**counts, 'total': len(components)},
@@ -586,9 +647,10 @@ def compiled_group(repo, item, entry, record, mapping, add):
             would_close='associate the lockfile that builds this executable, with every locked package\'s text')
         return
     lock = group['lock']
+    # Compared as written, as on main: any difference in spelling, suffix or letter case refuses.
     require((lock['repository'], lock['revision']) == (item['repository'], item['revision']),
             'the crate group\'s lockfile is for another repository or revision than the component: ' + item['id'])
-    require(item['repository'] != CODEX_REPOSITORY or item['revision'] == record['source_commit'],
+    require(not same_repository(item['repository'], CODEX_REPOSITORY) or item['revision'] == record['source_commit'],
             'a Codex compiled-dependencies component must be at the distribution record\'s source commit: ' + item['id'])
     rows = group['packages']
     seen = {}
@@ -604,28 +666,93 @@ def compiled_group(repo, item, entry, record, mapping, add):
         require(found['sha256'] == text['sha256'], 'a crate text differs from its package account: ' + destination)
         shipped.append(found)
     entry['texts'] = shipped
-    counts = {k: sum(r['standing'] == k for r in rows) for k in ('text', 'held', 'gap')}
+    standings = texts.supplier_crates.STANDINGS
+    require({r['standing'] for r in rows} <= set(standings), 'a crate package has an unknown standing: ' + item['id'])
+    counts = {k: sum(r['standing'] == k for r in rows) for k in standings}
     kinds = {k: sum(r['source_kind'] == k for r in rows) for k in ('registry', 'git', 'path')}
     entry['lockfile'] = {k: lock[k] for k in ('path', 'sha256', 'repository', 'revision', 'source_path', 'binding')}
     entry['packages'] = {'total': len(rows), **kinds, **counts, 'account': 'third-party-notices/supplier/crates/packages.json',
                          'superset': 'every package the lockfile locks, on every platform and feature; some may not be compiled '
-                                     'into the macOS executables'}
-    open_rows = [r for r in rows if r['standing'] != 'text']
+                                     'into the macOS executables. Only packages standing not-in-macos-package are recorded as '
+                                     'absent, by declared target condition'}
+    # Recorded absence from the macOS target is the only standing besides text that does not hold the group open, and the
+    # account names every such package with its evidence. A package with no publisher text stays open, like a gap.
+    excluded = [r for r in rows if r['standing'] == 'not-in-macos-package']
+    entry['excluded_packages'] = [{'name': r['name'], 'version': r['version'], 'checksum': r['checksum'], 'absence': r['absence']}
+                                  for r in excluded]
+    open_rows = [r for r in rows if r['standing'] in texts.supplier_crates.OPEN]
+    require(len(open_rows) + len(excluded) + counts['text'] == len(rows), 'a crate package standing is neither open, text nor absent')
     entry['open_packages'] = [{'name': r['name'], 'version': r['version'], 'standing': r['standing'], 'reason': r['reason']}
                               for r in open_rows]
     computed = 'covered' if not open_rows else 'uncovered'
     require(item['standing'] == computed, f'the table says {item["standing"]} for {item["id"]}, and its crate group is {computed}')
-    if counts['gap']:
-        add(entry, UNCOVERED, reason=f'{counts["gap"]} of the {len(rows)} locked packages have no text and {counts["held"]} await an '
-                                     'owner licence reading: ' + ', '.join(f'{r["name"]} {r["version"]}' for r in open_rows),
-            would_close='each open package\'s licence text (an owner-permitted acquisition) or, for a held one, the owner\'s reading')
+    unshipped = counts['gap'] + counts['no-publisher-text']
+    if unshipped:
+        add(entry, UNCOVERED, reason=f'of the {len(rows)} locked packages, {counts["gap"]} have no text, {counts["no-publisher-text"]} '
+                                     f'state a licence with no publisher text found, and {counts["held"]} await an owner licence '
+                                     f'reading ({len(excluded)} are recorded absent from the macOS package and named under '
+                                     'excluded_packages): ' + ', '.join(f'{r["name"]} {r["version"]}' for r in open_rows),
+            would_close='each open package\'s licence text (an owner-permitted acquisition), for one with no publisher text the '
+                        'owner\'s decision on what may serve as its notice, and for a held one the owner\'s reading')
     elif counts['held']:
         add(entry, HELD, reason=f'{counts["held"]} locked packages await an owner licence reading: '
                                 + ', '.join(f'{r["name"]} {r["version"]}' for r in open_rows))
     else:
-        add(entry, COVERED, basis=f'every one of the {len(rows)} packages the associated lockfile locks has its text in the package '
-                                  '(archive notice members selected by name, Git-source licence files at the locked revision, or the '
-                                  'workspace\'s texts); the set is a superset of what is compiled, and adequacy is not decided here')
+        add(entry, COVERED, basis=f'every one of the {len(rows) - len(excluded)} packages the associated lockfile locks for the macOS '
+                                  'package has its text in the package (archive notice members selected by name, Git-source licence '
+                                  'files at the locked revision, publisher texts at the archive\'s named revision, or the workspace\'s '
+                                  f'texts); {len(excluded)} are recorded absent from the macOS target by declared target condition; '
+                                  'the set is otherwise a superset of what is compiled, and adequacy is not decided here')
+
+
+def voice_route(item, entry, voice, pin, add):
+    """The only route of a voice component: covered only when the supplier's voice records establish it, with its texts
+    from the supplier tree and nothing else, carrying its source statement."""
+    if item['standing'] == 'covered' and voice is None:
+        add(entry, UNCOVERED, reason=f'the supplier\'s voice records for {pin} are not held, so this row\'s version and source are '
+                                     'not established by them',
+            would_close=f'commit the pin\'s voice/sources.json and voice/manifest.json under {voice_records.RECORDS}/{pin}/')
+    elif item['standing'] == 'covered' and (item['texts'] or item.get('text_exceptions') or not item['supplier_tree_texts']):
+        add(entry, UNCOVERED, reason='a voice component is covered only by its licence texts in the supplier tree, with its '
+                                     'source established by the voice records; this row names another text or route',
+            would_close='name the component\'s licence texts under the voice licences folder (supplier_tree_texts) and no other text')
+    elif item['standing'] == 'covered':
+        require(item['id'] in voice['rows'], 'a voice row is not established by the voice records: ' + item['id'])
+        entry['source_statement'] = {**voice['rows'][item['id']], 'records': sorted(voice['records'].values())}
+        add(entry, COVERED, basis='licence texts the supplier ships in its tree, identified by the distribution record\'s digests; '
+                                  'the component is identified by its source URL')
+    elif item['standing'] == 'pending':
+        add(entry, HELD, reason=item['reason'])
+    else:
+        add(entry, UNCOVERED, reason=item['reason'], would_close=item['would_close'])
+
+
+# The other hosts a non-voice repository field of the component table may name, as exact prefixes.
+OTHER_REPOSITORY_PREFIXES = ('https://chromium.googlesource.com/',)
+
+
+def check_repository_forms(table):
+    """Every non-voice repository field of the component table (components, texts, also_at) is either
+    https://github.com/<owner>/<repository> in the form crates.canonical_form checks (each of owner and repository one
+    or more letters, digits, `_`, `.` or `-`, neither of them `.` or `..`, no `.git` suffix in any letter case) or
+    begins with exactly https://chromium.googlesource.com/; anything else refuses, naming the field. A check of form,
+    not that such a repository exists. The googlesource values are compared
+    exactly wherever they are compared and are otherwise not constrained in form. A voice row's repository is the source
+    URL the supplier's sources.json states and is compared with it exactly. A null or missing field is not a form and
+    is left to main's checks: a text's or also_at identity's refuses (package_texts.supplier_texts), a component's null
+    repository goes to its identity and lock checks (a row with committed texts stays uncovered), and a component's
+    missing key stops the build with a KeyError."""
+    canonical = texts.supplier_crates.canonical_form
+    fields = [(f'components[{item["id"]}].repository', item.get('repository'))
+              for item in table['components'] if not voice_records.is_voice(item)]
+    fields += [(f'texts[{text["path"]}].repository', text.get('repository')) for text in table['texts']]
+    fields += [(f'texts[{text["path"]}].also_at[{index}].repository', other.get('repository'))
+               for text in table['texts'] for index, other in enumerate(text.get('also_at', []))]
+    for where, repository in fields:
+        require(repository is None or canonical(repository)
+                or (type(repository) is str and repository.startswith(OTHER_REPOSITORY_PREFIXES)),
+                'a repository field is neither exactly https://github.com/<owner>/<repository> nor under '
+                + ' or '.join(OTHER_REPOSITORY_PREFIXES) + ': ' + where)
 
 
 def identity_gaps(item):
@@ -676,8 +803,8 @@ def reading_valid(reading, row):
             and reading['answer'] in READING_ANSWERS and reading['statement'] == READING_ANSWERS[reading['answer']])
 
 
-def check_vendor(vendor, table, tree):
-    """Optional: compare the voice components with the extracted tree's own sources.json."""
+def check_vendor(vendor, table, tree, pin, record):
+    """Optional: the extracted tree's data files equal the record, and its own voice records give the same comparison."""
     vendor = Path(vendor)
     for path, entry in tree.items():
         if path.endswith(('.json', '.md', '.txt')):
@@ -687,6 +814,9 @@ def check_vendor(vendor, table, tree):
     for item in table['components']:
         if item['supplier_tree_texts']:
             require(stated.get(item['repository']) == item['version'], 'voice component differs from sources.json: ' + item['id'])
+    voice_records.compare((vendor / voice_records.MEMBERS['sources.json']).read_bytes(),
+                          (vendor / voice_records.MEMBERS['manifest.json']).read_bytes(), pin, record,
+                          [c for c in table['components'] if voice_records.is_voice(c)])
 
 
 def check(repo=REPO, vendor=None, base_account=None):
