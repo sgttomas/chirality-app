@@ -657,7 +657,7 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
             offerControls={{ generation: host?.generation, ready: host?.state === "ready", busy: offerBusy, act: offerAct }} />
             : threadKey ? <p className="panel-empty">Selected conversation is no longer available in this generation; choose a current conversation.</p>
             : !sourceReady ? <p className="panel-empty">Connect to Codex before sending. Your draft stays here. <a href="#workspace-connection">Open connection controls</a></p>
-            : <>{startNew?.notice}{pick ? <p className="panel-empty"><strong>{pick.title}</strong> is ready. Say what it should work on.</p>
+            : <>{startNew?.notice}{pick ? <p className="panel-empty"><strong>{pick.title}</strong> is picked. Say what it should work on.</p>
               : <p className="panel-empty">Write your first message below. Sending starts a new conversation with the settings under it.</p>}</>}
           {selected && ordered.length > 0 && <section id="conversation-requests" className="permission-card-list" aria-label="Requests from Codex in this conversation" aria-live="polite">
             {ordered.map((request: Json) => answerable(request) ? <Fragment key={JSON.stringify([request.generation, request.requestIdentity])}>
