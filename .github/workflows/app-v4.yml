@@ -135,7 +135,7 @@ jobs:
           execution_compatibility::report::tests::a_host_operation_without_a_connected_host_
           runtime_session::workflow_root_tests::the_requirement_check_inventory_
           continuation_context::tests history_bridge conversation_roles::tests
-          workflow_role_tests desktop_startup instruction_seed_tests
+          workflow_role_tests desktop_startup project_trust instruction_seed_tests
           workflow_catalog_tests recorded_replay_tests native_delivery::tests
           native_projection_delivery observer_rebuild
           native_history_error_content_is_not_durable workflow_reselection
