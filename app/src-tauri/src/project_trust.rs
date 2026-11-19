@@ -23,7 +23,7 @@ use std::sync::Mutex;
 /// per-project view (and, later, the add confirmation). One source; no softer summary anywhere.
 pub const EFFECTS_TEXT: &str = "Chirality sends this project to Codex as trusted. Codex then loads the project's own instructions (AGENTS.md) and its own Codex settings (the .codex folder in the project). With them:
 - MCP servers that the project's settings name are started on this Mac when a conversation starts, outside the sandbox.
-- The project's shell environment applies to every command the agent runs, including a start-up file of the project's own.
+- The project's shell environment applies to every command the agent runs, and a start-up file of the project's own runs inside each command, under the same access level as that command.
 - The project's rules can let commands run outside the sandbox without asking you.
 - If Codex cannot load the project's settings file, no new conversation starts in this project until the file is fixed or trust is switched off.
 You can switch trust off for this project in Chirality at any time.";
