@@ -1409,5 +1409,321 @@ class Question(unittest.TestCase):
             self.assertEqual(requests, ['item/tool/requestUserInput'])
 
 
+
+SECOND = 'project-b'
+
+
+def same_folder(a, b):
+    """Whether two folders are the same one. A reported folder that is not an absolute path is no folder: it is
+    never resolved against the folder these tests happen to run in."""
+    if a is None or b is None or not os.path.isabs(str(a)) or not os.path.isabs(str(b)):
+        return False
+    return os.path.realpath(str(a)) == os.path.realpath(str(b))
+
+
+def app_level(level_id):
+    """One row of the App's own table, by its id."""
+    return next(r for r in json.loads(LEVELS_TABLE.read_text())['levels'] if r['id'] == level_id)
+
+
+class FolderPerConversation(Probing):
+    """One app server for every project, each conversation given its own folder. The app server is started in the
+    project A (`Run.project`, as `Client` starts it); each conversation under test is started in a second project
+    B beside it (`Run(second_project=...)`), with the folder on `thread/start` and `thread/resume` as the App sends
+    it. Each test asserts that B governs what it names. Where that could fail, the message states what was
+    observed instead, naming A and B, so a failing run reports the fact either way."""
+
+    EDITS = app_level('edits')
+
+    def named(self, run, path):
+        """A folder as the messages name it: B, A (the process's own folder), or its path."""
+        if path is None:
+            return 'nothing'
+        if same_folder(path, run.project_b):
+            return 'B (%s)' % path
+        if same_folder(path, run.project):
+            return "A, the server's own folder (%s)" % path
+        return str(path)
+
+    def entry(self, folder, trust='untrusted'):
+        """The App's one trust entry: the folder's root under its canonical spelling, as `TrustReading::projects`
+        sends it. Neither project here has a `.git` with `HEAD` above itself, so the root is the folder."""
+        return {os.path.realpath(str(folder)): {'trust_level': trust}}
+
+    def app_frame(self, folder, trust='untrusted'):
+        """What the App adds to `thread/start` and `thread/resume` at the edits level, for a conversation in
+        `folder`: the folder; the level's approval, reviewer, mode name and workspace options; and the one trust
+        entry. "untrusted" is what the App sends for a folder the person's settings do not mark."""
+        start, turn = level_settings(self.EDITS)
+        frame = dict(start, cwd=str(folder))
+        frame['config'] = dict(start['config'], projects=self.entry(folder, trust))
+        return frame, turn
+
+    def start_in(self, run, client, folder, trust='untrusted'):
+        frame, turn = self.app_frame(folder, trust)
+        return client.start_thread(**frame), turn
+
+    def saved(self, client, thread, **turn):
+        """One turn with no command, so that the conversation is saved: the stub answers it with a message."""
+        _, done = client.turn(thread, 'LEVEL[none] save', **turn)
+        self.assertEqual(done and done['turn']['status'], 'completed')
+
+    def ran_in(self, run, client, thread, **turn):
+        """The folder a command runs in: `/bin/pwd -P`'s own output, after it ran and succeeded."""
+        return self.succeeded(probe(run, client, thread, 'pwd', **turn)).text
+
+    def relative_write(self, run, client, thread, **turn):
+        """The relative write, and where its file landed: ({'a': bool, 'b': bool}, the outcome)."""
+        for path in run.relative_landings().values():
+            if path.exists():
+                path.unlink()
+        outcome = probe(run, client, thread, 'relative', **turn)
+        if outcome.kind == L.NOT_OFFERED:
+            expect(outcome, SUCCEEDED)  # inconclusive: fails, saying so
+        for side, path in run.relative_landings().items():
+            if path.exists():  # the file is this call's: both landings were cleared before it
+                self.assertEqual(path.read_text(), 'ok', 'the relative write left other bytes in %s' % side.upper())
+        return {side: path.exists() for side, path in run.relative_landings().items()}, outcome
+
+    def governed_by_b(self, run, client, thread, **turn):
+        """The command facts of a conversation in B at the edits level: it runs in B; the relative write lands in
+        B; the write in B succeeds; the write in A, the server's own folder, runs and is refused by the sandbox."""
+        folder = self.ran_in(run, client, thread, **turn)
+        self.assertTrue(same_folder(folder, run.project_b),
+                        'the command ran in %s, not in B' % self.named(run, folder))
+        landed, outcome = self.relative_write(run, client, thread, **turn)
+        self.assertEqual((outcome.kind, landed), (SUCCEEDED, {'a': False, 'b': True}),
+                         'the relative write was observed %r and landed in A: %s, in B: %s'
+                         % (outcome, landed['a'], landed['b']))
+        in_b = probe(run, client, thread, 'in-b', **turn)
+        if in_b.kind != SUCCEEDED:
+            self.fail('the write in B was observed %r: the sandbox did not take B as the project' % in_b)
+        self.succeeded(in_b)
+        in_a = probe(run, client, thread, 'in', **turn)
+        if in_a.kind == SUCCEEDED:
+            self.fail("the write in A, the server's own folder, succeeded at edits: A was writable as well")
+        self.refused(in_a)
+
+    def test_a_thread_started_in_b_reports_b_and_is_listed_under_b_alone(self):
+        with L.Run(SCRATCH, BINARY, second_project=SECOND) as run:
+            client = run.start()
+            in_b, turn = self.start_in(run, client, run.project_b)
+            in_a, _ = self.start_in(run, client, run.project)
+            b, a = in_b['thread']['id'], in_a['thread']['id']
+            for reply, folder, name in ((in_b, run.project_b, 'B'), (in_a, run.project, 'A')):
+                self.assertTrue(same_folder(reply['cwd'], folder), "the start in %s reported the folder %s"
+                                % (name, self.named(run, reply['cwd'])))
+                self.assertTrue(same_folder(reply['thread']['cwd'], folder), "the start in %s reported the thread's "
+                                "folder %s" % (name, self.named(run, reply['thread']['cwd'])))
+            self.saved(client, b, **turn)
+            self.saved(client, a, **turn)
+            listed = {row['id']: row for row in client.result('thread/list', {'sortDirection': 'desc'})['data']}
+            self.assertEqual(sorted({a, b} - set(listed)), [], 'a conversation started here was not listed at all')
+            self.assertTrue(same_folder(listed[b]['cwd'], run.project_b),
+                            "B's conversation is listed with the folder %s" % self.named(run, listed[b]['cwd']))
+            self.assertTrue(same_folder(listed[a]['cwd'], run.project))  # the control: A's under A
+            for folder, name, wanted, other in ((run.project_b, 'B', b, a), (run.project, 'A', a, b)):
+                ids = {row['id'] for row in client.result('thread/list', {
+                    'sortDirection': 'desc', 'cwd': os.path.realpath(str(folder))})['data']}
+                self.assertEqual((wanted in ids, other in ids), (True, False),
+                                 'listed under %s: its own conversation %s, the other %s'
+                                 % (name, wanted in ids, other in ids))
+
+    def test_a_command_in_a_thread_started_in_b_runs_in_b(self):
+        """`/bin/pwd -P` prints B, and the relative write lands in B and not in A. Both at the edits level, so a
+        relative write can land only where the sandbox allows it. A conversation in A is open on the same server
+        throughout, and the two take turns: B, A, B, A, B. Each runs and writes in its own folder every time, so
+        a folder kept for the whole server, set by whichever conversation started or ran last, would fail."""
+        with L.Run(SCRATCH, BINARY, second_project=SECOND) as run:
+            client = run.start()
+            in_b, turn = self.start_in(run, client, run.project_b)
+            in_a, _ = self.start_in(run, client, run.project)  # started second: the last start is in A
+            threads = {'b': (in_b['thread']['id'], run.project_b, {'a': False, 'b': True}),
+                       'a': (in_a['thread']['id'], run.project, {'a': True, 'b': False})}
+            for side in ('b', 'a', 'b', 'a', 'b'):
+                thread, own, lands = threads[side]
+                folder = self.ran_in(run, client, thread, **turn)
+                self.assertTrue(same_folder(folder, own), "%s's command ran in %s"
+                                % (side.upper(), self.named(run, folder)))
+                landed, outcome = self.relative_write(run, client, thread, **turn)
+                self.assertEqual((outcome.kind, landed), (SUCCEEDED, lands),
+                                 "%s's relative write was observed %r and landed in A: %s, in B: %s"
+                                 % (side.upper(), outcome, landed['a'], landed['b']))
+
+    def test_at_the_edits_level_the_sandbox_takes_b_as_the_project_and_refuses_a(self):
+        """Started in B as the App starts it at edits (its one trust entry, untrusted, for B), with the edits level on
+        each turn: the write in B succeeds; the write in A, the server's own folder, runs and is refused by the
+        sandbox. The control: the same write in A at full access on the same thread succeeds."""
+        with L.Run(SCRATCH, BINARY, second_project=SECOND) as run:
+            client = run.start()
+            reply, turn = self.start_in(run, client, run.project_b)
+            thread = reply['thread']['id']
+            in_b = probe(run, client, thread, 'in-b', **turn)
+            if in_b.kind != SUCCEEDED:
+                self.fail('the write in B was observed %r: the sandbox did not take B as the project' % in_b)
+            self.succeeded(in_b)
+            in_a = probe(run, client, thread, 'in', **turn)
+            if in_a.kind == SUCCEEDED:
+                self.fail("the write in A, the server's own folder, succeeded at edits: A was writable as well")
+            self.refused(in_a)
+            self.refused(probe(run, client, thread, 'out', **turn))
+            self.succeeded(probe(run, client, thread, 'in', **FULL))  # the control: A's refusal was the sandbox's
+
+    def test_a_thread_started_in_b_loads_bs_instructions_and_not_as(self):
+        """An invented `AGENTS.md` in each of A and B, each with its own marker line. For a conversation started in
+        B and, as the control, one started in A, each with its one trust entry untrusted and then trusted: which of
+        the two files the start reply's `instructionSources` names, and which marker lines the requests the stub
+        receives for that conversation's turn carry. With a trusted entry the conversation's own folder's file is
+        named and its marker carried, and never the other folder's; with an untrusted entry, as the App sends for
+        a folder the person's settings do not mark, no file is named and no marker carried. The markers are looked
+        for anywhere in the body of each request the stub received carrying that turn's key, and nowhere else.
+        Every case is observed before anything is asserted, so a failure states all of them."""
+        with L.Run(SCRATCH, BINARY, second_project=SECOND, instructions=True) as run:
+            run.stub.watched = (run.markers['a'], run.markers['b'])
+            files = {side: os.path.realpath(str(f / 'AGENTS.md')) for side, f in
+                     (('a', run.project), ('b', run.project_b))}
+            client = run.start()
+            observed = {}
+            # B's untrusted start comes before its trusted one and A's after, so being the first or the second
+            # start in a folder cannot stand in for the entry.
+            for own, folder, order in (('b', run.project_b, ('untrusted', 'trusted')),
+                                       ('a', run.project, ('trusted', 'untrusted'))):
+                for trust in order:
+                    key = 'instr_%s_%s' % (own, trust)
+                    reply, turn = self.start_in(run, client, folder, trust)
+                    sources = [os.path.realpath(path) for path in reply.get('instructionSources') or []]
+                    _, done = client.turn(reply['thread']['id'], 'LEVEL[%s] go' % key, **turn)
+                    self.assertEqual(done and done['turn']['status'], 'completed')
+                    requests = [r for r in run.stub.requests if r['key'] == key]
+                    self.assertTrue(requests, 'no request reached the stub for the turn of %s' % key)
+                    carried = {m for r in requests for m in r['markers']}
+                    observed[(own, trust)] = {
+                        'named': sorted(side for side, path in files.items() if path in sources),
+                        'other sources': sorted(path for path in sources if path not in files.values()),
+                        'carried': sorted(side for side, marker in run.markers.items() if marker in carried)}
+            expected = {(own, trust): {'named': loaded, 'other sources': [], 'carried': loaded}
+                        for own in ('b', 'a') for trust, loaded in (('untrusted', []), ('trusted', [own]))}
+            self.assertEqual(observed, expected, 'by (the folder the conversation was started in, its trust entry): '
+                             'which AGENTS.md the reply named and which marker the turn carried: %r' % (observed,))
+
+    def test_a_thread_started_in_b_loads_bs_own_settings_and_only_when_b_is_trusted(self):
+        """The setting: `sandbox_workspace_write.writable_roots` in a project's own `.codex/config.toml`. The
+        Carriers rows show it observable twice over: the start reply's `sandbox.writableRoots` lists it, and a
+        write there succeeds that is otherwise refused; and a turn's `writableRoots: []` does not remove it. A's
+        settings name `outside/root-a`, B's `outside/root-b`, and the home's own settings mark A trusted, so A's
+        could load if the server's own folder were read.
+
+        The start departs from the App's frame in one field only: it sends no `config.sandbox_workspace_write`,
+        whose `writable_roots = []` would remove the setting from sight. It sends the approval, reviewer, mode
+        name and the one trust entry for B, trusted and then untrusted; each turn sends the edits level.
+        Trusted: the reply lists root-b alone, the write in root-b succeeds and the write in root-a is refused.
+        Untrusted: neither root is listed, and both writes are refused. The control: a conversation started in A,
+        with its trusted entry, lists root-a."""
+        with L.Run(SCRATCH, BINARY, second_project=SECOND, project_settings=True) as run:
+            (run.home / 'config.toml').write_text('[projects.%s]\ntrust_level = "trusted"\n'
+                                                  % L.toml_string(os.path.realpath(str(run.project))))
+            roots = run.settings_roots()
+            turn = level_settings(self.EDITS)[1]
+            client = run.start()
+
+            def started(folder, trust):
+                reply = client.start_thread(cwd=str(folder), approvalPolicy='on-request', approvalsReviewer='user',
+                                            sandbox='workspace-write', config={'projects': self.entry(folder, trust)})
+                listed = {os.path.realpath(p) for p in (reply['sandbox'].get('writableRoots') or [])}
+                named = {side for side, root in roots.items() if os.path.realpath(str(root)) in listed}
+                return reply['thread']['id'], named, sorted(listed)
+
+            control, named, listed = started(run.project, 'trusted')
+            self.assertEqual(named, {'a'}, 'started in A, trusted, the reply listed %r' % listed)
+            for trust, expected in (('trusted', {'b'}), ('untrusted', set())):
+                with self.subTest(trust=trust):
+                    thread, named, listed = started(run.project_b, trust)
+                    self.assertEqual(named, expected, 'started in B with B %s, the reply listed %r (root-a: %s, '
+                                     'root-b: %s)' % (trust, listed, roots['a'], roots['b']))
+                    self.succeeded(probe(run, client, thread, 'in-b', **turn))
+                    b_root = probe(run, client, thread, 'root-b', **turn)
+                    if 'b' in expected:
+                        self.assertEqual(b_root.kind, SUCCEEDED, "with B trusted, the write in B's root was "
+                                         "observed %r" % b_root)
+                        self.succeeded(b_root)
+                    else:
+                        self.assertNotEqual(b_root.kind, SUCCEEDED, "with B untrusted, the write in B's root "
+                                            "succeeded: B's settings were loaded")
+                        self.refused(b_root)
+                    a_root = probe(run, client, thread, 'root-a', **turn)
+                    self.assertNotEqual(a_root.kind, SUCCEEDED, "started in B, the write in A's root succeeded: "
+                                        "A's settings were loaded")
+                    self.refused(a_root)
+
+    def test_with_the_apps_own_start_a_trusted_projects_writable_root_is_not_added(self):
+        """The App's own start at edits, whole: its `config.sandbox_workspace_write` with `writable_roots = []`
+        beside the one trust entry, here trusted, for a conversation in B whose own `.codex/config.toml` names
+        root-b. The reply lists neither fixture root and the write in root-b is refused by the sandbox, while the
+        write in B succeeds: the App's start removes a writable root that a trusted project's own settings name.
+        The control is the row above, where the same trusted start without that one field lists root-b and the
+        write there succeeds."""
+        with L.Run(SCRATCH, BINARY, second_project=SECOND, project_settings=True) as run:
+            roots = run.settings_roots()
+            client = run.start()
+            reply, turn = self.start_in(run, client, run.project_b, 'trusted')
+            thread = reply['thread']['id']
+            listed = sorted(os.path.realpath(p) for p in (reply['sandbox'].get('writableRoots') or []))
+            named = {side for side, root in roots.items() if os.path.realpath(str(root)) in listed}
+            b_root = probe(run, client, thread, 'root-b', **turn)
+            self.assertEqual((named, b_root.kind), (set(), SANDBOX_REFUSED),
+                             "with the App's own start and B trusted, the reply listed %r (root-b: %s) and the "
+                             "write in root-b was observed %r" % (listed, roots['b'], b_root))
+            self.refused(b_root)
+            self.succeeded(probe(run, client, thread, 'in-b', **turn))
+
+    def test_a_start_in_b_marks_b_in_the_settings_unless_an_entry_for_b_is_sent(self):
+        """As the trust-mark rows: at full access, in the App's layout with the home's new, empty settings, with
+        both A and B git projects. A start in B with no trust entry writes the trust mark for B alone; with the
+        App's one entry for B, nothing is written. Each start is the other's control."""
+        for entry in (False, True):
+            with self.subTest(entry=entry), L.Run(SCRATCH, BINARY, working_files=True, git_marker=True,
+                                                  second_project=SECOND, second_git_marker=True) as run:
+                for folder in (run.project, run.project_b):
+                    (folder / '.git' / 'HEAD').write_text('ref: refs/heads/main\n')
+                cfg = run.home / 'config.toml'
+                self.assertEqual(cfg.read_bytes(), b'')
+                client = run.start()
+                params = dict(TrustWrite.FULL_START, cwd=str(run.project_b))
+                if entry:
+                    params['config'] = {'projects': self.entry(run.project_b)}
+                self.assertEqual(client.start_thread(**params)['sandbox']['type'], 'dangerFullAccess')
+                time.sleep(2)
+                written = cfg.read_text()
+                if entry:
+                    self.assertEqual(written, '', 'with the entry for B sent, the settings now read %r' % written)
+                else:
+                    self.assertEqual(written, '[projects."%s"]\ntrust_level = "trusted"\n'
+                                     % os.path.realpath(str(run.project_b)),
+                                     'with no entry sent, the settings now read %r (A: %s, B: %s)'
+                                     % (written, run.project, run.project_b))
+
+    def test_resumed_with_b_in_a_new_server_started_in_a_the_thread_is_governed_by_b(self):
+        """A conversation started in B and saved; the first server stopped; a second started, again in A; the
+        conversation resumed as the App's Continue resumes it at edits: the thread, `excludeTurns`, B as its
+        folder, the level and the one trust entry for B. The resume reply is for that thread and reports B, in its
+        own `cwd` and its thread's; a command runs in B; the relative write lands in B; the write in B succeeds;
+        the write in A runs and is refused by the sandbox. The folder sent is the folder saved, as it always is
+        from the App, so this shows the conversation continuing in B and not which of the two Codex took it from."""
+        with L.Run(SCRATCH, BINARY, second_project=SECOND) as run:
+            client = run.start()
+            reply, turn = self.start_in(run, client, run.project_b)
+            thread = reply['thread']['id']
+            self.saved(client, thread, **turn)
+            client.stop()
+            again = run.start()
+            frame, _ = self.app_frame(run.project_b)
+            resumed = again.result('thread/resume', dict(frame, threadId=thread, excludeTurns=True))
+            self.assertEqual(resumed['thread']['id'], thread)
+            for what, folder in (('the folder', resumed['cwd']), ("the thread's folder", resumed['thread']['cwd'])):
+                self.assertTrue(same_folder(folder, run.project_b),
+                                'the resume reported %s %s' % (what, self.named(run, folder)))
+            self.governed_by_b(run, again, thread, **turn)
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)
