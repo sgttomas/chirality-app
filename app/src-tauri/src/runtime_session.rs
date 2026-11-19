@@ -221,6 +221,23 @@ impl RuntimeSession {
                             && r["requestIdentity"] == native["id"]
                             && r["outcome"] == "response-observed-result"
                     });
+                // A reply to this generation's own thread/start, thread/fork or
+                // thread/resume, read at its place in the receiving order: a
+                // started conversation is read from its start; a continuation's
+                // reply is read for the turns it carries.
+                if frame["class"] == "response" {
+                    let method = snapshot["clientRequests"].as_array().into_iter().flatten()
+                        .find(|r| r["generation"] == self.generation && r["requestIdentity"] == native["id"]
+                            && r["outcome"] == "response-observed-result")
+                        .and_then(|r| r["method"].as_str());
+                    if let Some(view) = self.view.as_mut() {
+                        match method {
+                            Some("thread/start") => view.asked_thread_started(native["result"]["thread"]["id"].as_str().unwrap_or_default()),
+                            Some("thread/fork" | "thread/resume") => view.asked_continuation_reply(&native["result"]),
+                            _ => {}
+                        }
+                    }
+                }
                 if frame["class"] == "response" && correlated {
                     self.account_revision = self.account_revision.saturating_add(1);
                     if let Some(account) = self.account.as_mut() {
@@ -13880,3 +13897,56 @@ for line in sys.stdin:
 #[cfg(test)]
 #[path = "p3_role_set_tests.rs"]
 mod p3_role_set_tests;
+
+/// The replies that read a conversation for the agent's question that does
+/// not wait reach the native view at their place in the receiving order.
+#[cfg(test)]
+mod asked_question_reply_tests {
+    use super::*;
+    use crate::native_items::{asked_question, AskedQuestion};
+    fn g() -> Value {
+        json!({"appSession":"s","home":"h","spawnCounter":1})
+    }
+    fn request(id: u64, method: &str, outcome: &str) -> Value {
+        json!({"recordKind":"client-request","generation":g(),"requestIdentity":id,"method":method,"outcome":outcome})
+    }
+    fn reply(position: u64, id: u64, result: Value) -> Value {
+        json!({"generation":g(),"position":position,"class":"response","frame":{"id":id,"result":result}})
+    }
+    fn question_turns() -> Value {
+        json!([{"id":"u1","status":"completed","items":[
+            {"id":"p1","type":"userMessage","content":[]},
+            {"id":"q1","type":"agentMessage","text":"Invented?","delivery":"async","questions":[{"title":"Invented?"}]}]}])
+    }
+    #[test]
+    fn start_fork_and_resume_replies_are_read_and_nothing_else_is() {
+        let mut session = RuntimeSession::default();
+        let requests = json!([request(1, "thread/start", "response-observed-result"), request(2, "thread/fork", "response-observed-result"),
+            request(3, "thread/resume", "response-observed-result"), request(4, "thread/read", "response-observed-result"),
+            request(5, "thread/start", "pending")]);
+        let frames = json!([
+            reply(1, 1, json!({"thread":{"id":"started","turns":[]}})),
+            reply(2, 2, json!({"thread":{"id":"forked","turns":question_turns()}})),
+            reply(3, 3, json!({"thread":{"id":"resumed","turns":[]}})),
+            reply(4, 4, json!({"thread":{"id":"metadata","turns":question_turns()}})),
+            reply(5, 5, json!({"thread":{"id":"unsettled","turns":[]}})),
+            reply(6, 9, json!({"thread":{"id":"uncorrelated","turns":question_turns()}})),
+        ]);
+        let received = session.receive(&json!({"generation":g(),"snapshot":{"state":"ready","clientRequests":requests},"frames":frames,"gap":false}));
+        let view = &received["nativeView"];
+        assert_eq!(asked_question(view, "started"), AskedQuestion::None);
+        assert!(matches!(asked_question(view, "forked"), AskedQuestion::Waiting(e) if e["itemId"] == "q1"));
+        for thread in ["resumed", "metadata", "unsettled", "uncorrelated"] {
+            assert_eq!(asked_question(view, thread), AskedQuestion::NotRead, "{thread}");
+        }
+    }
+    #[test]
+    fn a_reply_correlated_to_another_generations_request_is_not_read() {
+        let mut session = RuntimeSession::default();
+        let mut foreign = request(1, "thread/start", "response-observed-result");
+        foreign["generation"] = json!({"appSession":"s","home":"h","spawnCounter":2});
+        let received = session.receive(&json!({"generation":g(),"snapshot":{"state":"ready","clientRequests":[foreign]},
+            "frames":[reply(1, 1, json!({"thread":{"id":"started","turns":[]}}))],"gap":false}));
+        assert_eq!(asked_question(&received["nativeView"], "started"), AskedQuestion::NotRead);
+    }
+}
