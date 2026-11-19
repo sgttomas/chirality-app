@@ -65,11 +65,11 @@ test('the activity view places offers beneath their message and run markers at t
     turns:[],turnRecords:[],revisions:[],descendants:[]};
   const run={reference:'run:workflow:a',conversation:'T',turn:'t1',endedAfterTurn:'t2',workflow:{name:'supports-adjust',revision:'abcdef0123456789'},lifecycle:{state:'ended by the person',end:{cause:'completed'}},finishedReport:{run:'run:workflow:a'}};
   const out=renderToStaticMarkup(React.createElement(NativeActivityView,{view,threadId:'T',runs:[run],offers:[{message,finished,proposal:null}],offerControls:{generation:g,ready:true,busy:false,act:async()=>{}}}));
-  const start=out.indexOf('Workflow run started: <b>supports-adjust abcdef012345</b>');const brief=out.indexOf('My brief');
+  const start=out.indexOf('Workflow run started: <b>supports-adjust</b>');const brief=out.indexOf('My brief');
   const offer=out.indexOf('aria-label="Workflow run offer"');const end=out.indexOf('Run ended: <b>completed</b>');const later=out.indexOf('Later');
   assert.ok(start>=0&&start<brief&&brief<offer&&offer<end&&end<later,`order: ${[start,brief,offer,end,later]}`);
   assert.match(out,/<summary>Workflow run text the App supplied \(\d+ characters\)<\/summary>/,'the supplied bytes are folded and openable');
-  assert.match(out,/you ended it on the agent&#x27;s “Workflow finished” statement/);
+  assert.match(out,/Run ended: <b>completed<\/b> · <b>supports-adjust<\/b><\/span><details class="v4-run-line-details"><summary>Details<\/summary><span>Revision abcdef012345, run <code>run:workflow:a<\/code>\. You ended it on the agent&#x27;s “Workflow finished” statement\. You ended it; this marker checks nothing and does not take the work as done\./,'the end is one line; the revision, the run and what the marker does not say are under Details');
   const unrecorded=renderToStaticMarkup(React.createElement(NativeActivityView,{view,threadId:'T'}));
   assert.ok(!unrecorded.includes('Workflow run text the App supplied'),'text that only looks like run text is not folded without a recorded run start');
   const prepared={...run,lifecycle:{state:'prepared; not a run until its start turn is observed'},endedAfterTurn:null};

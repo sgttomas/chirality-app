@@ -3823,3 +3823,9 @@ div.woven-chat-section-heading--folder:hover { background:transparent; }
 .v4-settings-top dt { font-size:12px; color:var(--ink-soft); }
 .v4-settings-top dd { margin:0; font-size:13.5px; color:var(--ink); display:flex; flex-wrap:wrap; gap:4px 12px; align-items:baseline; }
 .daily-workspace .v4-settings-top dd > button { border:0; border-radius:0; background:transparent; padding:0; color:var(--accent); font-size:12.5px; font-weight:400; text-decoration:underline; text-underline-offset:2px; }
+
+/* The run markers in the conversation: one plain line each, their identifiers under Details. */
+.v4-run-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 0.6em; margin: 6px 0; font-size: 0.85em; opacity: 0.8; }
+.v4-run-line-details { flex: 0 1 auto; }
+.v4-run-line-details > summary { cursor: pointer; }
+.v4-run-line-details[open] { flex-basis: 100%; }

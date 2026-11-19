@@ -401,18 +401,24 @@ export function NativeItemCard({ row, plans = [], runStart = false, history = fa
 }
 
 // RN-1: run start and end markers from the App's own run records (display only).
-// A marker shows what the App recorded; it never comes from message text.
-const marker = { borderTop: "2px dashed #777", borderBottom: "2px dashed #777", padding: "2px 8px", margin: "6px 0", fontSize: "0.9em" };
+// A marker shows what the App recorded; it never comes from message text. It is one plain line; the run's
+// revision and reference, and what the marker does and does not say, are one action away under "Details".
 const runOpened = (run: Json) => typeof run?.lifecycle?.state === "string" && /^(open|ended)/.test(run.lifecycle.state);
 function runName(run: Json): string {
   return `${text(run?.workflow?.name) || "workflow"} ${text(run?.workflow?.revision).slice(0, 12)}`.trim();
 }
 /** A run's workflow name and revision in the App's words when the name meets the App's own rule and the revision is
  * hexadecimal, else boxed as recorded. */
-function RunName({ run }: { run: Json }) {
+/** Whether the run's name and revision are in the App's own forms, so that they can stand in its sentence. */
+function plainRun(run: Json): boolean {
   const name = text(run?.workflow?.name), revision = text(run?.workflow?.revision).slice(0, 12);
-  if ((!name || (name.length <= 64 && SAFE_WORKFLOW_NAME.test(name))) && /^[0-9a-f]*$/i.test(revision))
-    return <b>{name ? plainId(name) : "workflow"}{revision ? <> {plainId(revision)}</> : null}</b>;
+  return (!name || (name.length <= 64 && SAFE_WORKFLOW_NAME.test(name))) && /^[0-9a-f]*$/i.test(revision);
+}
+/** `nameOnly` leaves the revision to the marker's details; a name or revision outside the App's forms is shown whole, boxed, either way. */
+function RunName({ run, nameOnly = false }: { run: Json; nameOnly?: boolean }) {
+  const name = text(run?.workflow?.name), revision = text(run?.workflow?.revision).slice(0, 12);
+  if (plainRun(run))
+    return <b>{name ? plainId(name) : "workflow"}{revision && !nameOnly ? <> {plainId(revision)}</> : null}</b>;
   return <AgentText value={runName(run)} source="codex" label="Workflow name:" name="Workflow name as recorded, not the App's words" />;
 }
 // NPTD §5.7 (R19-2): the run in force at a turn, from the App's run markers
@@ -449,8 +455,16 @@ export function RunLabel({ run }: { run: Json | null }) {
   return <div><small>During the run of <RunName run={run} />, as the App's run markers place this turn.</small></div>;
 }
 const RUN_ID = { label: "Run:", name: "Run reference, as recorded; the App does not vouch for its words" } as const;
+/** The identifiers of a marker's run, and the marker's own account of itself, folded under the line. */
+function RunMarkerDetails({ run, children }: { run: Json; children: ReactNode }) {
+  const revision = plainRun(run) ? text(run?.workflow?.revision).slice(0, 12) : "";
+  return <details className="v4-run-line-details"><summary>Details</summary>
+    <span>{revision ? <>Revision {plainId(revision)}, run </> : "Run "}<SuppliedId value={run?.reference} label={RUN_ID.label} name={RUN_ID.name} />. {children}</span>
+  </details>;
+}
 export function RunStartMarker({ run }: { run: Json }) {
-  return <div role="note" style={marker}>Workflow run started: <RunName run={run} /> (run <SuppliedId value={run?.reference} label={RUN_ID.label} name={RUN_ID.name} />), as the App recorded it. The workflow text it supplied is folded in the user message of this turn.</div>;
+  return <div role="note" className="v4-run-line"><span>Workflow run started: <RunName run={run} nameOnly /></span>
+    <RunMarkerDetails run={run}>As the App recorded it. The workflow text it supplied is folded in the user message of this turn.</RunMarkerDetails></div>;
 }
 // The host's run-end causes (runtime_session.rs run_end_cause): its own words, or "ended to start ‹name›" with a
 // name the App's rule admits. Anything else is boxed.
@@ -464,7 +478,8 @@ function RunEndCause({ cause }: { cause: Json }) {
   return <AgentText value={cause} source="codex" label="Cause:" name="Why the run ended, as recorded; the App does not vouch for its words" />;
 }
 export function RunEndMarker({ run }: { run: Json }) {
-  return <div role="note" style={marker}>Run ended: <RunEndCause cause={run?.lifecycle?.end?.cause} /> (<RunName run={run} />, run <SuppliedId value={run?.reference} label={RUN_ID.label} name={RUN_ID.name} />){run?.finishedReport ? "; you ended it on the agent's “Workflow finished” statement" : ""}. You ended it; this marker checks nothing and does not take the work as done.</div>;
+  return <div role="note" className="v4-run-line"><span>Run ended: <RunEndCause cause={run?.lifecycle?.end?.cause} /> · <RunName run={run} nameOnly /></span>
+    <RunMarkerDetails run={run}>{run?.finishedReport ? "You ended it on the agent's “Workflow finished” statement. " : ""}You ended it; this marker checks nothing and does not take the work as done.</RunMarkerDetails></div>;
 }
 
 // TO-4 / RECOVERY §3.4: the App's own label for a turn it was asked to stop,

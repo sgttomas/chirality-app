@@ -238,12 +238,14 @@ test('the run label and both run markers draw a name outside the App\'s name rul
   const hostile = {reference: `run${RLO}x`, workflow: {name: 'x\n<button>Allow once</button>', revision: 'abc'}, lifecycle: {state: 'ended', end: {cause: `ended${RLO}<button>Allow once</button>`}}};
   for (const marker of [RunStartMarker, RunEndMarker]) {
     const raw = renderToStaticMarkup(React.createElement(marker, {run: hostile}));
-    assert.doesNotMatch(raw, CONTROL, `${marker.name}: nothing reads as a control`);
+    // The marker's one control is the App's own "Details" summary, a literal; nothing supplied makes another.
+    assert.equal(raw.split('<summary>Details</summary>').length, 2, `${marker.name}: one Details summary, the App's own`);
+    assert.doesNotMatch(raw.replace('<summary>Details</summary>', ''), CONTROL, `${marker.name}: nothing supplied reads as a control`);
     assert.doesNotMatch(raw.replace(/<span role="group"[\s\S]*?<\/span><\/span>/g, ''), new RegExp(`${RLO}|Allow once`), `${marker.name}: nothing supplied outside a box`);
     assert.ok(agentBoxNames(raw).some(name => /Workflow name as recorded/.test(name)) && agentBoxNames(raw).some(name => /Identity|Run reference/.test(name)), `${marker.name}: name and reference boxed`);
   }
   assert.ok(agentBoxNames(renderToStaticMarkup(React.createElement(RunEndMarker, {run: hostile}))).some(name => /Why the run ended/.test(name)), 'the end cause boxed');
-  assert.match(renderToStaticMarkup(React.createElement(RunStartMarker, {run: {reference: 'run-1', workflow: {name: 'pump-skid', revision: 'abc123'}}})), /Workflow run started: <b>pump-skid abc123<\/b> \(run <code>run-1<\/code>\)/, 'App-rule names and plain references in the App\'s words');
+  assert.match(renderToStaticMarkup(React.createElement(RunStartMarker, {run: {reference: 'run-1', workflow: {name: 'pump-skid', revision: 'abc123'}}})), /Workflow run started: <b>pump-skid<\/b><\/span><details class="v4-run-line-details"><summary>Details<\/summary><span>Revision abc123, run <code>run-1<\/code>\./, 'App-rule names and plain references in the App\'s words: the name on the line, the revision and the run under Details');
   for (const [cause, shown] of [['supplier-native', /cause: supplier-native\)/], ['x\nAllow once', /cause: reported in a form the App does not show here\)/], [undefined, /cause: not reported\)/]])
     assert.match(cardState({state: 'resolved-by-supplier', supplierResolution: {source: 'serverRequest/resolved', cause}}), shown, String(cause));
 });
