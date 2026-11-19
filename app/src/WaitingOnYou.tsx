@@ -2,6 +2,7 @@ import { type MouseEvent, type ReactNode } from "react";
 import { AgentText, SuppliedId, idWords, numberWords, plainId, wordOf } from "./AgentText";
 import { AskedBy, WaitingRequestsIndicator, answerable, hostRequests, requestAsker, requestThread, type RequestAsker, type WaitingRequestGroup } from "./RequestCards";
 import { itemAnchorId, requestAnchorId, sameActivityGeneration } from "./NativeActivity";
+import { askedAdmittedTopLevel } from "./AskedQuestionCard";
 import { runEvidenceAnchor } from "./RunJourney";
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -27,11 +28,12 @@ type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 // to the status read, to the returns read and to the decisions read (the
 // snapshot, packet or view the App already holds, bound to its home,
 // generation, time and limits). When that kind of read fails, what its last
-// successful response showed waiting is shown apart, as last read at its time,
-// not counted, its current state unknown; for the status response, with the
+// successful response showed is shown apart, as last read at its time, not
+// counted, its current state unknown; for the status response, with the
 // sources it had not read whole, each as not read or read with limits, in one
-// block. A response that showed nothing waiting is said so in the coverage
-// lines. Nothing says whether an earlier response held more.
+// block. A response that showed no entries from a source is described in that
+// source's coverage line when the list shows it. Nothing says whether an
+// earlier response held more.
 //
 // The list settles nothing; "Go to it" opens the source's existing control or
 // record (what each control checks is said in the list's footer). Related
@@ -187,16 +189,15 @@ function requestEntries(host: Json): WaitingEntry[] {
 
 /** The agent's questions that do not wait, in the active home's native view: one entry per conversation read since
  * that Codex started whose latest such question no message from the person follows (native_items.rs askedQuestions).
- * An entry whose questions the host refused to show is listed all the same: a question was asked. Only a top-level
- * conversation of the home's status (`host.threads`) is listed: the App sends no answer into a delegated agent's
- * conversation, so a waiting entry of any other conversation is not listed. */
+ * An entry whose questions the host refused to show is listed all the same: a question was asked. Only an admitted
+ * top-level conversation of the status's current generation (askedAdmittedTopLevel, the rule the card and the send
+ * use) is listed: the App sends no answer into a delegated agent's conversation, so a waiting entry of any other
+ * conversation, or of one the status knows as a delegated agent's, is not listed. */
 function askedEntries(host: Json): WaitingEntry[] {
   const view = host?.nativeView, read = list(view?.askedQuestions?.read);
   const home = text(host?.homeRouting?.activeModeHomeClass) || null;
-  const generation = JSON.stringify(host?.generation);
-  const topLevel = new Set(list(host?.threads).filter((t: Json) => JSON.stringify(t?.generation) === generation).map((t: Json) => t?.threadId));
   const ids = (w: Json) => [w?.threadId, w?.turnId, w?.itemId].every(v => typeof v === "string" && v !== "");
-  return list(view?.askedQuestions?.waiting).filter((w: Json) => ids(w) && read.includes(w.threadId) && topLevel.has(w.threadId)).map((w: Json) => {
+  return list(view?.askedQuestions?.waiting).filter((w: Json) => ids(w) && read.includes(w.threadId) && askedAdmittedTopLevel(host, w.threadId)).map((w: Json) => {
     const root = w.threadId as string;
     return {
       key: JSON.stringify(["asked-question", host.generation, w.threadId, w.turnId, w.itemId]),
@@ -513,15 +514,16 @@ function hostReadings(host: Json, call: ReadEvidence["call"], at: number | null,
     "", !host ? `${requestsName} have not been read yet.` : host?.state === "ready" ? `${requestsName} are not read: the App's status gave no register with a generation it can use.` : `${requestsName} are not read while Codex is not running.`);
   // The agent's questions that do not wait, in the active home. The native view says which conversations it has read
   // since that Codex started (`askedQuestions.read`) and, for each, the question no message from the person follows
-  // (`askedQuestions.waiting`). Whole only where every conversation the status gives for that Codex is read and the
-  // view's observation has not ended; some read, read with limits, the others named; none read, not read. A
-  // conversation not opened since Codex started is not one the App knows of here and is not named.
+  // (`askedQuestions.waiting`). Whole only where the status gives its conversations as a list and every admitted
+  // top-level conversation of that Codex among them (askedAdmittedTopLevel) is read, and the view's observation has not
+  // ended; some read, read with limits, the others named; none read, not read. A conversation not opened since Codex
+  // started is not one the App knows of here and is not named; nor is one the status knows as a delegated agent's.
   const nativeView = host?.nativeView, asked = nativeView?.askedQuestions;
   const askedName = active ? `Questions the agent asked and went on from, in the ${active} home,` : "Questions the agent asked and went on from, in the active home,";
   const askedEnded = nativeView?.observationEnded === true || host?.nativeViewObservationEnded === true;
   const askedShaped = running && !!nativeView && sameActivityGeneration(nativeView.generation, host?.generation) && JSON.stringify(nativeView.generation) === JSON.stringify(host?.generation)
-    && Array.isArray(asked?.read) && Array.isArray(asked?.waiting);
-  const conversations: string[] = list(host?.threads).filter((t: Json) => JSON.stringify(t?.generation) === JSON.stringify(host?.generation) && typeof t?.threadId === "string" && t.threadId !== "").map((t: Json) => t.threadId);
+    && Array.isArray(asked?.read) && Array.isArray(asked?.waiting) && Array.isArray(host?.threads);
+  const conversations: string[] = [...new Set<string>(list(host?.threads).map((t: Json) => t?.threadId).filter((id: Json) => askedAdmittedTopLevel(host, id)))];
   const unread = askedShaped ? conversations.filter(id => !asked.read.includes(id)) : conversations;
   const askedRead = askedShaped && !askedEnded && (conversations.length === 0 || unread.length < conversations.length);
   const named = (ids: string[]) => ids.map(id => `conversation ${idWords(id)}`).join(", ");
@@ -927,7 +929,7 @@ export function WaitingOnYou({ readings, view, busy = false, openGroup, go, onOp
         {lastStatus && <LastStatusBlock last={lastStatus} go={go} />}
         {lastReads.filter(reading => reading.call !== "status").map(reading => <LastReadBlock key={reading.key} reading={reading} go={go} />)}
         <RequestsOverview reading={readings.find(r => r.key === "requests" || r.key.startsWith("requests:"))} view={view} busy={busy} open={openGroup} />
-        <p><small>Each source shows what its latest reading observed, and the next reading replaces it: nothing is kept from one reading to the next, so an item a limited reading showed can drop from view when the next reading does not hold it, and after a change of home the requests of the home left are shown only as that home's overview reads them. When a read fails, the list uses the last successful response to that kind of read (the status read, the returns read or the decisions read): what it showed waiting is shown apart, as last read at its time, not counted, its current state unknown, with the sources it had not read whole said as not read or read with limits; a response that showed nothing waiting is said so in the coverage lines. These are the places each kind of item is shown in the App: a request from Codex on its request card, beside its conversation or under the requests outside the selected conversation (in another home, once that home is opened); a checkpoint arrival of a run in this session in that run's panel in the workflow studio; a return in the fleet records panel; a decision package in the decision packages view. They are fed by the same readings, so an item a limited reading omits is omitted there as well until a reading supplies it again. A checkpoint arrival of a run reopened after the App restarted is shown under that run in the recorded runs of the workflow studio, from the records the reopened reading supplied; only a run whose records were not supplied, or do not establish its arrivals' latest dispositions, is unread, and it is named above. An arrival of such a run whose answering act or decline is already in the act records, and not yet counted in its run's record, is not listed and asks nothing of you; where the App cannot tell, it says so above. Returns and decisions are read again every 15 seconds, and returns each time you open this list. A question the agent asked and went on from is listed while no message from you follows it, in a conversation of the home in use that the App has read since that Codex started (a question in a delegated agent's conversation is not listed); it is not a request from Codex, and the agent's turn did not stop for it: Go to it opens the conversation at the question, whose card sends your answer as your next message. A conversation of the home in use not read since that Codex started is named above; one not opened since then, and the conversations of a home not in use, are not read for such questions, and a home not in use is named above only where the App knows of a conversation there. Nothing here answers, dismisses or settles anything; Go to it opens the existing control or record. A request from Codex that has already been answered is refused at its request card. A decision package and a checkpoint act are checked there against the current content of what they concern, but an earlier decision or act does not stop another being recorded, and neither yet refuses an item that is no longer waiting. Returns have no review control in the App yet: Go to it shows the return's record. A return whose examiner is an agent is not a demand on you, but the records do not yet say whether the examiner is a person or an agent, so every return waiting for review is listed.</small></p>
+        <p><small>Each source shows what its latest reading observed, and the next reading replaces it: nothing is kept from one reading to the next, so an item a limited reading showed can drop from view when the next reading does not hold it, and after a change of home the requests of the home left are shown only as that home's overview reads them. When a read fails, the list uses the last successful response to that kind of read (the status read, the returns read or the decisions read): the entries it showed are shown apart, as last read at its time, not counted, its current state unknown, with the sources it had not read whole said as not read or read with limits; a response that showed no entries from a source is described in that source's coverage line when the list shows it. These are the places each kind of item is shown in the App: a request from Codex on its request card, beside its conversation or under the requests outside the selected conversation (in another home, once that home is opened); a checkpoint arrival of a run in this session in that run's panel in the workflow studio; a return in the fleet records panel; a decision package in the decision packages view. They are fed by the same readings, so an item a limited reading omits is omitted there as well until a reading supplies it again. A checkpoint arrival of a run reopened after the App restarted is shown under that run in the recorded runs of the workflow studio, from the records the reopened reading supplied; only a run whose records were not supplied, or do not establish its arrivals' latest dispositions, is unread, and it is named above. An arrival of such a run whose answering act or decline is already in the act records, and not yet counted in its run's record, is not listed and asks nothing of you; where the App cannot tell, it says so above. Returns and decisions are read again every 15 seconds, and returns each time you open this list. A question the agent asked and went on from is listed while no message from you follows it, in a conversation of the home in use that the App has read since that Codex started (a question in a delegated agent's conversation is not listed); it is not a request from Codex, and the agent's turn did not stop for it: Go to it opens the conversation at the question, whose card sends your answer as your next message. A conversation of the home in use not read since that Codex started is named above; one not opened since then, and the conversations of a home not in use, are not read for such questions, and a home not in use is named above only where the App knows of a conversation there. A question whose fields Chirality cannot read is still listed; its card shows the item and has no answer control. Nothing here answers, dismisses or settles anything; Go to it opens the existing control or record. A request from Codex that has already been answered is refused at its request card. A decision package and a checkpoint act are checked there against the current content of what they concern, but an earlier decision or act does not stop another being recorded, and neither yet refuses an item that is no longer waiting. Returns have no review control in the App yet: Go to it shows the return's record. A return whose examiner is an agent is not a demand on you, but the records do not yet say whether the examiner is a person or an agent, so every return waiting for review is listed.</small></p>
       </div>
     </details>
   </section>;

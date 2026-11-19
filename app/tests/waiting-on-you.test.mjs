@@ -1399,3 +1399,80 @@ test('"Go to it" on a question whose message is not in view moves nothing and sa
     });
   }, {host});
 });
+
+// ---- The second reading's repairs ----
+
+// W3 (finding 6): one rule says which conversation is part of this source: a top-level conversation of the status's
+// current generation that no sign the status gives marks as a delegated agent's.
+test('a conversation the status lists among its conversations but knows as a delegated agent\'s is not part of this source: not listed, not counted, not needed for whole coverage', () => {
+  const signs = [
+    // The shared view already lists C1 as T1's descendant.
+    ['the native view lists it among descendants', 'C1', h => { h.threads = [...h.threads, thread('C1')]; }],
+    ['its source says it is a delegated agent\'s', 'D1', h => { h.threads = [...h.threads, {...thread('D1'), threadSource:{subAgent:{thread_spawn:{parent_thread_id:'T1', depth:1}}}}]; }],
+    ['it has a parent', 'D1', h => { h.threads = [...h.threads, {...thread('D1'), parentThreadId:'T1'}]; }],
+  ];
+  for (const [sign, id, mark] of signs) {
+    // Not read for this source: the census is still whole without it.
+    const unread = askedView(emptySources(withAsked({read:['T1', 'T2'], waiting:[]}, mark)));
+    assert.equal(unread.reading.state, 'whole', `${sign}: ${unread.reading.note}`);
+    assert.equal(unread.shown.complete, true, sign);
+    assert.doesNotMatch(unread.html, new RegExp(`conversation ${id}`), sign);
+    // Read, with a question no message follows: not listed and not counted.
+    const listed = askedView(emptySources(withAsked({read:['T1', 'T2', id], waiting:[askedRow(id)]}, mark)));
+    assert.deepEqual(listed.shown.observed, [], sign);
+    assert.deepEqual(askedRows(listed.html), [], sign);
+    assert.equal(listed.line, 'Waiting on you: 0', sign);
+  }
+});
+
+test('a status whose conversations are missing or not a list gives no whole reading of this source', () => {
+  for (const threads of [undefined, null, {}, 'T1', {0:thread('T1'), length:1}]) {
+    const r = askedView(emptySources(withAsked({read:['T1', 'T2'], waiting:[askedRow('T1')]}, h => { if (threads === undefined) delete h.threads; else h.threads = threads; })));
+    assert.equal(r.reading.state, 'not-read', JSON.stringify(threads));
+    assert.equal(r.shown.complete, false, JSON.stringify(threads));
+    assert.deepEqual(askedRows(r.html), [], JSON.stringify(threads));
+    assert.ok(r.shown.notes.includes("Questions the agent asked and went on from, in the account home, are not read: the App's status gave no reading of them for that Codex."), JSON.stringify(threads));
+  }
+});
+
+// W4 (finding 7) and W6: the shared footer, read whole in each state the list can take.
+const FAILED_READ = 'When a read fails, the list uses the last successful response to that kind of read (the status read, the returns read or the decisions read): the entries it showed are shown apart, as last read at its time, not counted, its current state unknown, with the sources it had not read whole said as not read or read with limits; a response that showed no entries from a source is described in that source\'s coverage line when the list shows it.';
+const UNREADABLE = 'A question whose fields Chirality cannot read is still listed; its card shows the item and has no answer control.';
+// The footer's only sentences with a word of waiting: each names its own source.
+const FOOTER_WAITING = [
+  'A decision package and a checkpoint act are checked there against the current content of what they concern, but an earlier decision or act does not stop another being recorded, and neither yet refuses an item that is no longer waiting.',
+  'A return whose examiner is an agent is not a demand on you, but the records do not yet say whether the examiner is a person or an agent, so every return waiting for review is listed.',
+];
+test('the shared footer, read whole in every state, never calls an entry waiting, says what a failed read keeps as entries, and says an unreadable question is still listed', () => {
+  const failedAt = {hostFailure:'invented', hostFailedAt:READ_AT + 5000};
+  const known = h => { h.waitingRequests.groups = [{modeHomeClass:'api-key', generation:other, threadId:'K1', count:1}]; };
+  const refused = {threadId:'T1', turnId:'u3', itemId:'call-T1', refused:'invented refusal'};
+  const states = {
+    'whole, nothing listed': emptySources(),
+    'whole, a question listed': emptySources(withAsked({read:['T1', 'T2'], waiting:[askedRow('T1')]})),
+    'whole, an unreadable question listed': emptySources(withAsked({read:['T1', 'T2'], waiting:[refused]})),
+    'read with limits': emptySources(withAsked({read:['T1'], waiting:[askedRow('T1')]})),
+    'not read': emptySources(withAsked({read:[], waiting:[]})),
+    'observation ended': emptySources(withAsked({read:['T1', 'T2'], waiting:[askedRow('T1')]}, h => { h.nativeView.observationEnded = true; })),
+    'a home not in use named': emptySources(withAsked({read:['T1', 'T2'], waiting:[]}, known)),
+    'status read failed, an entry kept': {...emptySources(withAsked({read:['T1', 'T2'], waiting:[askedRow('T1')]})), ...failedAt},
+    'status read failed, no entry kept': {...emptySources(withAsked({read:['T1', 'T2'], waiting:[]})), ...failedAt},
+    'returns read failed': {...allSources(), fleetFailure:'invented', fleetFailedAt:READ_AT + 5000},
+    'every source': allSources(),
+  };
+  const unescape = html => html.replace(/&#x27;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&');
+  const footers = Object.entries(states).map(([state, sources]) => {
+    const found = [...unescape(agentPlain(askedView(sources).html)).matchAll(/<p><small>(Each source shows [\s\S]*?)<\/small><\/p>/g)];
+    assert.equal(found.length, 1, `${state}: one footer`);
+    return [state, found[0][1]];
+  });
+  const [, first] = footers[0];
+  for (const [state, footer] of footers) {
+    assert.equal(footer, first, `${state}: the footer is the same in every state`);
+    const sentences = footer.split(/(?<=\.) (?=[A-Z])/);
+    assert.ok(sentences.includes(FAILED_READ), `${state}: ${sentences.find(s => s.startsWith('When a read fails'))}`);
+    assert.ok(sentences.includes(UNREADABLE), state);
+    assert.doesNotMatch(footer, /showed waiting|showed nothing waiting|said so in the coverage lines/, state);
+    assert.deepEqual(sentences.filter(s => /wait/i.test(s)), FOOTER_WAITING, `${state}: no other sentence of the footer speaks of waiting`);
+  }
+});
