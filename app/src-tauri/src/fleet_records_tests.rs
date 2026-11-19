@@ -1026,3 +1026,22 @@ fn fleet_reader_records_present_read_as_before() {
     assert_eq!(limit_at(&view,".chirality/fleet/briefs"),vec![FOLDER_MISSING.to_owned()]);
     assert_eq!(limit_at(&view,".chirality/fleet/graphs"),vec![FOLDER_MISSING.to_owned()]);
 }
+
+/// History of the protected log accepted under one root, then the project
+/// moved and adopted at another root with the same identity: with both fleet
+/// folders absent there, the limits stay.
+#[test]
+fn fleet_reader_history_accepted_under_another_root_keeps_both_absences_limited() {
+    let f = Fixture::new();
+    let log = f.pair(&[f.row("fl:accepted-before-move", "a")]);
+    assert_eq!(observations(&f.read()).len(), 1, "the history is accepted at the first root");
+    let moved = f.root.join("moved");
+    std::fs::rename(&f.project, &moved).unwrap();
+    records_store::adopt(&moved).unwrap();
+    std::fs::remove_dir_all(log.parent().unwrap()).unwrap();
+    std::fs::remove_dir_all(moved.join(FOLDER)).unwrap();
+    let view = crate::read_fleet_records_for_workspace(Some(&moved)).unwrap();
+    assert_project_absences_as_on_main(&view);
+    assert_eq!(limit_at(&view, STORE_LOG).first().map(String::as_str), Some(SOURCE_MISSING), "{}", view["limits"]);
+    assert_eq!(view["coordination"]["protectedLog"]["status"], "missing");
+}

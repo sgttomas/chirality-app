@@ -226,9 +226,12 @@ struct AcceptedPrefix { length: usize, digest: String }
 static ACCEPTED_PREFIXES: std::sync::LazyLock<
     std::sync::Mutex<BTreeMap<HistorySource, AcceptedPrefix>>,
 > = std::sync::LazyLock::new(|| std::sync::Mutex::new(BTreeMap::new()));
-/// Whether this App has accepted any history of the protected log.
+/// Whether this App has accepted any history of the same protected log: the
+/// same store, project identity and log, whatever project root it was
+/// accepted under (an adoption registers a new root for the same identity).
 fn accepted_history(source: &HistorySource) -> bool {
-    ACCEPTED_PREFIXES.lock().unwrap_or_else(|p|p.into_inner()).contains_key(source)
+    ACCEPTED_PREFIXES.lock().unwrap_or_else(|p|p.into_inner()).keys().any(|known| known.store == source.store
+        && known.store_id == source.store_id && known.project_id == source.project_id && known.log == source.log)
 }
 fn observe_prefix(source: &HistorySource, bytes: Option<&[u8]>, accept: bool) -> Result<(), String> {
     let mut known = ACCEPTED_PREFIXES.lock().unwrap_or_else(|p|p.into_inner());
