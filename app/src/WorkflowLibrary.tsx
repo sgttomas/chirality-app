@@ -3,7 +3,7 @@ import { workflowContext } from "./workflowSelection";
 import { WorkflowTextControl, useWorkflowTexts, type WorkflowTexts } from "./WorkflowText";
 import { LibraryPathsBesideWorkflow, includedSections, librarySourceWords, matchesSearch } from "./IncludedWorkflows";
 import { VIEW_NOT_REFRESHED, registeredRevisionAnchor } from "./RunJourney";
-import { isIncludedPick, isListedPick, pickIncluded, pickListed, type WorkflowPick } from "./WorkflowPick";
+import { Supplied, isIncludedPick, isListedPick, pickIncluded, pickListed, type WorkflowPick } from "./WorkflowPick";
 import { useState } from "react";
 
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -77,10 +77,10 @@ export function WorkflowLibrary({ data, host, busy, pick = null, setPick, viewSt
     const roles = list(entry?.roles).filter((role: Json) => typeof role === "string");
     const runnable = entry?.runnable === true;
     return <li key={name} className="method-card" aria-label={`Included workflow ${safeName(entry?.name)}`} data-chosen={isChosen ? "true" : undefined}>
-      <div className="method-card-heading"><strong>{shownName}</strong>{shownName !== name && <code className="method-card-identifier" title="Workflow identifier">{name}</code>}</div>
-      {entry?.description ? <p>{text(entry.description)}</p> : null}
+      <div className="method-card-heading"><strong><Supplied value={shownName} of="title"/></strong>{shownName !== name && <code className="method-card-identifier" title="Workflow identifier"><Supplied value={name} of="name"/></code>}</div>
+      {entry?.description ? <p><Supplied value={text(entry.description)} of="description"/></p> : null}
       <p className="method-card-meta"><small>{from || "Included with the App"}</small></p>
-      {entry?.runnable === false && <p className="method-card-limit" role="note">Can't be used in this App: {text(entry.runLimit) || text(catalog?.standing) || "the App reports it as not runnable"}.</p>}
+      {entry?.runnable === false && <p className="method-card-limit" role="note">Can't be used in this App: {text(entry.runLimit) || text(catalog?.standing) ? <Supplied value={text(entry.runLimit) || text(catalog?.standing)} of="reason"/> : "the App reports it as not runnable"}.</p>}
       {entry?.runnable !== true && entry?.runnable !== false && <p className="method-card-limit" role="note">The App hasn't reported whether this workflow can be used here.</p>}
       <div className="method-card-actions">
         <InspectToggle shown={textShown} disabled={!canAct} hide={() => texts.hide(includedSlot(entry))}
@@ -90,7 +90,7 @@ export function WorkflowLibrary({ data, host, busy, pick = null, setPick, viewSt
       {textShown && <IncludedText entry={entry} slot={includedSlot(entry)} source={from} texts={texts} disabled={!canAct} data={data} host={host}/>}
       <details className="method-card-details"><summary>Details</summary>
         <p>Revision <code title={idWords(entry?.revision)}>{text(entry?.revision).slice(0, 12)}…</code></p>
-        {roles.length > 0 && <p>The Library lists it for these roles: {roles.join(", ")}.</p>}
+        {roles.length > 0 && <p>The Library lists it for these roles: <Supplied value={roles.join(", ")} of="roles"/>.</p>}
         {entry?.compatibility === "legacy" && <p>The Library marks it as legacy.</p>}
         <LibraryPathsBesideWorkflow entry={entry} source={catalog?.source}/>
       </details>
@@ -101,22 +101,22 @@ export function WorkflowLibrary({ data, host, busy, pick = null, setPick, viewSt
     const isChosen = isListedPick(pick, row, active);
     const name = text(row.name);
     return <li key={`${name}@${text(row.revision)}`} className="method-card" aria-label={`Project workflow ${safeName(row.name)}`} data-chosen={isChosen ? "true" : undefined}>
-      <div className="method-card-heading"><strong>{name}</strong></div>
+      <div className="method-card-heading"><strong><Supplied value={name} of="name"/></strong></div>
       <p className="method-card-meta"><small>{libraryWords} · revision {numberWords(row.sequence) ?? ""}{sameName(row.name) ? " · another revision has the same name" : ""}</small></p>
-      {row.selectable !== true && <p className="method-card-limit" role="note">{text(row.label)}.{" "}
-        <a href={`#${registeredRevisionAnchor(active.reference, row.name, row.revision)}`}>{row.reconfirm === true ? `Re-confirm ${safeName(row.name)} in the workflow studio` : "See this revision in the workflow studio"}</a></p>}
+      {row.selectable !== true && <p className="method-card-limit" role="note"><Supplied value={text(row.label)} of="reason"/>.{" "}
+        <a href={`#${registeredRevisionAnchor(active.reference, row.name, row.revision)}`}>{row.reconfirm === true ? "Re-confirm it in the workflow studio" : "See this revision in the workflow studio"}</a></p>}
       <div className="method-card-actions">
         <PickToggle picked={isChosen} disabled={!canPick || row.selectable !== true} pick={() => setPick?.(pickListed(row, active, host))} remove={remove}/>
       </div>
       <details className="method-card-details"><summary>Details</summary>
-        <p>Revision {numberWords(row.sequence) ?? ""} <code title={idWords(row.revision)}>{text(row.revision).slice(0, 12)}…</code>{row.selectable === true ? <> · {text(row.label)}</> : null}</p>
+        <p>Revision {numberWords(row.sequence) ?? ""} <code title={idWords(row.revision)}>{idWords(row.revision).slice(0, 12)}…</code>{row.selectable === true ? <> · <Supplied value={text(row.label)} of="reason"/></> : null}</p>
         {row.reconfirm === true && <p>Refine it into a draft, then review that draft and confirm in the App's dialog. Nothing is chosen or run until you do.</p>}
       </details>
     </li>;
   };
 
   const unregisteredCard = (entry: Json) => <li key={entry.reference} className="method-card" aria-label={`Project workflow ${safeName(entry.name)}`}>
-    <div className="method-card-heading"><strong>{text(entry.name)}</strong></div>
+    <div className="method-card-heading"><strong><Supplied value={text(entry.name)} of="name"/></strong></div>
     <p className="method-card-meta"><small>{libraryWords}</small></p>
     <p className="method-card-limit" role="note">In the folder but not yet approved for use here. <a href="#run-workflow">Review it under Run a workflow</a></p>
   </li>;

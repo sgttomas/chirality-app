@@ -148,7 +148,7 @@ test('the message box takes the height of its draft, measured again as the draft
   } finally { delete proto.scrollHeight; }
 });
 
-test('picking a workflow lands in the message box; removing the pick moves nothing', async () => {
+test('picking a workflow lands in the message box; removing the pick returns the focus to the message box', async () => {
   const proto = Object.getPrototypeOf(document.createElement('textarea')); const focused = [], scrolled = [];
   const previous = {focus: proto.focus, scroll: proto.scrollIntoView};
   proto.focus = function () { focused.push(this); }; proto.scrollIntoView = function () { scrolled.push(this); };
@@ -160,10 +160,13 @@ test('picking a workflow lands in the message box; removing the pick moves nothi
       assert.ok(focused.length === 1 && focused[0].getAttribute('id') === 'ordinary-composer-text', 'the message box takes the focus once');
       assert.ok(scrolled.length === 1 && scrolled[0] === focused[0], 'and is brought into view');
       focused.length = 0; scrolled.length = 0;
-      const remove = ui.composer().querySelectorAll(n => n.localName === 'button' && /^Remove /.test(n.getAttribute('aria-label') ?? ''))[0];
-      assert.ok(!!remove, 'the chip offers its removal');
+      const remove = buttonIn(ui.composer(), 'Remove the picked workflow');
+      assert.ok(!!remove, 'the chip offers its removal, named in the App\'s words');
       await React.act(async () => props(remove).onClick());
-      assert.ok(focused.length === 0 && scrolled.length === 0, 'removing the pick moves neither focus nor the view');
+      // The Remove button is unmounted with the chip: the focus goes to the message box rather than to the page.
+      assert.ok(!buttonIn(ui.composer(), 'Remove the picked workflow'), 'the chip and its button are gone');
+      assert.ok(focused.length === 1 && focused[0] === chatInput(ui.c), 'the message box takes the focus');
+      assert.ok(scrolled.length === 0, 'and the view does not move');
     });
   } finally { proto.focus = previous.focus; proto.scrollIntoView = previous.scroll; }
 });
@@ -187,7 +190,7 @@ test('a new chat: the first press starts the conversation and chooses the includ
     assert.match(labelled(ui.c, 'Workflow for this message').textContent, /Required tools: not declared, so the App can't check them\./, 'the check is shown before anything is sent');
     assert.equal(props(chatInput(ui.c)).value, TEXT, 'the text is kept');
     // Left here, the conversation reads as what it is: a workflow chosen and no run started, not a run.
-    assert.equal(labelled(ui.c, 'Workflow chosen, not started')?.textContent, 'plan-work is chosen for this conversation. No run has been started.');
+    assert.equal(labelled(ui.c, 'Workflow chosen, not started')?.textContent, 'Workflow chosen for this conversation: plan-work. No run has been started.');
     await ui.press();
     assert.ok(!labelled(ui.c, 'Workflow chosen, not started'), 'once a run of the conversation exists, the note is gone');
     assert.deepEqual(ui.names(), ['thread_start', 'workflow_select_production_bundle', 'workflow_prepare_run', 'workflow_send_run']);
@@ -356,7 +359,7 @@ test('a selection the host does not admit stops the press with the host\'s reaso
   await mounted(host, async ui => {
     await ui.choose('T1'); await ui.pick(); await ui.write(TEXT); await ui.press();
     assert.deepEqual(ui.names(), ['workflow_select_production_bundle']);
-    assert.match(ui.alert(), /Plan the work can't run: the bundled copy differs from the release\. Nothing was sent\./);
+    assert.match(ui.alert(), /The workflow can't run: the bundled copy differs from the release\. Nothing was sent\./);
     await ui.press();
     assert.deepEqual(ui.names(), ['workflow_select_production_bundle'], 'a second press prepares nothing either');
   });
@@ -415,7 +418,7 @@ test('a change of workflow source or generation drops the pick, says so in one l
   await mounted(under, async ui => {
     await ui.choose('T1'); await ui.pick(); await ui.write(TEXT); await ui.press();
     assert.deepEqual(ui.names(), ['workflow_select_production_bundle']);
-    assert.match(ui.alert(), /Codex or the workflow source changed, so the App stopped\. Nothing was sent\./);
+    assert.match(ui.alert(), /Codex or the workflow source changed, so the App stopped\. The workflow was chosen for it\. Nothing was sent\./);
     assert.match(ui.c.textContent, /The workflow you picked was removed: Codex or the workflow source changed\./);
     assert.equal(props(chatInput(ui.c)).value, TEXT);
   });
@@ -434,7 +437,7 @@ test('the pick survives switching tabs; the Workflows button shows the tab; with
     await React.act(async () => props(tab('right-tab-history')).onClick?.());
     assert.ok(labelled(ui.c, 'Workflow for this message'), 'the pick is kept while another tab is shown');
     // Remove at the chip: the composer is the ordinary one, and its Send issues the ordinary send only.
-    await React.act(async () => props(buttonIn(ui.composer(), 'Remove plan-work')).onClick());
+    await React.act(async () => props(buttonIn(ui.composer(), 'Remove the picked workflow')).onClick());
     assert.equal(labelled(ui.c, 'Workflow for this message'), undefined);
     assert.equal(props(chatInput(ui.c)).placeholder, 'Message HELP_HUMAN…');
     await ui.write('An ordinary message');

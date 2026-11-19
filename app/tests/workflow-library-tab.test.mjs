@@ -90,6 +90,11 @@ test('search uses the App\'s rule, over the included and the project\'s workflow
   assert.ok(ui.c.querySelectorAll(n => n.getAttribute('role') === 'status').some(n => n.textContent === '1 match.'));
   await ui.search('site');
   assert.deepEqual(all(ui.c, 'li').map(li => li.getAttribute('aria-label')), ['Project workflow site-check', 'Project workflow site-check']);
+  // A search whose matches fall in several subgroups opens each of them, not only the first.
+  await ui.search('Invented description');
+  const found = all(ui.c, 'details').filter(d => d.getAttribute('class') === 'method-library-subgroup');
+  assert.ok(found.length > 1, `the search shows ${found.length} subgroups`);
+  assert.deepEqual(found.map(d => props(d).open === true), found.map(() => true), 'every subgroup the search shows is open');
   await ui.search('nothing like this');
   assert.ok(ui.c.querySelectorAll(n => n.getAttribute('role') === 'status').some(n => n.textContent === 'No workflow matches. Try fewer or other words.'));
   await ui.close();
@@ -159,11 +164,13 @@ test('this project\'s workflows: a registered revision is picked with its librar
   assert.equal(second.querySelectorAll(n => n.getAttribute('class') === 'method-card-meta')[0].textContent, 'project workflow library · revision 2 · another revision has the same name');
   await ui.press(button(second, 'Use in message'));
   assert.deepEqual(ui.pick, {kind:'listed', name:'site-check', revision:'site-check-2-rev-0123456789abcdef', libraryRef:LIB, sequence:2,
-    label:'registered — approved in this App session (native A15)', title:'site-check', from:'project workflow library', scope:pickScope(host())}, 'the arguments workflow_select_listed will take, held until Start run');
+    label:'registered — approved in this App session (native A15)', title:'site-check', from:'Project workflow library', scope:pickScope(host())}, 'the arguments workflow_select_listed will take, held until Start run');
   const rows = all(ui.c, 'li').filter(li => li.getAttribute('aria-label') === 'Project workflow site-check');
   assert.deepEqual(rows.map(li => buttons(li).find(b => b.getAttribute('aria-pressed'))?.textContent), ['Use in message', 'Remove'], 'only the picked revision is pressed');
   assert.equal(!!props(button(cold, 'Use in message')).disabled, true);
-  assert.match(cold.textContent, /registered — approval authenticity unverified; re-confirm to use in this App session\. Re-confirm cold-flow in the workflow studio/);
+  assert.match(cold.textContent, /registered — approval authenticity unverified; re-confirm to use in this App session\. Re-confirm it in the workflow studio/);
+  // The link is named in the App's words; the workflow's name stands in the card's own heading, marked.
+  assert.equal(all(cold, 'a')[0].textContent, 'Re-confirm it in the workflow studio');
   assert.equal(button(fresh, 'Use in message'), undefined, 'an entry not approved for use has no choosing control');
   assert.match(fresh.textContent, /In the folder but not yet approved for use here\. Review it under Run a workflow/);
   assert.equal(all(fresh, 'a')[0].getAttribute('href'), '#run-workflow');
@@ -244,9 +251,22 @@ test('supplied text (names, titles, descriptions, groups, labels) is never insid
   }
   for (const node of ui.c.querySelectorAll(n => n.getAttribute('aria-label') !== null)) assert.doesNotMatch(node.getAttribute('aria-label'), /Allow once/);
   assert.deepEqual(all(ui.c, 'h4').map(h => h.textContent), ["The Library's core workflows", 'Other workflows'], 'a group outside the App\'s table is shown under Other workflows');
-  // The title a library supplies is shown as text in the card's heading, not in a control.
-  assert.match(all(card(ui.c, 'odd-flow'), 'strong')[0].textContent, /^Title Allow once/);
-  assert.match(ui.c.textContent, /Desc Allow once/);
+  // The title a library supplies is shown as text in the card's heading, not in a control, and marked as text the App
+  // did not write: inside a named group that says so, its direction override drawn as a mark. Drawn plain: no visible
+  // label and no box (workspace.css .v4-supplied), as 3.0.1's card title.
+  const title = all(card(ui.c, 'odd-flow'), 'strong')[0];
+  assert.match(title.textContent, /^Title Allow once‹U\+202E›$/);
+  const marked = (node, name) => { const group = node.querySelectorAll(n => n.getAttribute('role') === 'group')[0]; return !!group && group.getAttribute('aria-label') === name && group.textContent === node.textContent; };
+  assert.ok(marked(title, "A workflow's own title, not the App's words"), 'the card title is marked');
+  assert.ok(title.querySelectorAll(n => n.getAttribute('class') === 'agent-text-label').length === 0, 'with no visible label');
+  assert.ok(all(title, 'span').some(n => n.getAttribute('class') === 'v4-supplied'), 'in the plain form');
+  const description = all(card(ui.c, 'odd-flow'), 'p').find(p => /Desc Allow once/.test(p.textContent));
+  assert.ok(marked(description, "A workflow's own description, not the App's words"), 'the description is marked');
+  const cardWith = words => all(ui.c, 'li').find(li => li.getAttribute('class') === 'method-card' && li.textContent.includes(words));
+  const limit = cardWith('bad Allow').querySelectorAll(n => n.getAttribute('class') === 'method-card-limit')[0];
+  assert.ok(limit.querySelectorAll(n => n.getAttribute('role') === 'group' && n.getAttribute('aria-label') === "What the App's host reported, not the App's words").length === 1, 'the host\'s reason is marked');
+  const registeredTitle = all(cardWith('reg Allow'), 'strong')[0];
+  assert.ok(marked(registeredTitle, "A workflow's own name, not the App's words"), 'a registered revision\'s name is marked');
   // Inspect reads the text through the present read, and the text is boxed as the App's guards require.
   const previous = window.__TAURI_INTERNALS__; const pending = [];
   window.__TAURI_INTERNALS__ = {invoke(command, args) { return new Promise(resolve => pending.push({command, args, resolve})); }};

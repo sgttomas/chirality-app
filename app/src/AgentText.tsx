@@ -133,8 +133,9 @@ export function AgentText({ value, source = "agent", label, name, block = false,
   const words = AGENT_TEXT_WORDS[source];
   const shownLabel = label ?? words.label;
   const text = agentTextValue(value, block);
+  // An empty label draws none, and no space after it: the value stands where it is written, still in its named group.
   if (!block) return <span role="group" aria-label={name ?? words.name} className="agent-text" style={{ ...inlineBox, ...style }}>
-    <span className="agent-text-label" style={labelStyle}>{shownLabel}</span>{" "}
+    {shownLabel !== "" && <><span className="agent-text-label" style={labelStyle}>{shownLabel}</span>{" "}</>}
     <span className="agent-text-value" style={valueStyle}><Parts value={text} /></span>
   </span>;
   const lines = text.split(exactLineEnds || alreadyMarkedByHost ? /\n/ : /\r?\n/);

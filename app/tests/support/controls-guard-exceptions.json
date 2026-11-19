@@ -100,7 +100,7 @@
   "component": "GuideResult",
   "count": 1,
   "basis": "an App-owned literal vocabulary",
-  "reason": "Every caller passes a string literal or a word of the App's table: MakeJourney.tsx:292, RunJourney.tsx:398 and WorkflowLibrary.tsx (twice, \"Workflows — last result\") pass literals; RunJourney.tsx:277 passes wordOf(GUIDE_RESULT_LABEL, guide) ?? \"\" (table at RunJourney.tsx:265). The guard does not follow an exported component's prop to its callers."
+  "reason": "Every caller passes a string literal or a word of the App's table: MakeJourney.tsx:292 and RunJourney.tsx:399 pass literals; RunJourney.tsx:278 passes wordOf(GUIDE_RESULT_LABEL, guide) ?? \"\" (table at RunJourney.tsx:266). The guard does not follow an exported component's prop to its callers."
  },
  {
   "file": "ConnectorSourcePanel.tsx",

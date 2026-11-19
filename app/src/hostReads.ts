@@ -125,9 +125,12 @@ type Shown = { host: Json; applied: number; appliedAt: number | null; settledAt:
  * It also holds when the last command that may change the host settled (see
  * `invoke`), as the number of reads started by then.
  */
-export function useOrderedHost(): { host: Json; hostReads: HostReads; readHost: (reply: Promise<Json>) => Promise<HostRead>; applyHost: (read: HostRead) => boolean } {
+export function useOrderedHost(): { host: Json; hostReads: HostReads; readHost: (reply: Promise<Json>) => Promise<HostRead>; applyHost: (read: HostRead) => boolean;
+  /** The status last applied, as soon as it is applied (before the view draws it): a caller that read the status and
+   * finds its own reply discarded for a newer one acts on this, never on the reply it discarded. */
+  accepted: () => Json } {
   const [shown, setShown] = useState<Shown>({ host: null, applied: 0, appliedAt: null, settledAt: null, failed: null });
-  const order = useRef({ started: 0, applied: 0 });
+  const order = useRef<{ started: number; applied: number; snapshot: Json }>({ started: 0, applied: 0, snapshot: null });
   useEffect(() => {
     const tell = () => { const settledAt = order.current.started; setShown(old => ({ ...old, settledAt })); };
     settleListeners.add(tell);
@@ -148,12 +151,14 @@ export function useOrderedHost(): { host: Json; hostReads: HostReads; readHost: 
   const applyHost = useCallback((read: HostRead): boolean => {
     if (read.index <= order.current.applied) return false;
     order.current.applied = read.index;
+    order.current.snapshot = read.snapshot;
     setShown(old => ({ ...old, host: read.snapshot, applied: read.index, appliedAt: read.startedAt ?? Date.now() }));
     return true;
   }, []);
   const started = useCallback(() => order.current.started, []);
+  const accepted = useCallback(() => order.current.snapshot, []);
   const failed = shown.failed && shown.failed.index > shown.applied ? shown.failed : null;
-  return { host: shown.host, hostReads: { started, applied: shown.applied, settledAt: shown.settledAt, failure: failed?.message ?? null, appliedAt: shown.appliedAt, failedAt: failed?.at ?? null }, readHost, applyHost };
+  return { host: shown.host, hostReads: { started, applied: shown.applied, settledAt: shown.settledAt, failure: failed?.message ?? null, appliedAt: shown.appliedAt, failedAt: failed?.at ?? null }, readHost, applyHost, accepted };
 }
 
 /**
