@@ -398,13 +398,26 @@ class TrustedProjectFiles(unittest.TestCase):
     def test_the_shell_start_up_files_are_the_marker_commands(self):
         with L.Run(self.scratch, '/nonexistent/codex', trusted_project=True) as run:
             files = run.shell_files()
-            self.assertEqual((files['zdotdir'] / '.zshenv').read_text(), run.marker_command('zdotdir') + '\n')
+            # The one line beside the marker command: a builtin export, starting no program and writing nothing.
+            self.assertEqual(L.STARTUP_LINE, 'export LEVEL_INVENTED_STARTUP=ran')
+            self.assertEqual((files['zdotdir'] / '.zshenv').read_text(),
+                             L.STARTUP_LINE + '\n' + run.marker_command('zdotdir') + '\n')
             self.assertEqual(files['bash-env'].read_text(), run.marker_command('bash-env') + '\n')
+            if os.path.exists('/bin/zsh'):  # the measured command sees what the start-up file exports
+                done = subprocess.run(['/bin/zsh', '-c', run.commands()['env']], capture_output=True, text=True,
+                                      env={'PATH': L.SYSTEM_PATH, 'ZDOTDIR': str(files['zdotdir'])}, check=True,
+                                      stdin=subprocess.DEVNULL)
+                self.assertEqual(done.stdout, 'startup=ran\nvariable=unset')
+                self.assertEqual(run.marker_runs('zdotdir'), 1)
+                run.clear_markers()
             # Each is read where its shell reads it: shown here, so that the live control's marker means what it says.
+            # Standard input is /dev/null: bash reads no BASH_ENV when its standard input is a socket (its check for
+            # being started by a remote shell daemon), and a test runner's inherited input can be one.
             for shell, variable, value, name in (('/bin/zsh', 'ZDOTDIR', files['zdotdir'], 'zdotdir'),
                                                  ('/bin/bash', 'BASH_ENV', files['bash-env'], 'bash-env')):
                 if os.path.exists(shell):
-                    subprocess.run([shell, '-c', 'true'], env={'PATH': L.SYSTEM_PATH, variable: str(value)}, check=True)
+                    subprocess.run([shell, '-c', 'true'], env={'PATH': L.SYSTEM_PATH, variable: str(value)}, check=True,
+                                   stdin=subprocess.DEVNULL)
                     self.assertEqual(run.marker_runs(name), 1, shell)
 
     def test_the_project_files_parse_and_name_only_the_marker_commands(self):
@@ -587,7 +600,10 @@ class TrustedProjectFiles(unittest.TestCase):
                 self.assertEqual(run.touch_refusals()[key], {'touch: %s: Operation not permitted' % path})
                 subprocess.run(['/bin/sh', '-c', commands[key]], check=True)
                 self.assertTrue(path.exists())
-            for env, printed in (({}, 'unset'), ({L.TRUST_ENV: 'invented'}, 'invented')):
+            for env, printed in (({}, 'startup=unset\nvariable=unset'),
+                                 ({L.TRUST_ENV: 'invented'}, 'startup=unset\nvariable=invented'),
+                                 ({L.TRUST_ENV: ''}, 'startup=unset\nvariable='),
+                                 ({L.STARTUP_ENV: 'ran'}, 'startup=ran\nvariable=unset')):
                 done = subprocess.run(['/bin/sh', '-c', commands['env']], capture_output=True, text=True, env=env)
                 self.assertEqual((done.returncode, done.stdout), (0, printed))
 

@@ -2083,7 +2083,8 @@ class TrustedProject(Probing):
         "(marker runs, connections)" is sampled before the thread starts, at start (after the three seconds), by the
         turn, after the listing and after the stop: the first of `markers`' runs and the connections the second
         listener accepted (each an accepted socket, whatever it carried). `markers` gives each named marker's runs
-        by the turn and after the stop. Startup notifications are the set of (server, state) pairs, unordered."""
+        by the turn, just before the listing is asked for, as it returns, a second after it, and after the stop.
+        Startup notifications are the set of (server, state) pairs, unordered."""
         run.clear_markers()
         connections = run.other.connections
 
@@ -2112,15 +2113,21 @@ class TrustedProject(Probing):
         case = {'turn': status}
         if outside:
             case['plain write outside'] = self.seen(run, client, thread, 'out', **turn)
+        before_listing = {name: run.marker_runs(name) for name in markers}
         listing = client.call('mcpServerStatus/list', {'threadId': thread})
+        right_after_listing = {name: run.marker_runs(name) for name in markers}
         listed = (json.dumps(listing['error'])[:200] if 'error' in listing else
                   sorted(s.get('name') for s in listing['result'].get('data') or []
                          if s.get('name') in self.MCP_NAMES))
         time.sleep(1)
         after_listing = sample()
+        markers_after_listing = {name: run.marker_runs(name) for name in markers}
         client.stop()
         case.update({'before the thread starts': before, 'at start': at_start, 'by the turn': by_turn,
                      'after the listing': after_listing, 'after the stop': sample(), 'markers by the turn': by_marker,
+                     'markers before the listing': before_listing,
+                     'markers as the listing returns': right_after_listing,
+                     'markers a second after the listing': markers_after_listing,
                      'markers after the stop': {name: run.marker_runs(name) for name in markers},
                      'tools offered': offered, 'startup notifications': startup, 'listed': listed})
         return case
@@ -2471,10 +2478,11 @@ class TrustedProject(Probing):
 
     def shell_case(self, run, trust, config=None, level=None, commands=1):
         """A fresh server; a start at `level` (full access unless named) with the entry `trust` (and `config` added
-        to the App's); then `commands` commands on the thread, each printing the fixture's variable, with the
-        `ZDOTDIR` marker's runs read before and after each; then the server stopped. A command's value is its last
-        output line, shown as 'the variable set' when it is the value the settings give the variable; its other
-        output lines are kept apart."""
+        to the App's); then `commands` commands on the thread, each printing, on a labelled line each, the
+        variable the `ZDOTDIR` start-up file exports and the fixture's variable, with the `ZDOTDIR` marker's runs
+        read before and after each; then the server stopped. A command's value is its `variable=` line, shown as
+        'the variable set' when it is the value the settings give the variable; its `startup=` line is kept as
+        'startup', and any other output lines apart."""
         run.clear_markers()
         client = run.start()
         reply, error, turn = self.start(run, client, trust, level=level or self.FULL_ROW, config=config)
@@ -2488,12 +2496,16 @@ class TrustedProject(Probing):
             try:
                 outcome = probe(run, client, thread, 'env', **turn)
                 lines = outcome.text.splitlines()
-                value = lines[-1] if lines else ''
+                labelled = {line.split('=', 1)[0]: line.split('=', 1)[1] for line in lines
+                            if line.startswith(('startup=', 'variable='))}
+                value = labelled.get('variable', 'not printed')
                 command = (outcome.kind, 'the variable set' if value == run.trust_markers['project'] else value)
-                other = [line.replace(str(run.root), '<run root>') for line in lines[:-1]]
+                startup = labelled.get('startup', 'not printed')
+                other = [line.replace(str(run.root), '<run root>') for line in lines
+                         if not line.startswith(('startup=', 'variable='))]
             except L.Refused as refused:
-                command, other = ('unresolved', str(refused)[:200]), []
-            each.append({'command': command, 'other output lines': other,
+                command, startup, other = ('unresolved', str(refused)[:200]), None, []
+            each.append({'command': command, 'startup': startup, 'other output lines': other,
                          'zdotdir before and after': (before, run.marker_runs('zdotdir'))})
         time.sleep(1)
         client.stop()
@@ -2507,15 +2519,18 @@ class TrustedProject(Probing):
 
     def test_a_trusted_projects_shell_environment_reaches_commands_and_runs_its_zdotdir(self):
         """The project's `.codex/config.toml` sets, through `shell_environment_policy.set`, a variable of the
-        fixture's own, `ZDOTDIR` (a folder whose `.zshenv` is the marker command, writing under `outside`) and
-        `BASH_ENV` (a file that is the marker command). At the App's edits and full-access levels, on a fresh
-        server for each entry, two commands on the thread. With the `trusted` entry, at both levels, each command
-        sees the project's variable. At full access, the `ZDOTDIR` marker's runs rise across each command. At
-        edits the marker writes outside the project, where the sandbox refuses writes, so its runs are recorded,
-        not asserted. With the `untrusted` entry, at both levels, each command sees the variable `unset` and the
-        marker never runs. The `BASH_ENV` marker never runs (the commands' shell is zsh). The positive control: the
-        same policy in the person's own settings, with the `untrusted` entry, at full access: each command sees the
-        variable and the marker's runs rise across each."""
+        fixture's own, `ZDOTDIR` (a folder whose `.zshenv` exports `LEVEL_INVENTED_STARTUP=ran` and then runs the
+        marker command, writing under `outside`) and `BASH_ENV` (a file that is the marker command). At the App's
+        edits and full-access levels, on a fresh server for each entry, two commands on the thread, each printing
+        the start-up file's variable and the project's. With the `trusted` entry, at both levels, each command sees
+        the project's variable and the start-up file's: the start-up file runs inside each command. At edits it
+        runs under that command's sandbox: the marker's runs do not rise across either command, its write outside
+        the project being refused there. At full access its write succeeds, and the marker's runs rise across each
+        command. With the `untrusted` entry, at both levels, each command sees both variables unset and the marker
+        never runs. The `BASH_ENV` marker never runs (the commands' shell is zsh). Recorded, not asserted: the
+        marker's counts and each command's other output lines (at edits, the start-up file's refused write). The
+        positive control: the same policy in the person's own settings, with the `untrusted` entry, at full access:
+        each command sees both variables and the marker's runs rise across each."""
         observed = {}
         for level_name, level in (('edits', self.EDITS), ('full access', self.FULL_ROW)):
             with L.Run(SCRATCH, BINARY, trusted_project=True) as run:
@@ -2531,19 +2546,22 @@ class TrustedProject(Probing):
         def seen(name, case):
             if not isinstance(case, dict) or 'start error' in case:
                 return case
-            out = {'commands': [c['command'] for c in case['commands']], 'bash-env': case['bash-env']}
+            out = {'commands': [c['command'] for c in case['commands']],
+                   'startup': [c['startup'] for c in case['commands']], 'bash-env': case['bash-env']}
             if name.startswith('untrusted'):
                 out['zdotdir'] = case['zdotdir']
-            elif 'full access' in name:
+            else:
                 out['zdotdir risen across each command'] = [a > b for b, a in
                                                             (c['zdotdir before and after'] for c in case['commands'])]
             return out
         variable, unset = (SUCCEEDED, 'the variable set'), (SUCCEEDED, 'unset')
-        rising = {'commands': [variable, variable], 'bash-env': 0, 'zdotdir risen across each command': [True, True]}
+        seen_both = {'commands': [variable, variable], 'startup': ['ran', 'ran'], 'bash-env': 0}
+        unseen = {'commands': [unset, unset], 'startup': ['unset', 'unset'], 'bash-env': 0, 'zdotdir': 0}
+        rising = dict(seen_both, **{'zdotdir risen across each command': [True, True]})
         self.assertEqual({k: seen(k, v) for k, v in observed.items()}, {
-            'untrusted, edits': {'commands': [unset, unset], 'bash-env': 0, 'zdotdir': 0},
-            'trusted, edits': {'commands': [variable, variable], 'bash-env': 0},
-            'untrusted, full access': {'commands': [unset, unset], 'bash-env': 0, 'zdotdir': 0},
+            'untrusted, edits': unseen,
+            'trusted, edits': dict(seen_both, **{'zdotdir risen across each command': [False, False]}),
+            'untrusted, full access': unseen,
             'trusted, full access': rising,
             "control: in the person's settings, full access": rising},
             'observed:\n%s' % shown(observed))
@@ -2553,17 +2571,20 @@ class TrustedProject(Probing):
     def test_with_a_trusted_entry_enabled_false_on_the_start_keeps_each_named_project_mcp_server_off(self):
         """The person's own settings name a server with the same name as the project's stdio server (its own marker
         command) and one of their own. Three cases, all with the `trusted` entry and the App's own start at edits,
-        each on a fresh server (`mcp_case`), effects read by the turn and after the server is stopped and drained;
-        the controls are these cases against each other, within the one trust state. The project naming no server:
-        the person's two servers run, and the second listener accepts no connection. The project naming its two
-        servers (as in the MCP row), no override: the project's definition of the shared name runs and the person's
-        does not, the person's other server runs, and the second listener accepts a connection;
-        `mcpServerStatus/list` lists the person's other server and the shared name. The same, with
-        `mcp_servers.<name>.enabled = false` in the start's `config` for each server the project names: neither the
-        project's nor the person's definition of the shared name runs, the second listener accepts no connection,
-        no notification names either of the project's names, the person's other server still runs, and, in this
-        configuration, `mcpServerStatus/list` for the thread fails with "failed to reload config: invalid
-        transport" naming `mcp_servers.<the project's HTTP server>`. Every turn completes."""
+        each on a fresh server (`mcp_case`); the controls are these cases against each other, within the one trust
+        state. Every turn completes. The project naming no server: by the end of the turn the person's two servers
+        have run, and the second listener accepts no connection through the stop. The project naming its two
+        servers (as in the MCP row), no override: by the end of the turn the project's definition of the shared
+        name has run and the person's has not, the person's other server has run, and the second listener has
+        accepted a connection; `mcpServerStatus/list` lists the person's other server and the shared name. The
+        same, with `mcp_servers.<name>.enabled = false` in the start's `config` for each server the project names:
+        through the stop, neither the project's nor the person's definition of the shared name runs and the second
+        listener accepts no connection; no notification names either of the project's names; the person's other
+        server has run by the end of the turn; and, in this configuration, `mcpServerStatus/list` for the thread
+        fails with "failed to reload config: invalid transport" naming `mcp_servers.<the project's HTTP server>`.
+        Recorded, not asserted: every marker's runs just before the listing, as it returns, a second after it and
+        after the stop. In one run, with the project naming both and no override, the person's own definition of
+        the shared name ran once after the listing was asked for, and the person's other server once more."""
         markers = ('mcp-stdio', 'mcp-person-same', 'mcp-person-other')
         off = {'mcp_servers': {L.MCP_STDIO: {'enabled': False}, L.MCP_HTTP: {'enabled': False}}}
         observed = {}
@@ -2584,27 +2605,36 @@ class TrustedProject(Probing):
             if isinstance(listed, str):  # the error, as its stable parts
                 listed = ('error', [part for part in ('failed to reload config: invalid transport',
                                                       '`mcp_servers.%s`' % L.MCP_HTTP) if part in listed])
-            return {'turn': case['turn'],
-                    'ran through the stop': {k: v > 0 for k, v in case['markers after the stop'].items()},
-                    'second listener through the stop': case['after the stop'][1] > 0,
-                    'names notified': sorted({name for name, _ in case['startup notifications']}),
-                    'listed': listed}
-        self.assertEqual({k: seen(v) for k, v in observed.items()}, {
+            out = {'turn': case['turn'],
+                   'ran by the turn': {k: v > 0 for k, v in case['markers by the turn'].items()},
+                   'second listener': case['by the turn'][1] > 0,
+                   'names notified': sorted({name for name, _ in case['startup notifications']}),
+                   'listed': listed}
+            if not case['by the turn'][1]:  # an absence is asserted through the stop
+                out['second listener'] = case['after the stop'][1] > 0
+            return out
+        observed_seen = {k: seen(v) for k, v in observed.items()}
+        override = observed['the project naming both, enabled = false for each']
+        if 'start error' not in override:  # the override's absences, through the stop
+            observed_seen['the override through the stop'] = {
+                k: override['markers after the stop'][k] > 0 for k in ('mcp-stdio', 'mcp-person-same')}
+        self.assertEqual(observed_seen, {
             'the project naming none': {
                 'turn': 'completed',
-                'ran through the stop': {'mcp-stdio': False, 'mcp-person-same': True, 'mcp-person-other': True},
-                'second listener through the stop': False, 'names notified': [L.MCP_PERSON, L.MCP_STDIO],
+                'ran by the turn': {'mcp-stdio': False, 'mcp-person-same': True, 'mcp-person-other': True},
+                'second listener': False, 'names notified': [L.MCP_PERSON, L.MCP_STDIO],
                 'listed': [L.MCP_PERSON, L.MCP_STDIO]},
             'the project naming both, no override': {
                 'turn': 'completed',
-                'ran through the stop': {'mcp-stdio': True, 'mcp-person-same': False, 'mcp-person-other': True},
-                'second listener through the stop': True, 'names notified': [L.MCP_HTTP, L.MCP_PERSON, L.MCP_STDIO],
+                'ran by the turn': {'mcp-stdio': True, 'mcp-person-same': False, 'mcp-person-other': True},
+                'second listener': True, 'names notified': [L.MCP_HTTP, L.MCP_PERSON, L.MCP_STDIO],
                 'listed': [L.MCP_PERSON, L.MCP_STDIO]},
             'the project naming both, enabled = false for each': {
                 'turn': 'completed',
-                'ran through the stop': {'mcp-stdio': False, 'mcp-person-same': False, 'mcp-person-other': True},
-                'second listener through the stop': False, 'names notified': [L.MCP_PERSON],
-                'listed': ('error', ['failed to reload config: invalid transport', '`mcp_servers.%s`' % L.MCP_HTTP])}},
+                'ran by the turn': {'mcp-stdio': False, 'mcp-person-same': False, 'mcp-person-other': True},
+                'second listener': False, 'names notified': [L.MCP_PERSON],
+                'listed': ('error', ['failed to reload config: invalid transport', '`mcp_servers.%s`' % L.MCP_HTTP])},
+            'the override through the stop': {'mcp-stdio': False, 'mcp-person-same': False}},
             'observed:\n%s' % shown(observed))
 
     def test_with_a_trusted_entry_only_an_empty_value_or_include_only_on_the_start_keeps_a_projects_shell_environment_out(self):
