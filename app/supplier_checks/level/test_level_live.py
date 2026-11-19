@@ -1474,8 +1474,6 @@ class QuestionInAnOrdinaryConversation(unittest.TestCase):
                 question = params['questions'][0]
                 self.assertEqual({k: question.get(k) for k in INVENTED_QUESTION}, INVENTED_QUESTION)
                 self.assertIs(question.get('isOther'), True)  # Codex adds the free answer itself
-                self.assertEqual([r['method'] for r in client.server_requests if r['thread'] == thread],
-                                 ['item/tool/requestUserInput'])  # the question and nothing else was asked
                 listed = question_tool_description(next(r for r in run.stub.requests if r['key'] == key))
                 self.assertIn('Default', listed)
                 self.assertIn('Plan', listed)
@@ -1483,6 +1481,38 @@ class QuestionInAnOrdinaryConversation(unittest.TestCase):
                 client.answer_question(asked, {'q1': ['Yes']})
                 self.assertEqual(self.completed(client, thread, turn), 'completed')
                 self.assertEqual(json.loads(run.stub.outputs['call_' + key]), {'answers': {'q1': {'answers': ['Yes']}}})
+                # Over the server's whole life, read to the end of its output after the turn completed: the
+                # question, and nothing else, was asked of the client.
+                client.stop()
+                client.drain()
+                self.assertEqual([r['method'] for r in client.server_requests], ['item/tool/requestUserInput'])
+
+    def test_with_the_feature_off_in_the_homes_own_settings_the_session_flag_still_raises_the_question(self):
+        """The person's own settings name the feature off; the App's session flag is given all the same. The
+        control is the same home without the flag, which refuses the call."""
+        full = next(r for r in json.loads(LEVELS_TABLE.read_text())['levels'] if r['id'] == 'full')
+        start, each_turn = level_settings(full)
+        off = '[features]\ndefault_mode_request_user_input = false\n'
+        with L.Run(SCRATCH, BINARY) as run:
+            (run.home / 'config.toml').write_text(off)
+            client = run.start(flags=[QUESTION_FLAG])
+            client.question_policy = 'hold'
+            thread = client.start_thread(**start)['thread']['id']
+            turn, asked = self.ask(run, client, thread, 'setoff', **each_turn)
+            client.answer_question(asked, {'q1': ['Yes']})
+            self.assertEqual(self.completed(client, thread, turn), 'completed')
+            self.assertEqual(json.loads(run.stub.outputs['call_setoff']), {'answers': {'q1': {'answers': ['Yes']}}})
+            self.assertEqual((run.home / 'config.toml').read_text(), off)  # the person's settings are as they were
+        with L.Run(SCRATCH, BINARY) as run:
+            (run.home / 'config.toml').write_text(off)
+            client = run.start()
+            client.question_policy = 'hold'
+            thread = client.start_thread(**start)['thread']['id']
+            run.stub.scripts['setoffplain'] = question_script('call_setoffplain')
+            _, done = client.turn(thread, 'LEVEL[setoffplain] go', **each_turn)
+            self.assertEqual(done['turn']['status'], 'completed')
+            self.assertEqual(questions_raised(client), [])
+            self.assertIn('unavailable in Default mode', run.stub.outputs.get('call_setoffplain', ''))
 
     def test_without_the_feature_the_same_start_refuses_the_question(self):
         """The control for the row above, on the level the App uses by default."""
@@ -1610,6 +1640,9 @@ class QuestionInAnOrdinaryConversation(unittest.TestCase):
                     client.answer_question(questions_raised(client, 'call_told')[0], {'q1': ['Yes']})
                 self.assertEqual(self.completed(client, thread, turn), 'completed')
                 seen[name] = (bodies[0], len(questions_raised(client)), run.stub.outputs.get('call_told', ''))
+                # For this model the request to the provider carries no `tools`, with the feature or without.
+                self.assertTrue(all('tools' not in r['body_keys'] for r in run.stub.requests if r['key'] == 'told'))
+                self.assertNotIn('tools', json.loads(bodies[0]))
         told, raised, output = seen['with']
         self.assertEqual(raised, 1)
         self.assertEqual(json.loads(output), {'answers': {'q1': {'answers': ['Yes']}}})
@@ -1667,9 +1700,12 @@ class QuestionThatDoesNotWait(unittest.TestCase):
             again = run.start()
             again.result('thread/resume', {'threadId': thread})
             read = again.result('thread/read', {'threadId': thread, 'includeTurns': True})
-            kept = [i for t in read['thread']['turns'] for i in t.get('items') or []
-                    if i.get('type') == 'agentMessage' and i.get('questions')]
-            self.assertEqual([i['questions'] for i in kept], [[ASYNC_QUESTION]])
+            self.assertEqual(read['thread']['id'], thread)
+            # The same item, in the same turn of the same conversation: its id, its delivery and its questions.
+            kept = [(t['id'], i['id'], i.get('delivery'), i['questions'])
+                    for t in read['thread']['turns'] for i in t.get('items') or []
+                    if i.get('type') == 'agentMessage' and (i.get('questions') or i.get('delivery'))]
+            self.assertEqual(kept, [(turn, 'call_nowait', 'async', [ASYNC_QUESTION])])
 
     def test_on_a_model_the_catalogue_does_not_list_it_for_the_same_call_is_unsupported(self):
         """The control: the fixture's invented model has no catalogue entry."""
