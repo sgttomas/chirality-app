@@ -15,7 +15,8 @@ use crate::runtime_session::{HomeSession, WorkflowRootSession};
 use std::path::PathBuf;
 use std::time::Instant;
 
-/// Answers the handshake and `thread/start`, acknowledges an interrupt and
+/// Answers the handshake (once the file `hold-initialize` no longer exists)
+/// and `thread/start`, acknowledges an interrupt and
 /// completes its turn interrupted. It reads its input without buffering, a
 /// chunk at a time; once the file `stop-reading` exists it stops reading
 /// for good (writing `stopped-reading`), so the input pipe fills and a write
@@ -40,7 +41,9 @@ starts=[0]
 def handle(f):
  m=f.get('method')
  with open('wire.jsonl','a') as log: log.write(json.dumps({'method':m})+'\n')
- if m=='initialize': result={'userAgent':'unqualified-stop-fixture'}
+ if m=='initialize':
+  while os.path.exists('hold-initialize'): time.sleep(0.005)
+  result={'userAgent':'unqualified-stop-fixture'}
  elif m=='thread/start':
   starts[0]+=1
   t={'id':'thread' if starts[0]==1 else 'thread-%d'%starts[0],'cliVersion':'0.169.0','createdAt':1,'updatedAt':2,'cwd':os.path.join(os.getcwd(),'project'),'ephemeral':False,'modelProvider':'fixture-provider','preview':'stop fixture','projectId':None,'sessionId':'fixture-session','source':'appServer','status':{'type':'idle'},'turns':[]}
@@ -1026,10 +1029,12 @@ mod a_turn_start_not_yet_answered {
         let mut asked = 0;
         let mut quit = HostQuit::new(vec![Arc::clone(&f.home)], &workflows, "Invented Person", |_: &Value| { asked += 1; Ok(true) });
         let decision = quit_sequence(&mut quit, LIMIT);
+        // The quit's own reopen, so that Stop Codex then meets an open Host;
+        // the quit is dropped before Stop is invoked.
+        crate::app_quit::QuitOps::reopen_to_new_turns(&mut quit);
         drop(quit);
         assert_eq!(asked, 1, "asked once");
         match decision { Decision::Quit(done) => assert_eq!(done["asked"], true, "{done}"), other => panic!("the confirmed quit goes on: {other:?}") }
-        f.host().reopen_to_new_turns(&f.generation);
         let mut asked = 0;
         let stopped = crate::codex_stop::stop_native_home_within(&f.home, &workflows, &f.generation, false, "Invented Person", LIMIT, |_| { asked += 1; true }, || Ok(Value::Null));
         assert_eq!(asked, 1, "asked once");
@@ -1220,5 +1225,278 @@ mod after_the_scoped_reading {
             let _ = f.host().stop("test", "test ended");
         }
         assert!(refused.is_empty(), "a question was refused before it could be confirmed: {refused:?}");
+    }
+}
+
+/// DEL-01-02 AS-03, AS-07 (REQ-005, AC-006): from the quit's last assessment
+/// until the quit is settled or abandoned no turn start or steer is admitted
+/// on any home, including one whose Codex was handshaking, or not yet
+/// started, when the quit assessed it. Sends go through the Host's own send
+/// path; the stand-in's wire shows what reached Codex. Written from the
+/// assignment.
+mod quit_closes_starting_homes {
+    use super::*;
+    use crate::app_quit::{finish_exit, quit_sequence, AppQuit, Assessment, Decision, HostQuit, QuitOps};
+    use crate::codex_stop::{Interrupts, Unsent};
+
+    const QUITTING: &str = "Quit blocked this request.";
+
+    /// A home whose Codex has not been started: no process, no generation.
+    fn unstarted() -> Fixture {
+        use std::os::unix::fs::PermissionsExt;
+        let root = std::fs::canonicalize(std::env::temp_dir()).unwrap().join(crate::util::opaque_id("starting-quit-").unwrap());
+        for name in ["account", "probe", "project"] {
+            std::fs::create_dir_all(root.join(name)).unwrap();
+        }
+        let _custody = crate::hold_app_data_for_test(&root).unwrap();
+        let peer = root.join("peer.py");
+        std::fs::write(&peer, PEER).unwrap();
+        std::fs::set_permissions(&peer, std::fs::Permissions::from_mode(0o700)).unwrap();
+        let mut cfg = HostConfig::new(peer, root.join("account"), root.join("probe"), root.clone());
+        cfg.allow_unverified_dev = true;
+        cfg.wait_limit = Duration::from_secs(10);
+        let host = Arc::new(Host::new());
+        host.configure_recovery(root.join("recovery.ledger.jsonl")).unwrap();
+        let home = Arc::new(HomeSession::new(crate::home_resources::HomeClass::Account, host, Ok(cfg.clone())).unwrap());
+        Fixture { root, cfg, home, generation: Value::Null, held: Vec::new(), _custody }
+    }
+    /// Start Codex on its own thread, as Start Codex does.
+    fn start(f: &Fixture) -> std::thread::JoinHandle<Result<Value, String>> {
+        let (host, cfg) = (Arc::clone(f.host()), f.cfg.clone());
+        std::thread::spawn(move || host.start(&cfg, "the person: Start Codex"))
+    }
+    fn until(what: &str, done: impl Fn() -> bool) {
+        let deadline = Instant::now() + Duration::from_secs(5);
+        while !done() {
+            assert!(Instant::now() < deadline, "{what}");
+            std::thread::sleep(Duration::from_millis(5));
+        }
+    }
+    /// The start has published ready; a conversation with a live turn is
+    /// open on that process (the turn Codex reports, so a steer has a target).
+    fn ready_with_a_live_turn(f: &mut Fixture, started: std::thread::JoinHandle<Result<Value, String>>) {
+        assert_eq!(started.join().unwrap().unwrap()["state"], "ready");
+        f.generation = f.host().snapshot()["generation"].clone();
+        f.host().thread_start_selected(&f.root.join("project").to_string_lossy(), "fixture-model", "fixture-provider").unwrap();
+        f.live_turn("thread", "turn-1");
+    }
+    /// How many frames of `method` reached the stand-in.
+    fn on_wire(f: &Fixture, method: &str) -> usize {
+        std::fs::read_to_string(f.root.join("wire.jsonl")).unwrap_or_default().lines()
+            .filter(|l| serde_json::from_str::<Value>(l).is_ok_and(|v| v["method"] == method)).count()
+    }
+    /// `method` (turn/start or turn/steer of turn-1) through the Host's own
+    /// path on its own thread: Some(refusal) when it was refused and nothing
+    /// reached Codex, None once Codex received it.
+    fn send(f: &mut Fixture, method: &str) -> Option<String> {
+        let before = on_wire(f, method);
+        let (host, generation, steer) = (Arc::clone(f.host()), f.generation.clone(), method == "turn/steer");
+        let (tx, rx) = channel();
+        f.held.push(std::thread::spawn(move || {
+            let _ = tx.send(if steer { host.turn_steer_text(&generation, "thread", "turn-1", "invented text") } else { host.turn_start_text(&generation, "thread", "invented text") });
+        }));
+        let deadline = Instant::now() + Duration::from_secs(5);
+        loop {
+            if on_wire(f, method) > before {
+                return None;
+            }
+            if let Ok(result) = rx.try_recv() {
+                if on_wire(f, method) > before {
+                    return None;
+                }
+                return Some(result.expect_err("answered without reaching Codex"));
+            }
+            assert!(Instant::now() < deadline, "{method} neither refused nor received");
+            std::thread::sleep(Duration::from_millis(5));
+        }
+    }
+    fn assert_refused_by_the_quit(refusal: Option<String>, method: &str) {
+        let refusal = refusal.unwrap_or_else(|| panic!("{method} reached Codex during the quit"));
+        assert!(refusal.contains(&format!("refused-not-sent: {QUITTING} No {method} was sent.")), "{refusal}");
+    }
+    /// The quit's settlement, as the App runs it once the quit is decided.
+    fn settle(f: &Fixture, decision: &Decision) {
+        assert!(AppQuit::default().allow(decision, |ids| finish_exit(&[Arc::clone(&f.home)], Some(ids.to_vec()))).unwrap());
+        assert_eq!(f.host().state(), "stopped");
+    }
+
+    /// The real quit binding, with `hook` run just before its `at`-th
+    /// assessment, that is after what the sequence closed before it.
+    struct Paused<'a, C> {
+        quit: HostQuit<'a, C>,
+        assessed: usize,
+        at: usize,
+        hook: Option<Box<dyn FnOnce() + 'a>>,
+    }
+    impl<C> Interrupts for Paused<'_, C> {
+        type Pending = (Arc<Host>, SourceRequest);
+        fn interrupt(&mut self, turn: &Value, deadline: Instant) -> Result<Self::Pending, Unsent> {
+            self.quit.interrupt(turn, deadline)
+        }
+        fn acknowledgment(&mut self, pending: &Self::Pending, wait: Duration) -> Result<Value, String> {
+            self.quit.acknowledgment(pending, wait)
+        }
+        fn turn_reading(&mut self, turn: &Value) -> Option<Value> {
+            self.quit.turn_reading(turn)
+        }
+    }
+    impl<C: FnMut(&Value) -> Result<bool, String>> QuitOps for Paused<'_, C> {
+        fn assess(&mut self) -> Assessment {
+            self.assessed += 1;
+            if self.assessed == self.at {
+                if let Some(hook) = self.hook.take() {
+                    hook();
+                }
+            }
+            self.quit.assess()
+        }
+        fn record_requested(&mut self, material: &Value) -> Value {
+            self.quit.record_requested(material)
+        }
+        fn confirm(&mut self, view: &Value) -> Result<bool, String> {
+            self.quit.confirm(view)
+        }
+        fn record_answered(&mut self, confirmed: bool) -> Value {
+            self.quit.record_answered(confirmed)
+        }
+        fn close_to_new_turns(&mut self) {
+            self.quit.close_to_new_turns()
+        }
+        fn reopen_to_new_turns(&mut self) {
+            self.quit.reopen_to_new_turns()
+        }
+        fn stop_record(&mut self, turn: &Value) -> Value {
+            self.quit.stop_record(turn)
+        }
+    }
+
+    /// Codex is handshaking when the quit makes its last assessment, which
+    /// finds nothing live and asks nothing; the handshake then publishes
+    /// ready. Until settlement ends that process, neither a turn start nor a
+    /// steer is admitted on it.
+    #[test]
+    fn a_home_handshaking_at_the_last_assessment_takes_no_turn_before_settlement() {
+        let mut f = unstarted();
+        std::fs::write(f.root.join("hold-initialize"), "").unwrap();
+        let started = start(&f);
+        until("Codex is not handshaking", || f.host().state() == "handshaking");
+        let workflows = Mutex::new(WorkflowRootSession::default());
+        let mut quit = HostQuit::new(vec![Arc::clone(&f.home)], &workflows, "Invented Person", |_: &Value| -> Result<bool, String> { panic!("nothing live: nothing is asked") });
+        let decision = quit_sequence(&mut quit, LIMIT);
+        drop(quit);
+        let Decision::Quit(out) = &decision else { panic!("{decision:?}") };
+        assert_eq!(out["asked"], false, "{out}");
+        assert_eq!(out["assessment"]["homes"][0]["state"], "handshaking", "the last assessment saw the handshake: {out}");
+        std::fs::remove_file(f.root.join("hold-initialize")).unwrap();
+        ready_with_a_live_turn(&mut f, started);
+        assert_refused_by_the_quit(send(&mut f, "turn/start"), "turn/start");
+        assert_refused_by_the_quit(send(&mut f, "turn/steer"), "turn/steer");
+        settle(&f, &decision);
+        assert_eq!((on_wire(&f, "turn/start"), on_wire(&f, "turn/steer")), (0, 0));
+    }
+
+    /// The home is still handshaking when the idle quit closes it. Before the second assessment it reaches ready and refuses turn starts and steers. The second assessment lists that home's turn, reopens admission and asks. The person keeps the App running, and both requests reach the stand-in after reopening.
+    #[test]
+    fn a_home_handshaking_at_close_is_reopened_when_the_person_keeps_running() {
+        let mut f = unstarted();
+        std::fs::write(f.root.join("hold-initialize"), "").unwrap();
+        let started = start(&f);
+        until("Codex is not handshaking", || f.host().state() == "handshaking");
+        let workflows = Mutex::new(WorkflowRootSession::default());
+        let mut asked = 0;
+        let mut while_closed = None;
+        let ready_generation = std::cell::RefCell::new(Value::Null);
+        let decision = {
+            let f = &mut f;
+            let while_closed = &mut while_closed;
+            let ready_generation = &ready_generation;
+            let mut ops = Paused {
+                quit: HostQuit::new(vec![Arc::clone(&f.home)], &workflows, "Invented Person", |view: &Value| {
+                    asked += 1;
+                    let generation = ready_generation.borrow();
+                    let turns = view["observedLiveTurns"].as_array().unwrap();
+                    assert!(turns.iter().any(|t| t["generation"] == *generation && t["threadId"] == "thread" && t["turnId"] == "turn-1"), "the question lists the live turn on the generation that became ready: {turns:?}");
+                    Ok(false)
+                }),
+                assessed: 0,
+                at: 2,
+                hook: Some(Box::new(move || {
+                    assert_eq!(f.host().state(), "handshaking", "still handshaking when the quit closed the homes");
+                    std::fs::remove_file(f.root.join("hold-initialize")).unwrap();
+                    ready_with_a_live_turn(f, started);
+                    *ready_generation.borrow_mut() = f.generation.clone();
+                    *while_closed = Some((send(f, "turn/start"), send(f, "turn/steer")));
+                })),
+            };
+            quit_sequence(&mut ops, LIMIT)
+        };
+        assert!(matches!(decision, Decision::Cancelled(_)), "{decision:?}");
+        assert_eq!(asked, 1, "the live turn was asked about");
+        let (start_refusal, steer_refusal) = while_closed.expect("the hook ran before the second assessment");
+        assert_refused_by_the_quit(start_refusal, "turn/start");
+        assert_refused_by_the_quit(steer_refusal, "turn/steer");
+        assert_eq!(send(&mut f, "turn/steer"), None, "reopened: the steer reaches Codex");
+        assert_eq!(send(&mut f, "turn/start"), None, "reopened: the turn start reaches Codex");
+        assert_eq!((on_wire(&f, "turn/start"), on_wire(&f, "turn/steer")), (1, 1), "only the reopened sends reached Codex");
+    }
+
+    /// A start is admitted and still verifying, with no generation, when the
+    /// quit makes its last assessment; it goes on to publish ready before
+    /// settlement. No turn start or steer is admitted on that process.
+    #[test]
+    fn a_start_with_no_generation_at_the_last_assessment_takes_no_turn_before_settlement() {
+        let mut f = unstarted();
+        let (at_gate, gate_reached) = channel();
+        let (go, proceed) = channel::<()>();
+        *f.host().before_successor_gate.lock().unwrap() = Some(Box::new(move || {
+            at_gate.send(()).unwrap();
+            let _ = proceed.recv();
+        }));
+        let started = start(&f);
+        gate_reached.recv_timeout(Duration::from_secs(5)).expect("the start reached its spawn admission");
+        let before = f.host().snapshot();
+        assert_eq!((before["state"].as_str(), before["generation"].is_null()), (Some("verifying"), true), "{before}");
+        let workflows = Mutex::new(WorkflowRootSession::default());
+        let mut quit = HostQuit::new(vec![Arc::clone(&f.home)], &workflows, "Invented Person", |_: &Value| -> Result<bool, String> { panic!("nothing live: nothing is asked") });
+        let decision = quit_sequence(&mut quit, LIMIT);
+        drop(quit);
+        let Decision::Quit(out) = &decision else { panic!("{decision:?}") };
+        assert_eq!(out["asked"], false, "{out}");
+        go.send(()).unwrap();
+        ready_with_a_live_turn(&mut f, started);
+        assert_refused_by_the_quit(send(&mut f, "turn/start"), "turn/start");
+        assert_refused_by_the_quit(send(&mut f, "turn/steer"), "turn/steer");
+        settle(&f, &decision);
+        assert_eq!((on_wire(&f, "turn/start"), on_wire(&f, "turn/steer")), (0, 0));
+    }
+
+    /// A process Stop Codex closed (and is waiting on) stays closed when a
+    /// quit that closed and reopened the homes is not carried through. Once
+    /// Stop's own closure is reopened, a turn start reaches the stand-in, so
+    /// the quit's closure was reopened too.
+    #[test]
+    fn a_process_stop_codex_closed_stays_closed_when_the_quit_reopens() {
+        let mut f = Fixture::new();
+        f.live_turn("thread", "turn-1");
+        assert_eq!(f.host().close_to_new_turns(&f.generation), Ok(true), "Stop Codex confirmed and waiting");
+        let workflows = Mutex::new(WorkflowRootSession::default());
+        let mut asked = 0;
+        let decision = {
+            let f = &f;
+            let mut quit = HostQuit::new(vec![Arc::clone(&f.home)], &workflows, "Invented Person", |_: &Value| {
+                asked += 1;
+                // The first Quit closes, finds a changed list, reopens and asks again.
+                if asked == 1 { f.live_turn("thread", "turn-2"); Ok(true) } else { Ok(false) }
+            });
+            quit_sequence(&mut quit, LIMIT)
+        };
+        assert!(matches!(decision, Decision::Cancelled(_)), "{decision:?}");
+        assert_eq!(asked, 2);
+        for method in ["turn/start", "turn/steer"] {
+            let refusal = send(&mut f, method).unwrap_or_else(|| panic!("{method} reached Codex"));
+            assert!(refusal.contains(&format!("refused-not-sent: Stopping this Codex process was confirmed. No {method} was sent.")) && !refusal.contains(QUITTING), "still Stop Codex's closure: {refusal}");
+        }
+        f.host().reopen_to_new_turns(&f.generation);
+        assert_eq!(send(&mut f, "turn/start"), None, "with Stop's closure reopened, nothing of the quit's is left");
     }
 }

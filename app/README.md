@@ -470,18 +470,32 @@ implemented behavior and qualification limits.
     listed (*app-ended-without-record*; no reply is sent).
 22a. **Quit asks first** (DEL-01-02 DEF-6, K-4, SQ-Q; DEL-01-04 §5.2). Quit is
     the App's own menu item (Cmd/Ctrl+Q). The host assesses live work across
-    every App-owned home and records `quit_requested` with the lists. With
-    nothing live it quits without asking. Otherwise a native question lists
-    the live turns, waiting requests, delegated agents and workflow runs in
-    force, with no time limit; **Keep running** is the default, and it and
-    Cancel record `quit_answered` *cancelled* and change nothing. On **Quit**
-    every ready home is closed to new turns and assessed again (a changed list
-    is recorded and asked again); then `quit_answered` *confirmed*, each live
-    turn's stop request (SR-01, cause *quit*) and its interrupt, whose write is
-    bounded by the same limit as Stop Codex's; the App waits
-    up to the stop wait limit for those turns to end, exits, stops each home's
-    Codex and writes `session_ended` *quit* with each quit stop request's
-    state. A relaunch reads *quit-with-live-work* and "interrupted by quit".
+    every App-owned home and records `quit_requested` with the lists. When the
+    first assessment finds nothing live, the host closes admission for turn
+    starts and steers on every listed home and assesses again. If it still
+    finds nothing live, it proceeds without a question. Otherwise a native
+    question lists the live turns, waiting requests, delegated agents and
+    workflow runs in force, with no time limit. **Keep running** is the
+    default. The App attempts to record Keep running or Cancel as
+    `quit_answered` *cancelled*. On **Quit**, the
+    host closes admission for turn starts and steers on every listed home
+    before reassessing. If the assessment changed and still requires
+    confirmation, the host reopens admission before recording the updated
+    assessment and asking again. The closure applies in every generation of the
+    listed homes, including a process that becomes ready while the closure is
+    held. On cancellation, an unavailable question, or a returned settlement
+    refusal, the quit reopens the admissions it closed. The Stop or Restart
+    closure is independent. An unexpected fault can leave quit closures in
+    place. After final confirmation the App attempts to record `quit_answered`
+    *confirmed* and checks each observed live turn for interruption. At the
+    writer, the App attempts to record the stop request (SR-01, cause *quit*)
+    before sending an interrupt. Quit uses the same deadline as Stop Codex for
+    waiting on interrupt writes and turn ends. If a write is still in progress
+    at that deadline, its outcome is reported as unknown. For both a
+    confirmed and an unasked quit, the App first settles its owned processes,
+    then attempts to write `session_ended` *quit* with the quit stop requests'
+    final states before allowing exit. A relaunch can show
+    *quit-with-live-work* and identify turns recorded as interrupted by quit.
 
     History shows the selected conversation's App stop requests where its home
     is established. A labelled row gives the status Codex reported when

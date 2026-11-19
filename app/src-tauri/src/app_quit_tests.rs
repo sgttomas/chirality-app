@@ -111,6 +111,37 @@ fn work_started_before_the_as03_close_is_asked() {
     assert_eq!(d.log, ["assess", "quit_requested 0", "close", "assess", "reopen", "quit_requested 1", "ask", "reopen", "quit_answered cancelled"]);
 }
 
+/// Every reassessment follows a close with no intervening reopen. The scripted cancellation and not-asked cases return open. Both decided cases return closed.
+#[test]
+fn closed_before_each_later_assessment_and_reopened_on_every_undecided_ending() {
+    let idle = || material(&[], 0, 0);
+    let one = || material(&["turn-1"], 0, 0);
+    let two = || material(&["turn-1", "turn-2"], 0, 0);
+    type World = (Vec<Value>, Vec<Result<bool, String>>, bool);
+    let worlds: Vec<World> = vec![
+        (vec![idle(), one()], vec![Ok(false)], false),
+        (vec![idle(), one()], vec![Err("no window".into())], false),
+        (vec![one(), two()], vec![Ok(true), Ok(false)], false),
+        (vec![one(), two()], vec![Ok(true), Err("no window".into())], false),
+        (vec![idle()], vec![], true),
+        (vec![one()], vec![Ok(true)], true),
+    ];
+    for (materials, answers, decided) in worlds {
+        let mut d = Double::new(materials, answers);
+        assert_eq!(matches!(d.run(), Decision::Quit(_)), decided, "{:?}", d.log);
+        let mut closed = false;
+        for (i, entry) in d.log.iter().enumerate() {
+            match entry.as_str() {
+                "close" => closed = true,
+                "reopen" => closed = false,
+                "assess" if i > 0 => assert!(closed, "assessed open: {:?}", d.log),
+                _ => {}
+            }
+        }
+        assert_eq!(closed, decided, "{:?}", d.log);
+    }
+}
+
 #[test]
 fn quit_and_codex_stop_admit_one_another_only_when_neither_is_under_way() {
     let (quit, stop_gate) = (AppQuit::default(), Mutex::new(()));
