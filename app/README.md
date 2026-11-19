@@ -476,7 +476,8 @@ implemented behavior and qualification limits.
     finds nothing live, it proceeds without a question. Otherwise a native
     question lists the live turns, waiting requests, delegated agents and
     workflow runs in force, with no time limit. **Keep running** is the
-    default. It and Cancel record `quit_answered` *cancelled*. On **Quit**, the
+    default. The App attempts to record Keep running or Cancel as
+    `quit_answered` *cancelled*. On **Quit**, the
     host closes admission for turn starts and steers on every listed home
     before reassessing. If the assessment changed and still requires
     confirmation, the host reopens admission before recording the updated
@@ -485,10 +486,12 @@ implemented behavior and qualification limits.
     held. On cancellation, an unavailable question, or a returned settlement
     refusal, the quit reopens the admissions it closed. The Stop or Restart
     closure is independent. An unexpected fault can leave quit closures in
-    place. After the final confirmation the App records `quit_answered`
-    *confirmed*, records the stop request for each observed live turn (SR-01,
-    cause *quit*), and attempts its interrupt. The same limit as Stop Codex
-    bounds the interrupt write and wait for the turns to end. For both a
+    place. After final confirmation the App attempts to record `quit_answered`
+    *confirmed* and checks each observed live turn for interruption. At the
+    writer, the App attempts to record the stop request (SR-01, cause *quit*)
+    before sending an interrupt. Quit uses the same deadline as Stop Codex for
+    waiting on interrupt writes and turn ends. If a write is still in progress
+    at that deadline, its outcome is reported as unknown. For both a
     confirmed and an unasked quit, the App first settles its owned processes,
     then attempts to write `session_ended` *quit* with the quit stop requests'
     final states before allowing exit. A relaunch can show

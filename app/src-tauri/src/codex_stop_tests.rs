@@ -830,7 +830,7 @@ for line in sys.stdin:
         assert!(app.allow(&decision, |ids| {
             assert!(app.proceeding().is_none());
             let late = f.home.host.turn_start_text(&f.generation, "thread", "late text").unwrap_err();
-            assert!(late.contains("A quit was in progress. No turn/start was sent."), "new turns closed before settlement: {late}");
+            assert!(late.contains("Quit blocked this request. No turn/start was sent."), "new turns closed before settlement: {late}");
             crate::app_quit::finish_exit(&[Arc::clone(&f.home)], Some(ids.to_vec()))
         }).unwrap());
         let ids = app.proceeding().unwrap();
@@ -896,7 +896,7 @@ for line in sys.stdin:
         assert!(app.allow(&decision, |ids| {
             assert!(app.proceeding().is_none());
             let late = f.home.host.turn_start_text(&f.generation, "thread", "late text").unwrap_err();
-            assert!(late.contains("A quit was in progress. No turn/start was sent."), "new turns closed before settlement: {late}");
+            assert!(late.contains("Quit blocked this request. No turn/start was sent."), "new turns closed before settlement: {late}");
             crate::app_quit::finish_exit(&[Arc::clone(&f.home)], Some(ids.to_vec()))
         }).unwrap());
         let late = f.home.host.turn_start_text(&f.generation, "thread", "late text").unwrap_err();
@@ -1055,7 +1055,7 @@ for line in sys.stdin:
         }, || panic!("no start")).unwrap();
         assert_eq!(out["state"], "cancelled");
         let late = f.home.host.turn_start_text(&f.generation, "thread", "late text").unwrap_err();
-        assert!(late.contains("A quit was in progress. No turn/start was sent."), "still closed by the quit: {late}");
+        assert!(late.contains("Quit blocked this request. No turn/start was sent."), "still closed by the quit: {late}");
     }
 
     /// Minor (2): a quit that closed the process itself reopens it when the

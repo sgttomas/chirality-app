@@ -1239,7 +1239,7 @@ mod quit_closes_starting_homes {
     use crate::app_quit::{finish_exit, quit_sequence, AppQuit, Assessment, Decision, HostQuit, QuitOps};
     use crate::codex_stop::{Interrupts, Unsent};
 
-    const QUITTING: &str = "A quit was in progress.";
+    const QUITTING: &str = "Quit blocked this request.";
 
     /// A home whose Codex has not been started: no process, no generation.
     fn unstarted() -> Fixture {
@@ -1437,6 +1437,7 @@ mod quit_closes_starting_homes {
         assert_refused_by_the_quit(steer_refusal, "turn/steer");
         assert_eq!(send(&mut f, "turn/steer"), None, "reopened: the steer reaches Codex");
         assert_eq!(send(&mut f, "turn/start"), None, "reopened: the turn start reaches Codex");
+        assert_eq!((on_wire(&f, "turn/start"), on_wire(&f, "turn/steer")), (1, 1), "only the reopened sends reached Codex");
     }
 
     /// A start is admitted and still verifying, with no generation, when the

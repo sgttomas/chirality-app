@@ -1528,7 +1528,7 @@ impl Host {
             return Err(format!("refused-not-sent: Stopping this Codex process was confirmed. No {method} was sent."));
         }
         if matches!(method,"turn/start"|"turn/steer")&&i.quit_closed {
-            return Err(format!("refused-not-sent: A quit was in progress. No {method} was sent."));
+            return Err(format!("refused-not-sent: Quit blocked this request. No {method} was sent."));
         }
         Ok(())
     }

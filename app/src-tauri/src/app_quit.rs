@@ -15,13 +15,14 @@
 //! admission for turn starts and steers on the listed homes and assess again.
 //! If the result is still idle, proceed without asking (AS-03). Otherwise ask
 //! with no timeout (Q-2). Cancel or Keep running reopens what the quit closed
-//! and records `quit_answered` as cancelled (AS-05). On Quit, close admission
+//! and attempts to record `quit_answered` as cancelled (AS-05). On Quit, close admission
 //! for turn starts and steers on the listed homes and reassess. If the
 //! assessment changed and still requires confirmation, reopen admission
-//! before recording the updated assessment and asking again (AS-07). On the
-//! final confirmation `quit_answered` *confirmed* is
-//! recorded, then each live turn's stop request (SR-01, cause *quit*) before
-//! its interrupt is sent (AS-06, Q-4); the App waits until each turn is
+//! before recording the updated assessment and asking again (AS-07). After
+//! final confirmation, attempt to record `quit_answered` as confirmed. Check
+//! each observed live turn for interruption. At the writer, attempt to record
+//! the stop request (SR-01, cause *quit*) before sending (AS-06, Q-4). The
+//! App waits until each turn is
 //! observed ended or the quit wait limit passes (Q-5, AS-08). Before allowing
 //! native exit every home's actual owned processes are settled (Q-6), then
 //! `session_ended` *quit* is attempted with each quit stop request's state
