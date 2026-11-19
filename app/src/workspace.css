@@ -1998,6 +1998,7 @@ button:disabled {
 }
 
 .woven-navigator-brand {
+  margin: 0;
   padding: 0 8px;
   font: 500 19px/1.2 var(--font-display);
   letter-spacing: .01em;

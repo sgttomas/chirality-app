@@ -110,7 +110,7 @@ export function Navigator({ projects, selectedKey, choose, answer, newChat, open
   answer: (entry: NavigatorEntry) => void; newChat: () => void; openSettings: () => void;
 }) {
   return <nav className="woven-navigator" aria-label="Workspace Navigator">
-    <header className="woven-navigator-brand">Chirality</header>
+    <h1 className="woven-navigator-brand">Chirality</h1>
     <div className="woven-navigator-sections">
       <button type="button" className="woven-new-chat" onClick={newChat}><span aria-hidden="true">＋</span> New chat</button>
       {projects.some(project => project.entries.some(entry => boundedTitle(entry.suppliedTitle) !== null)) ? <p className="conversation-choices-attribution"><small>{CHOICE_TITLES_ATTRIBUTION}</small></p> : null}

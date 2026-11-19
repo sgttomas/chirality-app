@@ -663,7 +663,7 @@ async function mountedBeforeFirstRead(check) {
   finally { const text=c.textContent;await React.act(()=>root.unmount());document.body.removeChild(c);idle.restore(text);Object.assign(globalThis,previous); }
 }
 const starting=c=>c.querySelectorAll(n=>n.getAttribute('role')==='status'&&n.textContent==='Starting Chirality…');
-const brand=c=>nodes(c,'header').find(n=>n.getAttribute('class')==='woven-navigator-brand'&&n.textContent==='Chirality');
+const brand=c=>nodes(c,'h1').find(n=>n.getAttribute('class')==='woven-navigator-brand'&&n.textContent==='Chirality');
 const workspaceAbsent=(c,state)=>{
   assert.ok(!brand(c),`${state}: the workspace's brand is not in the document`);
   assert.equal(c.querySelectorAll(n=>(n.getAttribute('class')??'').split(' ').includes('woven-workspace')).length,0,`${state}: no regions and no strip, hidden or not`);

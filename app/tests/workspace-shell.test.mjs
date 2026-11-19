@@ -258,8 +258,11 @@ test('mounted: the removed navigation and heading are gone; their links\' target
   await mountApp(baseHost(), async ({c}) => {
     assert.equal(labelled(c, 'Workspace navigation'), undefined);
     assert.doesNotMatch(c.textContent, /Workflow workspace|Make, try, review and refine workflows through conversation\./);
-    assert.equal(nodes(c, 'h1').filter(h => h.textContent === 'Chirality').length, 0);
-    assert.equal(nodes(c, 'header').filter(h => h.getAttribute('class') === 'woven-navigator-brand' && h.textContent === 'Chirality').length, 1, 'the brand, in the navigator');
+    // The workspace's one top heading is the brand in the navigator, and the page's first heading: the examination's
+    // setup scenario reads it on the launch after setup (scripted_driver/setup-complete.scenario.json, L3).
+    assert.deepEqual(nodes(c, 'h1').map(h => [h.getAttribute('class'), h.textContent]), [['woven-navigator-brand', 'Chirality']], 'the brand, in the navigator, and no other top heading');
+    const headings = c.querySelectorAll(n => ['h1', 'h2'].includes(n.localName) || n.getAttribute('role') === 'heading');
+    assert.equal(headings[0].textContent, 'Chirality', 'no heading comes before it in the page');
     const main = nodes(c, 'main')[0];
     assert.equal(main.getAttribute('class'), 'shell shell--workspace shell--stone');
     for (const [target, tab] of [['view-make', 'Make a workflow'], ['workspace-tools', 'Settings & tools'], ['view-run', 'Run a workflow'], ['workspace-history', 'History'], ['conversation', 'History']]) {

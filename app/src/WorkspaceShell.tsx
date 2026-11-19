@@ -159,13 +159,15 @@ export function WorkspaceShell({ hidden, navigator, collapsedNavigator, centre, 
   const style = { ...(layout.columns ? { gridTemplateColumns: layout.columns } : {}), "--woven-activity-height": "32px" } as CSSProperties;
   const openNavigator = () => setNavigatorCollapsed(false);
   return <section ref={workspace} className={`woven-workspace woven-t3-workspace${layout.stacked ? " is-stacked" : ""}`} style={style} hidden={hidden}>
-    <section className="woven-dialogue-region" aria-label="Conversation">{centre}</section>
     <div className={`woven-region woven-region--navigator${navigatorCollapsed ? " is-collapsed" : ""}`}>
       <button type="button" className="woven-region-toggle button-muted" aria-label={navigatorCollapsed ? "Open Navigator" : "Close Navigator"} onClick={() => setNavigatorCollapsed(!navigatorCollapsed)}>
         {navigatorCollapsed ? <span className="woven-collapsed-brand" aria-hidden="true">C</span> : <span aria-hidden="true">‹</span>}
       </button>
       {navigatorCollapsed ? collapsedNavigator(openNavigator) : navigator}
     </div>
+    {/* The regions are placed by the grid, not by their order here. The navigator comes first in the page so that
+        reading and tab order follow what is seen left to right, and the page's first heading is the workspace's own. */}
+    <section className="woven-dialogue-region" aria-label="Conversation">{centre}</section>
     <div className="woven-resize-handle woven-resize-handle--vertical woven-resize-handle--navigator" role="separator" tabIndex={0} aria-label="Resize Navigator" aria-orientation="vertical"
       aria-valuemin={NAVIGATOR_MIN} aria-valuemax={NAVIGATOR_MAX} aria-valuenow={clamp(navigatorWidth, NAVIGATOR_MIN, NAVIGATOR_MAX)}
       onPointerDown={event => beginDrag(event, "navigator")} onKeyDown={event => resizeByKey(event, "navigator")}/>
