@@ -123,6 +123,14 @@ export function signInCompletion(host: Json): string | null {
     ? JSON.stringify([generation, source.observationRef, identity]) : null;
 }
 /** The account panel's sentence for the current reading: for a ChatGPT account, the account as Codex reports it. */
+/** A sign-in Codex reports pending for the current process and home: the one reading behind "Waiting for sign-in to
+ * complete." in the account panel and in the account popover. */
+export function signInPending(host: Json): boolean {
+  const generation = host?.generation, oauth = host?.homeOAuth, source = oauth?.source;
+  return host?.state === "ready" && !host?.generationClosed && host?.homeRouting?.activeModeHomeClass === "account"
+    && oauth?.state === "source-observed" && sameActivityGeneration(source?.generation, generation)
+    && source?.cancelStatus !== "notFound" && source?.cancelStatus !== "canceled" && source?.phase === "Pending";
+}
 export function accountSummary(host: Json): string {
   const reading = accountReading(host);
   return reading === "chatgpt-account" ? `Codex reports a ChatGPT account for this connection: ${reportedChatgptAccount(host?.accountObservation)}.` : ACCOUNT_PANEL_WORDS[reading];
@@ -165,7 +173,7 @@ export function AccountStatus({ host, navigating, busy, read }: { host: Json; na
     : source.cancelStatus === "canceled" ? "The pending sign-in was canceled. Account status is separate."
     : source.phase === "CompletedSuccess" ? "Sign-in completed."
     : ["CompletedFailure", "StartRejected"].includes(source.phase) ? "Sign-in did not complete. Private details are withheld."
-    : source.phase === "Pending" ? "Waiting for sign-in to complete." : "";
+    : signInPending(host) ? "Waiting for sign-in to complete." : "";
   return <div aria-label="Account status">
     <h3>Account status</h3>
     {signIn && <p>{signIn}</p>}

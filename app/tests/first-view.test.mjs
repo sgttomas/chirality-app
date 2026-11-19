@@ -420,3 +420,39 @@ test('the automatic first-view move has its own bound of 10 s from the renderer 
     });
   } finally { Date.now = realNow; }
 });
+
+// The centre beside the account row: the row carries the sign-in once it is established, and the empty conversation
+// invites a first message only where one could start.
+test('signed in on a ready connection, the conversation carries no line about it: the account row says it', async () => {
+  await mountedApp(historyEmpty(signedIn()), async ui => {
+    const status = ui.container.querySelectorAll(e => e.getAttribute('aria-label') === 'Workspace connection status');
+    assert.equal(status.length, 0, 'no connection line above the conversation');
+    const row = elements(ui.container, 'button').find(b => b.getAttribute('class') === 'account-controls-row');
+    assert.equal(row.getAttribute('aria-label'), 'Account and settings, Signed in');
+    assert.match(byId(ui.container, 'conversation').textContent, /Write your first message below\. Sending starts a new conversation with the settings under it\./);
+  });
+});
+
+test('not signed in, the line stays and the empty conversation says to sign in, not to write; where Codex did not say, it claims neither', async () => {
+  await mountedApp(noAccount(), async ui => {
+    const centre = byId(ui.container, 'conversation');
+    assert.equal(ui.container.querySelectorAll(e => e.getAttribute('aria-label') === 'Workspace connection status').length, 1);
+    assert.match(centre.textContent, /Codex is running\. You're not signed in\./);
+    assert.match(centre.textContent, /You're not signed in\. Sign in with your ChatGPT account, then write your first message here\./);
+    assert.doesNotMatch(centre.textContent, /Write your first message below/);
+  });
+  await mountedApp(failed(), async ui => {
+    const centre = byId(ui.container, 'conversation');
+    assert.match(centre.textContent, /It didn't say whether you're signed in\./);
+    assert.doesNotMatch(centre.textContent, /You're not signed in/, 'an unanswered read is never taken for signed out');
+    assert.match(centre.textContent, /Write your first message below/);
+  });
+});
+
+test('while Codex is not ready, the empty conversation invites nothing: the line above says why', async () => {
+  await mountedApp(base({state: 'starting'}), async ui => {
+    const centre = byId(ui.container, 'conversation');
+    assert.match(centre.textContent, /Codex is starting…/);
+    assert.doesNotMatch(centre.textContent, /Write your first message|then write your first message/);
+  });
+});

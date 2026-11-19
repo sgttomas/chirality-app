@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { DIDNT_SAY, accountReadError, accountReading, accountSummary, reportedPlan, signInCompletion } from "./AccountStatus";
+import { DIDNT_SAY, accountReadError, accountReading, accountSummary, reportedPlan, signInCompletion, signInPending } from "./AccountStatus";
 import { connectionWords, signInSentence, type ConnectionFacts } from "./DailyWorkspace";
 import { AgentText } from "./AgentText";
-import { sameActivityGeneration } from "./NativeActivity";
 
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -45,15 +44,6 @@ export function accountRowWords(host: Json): { state: string; detail: string | n
   if (reading === "unread") return { state: "Sign-in not checked", detail: null, signedIn: false };
   if (reading === "api-key") return { state: "API key connection", detail: "Not a ChatGPT sign-in", signedIn: false };
   return { state: "Sign-in unknown", detail: "Codex didn't say", signedIn: false };
-}
-
-/** A sign-in Codex reports pending for the current process and home: where the account panel says "Waiting for sign-in
- * to complete." (AccountStatus, its sign-in line). */
-export function signInPending(host: Json): boolean {
-  const generation = host?.generation, oauth = host?.homeOAuth, source = oauth?.source;
-  return host?.state === "ready" && !host?.generationClosed && host?.homeRouting?.activeModeHomeClass === "account"
-    && oauth?.state === "source-observed" && sameActivityGeneration(source?.generation, generation)
-    && source?.cancelStatus !== "notFound" && source?.cancelStatus !== "canceled" && source?.phase === "Pending";
 }
 
 /** The one action the popover offers for the state: none while Codex is not ready, while the account is being read,

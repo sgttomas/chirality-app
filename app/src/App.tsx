@@ -149,7 +149,9 @@ type PreparedComposerReveal = { sequence: number; item: PreparedMessage; isCurre
  * failed (the host's message) or its outcome was not confirmed. Null when nothing was sent. */
 export type StartOutcome = { opened: string } | { failed: string } | { notConfirmed: true };
 /** The new conversation's own settings, which the App holds: its role and model, with their panels. */
-export type StartSettings = { role: string; model: string; blocked: string; rolePanel: ReactNode; modelPanel: ReactNode; notice?: ReactNode; start: () => Promise<StartOutcome | null> };
+/** `empty` is what the empty conversation says in place of its invitation to write: a sentence, or null for nothing
+ * (the connection line above it says why no conversation can start). */
+export type StartSettings = { role: string; model: string; blocked: string; rolePanel: ReactNode; modelPanel: ReactNode; notice?: ReactNode; empty?: string | null; start: () => Promise<StartOutcome | null> };
 
 export function ConversationPanel({ reportChooser, localRoute = null, focusComposer, startAct, composerOffer, host, threadKey, setThreadKey, answer, readRequest, replyObservations, runAct, trialRunAct, send, observeOrdinaryView, steer, submitAttachments, observeAttachmentView, interrupt, checkPlanMode, codexBusy, forkConversation, handoffSend, handoffRead, activityNavigationRef, activityLink, preparedReveal, toolsHost = null, showTools, before, attachments, actionOutcome, startNew }: { /** Receives the view's own choice of a conversation while the view takes a choice, else null. */
   reportChooser?: (choose: ((key: string) => void) | null) => void; localRoute?: LocalView | null; focusComposer?: number; startAct?: RunAct; composerOffer?: ComposerOffer | null; preparedReveal?: PreparedComposerReveal | null; activityNavigationRef?: Ref<NativeActivityHandle>; activityLink?: RequestActivityLink; forkConversation?: (generation: Json, sourceThread: string) => Promise<void>; handoffSend?: (id: string, text: string) => Promise<HandoffSendOutcome>; handoffRead?: (id: string) => Promise<HandoffSendOutcome>; codexBusy: boolean; host: Json; threadKey: string; setThreadKey: (key: string) => void; trialRunAct?: RunAct; answer: RequestAnswer; readRequest?: ReadRequestCustody; replyObservations?: Record<string, RequestReplyObservation>; runAct: RunAct; checkPlanMode: (generation: Json) => Promise<void>; submitAttachments: (generation: Json, thread: string, expected: string | null, text: string, owner: string, revision: number, refs: string[]) => Promise<Json>; observeAttachmentView?: (request: AttachmentRequest) => Promise<void>; send: (generation: Json, thread: string, text: string, mode?: "plan" | "default", model?: string, effort?: string) => Promise<Json>; observeOrdinaryView?: (request: OrdinaryTextRequest, isCurrent: () => boolean) => Promise<void>; steer: (generation: Json, thread: string, expected: string, text: string) => Promise<boolean | void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<boolean | void>;
@@ -596,7 +598,7 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
             offerControls={{ generation: host?.generation, ready: host?.state === "ready", busy: offerBusy, act: offerAct }} />
             : threadKey ? <p className="panel-empty">Selected conversation is no longer available in this generation; choose a current conversation.</p>
             : !sourceReady ? <p className="panel-empty">Connect to Codex before sending. Your draft stays here. <a href="#workspace-connection">Open connection controls</a></p>
-            : <>{startNew?.notice}<p className="panel-empty">Write your first message below. Sending starts a new conversation with the settings under it.</p></>}
+            : <>{startNew?.notice}{startNew?.empty === null ? null : <p className="panel-empty">{startNew?.empty ?? "Write your first message below. Sending starts a new conversation with the settings under it."}</p>}</>}
           {selected && ordered.length > 0 && <section id="conversation-requests" className="permission-card-list" aria-label="Requests from Codex in this conversation" aria-live="polite">
             {ordered.map((request: Json) => answerable(request) ? <Fragment key={JSON.stringify([request.generation, request.requestIdentity])}>
               <NativeRequestCard activityLink={activityLink} request={request} view={host?.nativeView} answer={answer} readRequest={readRequest} place={requestPlace(request, host, appProjectFolder(host))} observation={replyObservations?.[requestScopeKey(request)]} />
@@ -3098,13 +3100,15 @@ export function App() {
   const shownRow = selectedThread ? (host?.threads ?? []).find((t: Json) => t.threadId === selectedThread && JSON.stringify(t.generation) === JSON.stringify(host?.generation)) : null;
   const workspaceShown = firstRead === "read" && !setupRequired;
   // The centre's notices above the transcript.
+  // Signed in on a ready connection, the account row says so and the conversation carries no line about it.
+  const signedInReady = host?.state === "ready" && !host?.generationClosed && signInReading === "chatgpt-account";
   const centreNotices = <>
-    <WorkspaceConnectionStatus state={host?.state} setupRequired={host?.desktopSetup?.launch?.state === "setup-required"} savedSetup={!!host?.desktopSetup?.pending} generationClosed={host?.generationClosed} startRefusal={host?.lastStartRefusal} codexHome={host?.codexHome} refusalCause={host?.startRefusalCause} build={host?.build} signIn={signInReading}
+    {!signedInReady && <WorkspaceConnectionStatus state={host?.state} setupRequired={host?.desktopSetup?.launch?.state === "setup-required"} savedSetup={!!host?.desktopSetup?.pending} generationClosed={host?.generationClosed} startRefusal={host?.lastStartRefusal} codexHome={host?.codexHome} refusalCause={host?.startRefusalCause} build={host?.build} signIn={signInReading}
       plan={reportedPlan(host)} codexError={accountReadError(host)}
       checkAgain={async () => { const shown = currentHost.current; try { await readAccountStatus(shown?.generation, shown?.homeRouting?.activeModeHomeClass, () => true); } catch (error) { setMessage(`Check again: ${readingSentence(error) ?? String(error)}`); } }}
       // On Settings & tools with Connection and access open, that section carries the sign-in: one sign-in button on a
       // view, never two. Closed, the line carries it again, so the view always shows a way to sign in.
-      startSignIn={rightTab === "settings" && !rightCollapsed && connectionShown ? undefined : async () => { try { await homeAction("oauth_start", { generation: currentHost.current?.generation, mode: "browser" }); } catch (error) { setMessage(`oauth_start: ${String(error)}`); } }}/>
+      startSignIn={rightTab === "settings" && !rightCollapsed && connectionShown ? undefined : async () => { try { await homeAction("oauth_start", { generation: currentHost.current?.generation, mode: "browser" }); } catch (error) { setMessage(`oauth_start: ${String(error)}`); } }}/>}
     {offer && <ActControlPanel offer={offer} choice={choice} setChoice={setChoice} decide={decide} close={() => setOffer(null)} />}
     <div className="workspace-notices"><div id="other-requests">
       {outsideRequests.length > 0 && <h3>Requests outside the selected conversation</h3>}
@@ -3135,6 +3139,9 @@ export function App() {
   // The empty conversation's own settings: the present start's role and model choices, in compact form; the
   // conversation is started with its first message.
   const startNew: StartSettings = { role, model, blocked: startBlocked, start: startConversation,
+    // The empty conversation invites a first message only where one could start: not while Codex is not ready (the
+    // line above says so), and not where Codex reports no account.
+    empty: host?.state !== "ready" || host?.generationClosed ? null : signInReading === "no-account" ? "You're not signed in. Sign in with your ChatGPT account, then write your first message here." : undefined,
     notice: signedInNotice ? <p role="status" aria-label="Signed in">You're signed in. Choose a model to start a conversation.</p> : undefined,
     rolePanel: <RoleChoice group="start-thread-role" roleSet={host?.roleSet} limits={host?.roleLimits} role={role} preselected={!roleTouched && !!role && role === host?.roleSet?.defaultRole} setRole={next => { expireEndpointPreview(); roleInitialized.current = true; setRoleTouched(true); setRole(next); }}/>,
     modelPanel: <div className="workspace-start-fields">
