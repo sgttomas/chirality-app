@@ -391,3 +391,212 @@ fn a_requested_stop_in_this_session_reads_its_send_as_not_yet_confirmed() {
     assert!(row["label"].is_null(), "{row}");
     assert!(!row["reading"].as_str().unwrap().contains("not yet sent"), "{row}");
 }
+
+// A row the App never writes but the retained schema admits: an incomplete
+// write (SR-13) carrying the label "interrupted by quit". It keeps the SR-13
+// reading, with no label and no reported status; rows the App writes read as
+// before.
+#[test]
+fn a_label_on_a_request_with_no_completed_write_establishes_nothing() {
+    let mut unknown = requested(Cause::Quit);
+    unknown.send_unknown("cr").unwrap();
+    let mut labelled = unknown.record().clone();
+    labelled["outcomeLabel"] = json!("interrupted by quit");
+    assert_eq!((labelled["send"].as_str(), labelled["turnOutcome"].as_str(), labelled["outcomeSource"].as_str(), labelled["state"].as_str()),
+        (Some("unknown(write-incomplete)"), Some("pending"), Some("not-observed"), Some("send-unknown")));
+    validate_stored(&labelled).expect("the retained schema admits the row");
+    let mut settled = requested(Cause::Quit);
+    settled.sent("cr", &json!(1)).unwrap();
+    settled.turn_completed("interrupted").unwrap();
+    let mut plain = StopRequest::requested(&g(), "H-acct", "thread", "turn-2", Cause::Quit, &person("p")).unwrap();
+    plain.send_unknown("cr").unwrap();
+    let ledger = json!([
+        {"kind":"session_started","session":"session-a","at":"t","previousSessionEnd":"none","candidate":"c"},
+        ledger_entry("session-a", &labelled),
+        ledger_entry("session-a", plain.record()),
+    ]);
+    let settled_entry = ledger_entry("session-a", settled.record());
+    for current in ["session-b", "session-a"] {
+        let view = outcomes(ledger.as_array().unwrap(), &[], current);
+        let rows = view["records"].as_array().unwrap();
+        assert_eq!(rows.len(), 2, "{view}");
+        let row = &rows[0];
+        assert_eq!((row["label"].as_str(), row["labelDerived"].as_bool(), row["reading"].as_str()), (None, Some(false), Some(SEND_UNKNOWN_READING)), "{current}: {row}");
+        assert!(row["codexReported"].is_null());
+        assert_eq!(SEND_UNKNOWN_READING, "Stop requested; the interrupt's write began and its completion was not observed, so whether it reached Codex is not known.");
+        // The same request without the label reads the same.
+        assert_eq!((rows[1]["label"].as_str(), rows[1]["reading"].as_str()), (None, Some(SEND_UNKNOWN_READING)));
+    }
+    // A request with a completed write keeps its label and observed reading.
+    let mut held = ledger.as_array().unwrap().clone();
+    held.push(settled_entry);
+    let view = outcomes(&held, &[], "session-b");
+    let row = view["records"].as_array().unwrap().iter().find(|r| r["stopRequestId"] == settled.id()).unwrap();
+    assert_eq!((row["label"].as_str(), row["reading"].as_str(), row["codexReported"].as_str()), (Some("interrupted by quit"), Some("Final status observed when the turn ended."), Some("interrupted")));
+    // A not-sent request and a request still awaiting its send, each carrying a label: their own readings.
+    let mut not_sent = requested(Cause::Quit);
+    not_sent.not_sent("not ready").unwrap();
+    let mut pending = requested(Cause::Quit).record().clone();
+    let mut not_sent = not_sent.record().clone();
+    for row in [&mut not_sent, &mut pending] { row["outcomeLabel"] = json!("interrupted by quit"); }
+    for (row, reading) in [(&not_sent, "Stop not sent: not ready"), (&pending, REQUESTED_READING)] {
+        let (label, read, derived) = super::reading(row, Source::Current);
+        assert_eq!((label, read.as_str(), derived), (None, reading, false));
+    }
+}
+
+/// Every state the App's writers produce, each row as written (the
+/// controls), with its reading in this App session and in an earlier one
+/// whose end is established.
+fn written_rows() -> Vec<(Value, (Option<&'static str>, &'static str, bool), (Option<&'static str>, &'static str, bool))> {
+    const PENDING: &str = "Stop requested; Codex's answer and the turn's final status are not yet observed.";
+    const ENDED: &str = "The App session ended before a final status was recorded for this turn; this label is derived from that and is not written in any record.";
+    const UNKNOWN: &str = "interrupted by quit (final status not observed)";
+    let earlier_derived = (Some(UNKNOWN), ENDED, true);
+    let mut rows = Vec::new();
+    let sr = requested(Cause::Quit);
+    rows.push((sr.record().clone(), (None, REQUESTED_READING, false),
+        (None, "Stop requested; the App session ended before its send was recorded, so whether it was sent is not known.", false)));
+    let mut sr = requested(Cause::Quit);
+    sr.not_sent("not ready").unwrap();
+    rows.push((sr.record().clone(), (None, "Stop not sent: not ready", false), (None, "Stop not sent: not ready", false)));
+    let mut sr = requested(Cause::Quit);
+    sr.send_unknown("cr").unwrap();
+    rows.push((sr.record().clone(), (None, SEND_UNKNOWN_READING, false), (None, SEND_UNKNOWN_READING, false)));
+    let mut sr = requested(Cause::Quit);
+    sr.sent("cr", &json!(1)).unwrap();
+    rows.push((sr.record().clone(), (None, PENDING, false), earlier_derived));
+    sr.waiting_ended().unwrap().unwrap();
+    rows.push((sr.record().clone(), (None, PENDING, false), earlier_derived));
+    let mut accepted = requested(Cause::Quit);
+    accepted.sent("cr", &json!(1)).unwrap();
+    accepted.response(&json!({"id":1,"result":{}})).unwrap().unwrap();
+    rows.push((accepted.record().clone(), (None, "Codex accepted the stop request. That is not the turn's end; its final status is not yet observed.", false), earlier_derived));
+    let mut refused = requested(Cause::Quit);
+    refused.sent("cr", &json!(1)).unwrap();
+    refused.response(&json!({"id":1,"error":{"message":"no"}})).unwrap().unwrap();
+    rows.push((refused.record().clone(), (None, "Codex refused the stop request: no", false), earlier_derived));
+    for status in ["interrupted", "completed", "failed"] {
+        let mut sr = requested(Cause::Quit);
+        sr.sent("cr", &json!(1)).unwrap();
+        sr.turn_completed(status).unwrap().unwrap();
+        let label = Some(super::label("quit", status).unwrap());
+        rows.push((sr.record().clone(), (label, "Final status observed when the turn ended.", false), (label, "Final status observed when the turn ended.", false)));
+        sr.response(&json!({"id":1,"result":{}})).unwrap().unwrap();
+        rows.push((sr.record().clone(), (label, "Final status observed when the turn ended.", false), (label, "Final status observed when the turn ended.", false)));
+    }
+    accepted.generation_closed().unwrap().unwrap();
+    let closed = "No final turn status is recorded for this stop request. That does not establish that Codex's process ended.";
+    rows.push((accepted.record().clone(), (Some(UNKNOWN), closed, false), (Some(UNKNOWN), closed, false)));
+    accepted.recovered("interrupted").unwrap().unwrap();
+    rows.push((accepted.record().clone(), (Some("interrupted by quit"), "Final status recovered from Codex's history.", false), (Some("interrupted by quit"), "Final status recovered from Codex's history.", false)));
+    rows.push((old_write_failed(Cause::Quit), (None, EARLIER_WRITE_FAILURE_READING, false), (None, EARLIER_WRITE_FAILURE_READING, false)));
+    rows
+}
+
+/// The reading of each row, in this App session (`session-a`) and in a later
+/// one that started on the same ledger. Each row is read as its own request.
+fn read_in_both(rows: &[Value]) -> [Vec<Value>; 2] {
+    let mut ledger = vec![json!({"kind":"session_started","session":"session-a","at":"t","previousSessionEnd":"none","candidate":"c"})];
+    for (i, row) in rows.iter().enumerate() {
+        let mut row = row.clone();
+        row["stopRequestId"] = json!(format!("stop:row-{i}"));
+        validate_stored(&row).expect("the retained schema admits the row");
+        ledger.push(ledger_entry("session-a", &row));
+    }
+    ["session-a", "session-b"].map(|current| outcomes(&ledger, &[], current)["records"].as_array().unwrap().clone())
+}
+fn seen(row: &Value) -> (Option<&str>, &str, bool) {
+    (row["label"].as_str(), row["reading"].as_str().unwrap(), row["labelDerived"].as_bool().unwrap())
+}
+
+#[test]
+fn each_row_the_writers_produce_keeps_its_reading() {
+    let written = written_rows();
+    let rows: Vec<Value> = written.iter().map(|(r, _, _)| r.clone()).collect();
+    let [current, earlier] = read_in_both(&rows);
+    for (i, (record, now, before)) in written.iter().enumerate() {
+        assert_eq!(seen(&current[i]), *now, "this session: {record}");
+        assert_eq!(seen(&earlier[i]), *before, "earlier session: {record}");
+        let reported = matches!(record["state"].as_str(), Some("settled" | "outcome-recovered")).then(|| record["turnOutcome"].clone()).unwrap_or(Value::Null);
+        assert_eq!((&current[i]["codexReported"], &earlier[i]["codexReported"]), (&reported, &reported), "{record}");
+    }
+}
+
+#[test]
+fn a_written_label_is_read_only_in_the_states_the_app_writes_one() {
+    // (a) A label on a sent, accepted or refused row: the row reads as its
+    // unlabelled state, here and, by the existing derivation, earlier.
+    let mut sent = requested(Cause::Quit);
+    sent.sent("cr", &json!(1)).unwrap();
+    let mut accepted = requested(Cause::Quit);
+    accepted.sent("cr", &json!(1)).unwrap();
+    accepted.response(&json!({"id":1,"result":{}})).unwrap().unwrap();
+    let mut rows = vec![sent.record().clone(), accepted.record().clone()];
+    for row in &mut rows { row["outcomeLabel"] = json!("interrupted by quit"); }
+    let [current, earlier] = read_in_both(&rows);
+    let ended = "The App session ended before a final status was recorded for this turn; this label is derived from that and is not written in any record.";
+    assert_eq!(seen(&current[0]), (None, "Stop requested; Codex's answer and the turn's final status are not yet observed.", false));
+    assert_eq!(seen(&current[1]), (None, "Codex accepted the stop request. That is not the turn's end; its final status is not yet observed.", false));
+    for row in &earlier {
+        assert_eq!(seen(row), (Some("interrupted by quit (final status not observed)"), ended, true), "{row}");
+    }
+    for row in current.iter().chain(&earlier) {
+        assert!(row["codexReported"].is_null(), "{row}");
+    }
+}
+
+#[test]
+fn a_codex_final_status_outside_a_settled_state_is_said_as_carried() {
+    // (b) A final status the record carries while its state records no
+    // settled turn: kept as reported, with no label, written or derived.
+    let mut rows = Vec::new();
+    let mut sent = requested(Cause::Quit);
+    sent.sent("cr", &json!(1)).unwrap();
+    rows.push(sent.record().clone());
+    let mut accepted = requested(Cause::Quit);
+    accepted.sent("cr", &json!(1)).unwrap();
+    accepted.response(&json!({"id":1,"result":{}})).unwrap().unwrap();
+    rows.push(accepted.record().clone());
+    let mut refused = requested(Cause::Quit);
+    refused.sent("cr", &json!(1)).unwrap();
+    refused.response(&json!({"id":1,"error":{"message":"no"}})).unwrap().unwrap();
+    rows.push(refused.record().clone());
+    let mut labelled = sent.record().clone();
+    labelled["outcomeLabel"] = json!("interrupted by quit");
+    rows.push(labelled);
+    rows.push(requested(Cause::Quit).record().clone());
+    for (row, source) in rows.iter_mut().zip(["observed", "observed", "recovered-from-supplier", "observed", "observed"]) {
+        row["turnOutcome"] = json!("completed");
+        row["outcomeSource"] = json!(source);
+    }
+    let [current, earlier] = read_in_both(&rows);
+    for row in current.iter().chain(&earlier) {
+        assert_eq!(seen(row), (None, UNSETTLED_FINAL_READING, false), "{row}");
+        assert_eq!(row["codexReported"].as_str(), Some("completed"), "{row}");
+    }
+    assert_eq!(UNSETTLED_FINAL_READING, "The App's stop record carries a Codex final status. Its request state does not record a settled turn.");
+}
+
+#[test]
+fn a_request_state_and_write_field_that_disagree_establish_nothing() {
+    // (c) A requested row recorded as sent, or as not sent: no label, no
+    // reading of either, in any source.
+    let mut sent = requested(Cause::Quit).record().clone();
+    sent["send"] = json!("sent");
+    sent["clientRequest"] = json!("cr");
+    sent["outcomeLabel"] = json!("interrupted by quit");
+    let mut not_sent = requested(Cause::Quit).record().clone();
+    not_sent["send"] = json!("not-sent(not-ready)");
+    let rows = vec![sent, not_sent];
+    let [current, earlier] = read_in_both(&rows);
+    for row in current.iter().chain(&earlier) {
+        assert_eq!(seen(row), (None, CONFLICTING_FIELDS_READING, false), "{row}");
+        assert!(row["codexReported"].is_null(), "{row}");
+    }
+    let other: Vec<Value> = rows.iter().map(|r| ledger_entry("session-a", r)).collect();
+    for row in outcomes(&other, &[], "session-b")["records"].as_array().unwrap() {
+        assert_eq!((row["sourceSessionEnd"].as_str(), seen(row)), (Some("not-established"), (None, CONFLICTING_FIELDS_READING, false)), "{row}");
+    }
+    assert_eq!(CONFLICTING_FIELDS_READING, "The App's stop record has conflicting request state and write fields.");
+}
