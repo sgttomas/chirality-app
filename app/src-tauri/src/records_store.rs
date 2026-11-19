@@ -1197,23 +1197,35 @@ pub(crate) struct ListedFolders {
     pub limits: Vec<String>,
     pub torn: Option<String>,
 }
-/// Every folder the store's registry lists. A read: it opens the store as it
-/// exists (`opened`), reads `roots.jsonl` by the shared reading, and creates,
-/// locks, mints and registers nothing. `Err` when the store or its registry
-/// cannot be read at all.
+/// Every folder the store's registry lists, for the navigator. It publishes
+/// nothing: it takes the store this process already opened (`OPENED`, checked
+/// again as `still_bound` checks it) and refuses where the store has not been
+/// opened, rather than opening it; it reads `roots.jsonl` once, its rows and
+/// whether its last line is torn from the same bytes, and leaves the shared
+/// registry reading (`ROOTS`) as it was. No folder is examined, attached or
+/// remembered. `Err` when the registry cannot be read at all.
 pub(crate) fn listed_folders() -> Result<ListedFolders, String> {
-    let (store, _) = opened()?;
-    let (lines, _, limits) = roots_read(&store)?;
-    let torn = roots_torn(&store)?.then(|| REGISTRY_TORN.to_owned());
+    let store = current()?;
+    let bound = OPENED.lock().unwrap_or_else(|p| p.into_inner()).clone().filter(|b| b.configured == store.root)
+        .ok_or("the records store has not been opened by this App, so its list of project folders was not read")?;
+    let (root, _) = still_bound(&bound)?;
+    let path = root.join("roots.jsonl");
+    let bytes = match std::fs::symlink_metadata(&path) {
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Vec::new(),
+        Err(e) => return Err(format!("records store unreadable: roots.jsonl: {e}")),
+        Ok(_) => crate::records_retention::read_plain(&path).map_err(|e| format!("records store unreadable: roots.jsonl: {e}"))?,
+    };
+    let read = lines::read(&bytes, &path);
+    let torn = bytes.last().is_some_and(|last| *last != b'\n').then(|| REGISTRY_TORN.to_owned());
     let mut folders: Vec<ListedFolder> = Vec::new();
-    for (position, line) in lines.iter().enumerate() {
+    for (position, line) in read.values.iter().enumerate() {
         let Some(root) = line["root"].as_str() else { continue };
         if folders.iter().any(|f| f.root == root) { continue; }
         folders.push(ListedFolder { root: root.to_owned(), identities: Vec::new(), first_line: position });
     }
-    for folder in &mut folders { folder.identities = listed(&lines, &folder.root); }
+    for folder in &mut folders { folder.identities = listed(&read.values, &folder.root); }
     folders.retain(|f| !f.identities.is_empty());
-    Ok(ListedFolders { folders, limits, torn })
+    Ok(ListedFolders { folders, limits: read.limits, torn })
 }
 
 /// What the project's link file says.

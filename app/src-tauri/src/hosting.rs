@@ -957,6 +957,19 @@ impl AppRuntimeCustody {
     }
 }
 
+/// What the navigator's read takes from a Host (`Host::navigator_projection`).
+pub(crate) struct NavigatorProjection {
+    pub state: String,
+    pub generation: Value,
+    pub generation_closed: bool,
+    /// The loaded conversations of the current generation: threadId, name,
+    /// preview, status and cwd.
+    pub threads: Vec<Value>,
+    /// Outstanding server-request records, as the register gives them.
+    pub server_requests: Vec<Value>,
+    /// The recovery observation's `conversation_index` rows.
+    pub conversation_index: Vec<Value>,
+}
 /// One delegation reading's whole wait (NPTD §7.1; the trial tick's reads
 /// of later homes wait behind it).
 pub const DELEGATION_READ_BUDGET: Duration = Duration::from_secs(15);
@@ -1995,6 +2008,19 @@ impl Host {
     /// session, quit, Codex-stop and stop-request entry), not the whole ledger.
     pub fn recovery_entries(&self)->Vec<Value>{
         self.inner.0.lock().unwrap().recovery_snapshot.as_ref().map(|o|o.rows.to_vec()).unwrap_or_default()
+    }
+    /// The navigator's read of this Host: a copy of only what it shows, taken
+    /// under `Inner` briefly. Unlike `snapshot`, it settles nothing (no reply
+    /// write is observed), touches no recovery queue and writes nothing.
+    pub(crate) fn navigator_projection(&self)->NavigatorProjection{
+        let i=self.inner.0.lock().unwrap();
+        NavigatorProjection{
+            state:i.state.clone(),generation:i.generation.clone(),generation_closed:i.server_requests.is_closed(&i.generation),
+            threads:i.threads.iter().filter(|t|t["generation"]==i.generation)
+                .map(|t|json!({"generation":t["generation"],"threadId":t["threadId"],"name":t["name"],"preview":t["preview"],"status":t["status"],"cwd":t["cwd"]})).collect(),
+            server_requests:i.server_requests.records().into_iter().filter(|r|r["state"]=="outstanding").collect(),
+            conversation_index:i.recovery_snapshot.as_ref().map(|o|o.rows.iter().filter(|r|r["kind"]=="conversation_index").cloned().collect()).unwrap_or_default(),
+        }
     }
     /// Fresh bounded REC data for historical source correspondence, with the
     /// already-open database's physical guard. Never opens or writes a store.
@@ -9136,6 +9162,10 @@ mod stop_bound_tests;
 #[cfg(test)]
 #[path = "hosting_delegation_reply_tests.rs"]
 mod hosting_delegation_reply_tests;
+
+#[cfg(test)]
+#[path = "hosting_navigator_tests.rs"]
+mod navigator_projection_tests;
 
 #[cfg(test)]
 #[path = "records_continuity_tests.rs"]

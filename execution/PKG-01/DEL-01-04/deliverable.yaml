@@ -100,28 +100,32 @@ needs:
     who returned it and who prepared its brief, as recorded.
   gating: false
 - from: DEL-04-03
-  condition: Every folder the records store's registry of project folders lists can be read
-    with the identities current at it, the registry read to its last complete line with what was
-    not read stated, and each folder's attachment (its identity, fault and the acts that resolve
-    it) given without minting, registering or writing anything.
+  condition: The registry of project folders can be read to its last complete line, with what
+    was not read stated, without opening, attaching, remembering or examining any folder; and for
+    the launched project, its attachment (identity, fault and the acts that resolve it) is given
+    as the store's status gives it, with the store's routing before and after a reading of its
+    records and its notice that originals not yet imported may be missing.
   gating: true
   when: The navigator's read of every project
 - from: DEL-02-03
-  condition: The recorded runs of any listed project folder, not only the launched one, can be
-    read with each run's conversation, workflow identity and recorded lifecycle (open, ended with
-    who and why, start not confirmed, unknown) and the reader's limits, writing nothing.
+  condition: The launched project's recorded runs can be read with each run's conversation,
+    workflow identity, recorded lifecycle (open, ended with who and why, start not confirmed,
+    unknown with its reason), when its start was recorded, and the reader's limits, writing
+    nothing; and for a run this process holds in force, whether the run guide is offered the
+    agent's finished report.
   gating: true
   when: The navigator's read of every project
 - from: DEL-01-02
-  condition: The project the App recorded for a conversation (the recovery ledger's
-    conversation index of its home and thread) is held by the Host and can be read without a
-    ledger read or write.
+  condition: Where the Host holds them, the App's conversation index rows (each conversation's
+    recorded project and the runs tagged on it) and the waiting register's outstanding
+    requests can be read without settling a reply write or reading or writing the ledger.
   gating: true
   when: The navigator's read of every project
 - from: DEL-01-03
-  condition: Each home's history view gives the conversations it has received for its
-    generation, its selection epoch, and the outcome of the App's own list read when Codex
-    became ready, without a dispatch or a change of the view.
+  condition: Where held, each home's history view gives the conversations it has received for its
+    generation, its selection epoch and the outcome of the App's own list read when Codex became
+    ready, and the native view gives each delegated child with its parent, all without a
+    dispatch, a receipt or a change of either view.
   gating: true
   when: The navigator's read of every project
 - from: DEL-01-06
@@ -288,6 +292,7 @@ checks:
 - app/tests/native-waiting.test.mjs
 - app/src-tauri/src/waiting_requests_tests.rs
 - app/src-tauri/src/navigator_read_tests.rs
+- app/src-tauri/src/hosting_navigator_tests.rs
 - app/src-tauri/src/native_request_answer_tests.rs
 - app/src-tauri/src/request_answer_presentation.rs
 - app/src-tauri/src/request_answer_sheet.rs

@@ -2,11 +2,16 @@
 use crate::{home_resources::HomeClass, runtime_session::HomeRouter};
 use serde_json::{json, Value};
 
-pub(crate) fn groups(class: HomeClass, snapshot: &Value) -> Vec<Value> {
-    let generation = &snapshot["generation"];
-    if snapshot["state"] != "ready" || crate::recovery::generation_ref(generation).is_err() { return vec![]; }
+fn groups(class: HomeClass, snapshot: &Value) -> Vec<Value> {
+    groups_in(class, &snapshot["state"], &snapshot["generation"], snapshot["serverRequests"].as_array().map_or(&[], Vec::as_slice))
+}
+/// The answerable requests awaiting the person, grouped by thread, from a
+/// Host's state, generation and server-request records: the one filter the
+/// overview and the navigator's read share.
+pub(crate) fn groups_in(class: HomeClass, state: &Value, generation: &Value, requests: &[Value]) -> Vec<Value> {
+    if state != "ready" || crate::recovery::generation_ref(generation).is_err() { return vec![]; }
     let mut groups: Vec<Value> = Vec::new();
-    for request in snapshot["serverRequests"].as_array().into_iter().flatten() {
+    for request in requests {
         if request["generation"] != *generation || request["closedGeneration"] == true || request["state"] != "outstanding"
             || request["classification"] != "known-answerable" || request["originClass"] == "named-service" { continue; }
         let params = &request["nativeParameters"];

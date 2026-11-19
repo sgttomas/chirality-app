@@ -809,6 +809,18 @@ fn declared_by_records(project: &ProjectRecords, start: &ResolvedRecord, package
 /// restart facts the caller supplies) into each run's recorded lifecycle.
 /// Read-only: nothing is written, ended or repaired here.
 pub fn read_project_runs(project: &ProjectRecords, restart_events: &[Value]) -> RunsReading {
+    read_runs(project, restart_events, true, &mut Default::default())
+}
+/// The navigator's reading of the recorded runs: as `read_project_runs`, with
+/// no declaration read (each run's `declared` says so; no selection record is
+/// resolved and no holding library is read), and with when each run's start
+/// was recorded, by run, from the run-start record's `observed_at`.
+pub(crate) fn read_project_runs_for_listing(project: &ProjectRecords) -> (RunsReading, std::collections::BTreeMap<String, String>) {
+    let mut started = Default::default();
+    let reading = read_runs(project, &[], false, &mut started);
+    (reading, started)
+}
+fn read_runs(project: &ProjectRecords, restart_events: &[Value], declare: bool, started: &mut std::collections::BTreeMap<String, String>) -> RunsReading {
     let (entries, rs_limits) = crate::storage::read_all(project.root());
     let mut limits: Vec<String> = rs_limits.clone();
     let complete = rs_limits.is_empty();
@@ -846,8 +858,13 @@ pub fn read_project_runs(project: &ProjectRecords, restart_events: &[Value]) -> 
                         if !ids.contains(&run) {
                             ids.push(run.clone());
                         }
+                        if let Some(at) = record.envelope()["observed_at"].as_str() {
+                            started.entry(run.clone()).or_insert_with(|| at.to_owned());
+                        }
                         let read = if starts.contains_key(&run) {
                             Err("the records hold more than one start for this run".into())
+                        } else if !declare {
+                            Err("not read for this listing".into())
                         } else {
                             declared_by_records(project, &record, &mut packages)
                         };
