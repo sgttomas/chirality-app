@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { ACCOUNT_PANEL_WORDS, DIDNT_SAY, SIGN_IN_PHASE_WORDS, accountReadError, accountReadRef, accountReading, accountSummary, reportedPlan, signInCompletion, signInPending, signInPhase } from "./AccountStatus";
+import { ACCOUNT_PANEL_WORDS, DIDNT_SAY, SIGN_IN_COMPLETED, SIGN_IN_PHASE_WORDS, accountReadError, accountReadRef, accountReadRefs, accountReading, accountSummary, reportedPlan, signInCompletion, signInPhase, signInUnresolved, type ReadAccountStatus } from "./AccountStatus";
 import { connectionWords, signInSentence, type ConnectionFacts } from "./DailyWorkspace";
 import { AgentText } from "./AgentText";
 import { readingSentence } from "./readingSentences";
@@ -11,27 +11,46 @@ export type AccountActionName = "sign-in" | "check-again" | "sign-out";
 /** The App's present commands for the account, each for the Codex process and home it is given. Each rejects where
  * its command was refused or failed, having said so on the App line. */
 export type AccountCommands = {
-  /** Reads the account again: the workspace line's Check again. */
-  checkAgain: (generation: Json, modeHomeClass: string) => Promise<void>;
-  /** oauth_start with mode "browser": the sign-in Connection and access starts. */
-  startSignIn: (generation: Json) => Promise<void>;
-  /** logout_home for the account home: Connection and access's Sign out of ChatGPT. */
-  signOut: (generation: Json, modeHomeClass: string) => Promise<void>;
+  /** Reads the account again: the workspace line's Check again and the account panel's Check account status. */
+  checkAgain: (generation: Json, modeHomeClass: string, isCurrent?: () => boolean) => Promise<void>;
+  /** oauth_start with mode "browser": the sign-in Connection and access starts. Resolves with the command's result. */
+  startSignIn: (generation: Json) => Promise<Json>;
+  /** logout_home for the account home: Connection and access's Sign out of ChatGPT. Resolves with the command's result. */
+  signOut: (generation: Json, modeHomeClass: string) => Promise<Json>;
+  /** One read of the host's status, applied as the App applies its reads, resolving with the status read. */
+  readStatus: () => Promise<Json>;
 };
+/** Where the App holds a completed sign-in not yet confirmed: the account is being read now, or has not been read since. */
+export type CompletedState = "checking" | "unread";
+/** An account command another surface sends (Connection and access): "sign-in" for either of its sign-ins, "sign-out"
+ * for its sign-out. */
+export type PanelAccountCommand = "sign-in" | "sign-out";
 /** The account's actions as every surface that offers them shares them (useAccountController). */
 export type AccountController = {
-  /** One of the actions is under way, from whichever surface it was pressed. */
+  /** One account command is under way, from whichever surface it was pressed (the row, the strip, the line or
+   * Connection and access). */
   acting: boolean;
-  /** What the App says of the last action that was not sent or did not go through, while the account still stands as
-   * it did then; else null. */
+  /** What the App says of the last attempt that was not sent, was declined at its confirmation or did not go through,
+   * while the account of the Codex process and home it was made for still stands as it did then; else null. */
   feedback: string | null;
-  /** Codex reported a sign-in completed and no account read made after it has answered yet. */
+  /** A sign-in Codex reports completed, watched completing here, that no account read made after it has answered yet:
+   * the account is being read, or has not been read since; else null. */
+  completed: CompletedState | null;
+  /** `completed` is not null. */
   awaiting: boolean;
-  /** The completed sign-in the account read after it confirmed, by the completion's own identity; else null. */
+  /** The completed sign-in an account read made after it confirmed as a ChatGPT account, by the completion's own
+   * identity; else null. */
   confirmed: string | null;
-  /** Sends the action for the status `shown` when it was pressed, and only if that status's Codex process and home are
-   * still the current ones and the action is still the one the account's state offers. Otherwise nothing is sent. */
+  /** Sends the action for the status `shown` when it was pressed, and only if the latest status the App has accepted
+   * has the same Codex process and home, the App is not moving between homes, no other account command is under way
+   * and the action is still the one the account's state offers. Otherwise nothing is sent. */
   act: (action: AccountActionName, shown: Json) => Promise<void>;
+  /** Runs one of Connection and access's own account commands under the same admission: nothing is run while another
+   * account command is under way or the App is moving between homes, and no sign-in while the host reports one that has
+   * not ended or a completed one is unconfirmed. Resolves with whether it ran. */
+  run: (command: PanelAccountCommand, send: () => Promise<void>) => Promise<boolean>;
+  /** The account panel's read, under the same admission and as part of the same proof of a completed sign-in. */
+  admitRead: (reader: ReadAccountStatus) => ReadAccountStatus;
 };
 /** The App's reveals the popover offers. */
 export type AccountReveals = {
@@ -52,13 +71,13 @@ export const connectionFacts = (host: Json): ConnectionFacts => ({
  * the avatar takes its signed-in form. While Codex is not ready, or setup is needed, the state is the workspace
  * line's own title for the connection. While it is ready, each rests on the sign-in reading alone (accountReading):
  * signed in only where Codex reported a ChatGPT account, not signed in only where it reported none; a reading in
- * which Codex didn't say is never "Not signed in". `awaiting` (the controller's) is a sign-in Codex reported
- * completed with no account read answered since: the earlier reading is not said then. The email is never here. */
-export function accountRowWords(host: Json, awaiting = false): { state: string; detail: string | null; signedIn: boolean } {
+ * which Codex didn't say is never "Not signed in". `completed` (the controller's) is a sign-in Codex reported
+ * completed with no account read made after it answered: the earlier reading is not said then. The email is never here. */
+export function accountRowWords(host: Json, completed: CompletedState | null = null): { state: string; detail: string | null; signedIn: boolean } {
   const connection = connectionWords(connectionFacts(host));
   if (connection) return { state: connection.title, detail: null, signedIn: false };
   const reading = accountReading(host);
-  if (awaiting) return { state: "Sign-in completed", detail: reading === "reading" ? "Checking the account…" : "Account not read yet", signedIn: false };
+  if (completed) return { state: "Sign-in completed", detail: SIGN_IN_COMPLETED[completed].detail, signedIn: false };
   if (reading === "chatgpt-account") {
     const plan = reportedPlan(host);
     return { state: "Signed in", detail: plan ? `Plan: ${plan}` : "ChatGPT account", signedIn: true };
@@ -73,103 +92,200 @@ export function accountRowWords(host: Json, awaiting = false): { state: string; 
 /** The one action the popover offers for the state, where it offers one: none while Codex is not ready, while the
  * account is being read, or for an API key connection. After a completed sign-in the account is read, never signed
  * in to again, until a read answers. */
-export function accountAction(host: Json, awaiting = false): AccountActionName | null {
+export function accountAction(host: Json, completed: CompletedState | null = null): AccountActionName | null {
   if (connectionWords(connectionFacts(host))) return null;
   const reading = accountReading(host);
-  if (awaiting) return reading === "reading" ? null : "check-again";
+  if (completed) return completed === "checking" ? null : "check-again";
   return reading === "no-account" ? "sign-in" : reading === "chatgpt-account" ? "sign-out"
     : reading === "unread" || DIDNT_SAY.includes(reading) ? "check-again" : null;
 }
 
 /** The popover's sentence under the state. Where Codex didn't say, it is the account panel's own sentence for the
  * reading, so a read that failed, one left unanswered and the rest stay distinct. */
-function accountSentence(host: Json, awaiting: boolean): string {
+function accountSentence(host: Json, completed: CompletedState | null): string {
   const connection = connectionWords(connectionFacts(host));
   if (connection) return connection.guidance;
   const reading = accountReading(host);
-  if (awaiting) return reading === "reading" ? "Codex reports the sign-in completed. Checking the account with Codex…"
-    : "Codex reports the sign-in completed. The account has not been read since.";
+  if (completed) return SIGN_IN_COMPLETED[completed].sentence;
   if (reading !== "chatgpt-account" && DIDNT_SAY.includes(reading)) return ACCOUNT_PANEL_WORDS[reading as Exclude<typeof reading, "chatgpt-account">];
   return signInSentence(reading, reportedPlan(host));
 }
 
-const sourceKey = (host: Json) => JSON.stringify([host?.generation ?? null, host?.homeRouting?.activeModeHomeClass ?? null]);
+/** The Codex process and home a status is for: a control drawn for one is a different control from one drawn for another. */
+export const sourceKey = (host: Json) => JSON.stringify([host?.generation ?? null, host?.homeRouting?.activeModeHomeClass ?? null]);
 const NOT_SENT = "The connection or the account changed before this was sent. Nothing was sent.";
 const FAILED: Record<AccountActionName, string> = {
   "sign-in": "The App could not confirm that a sign-in started.",
   "check-again": "Account status could not be confirmed. Try checking again; this does not mean you are signed out.",
   "sign-out": "The App could not confirm the sign-out. Check again to see the account.",
 };
+/** The results the host's commands return where the person declined the native confirmation and nothing was sent
+ * (runtime_session.rs start_native_oauth, logout_native_home), with the App's sentence for each. */
+const DECLINED: Partial<Record<AccountActionName, { state: string; words: string }>> = {
+  "sign-in": { state: "native start confirmation dismissed; no sign-in RPC", words: "Sign-in was not started." },
+  "sign-out": { state: "native confirmation cancelled; no logout request", words: "You were not signed out." },
+};
+
+/** The command's result says the person declined its native confirmation, and nothing was sent. */
+export const accountDeclined = (action: AccountActionName, result: Json): boolean => !!DECLINED[action] && result?.state === DECLINED[action]!.state;
+
+/** Which Codex processes, and which completed sign-ins in them, this App view has seen. A completion first seen in a
+ * status of a process seen before without it was watched completing; one already there when the process was first
+ * seen was not. */
+type Seen = { generations: string[]; completions: Record<string, boolean> };
+const generationKey = (host: Json): string | null => host?.generation ? JSON.stringify(host.generation) : null;
+const watchedIn = (seen: Seen, completion: string, generation: string | null) =>
+  Object.hasOwn(seen.completions, completion) ? seen.completions[completion] : !!generation && seen.generations.includes(generation);
+/** The latest account read of the status is not one the baseline lists, so it was issued after the completion, and
+ * it has answered. */
+function answeredAfter(baseline: string[] | undefined, host: Json): boolean {
+  const ref = accountReadRef(host);
+  return !!baseline && ref !== null && !baseline.includes(ref) && accountReading(host) !== "reading";
+}
+function completedIn(seen: Seen, baselines: Record<string, string[]>, host: Json, reading: boolean): CompletedState | null {
+  const completion = signInCompletion(host);
+  if (!completion || !watchedIn(seen, completion, generationKey(host))) return null;
+  const baseline = baselines[completion];
+  if (answeredAfter(baseline, host)) return null;
+  const ref = accountReadRef(host);
+  return reading || (!!baseline && ref !== null && !baseline.includes(ref)) ? "checking" : "unread";
+}
+type Acting = "sign-in" | "sign-out" | "read" | null;
 
 /**
  * The account's actions for every surface that offers them (the account row in the navigator and in its collapsed
- * strip, and the workspace line): one action at a time across all of them, each bound to the status shown when it was
- * pressed, and one reading of a completed sign-in that the account read has not yet confirmed. `latest` gives the
- * App's current host status at the moment of sending. Nothing is stored.
+ * strip, the workspace line, and Connection and access): one account command at a time across all of them, each bound
+ * to the Codex process and home shown when it was pressed and checked against the latest status the App has accepted
+ * (`latest`), none while the App is moving between homes (`moving`).
+ *
+ * A completed sign-in watched completing is confirmed only by an account read issued after the completion. The host
+ * status gives no order between its account reads and the completion, so the controller makes one: on seeing the
+ * completion it reads the host's status once (a read started after the status that showed the completion arrived),
+ * keeps the account reads that status lists as the baseline, and then issues one account read. A read the baseline
+ * does not list was issued after that status was taken, so after the completion; the latest such read, once it has
+ * answered, is the confirmation. Until then the completion is `completed`. Every check of the account made while it
+ * is unconfirmed does the same. Nothing is stored, and nothing is recorded during render.
  */
-export function useAccountController(host: Json, latest: () => Json, commands: AccountCommands): AccountController {
+export function useAccountController(host: Json, latest: () => Json, commands: AccountCommands, moving: () => boolean = () => false): AccountController {
   const mounted = useRef(true);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const inFlight = useRef(false);
-  const [acting, setActing] = useState(false);
+  const [acting, setActing] = useState<Acting>(null);
   const [feedback, setFeedback] = useState<{ checkpoint: string; words: string } | null>(null);
-  // Each completed sign-in, by its own identity, with the account read that was the latest before it was first seen.
-  // One already present the first time a Codex process is seen was not watched completing, and is never awaited.
-  const completions = useRef(new Map<string, { before: string | null; settled: boolean; watched: boolean }>());
-  const generations = useRef(new Map<string, string | null>());
-  const generationKey = host?.generation ? JSON.stringify(host.generation) : null;
-  const completion = signInCompletion(host), readRef = accountReadRef(host), reading = accountReading(host);
-  if (completion && !completions.current.has(completion)) {
-    const watched = !!generationKey && generations.current.has(generationKey);
-    completions.current.set(completion, { before: watched ? generations.current.get(generationKey!) ?? null : readRef, settled: !watched, watched });
-  }
-  if (generationKey) generations.current.set(generationKey, readRef);
-  const entry = completion ? completions.current.get(completion) : undefined;
-  if (entry && !entry.settled && readRef !== entry.before && reading !== "reading") entry.settled = true;
-  const awaitingOf = (status: Json) => {
-    const key = signInCompletion(status), known = key ? completions.current.get(key) : undefined;
-    return !!known && !known.settled;
+  const [seen, setSeen] = useState<Seen>({ generations: [], completions: {} });
+  const [baselines, setBaselines] = useState<Record<string, string[]>>({});
+  const [autoRead, setAutoRead] = useState<string[]>([]);
+  // The same, for a press or a read: kept by effects and by the read that takes a baseline, never during render.
+  const seenNow = useRef(seen), baselinesNow = useRef(baselines);
+  useEffect(() => { seenNow.current = seen; }, [seen]);
+  useEffect(() => { baselinesNow.current = { ...baselines, ...baselinesNow.current }; }, [baselines]);
+  const generation = generationKey(host), completion = signInCompletion(host);
+  useEffect(() => {
+    if (!generation) return;
+    setSeen(old => {
+      const known = old.generations.includes(generation);
+      if (known && (!completion || Object.hasOwn(old.completions, completion))) return old;
+      return { generations: known ? old.generations : [...old.generations, generation],
+        completions: completion && !Object.hasOwn(old.completions, completion) ? { ...old.completions, [completion]: known } : old.completions };
+    });
+  }, [generation, completion]);
+  const watched = !!completion && watchedIn(seen, completion, generation);
+  const completed = completedIn(seen, baselines, host, acting === "read");
+  const confirmed = completion && watched && answeredAfter(baselines[completion], host) && accountReading(host) === "chatgpt-account" ? completion : null;
+  const completedNow = (status: Json) => completedIn(seenNow.current, baselinesNow.current, status, false);
+  const checkpoint = (status: Json, held: CompletedState | null) => JSON.stringify([sourceKey(status), accountReading(status), signInPhase(status), held !== null]);
+  const admit = (kind: Exclude<Acting, null>): (() => void) | null => {
+    if (inFlight.current || moving()) return null;
+    inFlight.current = true; setActing(kind);
+    return () => { inFlight.current = false; if (mounted.current) setActing(null); };
   };
-  const awaiting = !!entry && !entry.settled;
-  const confirmed = completion && entry?.watched && entry.settled && reading === "chatgpt-account" ? completion : null;
-  const checkpoint = (status: Json) => JSON.stringify([sourceKey(status), accountReading(status), signInPhase(status), awaitingOf(status)]);
+  // One check of the account for the status shown, by `reader`; false where the status changed first and nothing was read.
+  const readFor = async (shown: Json, reader: ReadAccountStatus, isCurrent: () => boolean = () => true): Promise<boolean> => {
+    const key = signInCompletion(shown);
+    if (key && watchedIn(seenNow.current, key, generationKey(shown)) && !baselinesNow.current[key]) {
+      const status = await commands.readStatus();
+      if (sourceKey(status) !== sourceKey(shown) || signInCompletion(status) !== key) return false;
+      const baseline = accountReadRefs(status);
+      baselinesNow.current = { ...baselinesNow.current, [key]: baseline };
+      if (mounted.current) setBaselines(old => old[key] ? old : { ...old, [key]: baseline });
+    }
+    await reader(shown.generation, shown.homeRouting.activeModeHomeClass, isCurrent);
+    return true;
+  };
+  const sameSource = (a: Json, b: Json) => sourceKey(a) === sourceKey(b) && !!a?.generation && typeof a?.homeRouting?.activeModeHomeClass === "string";
   const act = async (action: AccountActionName, shown: Json) => {
     if (inFlight.current) return;
-    const now = latest(), generation = now?.generation, mode = now?.homeRouting?.activeModeHomeClass;
-    const eligible = sourceKey(now) === sourceKey(shown) && !!generation && typeof mode === "string"
-      && accountAction(now, awaitingOf(now)) === action && (action === "check-again" || mode === "account")
-      && !(action === "sign-in" && signInPending(now));
-    if (!eligible) { setFeedback({ checkpoint: checkpoint(now), words: NOT_SENT }); return; }
-    inFlight.current = true; setActing(true); setFeedback(null);
+    const now = latest(), held = completedNow(now), mode = now?.homeRouting?.activeModeHomeClass;
+    const eligible = !moving() && sameSource(now, shown) && accountAction(now, held) === action
+      && (action === "check-again" || mode === "account") && !(action === "sign-in" && signInUnresolved(now));
+    if (!eligible) { setFeedback({ checkpoint: checkpoint(now, held), words: NOT_SENT }); return; }
+    const release = admit(action === "check-again" ? "read" : action);
+    if (!release) return;
+    // The attempt's own Codex process, home and account state: what it reports is said only while they stand.
+    const attempt = checkpoint(now, held);
+    setFeedback(null);
     try {
-      if (action === "sign-in") await commands.startSignIn(generation);
-      else if (action === "sign-out") await commands.signOut(generation, mode);
-      else await commands.checkAgain(generation, mode);
+      if (action === "check-again") {
+        if (!await readFor(now, commands.checkAgain) && mounted.current) setFeedback({ checkpoint: checkpoint(latest(), completedNow(latest())), words: NOT_SENT });
+        return;
+      }
+      const result = action === "sign-in" ? await commands.startSignIn(now.generation) : await commands.signOut(now.generation, mode);
+      if (accountDeclined(action, result) && mounted.current) setFeedback({ checkpoint: attempt, words: DECLINED[action]!.words });
     } catch (error) {
-      if (mounted.current) setFeedback({ checkpoint: checkpoint(latest()), words: (action === "check-again" ? readingSentence(error) : null) ?? FAILED[action] });
-    } finally { inFlight.current = false; if (mounted.current) setActing(false); }
+      if (mounted.current) setFeedback({ checkpoint: attempt, words: (action === "check-again" ? readingSentence(error) : null) ?? FAILED[action] });
+    } finally { release(); }
   };
-  return { acting, feedback: feedback && feedback.checkpoint === checkpoint(host) ? feedback.words : null, awaiting, confirmed, act };
+  // A completion watched completing, for the status shown: one account read, made after a baseline, without a press.
+  useEffect(() => {
+    if (!completion || !watched || baselines[completion] || autoRead.includes(completion) || acting) return;
+    const now = latest();
+    if (!sameSource(now, host) || signInCompletion(now) !== completion) return;
+    const release = admit("read");
+    if (!release) return;
+    setAutoRead(old => [...old, completion]);
+    const attempt = checkpoint(now, completedNow(now));
+    void readFor(now, commands.checkAgain).catch(error => {
+      if (mounted.current) setFeedback({ checkpoint: attempt, words: readingSentence(error) ?? FAILED["check-again"] });
+    }).finally(release);
+  }, [completion, watched, baselines, autoRead, acting]); // eslint-disable-line react-hooks/exhaustive-deps
+  const run = async (command: PanelAccountCommand, send: () => Promise<void>) => {
+    const now = latest();
+    if (command === "sign-in" && (signInUnresolved(now) || completedNow(now) !== null)) return false;
+    const release = admit(command);
+    if (!release) return false;
+    try { await send(); return true; } finally { release(); }
+  };
+  const admitRead = (reader: ReadAccountStatus): ReadAccountStatus => async (generation, modeHomeClass, isCurrent) => {
+    const now = latest();
+    if (!sameSource(now, { generation, homeRouting: { activeModeHomeClass: modeHomeClass } })) return;
+    const release = admit("read");
+    if (!release) return;
+    try { await readFor(now, reader, isCurrent); } finally { release(); }
+  };
+  return { acting: acting !== null, feedback: feedback && feedback.checkpoint === checkpoint(host, completed) ? feedback.words : null,
+    completed, awaiting: completed !== null, confirmed, act, run, admitRead };
 }
 
 function AccountPopover({ host, account, reveals, close }: { host: Json; account: AccountController; reveals: AccountReveals; close: () => void }) {
-  const words = accountRowWords(host, account.awaiting), connection = connectionWords(connectionFacts(host));
-  const reading = accountReading(host), action = accountAction(host, account.awaiting);
+  const words = accountRowWords(host, account.completed), connection = connectionWords(connectionFacts(host));
+  const reading = accountReading(host), action = accountAction(host, account.completed);
   const generation = host?.generation, accountHome = host?.homeRouting?.activeModeHomeClass === "account";
   const codexError = !connection && !account.awaiting && DIDNT_SAY.includes(reading) ? accountReadError(host) : null;
-  // The sign-in line: the account panel's own words for a sign-in that is waiting, did not complete or was canceled.
-  // A completed one is said by the state above.
+  // The sign-in line: the account panel's own words for a sign-in that is waiting, did not complete, was canceled or
+  // has not ended. A completed one is said by the state above.
   const phase = signInPhase(host);
   const phaseWords = !connection && !words.signedIn && phase !== "completed" ? SIGN_IN_PHASE_WORDS[phase] : "";
   const busy = account.acting;
+  // Keyed by the Codex process and home: a control drawn for one is never the control of another, so a press that
+  // began on it before they were replaced does not land on a control of the replacement.
   return <>
-    <section className="account-controls-group" aria-label="Account">
+    <section key={sourceKey(host)} className="account-controls-group" aria-label="Account">
       <strong>{words.state}</strong>
-      <p>{accountSentence(host, account.awaiting)}</p>
+      <p>{accountSentence(host, account.completed)}</p>
       {!connection && !account.awaiting && reading === "chatgpt-account" ? <p>{accountSummary(host)}</p> : null}
       {codexError ? <p aria-label="What Codex said"><AgentText value={codexError} source="codex"/></p> : null}
       {phaseWords ? <p>{phaseWords}</p> : null}
-      {action === "sign-in" ? <button type="button" className="setup-primary" disabled={busy || !accountHome || !generation || phase === "pending"} onClick={() => { void account.act("sign-in", host); }}>Sign in with your ChatGPT account (through Codex)…</button> : null}
+      {action === "sign-in" ? <button type="button" className="setup-primary" disabled={busy || !accountHome || !generation || signInUnresolved(host)} onClick={() => { void account.act("sign-in", host); }}>Sign in with your ChatGPT account (through Codex)…</button> : null}
       {action === "check-again" ? <button type="button" disabled={busy} onClick={() => { void account.act("check-again", host); }}>Check again</button> : null}
       {action === "sign-out" ? <button type="button" disabled={busy || !generation || !accountHome} onClick={() => { void account.act("sign-out", host); }}>Sign out of ChatGPT…</button> : null}
       {account.feedback ? <p role="status">{account.feedback}</p> : null}
@@ -188,20 +304,24 @@ function AccountPopover({ host, account, reveals, close }: { host: Json; account
  * above, follows the row when the layout moves it and closes when the row leaves view. It takes focus; Escape closes
  * it and returns focus to the row, as does a press outside it or focus leaving it. It closes by itself when the Codex
  * process or home it was opened for is replaced, and when the account read confirms a sign-in that completed while
- * it was open: focus then goes to the row if it was inside. Nothing is stored.
+ * it was open: focus then goes to the row if it was inside. It takes focus back only where the control that held
+ * focus inside it was removed and focus has gone nowhere else. No focus it moves scrolls. Nothing is stored.
  */
 export function AccountRow({ host, account, reveals }: { host: Json; account: AccountController; reveals: AccountReveals }) {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null), trigger = useRef<HTMLButtonElement>(null), panel = useRef<HTMLDivElement>(null);
   const id = useId();
-  const words = accountRowWords(host, account.awaiting);
+  const words = accountRowWords(host, account.completed);
+  // The control inside the popover that last took focus.
+  const heldFocus = useRef<Node | null>(null);
+  const focusOn = (element: HTMLElement | null) => { element?.focus?.({ preventScroll: true }); };
   const focusInside = () => {
     const active = typeof document === "undefined" ? null : (document as Json).activeElement as Node | null | undefined;
     return !!active && !!panel.current && typeof panel.current.contains === "function" && panel.current.contains(active);
   };
-  const dismiss = useCallback(() => { setOpen(false); trigger.current?.focus?.(); }, []);
+  const dismiss = useCallback(() => { setOpen(false); focusOn(trigger.current); }, []);
   // Closed by the App, not the person: focus stays where the person put it unless it was inside.
-  const closeItself = useCallback(() => { const inside = focusInside(); setOpen(false); if (inside) trigger.current?.focus?.(); }, []);
+  const closeItself = useCallback(() => { const inside = focusInside(); setOpen(false); if (inside) focusOn(trigger.current); }, []);
   const position = useCallback(() => {
     const button = trigger.current, box = panel.current;
     if (!button || !box || typeof button.getBoundingClientRect !== "function" || typeof window.innerHeight !== "number") return;
@@ -215,7 +335,8 @@ export function AccountRow({ host, account, reveals }: { host: Json; account: Ac
   }, [closeItself]);
   useEffect(() => {
     if (!open || typeof document === "undefined") return;
-    panel.current?.focus?.();
+    heldFocus.current = null;
+    focusOn(panel.current);
     const outside = (event: Event) => { const target = event.target as Node | null; if (target && !root.current?.contains(target)) setOpen(false); };
     const key = (event: KeyboardEvent) => { if (event.key === "Escape") { event.preventDefault?.(); dismiss(); } };
     document.addEventListener("pointerdown", outside);
@@ -227,12 +348,17 @@ export function AccountRow({ host, account, reveals }: { host: Json; account: Ac
       window.removeEventListener("resize", position); window.removeEventListener("scroll", position, true);
     };
   }, [open, position, dismiss]);
-  // After each change of what is shown: the popover follows its row, and focus that sat on a control the new state
-  // removed (the action just taken) goes to the popover instead of being lost.
+  // After each change of what is shown: the popover follows its row, and focus that sat on a control inside it which
+  // the new state removed (the action just taken) goes to the popover instead of being lost. Focus the person moved
+  // elsewhere, or a window left for another, is not taken: the control that held it is still there.
   useEffect(() => {
     if (!open || typeof document === "undefined") return;
     position();
-    if ("activeElement" in document) { const active = document.activeElement; if (!active || active === document.body) panel.current?.focus?.(); }
+    const held = heldFocus.current, box = panel.current;
+    if (!held || !box || box.contains(held)) return;
+    heldFocus.current = null;
+    const active = "activeElement" in document ? document.activeElement : null;
+    if (!active || active === document.body) focusOn(box);
   });
   // The Codex process or home the popover was opened for is replaced: it closes, so no control of the earlier one
   // stays to be pressed.
@@ -259,7 +385,7 @@ export function AccountRow({ host, account, reveals }: { host: Json; account: Ac
       <span className="account-controls-identity"><strong>{words.state}</strong>{words.detail ? <small>{words.detail}</small> : null}</span>
       <span aria-hidden="true">⌃</span>
     </button>
-    {open ? <div ref={panel} id={id} role="dialog" aria-label="Account and settings" tabIndex={-1} className="account-controls-popover">
+    {open ? <div ref={panel} id={id} role="dialog" aria-label="Account and settings" tabIndex={-1} className="account-controls-popover" onFocus={event => { heldFocus.current = event.target as Node; }}>
       <AccountPopover host={host} account={account} reveals={reveals} close={dismiss}/>
     </div> : null}
   </div>;
