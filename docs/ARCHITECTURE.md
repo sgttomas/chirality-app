@@ -214,15 +214,14 @@ supplier direction as though it were unanswered.
   sandbox and review routing follow the permission level in force in the
   App: the one the person sets, or until then the App's default level (PRD
   V4-AUT-06). Each start, resume and fork also sends the project-root trust
-  entry of DEL-01-01 REQ-012, decided against the settings of the home that
-  sends the request: untrusted wherever those settings or the App's record
-  of the person's choice cannot be read, the settings mark the root
-  untrusted or the person has switched the project's trust off; otherwise
-  trusted where the settings mark the root trusted or the person's choice
-  for the project is on. A trusted entry lets the project's own Codex files
-  act: among other things they can start MCP server programs with a
-  conversation and have Codex connect to MCP servers at addresses they name
-  (LIM-038). The
+  entry of DEL-01-01 REQ-012: the first applicable of its ordered cases,
+  decided against the settings of the home that sends the request, in which
+  an unreadable input, a changed project folder, an untrusted mark or the
+  person's switch-off each makes the entry untrusted before a trusted mark
+  or the person's choice can make it trusted. A trusted entry lets the
+  project's own Codex files act: among other things they can start MCP
+  server programs with a conversation and have Codex connect to MCP servers
+  at addresses they name (LIM-038). The
   App also enables Codex's Default-mode question feature in each
   conversation home it offers. The
   dedicated local home uses the App-owned

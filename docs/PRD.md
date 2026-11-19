@@ -434,17 +434,19 @@ Shared access does not transfer decision rights (OD-05).
   corruption detected by the store are not excluded by that limitation.
   The App also tells its Codex, when a conversation is started, resumed or
   forked, whether to trust the conversation's project (R-TRUST): a project
-  the person set up or added in the App is trusted unless the person has
-  switched that off, the person's own Codex settings mark it untrusted or
-  cannot be read, or the App cannot read its record of the person's choice,
-  so that the project's own instructions and Codex settings load. Project
-  trust is the person's own setting, not a reserved act; switching it on is
-  confirmed by the person; and wherever the person sets a project up, adds
-  one or switches its trust on, the App states in full what trust lets the
-  project's own files do: among them, start MCP server programs with a
-  conversation outside the sandbox, and let commands run outside the sandbox
-  without asking through the project's rules, which the App cannot switch
-  off while the project is trusted (LIM-038).
+  the person set up or added in the App is trusted unless one of the earlier
+  cases of DEL-01-01 REQ-012 makes it untrusted (the person has switched
+  that off, the Codex settings of the home that sends the request mark it
+  untrusted or cannot be read, the App cannot read its record of the
+  person's choice, or the project's folder is no longer the one the App
+  opened), so that the project's own instructions and Codex settings load.
+  Project trust is the person's own setting, not a reserved act; switching
+  it on is confirmed by the person; and wherever the person sets a project
+  up, adds one or switches its trust on, the App states in full what trust
+  lets the project's own files do: among them, start MCP server programs
+  with a conversation outside the sandbox, and let commands run outside the
+  sandbox without asking through the project's rules, which the App cannot
+  switch off while the project is trusted (LIM-038).
 - **V4-AUT-07** A **point** is a place in the work where a named party is
   called to respond. The person's vocabulary has five kinds, and each point
   names the actual response or act it asks for: a **checkpoint** shows where
