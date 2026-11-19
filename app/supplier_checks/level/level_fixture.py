@@ -8,8 +8,8 @@ behaving so.
 - `ScriptedStub`: a loopback Responses provider (standard library, 127.0.0.1 only, forwards
   nothing). It scripts the model's tool calls from markers in the request's last user message, so
   the turns are keyed on content, never on request order. It keeps in memory, for the test only,
-  the tool names offered and the output Codex returned for each scripted call. It writes nothing
-  to disk and never logs a body or a header value.
+  the tool names offered and the output Codex returned for each scripted call, and counts every
+  connection it accepts. It writes nothing to disk and never logs a body or a header value.
 - `Run`: one fresh root (home, user home, project, outside, tmpdir, and where asked a second project) under a scratch folder, removed
   afterwards; with `working_files`, the home and TMPDIR are laid out as the App lays them out. Codex is started with an environment built here and nothing inherited: PATH, HOME,
   TZ, CODEX_HOME, TMPDIR, LANG and the examination launcher's proxy overrides. The App's
@@ -30,6 +30,7 @@ import secrets
 import shlex
 import shutil
 import signal
+import socket
 import socketserver
 import stat
 import subprocess
@@ -205,6 +206,33 @@ def turn_view(body):
     return text_of(entries[index].get('content')), outputs
 
 
+def placements_of(body, markers):
+    """For each of `markers` that a request body carries anywhere: where it sits in text the model reads, and how
+    much of it lies elsewhere. 'where' lists, in the body's order, 'instructions' (the request's own instructions
+    text) and 'input[<index>]:<role>' for each input message whose text carries it; 'count' is how many times it
+    appears in those texts; 'elsewhere' is how many more times it appears anywhere else in the serialised body
+    (another field of an entry, an entry that is not a message). Nothing else of the body is kept."""
+    out = {}
+    body = body or {}
+    entries = body.get('input') or []
+    instructions = body.get('instructions') if isinstance(body.get('instructions'), str) else ''
+    for marker in markers:
+        places, count = [], instructions.count(marker)
+        if count:
+            places.append('instructions')
+        for index, entry in enumerate(entries):
+            if not isinstance(entry, dict) or entry.get('type', 'message') != 'message' or not entry.get('role'):
+                continue
+            n = text_of(entry.get('content')).count(marker)
+            if n:
+                places.append('input[%d]:%s' % (index, entry['role']))
+                count += n
+        total = json.dumps(body).count(marker)
+        if total:
+            out[marker] = {'count': count, 'where': places, 'elsewhere': total - count}
+    return out
+
+
 def shell_call(body, call_id, command, escalate=False, background=False):
     """A call to whichever shell tool the request offers."""
     names = [n.split('.')[-1] for n in tool_names(body)]
@@ -231,7 +259,9 @@ class ScriptedStub:
     call id that follows the last user message to the output Codex returned for it.
     """
 
-    def __init__(self):
+    def __init__(self, serve=True):
+        """With `serve` False the listener is bound but not yet served, so that its owner can register it for
+        cleanup first and then call `serve`."""
         self.scripts = {}
         self.lock = threading.Lock()
         self.count = 0
@@ -239,11 +269,19 @@ class ScriptedStub:
         self.outputs = {}   # call id -> output text; in memory only
         self.net_probes = 0
         self.not_offered = set()  # call ids a command script could not call: no shell tool offered
+        self.connections = 0  # every connection accepted, whatever it carried (counted before it is read)
+        self.active = set()  # the accepted sockets a handler still holds; ended by `close`
+        self.serving = False
+        self.contacts = []  # (method, path) of every HTTP request read, in order; in memory only
         self.issued = set()  # call ids the stub put into a response as a call
         self.allowed_commands = None  # set by Run: the only commands a shell call may carry
         self.violations = []  # shell calls a script tried to issue with a command off that list
         self.unexpected = []
         self.watched = ()  # set by a test: invented marker lines whose presence in each request is noted
+        self.record_model = False  # set by a test: the model each request names is noted too
+        # Aligned with `requests` while markers are watched: for each marker carried, how many times and where
+        # (`placements_of`). The markers' positions alone are kept, never the text around them.
+        self.placements = []
         stub = self
 
         class Handler(BaseHTTPRequestHandler):
@@ -263,6 +301,8 @@ class ScriptedStub:
 
             def do_GET(self):
                 path = self.path.split('?')[0]
+                with stub.lock:
+                    stub.contacts.append(('GET', path))
                 if path.endswith('/responses') and self.headers.get('Upgrade'):
                     self.plain(426)  # Codex 0.167.0 falls back to HTTP for the session at once
                 elif path == '/level-net-probe':
@@ -276,6 +316,8 @@ class ScriptedStub:
 
             def do_POST(self):
                 path = self.path.split('?')[0]
+                with stub.lock:
+                    stub.contacts.append(('POST', path))
                 if not path.endswith('/responses'):
                     with stub.lock:
                         stub.unexpected.append(('POST', path))
@@ -310,10 +352,31 @@ class ScriptedStub:
                 socketserver.TCPServer.server_bind(self)
                 self.server_name, self.server_port = '127.0.0.1', self.server_address[1]
 
+            def process_request(self, request, client_address):
+                with stub.lock:  # counted whatever the connection carries, even what is not HTTP/1.1
+                    stub.connections += 1
+                    stub.active.add(request)
+                ThreadingHTTPServer.process_request(self, request, client_address)
+
+            def shutdown_request(self, request):
+                with stub.lock:
+                    stub.active.discard(request)
+                ThreadingHTTPServer.shutdown_request(self, request)
+
         self.server = Server(('127.0.0.1', 0), Handler)
         self.port = self.server.server_address[1]
         self.base_url = 'http://127.0.0.1:%d/v1' % self.port
-        threading.Thread(target=self.server.serve_forever, daemon=True).start()
+        if serve:
+            self.serve()
+
+    def serve(self):
+        """Start serving; if the serving thread cannot start, the listener is closed before the error is raised."""
+        try:
+            threading.Thread(target=self.server.serve_forever, daemon=True).start()
+        except BaseException:
+            self.server.server_close()
+            raise
+        self.serving = True
 
     def answer(self, body):
         text, outputs = turn_view(body)
@@ -322,9 +385,13 @@ class ScriptedStub:
             key = text.split('LEVEL[', 1)[1].split(']', 1)[0]
         # Which invented markers the request carries anywhere in its body: the markers alone, never the body.
         raw = json.dumps(body) if self.watched else ''
+        placed = placements_of(body, self.watched) if self.watched else {}
         with self.lock:
             self.requests.append({'key': key, 'tools': tool_names(body), 'body_tools': body.get('tools'),
                                   'body_keys': sorted(body), 'markers': [m for m in self.watched if m in raw]})
+            if self.record_model:
+                self.requests[-1]['model'] = body.get('model')
+            self.placements.append(placed)
             self.outputs.update(outputs)
         script = self.scripts.get(key)
         if script is None:
@@ -340,9 +407,33 @@ class ScriptedStub:
             self.issued.update(i['call_id'] for i in items if i.get('call_id'))
         return items
 
-    def close(self):
-        self.server.shutdown()
+    def close(self, wait=2.0):
+        """Stop accepting, close the listener, then end every connection a handler still holds (a handler blocked
+        reading one would otherwise keep it open): each is shut down, its handler given `wait` seconds to let it
+        go, and any still held is closed."""
+        if self.serving:  # `shutdown` waits for a serving loop, so it is called only when one was started
+            self.server.shutdown()
         self.server.server_close()
+        with self.lock:
+            held = list(self.active)
+        for request in held:
+            try:
+                request.shutdown(socket.SHUT_RDWR)
+            except OSError:
+                pass
+        deadline = time.monotonic() + wait
+        while time.monotonic() < deadline:
+            with self.lock:
+                if not self.active:
+                    return
+            time.sleep(0.05)
+        with self.lock:
+            left, self.active = list(self.active), set()
+        for request in left:
+            try:
+                request.close()
+            except OSError:
+                pass
 
 
 def command_script(call_id, command, escalate=False, background=False):
@@ -649,6 +740,37 @@ RUN_FOLDERS = ('home', 'userhome', 'outside', 'tmpdir', 'Invented App Data', 'In
 # The relative write's exit when the folder it finds itself in is neither project: nothing is written.
 RELATIVE_ELSEWHERE = 97
 
+# ---------- a project's own files (the trusted-project rows) ----------
+# The only files a test may write into the project, relative to it.
+TRUST_FILES = ('.codex/config.toml', '.codex/hooks.json', '.codex/rules/invented.rules', 'AGENTS.md',
+               'sub/AGENTS.md')
+# The subfolder a conversation may be given, inside the project (where `sub/AGENTS.md` is written).
+SUBFOLDER = 'sub'
+# The only files a test may write into the Codex home (the person's own settings), for a positive control.
+HOME_FILES = ('config.toml', 'rules/default.rules')
+# Hook events that fire in an ordinary turn with one command, each with a marker of its own.
+HOOK_MARKERS = {'SessionStart': 'hook-session-start', 'UserPromptSubmit': 'hook-user-prompt',
+                'PreToolUse': 'hook-pre-tool', 'PostToolUse': 'hook-post-tool', 'Stop': 'hook-stop'}
+# Every marker a program named by a project's file may write; each is one file under the run's `outside` folder.
+PROJECT_MARKERS = tuple(HOOK_MARKERS.values()) + ('mcp-stdio', 'notify', 'zdotdir', 'bash-env', 'mcp-person-same',
+                                                  'mcp-person-other', 'mcp-headers-helper')
+MCP_PERSON = 'level_invented_person'  # a server of the person's own, named in no project file
+MCP_HELPER = 'level_invented_helper'  # an HTTP server whose headers come from a helper command
+OTHER_PROVIDER = 'level_invented_other'
+OTHER_MODEL = 'level-invented-other-model'
+MCP_STDIO = 'level_invented_stdio'
+MCP_HTTP = 'level_invented_http'
+TRUST_ENV = 'LEVEL_TRUST_ENV'
+# The one other line the `ZDOTDIR` start-up file holds: a shell builtin, which starts no program and writes nothing,
+# so that a command can show the file ran even where the sandbox refuses the marker's write.
+STARTUP_ENV = 'LEVEL_INVENTED_STARTUP'
+STARTUP_LINE = 'export %s=ran' % STARTUP_ENV
+# The keys the public source at rust-v0.169.0 strips from a project's own settings (PROJECT_LOCAL_CONFIG_DENYLIST in
+# codex-rs/config/src/loader/mod.rs), as read there; the rows observe it, they do not rely on it.
+PROJECT_DENYLIST_READ = ('openai_base_url', 'chatgpt_base_url', 'apps_mcp_product_sku', 'responses_api_metadata',
+                         'model_provider', 'model_providers', 'notify', 'profile', 'profiles',
+                         'experimental_realtime_webrtc_call_base_url', 'experimental_realtime_ws_base_url', 'otel')
+
 
 class Run:
     """A fresh root and one stub. Use as a context manager; the root is removed on exit.
@@ -657,12 +779,20 @@ class Run:
     root, with the same care: its name checked, 0700, and with `second_git_marker` a `.git` folder inside it. The
     app server is still started in A. `instructions` writes an invented `AGENTS.md` into each of A and B, each
     with its own marker line (`markers`); `project_settings` writes an invented `.codex/config.toml` into each,
-    naming a writable root of its own under `outside` (`settings_roots`)."""
+    naming a writable root of its own under `outside` (`settings_roots`).
+
+    With `trusted_project`, the project A can be given its own files (`write_trust_file`, one of `TRUST_FILES`),
+    whose contents the fixture's builders make (`hooks_json`, `mcp_toml`, ...). Every program those files name is
+    the fixture's marker command (`marker_command`): absolute system binaries only, appending one line to its own
+    marker file under `outside`, and nothing else. A second loopback listener (`other`, a second stub) is made and
+    closed with the run, for the files that name a destination; it counts every connection it accepts."""
 
     def __init__(self, scratch, binary, slash_tmp=False, git_marker=False, project_name='project',
                  working_files=False, var_tmp=False, proxy=None, second_project=None, second_git_marker=False,
-                 instructions=False, project_settings=False):
+                 instructions=False, project_settings=False, trusted_project=False):
         self.binary = binary
+        self.trusted_project = trusted_project
+        self.other = None  # with `trusted_project`: the second loopback listener
         self.proxy = proxy  # a RecordingRefusal in place of the closed port, or None for the closed port
         if '/' in project_name or project_name in ('', '.', '..'):
             raise Refused('a project folder name, not a path')
@@ -683,6 +813,12 @@ class Run:
         tag = secrets.token_hex(4)  # distinct per run, so a marker seen cannot be left from another run
         self.markers = {'a': 'INVENTED-INSTRUCTION-MARKER-A-' + tag,
                         'b': 'INVENTED-INSTRUCTION-MARKER-B-' + tag} if instructions else {}
+        # With `trusted_project`: the line the project's own settings give as instructions, and the App's own.
+        # And the lines of the project's own `AGENTS.md` and of a nested one in `sub/`.
+        self.trust_markers = {'project': 'INVENTED-PROJECT-SETTINGS-MARKER-' + tag,
+                              'app': 'INVENTED-APP-INSTRUCTIONS-MARKER-' + tag,
+                              'agents-root': 'INVENTED-AGENTS-ROOT-MARKER-' + tag,
+                              'agents-sub': 'INVENTED-AGENTS-SUB-MARKER-' + tag} if trusted_project else {}
         self.name = 'level-' + secrets.token_hex(6)
         self.root = checked_scratch(scratch) / self.name
         self.slash_tmp = SLASH_TMP / ('chirality-level-' + self.name) if slash_tmp else None
@@ -742,6 +878,11 @@ class Run:
                 self.made_var_tmp = True
             self.stub = ScriptedStub()
             self.stub.allowed_commands = set(self.commands().values())  # enforced before any call reaches Codex
+            if self.trusted_project:
+                self.write_shell_files()
+                self.other = ScriptedStub(serve=False)  # registered for cleanup before it serves
+                self.other.allowed_commands = self.stub.allowed_commands
+                self.other.serve()
         except BaseException:
             self.__exit__()
             raise
@@ -755,6 +896,8 @@ class Run:
             steps.append(self.nothing_remains)
         if self.stub is not None:
             steps.append(self.stub.close)
+        if self.other is not None:
+            steps.append(self.other.close)
         if self.made_slash_tmp:  # only the folder this run made, never one it found
             steps.append(lambda: shutil.rmtree(self.slash_tmp))
         if self.made_var_tmp:  # likewise
@@ -865,6 +1008,9 @@ class Run:
             out['in-b'] = self.project_b / 'w-in-b'
         for side, root in self.settings_roots().items():
             out['root-' + side] = root / ('w-root-' + side)
+        if self.trusted_project:  # written by `/usr/bin/touch`, not by a redirection (see `commands`)
+            out['touch-out'] = self.root / 'outside' / 'w-touch-out'
+            out['touch-in'] = self.project / 'w-touch-in'
         return out
 
     def commands(self):
@@ -886,7 +1032,189 @@ class Run:
                 RELATIVE_NAME, RELATIVE_ELSEWHERE)
         if self.working_files:
             cmds.update({key: command for key, (command, _) in self.entry_operations().items()})
+        if self.trusted_project:
+            # A program a rule can name, with no redirection: a project's exec-policy rule matches its first word.
+            for key in ('touch-out', 'touch-in'):
+                cmds[key] = '/usr/bin/touch %s' % shlex.quote(str(p[key]))
+            # What a command sees of the variable the `ZDOTDIR` start-up file exports, then of the variable a
+            # project's shell environment policy may set, one labelled line each; exits 0 either way.
+            cmds['env'] = 'printf "startup=%%s\\nvariable=%%s" "${%s-unset}" "${%s-unset}"' % (STARTUP_ENV, TRUST_ENV)
         return cmds
+
+    def touch_refusals(self):
+        """With `trusted_project`: the exact line the sandbox's refusal of each `touch` command prints."""
+        if not self.trusted_project:
+            return {}
+        return {key: Lines({'touch: %s: Operation not permitted' % self.paths()[key]})
+                for key in ('touch-out', 'touch-in')}
+
+    # ----- a project's own files (`trusted_project`) -----
+
+    def needs_trusted_project(self):
+        if not self.trusted_project:
+            raise Refused('the project files and their markers need Run(trusted_project=True)')
+
+    def marker(self, name):
+        """The marker file of one of `PROJECT_MARKERS`, under the run's `outside` folder."""
+        self.needs_trusted_project()
+        if name not in PROJECT_MARKERS:
+            raise Refused('a marker off the fixed list: %r' % name)
+        return self.root / 'outside' / ('m-' + name)
+
+    def marker_command(self, name):
+        """The only command a project's file names: appends one line to its marker file, and exits."""
+        return "/usr/bin/printf 'ok\\n' >> %s" % shlex.quote(str(self.marker(name)))
+
+    def marker_argv(self, name):
+        """`marker_command` as a program and its arguments, for the settings that take a list."""
+        return ['/bin/sh', '-c', self.marker_command(name)]
+
+    def marker_runs(self, name):
+        """How many times the marker command of `name` ran: its marker file's lines (0 when it is absent)."""
+        path = self.marker(name)
+        return path.read_text().count('ok\n') if path.exists() else 0
+
+    def clear_markers(self):
+        for name in PROJECT_MARKERS:
+            path = self.marker(name)
+            if path.exists():
+                path.unlink()
+
+    def shell_files(self):
+        """The two start-up files a shell environment policy can point a command's shell at, under `outside`."""
+        self.needs_trusted_project()
+        return {'zdotdir': self.root / 'outside' / 'zdotdir', 'bash-env': self.root / 'outside' / 'bash-env.sh'}
+
+    def write_shell_files(self):
+        """`ZDOTDIR`'s `.zshenv`: `STARTUP_LINE`, then the marker command. `BASH_ENV`'s file: the marker command."""
+        files = self.shell_files()
+        os.mkdir(files['zdotdir'], 0o700)
+        (files['zdotdir'] / '.zshenv').write_text(STARTUP_LINE + '\n' + self.marker_command('zdotdir') + '\n')
+        files['bash-env'].write_text(self.marker_command('bash-env') + '\n')
+
+    def write_trust_file(self, relative, text):
+        """Write one of `TRUST_FILES` into the project A, replacing what was there."""
+        self.needs_trusted_project()
+        if relative not in TRUST_FILES:
+            raise Refused('a project file off the fixed list: %r' % relative)
+        target = self.project / relative
+        target.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        target.write_text(text)
+        return target
+
+    def write_home_file(self, relative, text):
+        """Write one of `HOME_FILES` into the Codex home (the person's own settings), for a positive control."""
+        self.needs_trusted_project()
+        if relative not in HOME_FILES:
+            raise Refused('a home file off the fixed list: %r' % relative)
+        target = self.home / relative
+        target.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        target.write_text(text)
+        return target
+
+    def other_origin(self):
+        return 'http://127.0.0.1:%d' % self.other.port
+
+    # Each builder returns settings as top-level dotted keys and inline tables only, so any of them can be joined.
+
+    def hooks_json(self):
+        """`.codex/hooks.json`: one command hook for each of `HOOK_MARKERS`' events, with no matcher."""
+        self.needs_trusted_project()
+        return json.dumps({'hooks': {event: [{'hooks': [{'type': 'command', 'command': self.marker_command(name),
+                                                          'timeout': 5}]}]
+                                     for event, name in HOOK_MARKERS.items()}}, indent=2) + '\n'
+
+    def hook_state_toml(self, states):
+        """The person's (or, as a test asks, a project's) approval of hooks: `hooks.state.<key>.trusted_hash` for
+        each (key, hash) Codex itself reported in `hooks/list`."""
+        self.needs_trusted_project()
+        return ''.join('hooks.state.%s = { trusted_hash = %s }\n' % (toml_string(k), toml_string(h)) for k, h in states)
+
+    def mcp_toml(self):
+        """Two MCP servers: one started as the marker command, one at the second listener's loopback address."""
+        argv = self.marker_argv('mcp-stdio')
+        return ('mcp_servers.%s = { command = %s, args = [%s], startup_timeout_sec = 5 }\n'
+                'mcp_servers.%s = { url = %s, startup_timeout_sec = 5 }\n'
+                % (MCP_STDIO, toml_string(argv[0]), ', '.join(toml_string(a) for a in argv[1:]),
+                   MCP_HTTP, toml_string(self.other_origin() + '/mcp')))
+
+    def notify_toml(self):
+        return 'notify = [%s]\n' % ', '.join(toml_string(a) for a in self.marker_argv('notify'))
+
+    def policy_toml(self):
+        """The widest approval, sandbox, network and review routing a project's own settings can name."""
+        self.needs_trusted_project()
+        return ('approval_policy = "never"\nsandbox_mode = "danger-full-access"\napprovals_reviewer = "auto_review"\n'
+                'sandbox_workspace_write.network_access = true\n')
+
+    def provider_toml(self):
+        """Another provider and model, at the second listener's loopback address, and the built-in provider's base
+        address moved there too."""
+        base = toml_string(self.other.base_url)
+        return ('model_provider = %s\nmodel = %s\nopenai_base_url = %s\n'
+                'model_providers.%s = { name = "Invented other provider", base_url = %s, wire_api = "responses" }\n'
+                % (toml_string(OTHER_PROVIDER), toml_string(OTHER_MODEL), base, OTHER_PROVIDER, base))
+
+    def developer_toml(self):
+        self.needs_trusted_project()
+        return 'developer_instructions = %s\n' % toml_string(self.trust_markers['project'])
+
+    def shell_env_toml(self):
+        """A variable of the fixture's own, and the two start-up files a command's shell would read."""
+        files = self.shell_files()
+        return ('shell_environment_policy.set = { %s = %s, ZDOTDIR = %s, BASH_ENV = %s }\n'
+                % (TRUST_ENV, toml_string(self.trust_markers['project']), toml_string(files['zdotdir']),
+                   toml_string(files['bash-env'])))
+
+    def permissions_toml(self):
+        self.needs_trusted_project()
+        return 'default_permissions = ":danger-full-access"\n'
+
+    def thread_store_toml(self):
+        return 'experimental_thread_store_endpoint = %s\n' % toml_string(self.other_origin())
+
+    def rules_text(self):
+        """An exec-policy rule allowing the fixture's `touch`, by its path and by its name."""
+        self.needs_trusted_project()
+        return ('prefix_rule(pattern = ["/usr/bin/touch"], decision = "allow")\n'
+                'prefix_rule(pattern = ["touch"], decision = "allow")\n')
+
+    def person_mcp_toml(self):
+        """For the person's own settings: a server with the same name as the project's stdio server, and one of
+        the person's own, each started as a marker command of its own."""
+        same, other = self.marker_argv('mcp-person-same'), self.marker_argv('mcp-person-other')
+        return ''.join('mcp_servers.%s = { command = %s, args = [%s], startup_timeout_sec = 5 }\n'
+                       % (name, toml_string(argv[0]), ', '.join(toml_string(a) for a in argv[1:]))
+                       for name, argv in ((MCP_STDIO, same), (MCP_PERSON, other)))
+
+    def headers_helper_toml(self):
+        """An HTTP MCP server at the second listener's loopback address whose headers come from a helper command,
+        the marker command (run by Codex as `sh -c <command>`)."""
+        return ('mcp_servers.%s = { url = %s, http_headers_helper = %s, startup_timeout_sec = 5 }\n'
+                % (MCP_HELPER, toml_string(self.other_origin() + '/mcp-helper'),
+                   toml_string(self.marker_command('mcp-headers-helper'))))
+
+    def malformed_toml(self):
+        """A settings file that is not TOML at all."""
+        self.needs_trusted_project()
+        return 'this is = = not toml\n'
+
+    def agents_md(self, which):
+        """The text of the project's own `AGENTS.md` ('root') or of the nested `sub/AGENTS.md` ('sub')."""
+        self.needs_trusted_project()
+        return '# Invented instructions for a fixture\n\n%s\n' % self.trust_markers['agents-' + which]
+
+    def subfolder(self):
+        self.needs_trusted_project()
+        return self.project / SUBFOLDER
+
+    def denied_read_folder(self):
+        """An invented folder under `outside`, made empty on first use, that a permissions profile may deny reading."""
+        self.needs_trusted_project()
+        folder = self.root / 'outside' / 'denied-read'
+        if not folder.exists():
+            os.mkdir(folder, 0o700)
+        return folder
 
     def entry_operations(self):
         """With `working_files`: commands that change the directory entry naming Codex's temporary folder, or an
@@ -936,32 +1264,59 @@ class Run:
 
 class Client:
     def __init__(self, run, flags=()):
+        """Start the app server. Until it is returned, nobody holds it to stop it: if anything fails after it has
+        started, its whole process group is ended and its pipes closed here before the error is raised."""
         self.run = run
         self.stderr = open(run.root / ('codex-stderr-%d.log' % len(run.clients)), 'wb')
-        self.proc = subprocess.Popen(
-            [run.binary, '-c', 'analytics.enabled=false', '-c', 'model_provider="openai"',
-             '-c', 'openai_base_url="%s"' % run.stub.base_url]
-            + [part for flag in flags for part in ('-c', flag)] + ['app-server'],
-            cwd=str(run.project), env=run.environment(), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-            stderr=self.stderr, start_new_session=True)
+        try:
+            self.proc = subprocess.Popen(
+                [run.binary, '-c', 'analytics.enabled=false', '-c', 'model_provider="openai"',
+                 '-c', 'openai_base_url="%s"' % run.stub.base_url]
+                + [part for flag in flags for part in ('-c', flag)] + ['app-server'],
+                cwd=str(run.project), env=run.environment(), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                stderr=self.stderr, start_new_session=True)
+        except BaseException:
+            self.stderr.close()
+            raise
         self.pgid = self.proc.pid  # its own session, so its own process group
-        try:  # when it started, so that its number is not mistaken for another process's later
-            self.started_at = observe_process(self.proc.pid)[1]
-        except Unobserved:
-            self.started_at = None
-        self.lock = threading.Lock()
-        self.changed = threading.Condition(self.lock)
-        self.next_id = 0
-        self.replies = {}
-        self.notes = []
-        self.server_requests = []  # {'method', 'thread', 'id', 'params'}; params kept in memory only
-        self.tool_call_policy = 'answer'  # 'answer' or 'hold'
-        self.question_policy = 'decline'  # 'decline' (no answers) or 'hold'
-        self.held = []
-        self.writer = threading.Lock()
-        self.reader_end = None  # set by read(): 'eof', or the error that stopped it
-        self.reader = threading.Thread(target=self.read, daemon=True)
-        self.reader.start()
+        try:
+            try:  # when it started, so that its number is not mistaken for another process's later
+                self.started_at = observe_process(self.proc.pid)[1]
+            except Unobserved:
+                self.started_at = None
+            self.lock = threading.Lock()
+            self.changed = threading.Condition(self.lock)
+            self.next_id = 0
+            self.replies = {}
+            self.notes = []
+            self.server_requests = []  # {'method', 'thread', 'id', 'params'}; params kept in memory only
+            self.tool_call_policy = 'answer'  # 'answer' or 'hold'
+            self.question_policy = 'decline'  # 'decline' (no answers) or 'hold'
+            self.held = []
+            self.writer = threading.Lock()
+            self.reader_end = None  # set by read(): 'eof', or the error that stopped it
+            self.reader = threading.Thread(target=self.read, daemon=True)
+            self.reader.start()
+        except BaseException:
+            self.abandon()
+            raise
+
+    def abandon(self):
+        """End a server that failed to be set up: signal its whole process group, reap it, close its pipes. Each
+        step is attempted whatever the one before it did."""
+        try:
+            os.killpg(self.pgid, signal.SIGKILL)
+        except OSError:
+            pass
+        try:
+            self.proc.wait(5)
+        except Exception:  # noqa: BLE001 - the pipes are closed whatever happened here
+            pass
+        for stream in (self.proc.stdin, self.proc.stdout, self.stderr):
+            try:
+                stream.close()
+            except (OSError, ValueError, AttributeError):
+                pass
 
     def read(self):
         """Take every frame until the server's output ends. How it ended is kept: 'eof' when the output reached its

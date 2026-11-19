@@ -455,6 +455,11 @@ impl NativeHistory {
     pub(crate) fn list_page(&self) -> Option<&Value> {
         self.list_page.as_ref()
     }
+    /// Every conversation (Codex `Thread` row) this view has received for its
+    /// generation, as received; empty once the generation is closed.
+    pub(crate) fn received_threads(&self) -> impl Iterator<Item = &Value> {
+        self.threads.values()
+    }
     pub fn new(home: &str, generation: Value) -> Result<Self, String> {
         if home.is_empty() || !generation_valid(&generation) || generation["home"] != home {
             return Err("explicit selected home/full generation required".into());

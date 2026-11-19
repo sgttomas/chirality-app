@@ -8,10 +8,12 @@ import io
 import json
 import threading
 import os
+import re
 import shlex
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -345,6 +347,289 @@ class SecondProject(unittest.TestCase):
         self.assertEqual(set(stub.requests[1]), {'key', 'tools', 'body_tools', 'body_keys', 'markers'})
         self.assertNotIn('invented INVENTED-B here', json.dumps(stub.requests[1]))
         self.assertEqual(stub.requests[-1]['key'], 'k')
+
+
+class TrustedProjectFiles(unittest.TestCase):
+    """A project's own files for the trusted-project rows, their marker commands and the second listener, with no
+    Codex."""
+
+    def setUp(self):
+        self.scratch = tempfile.mkdtemp(prefix='level-trust-test-')
+        self.addCleanup(lambda: os.path.isdir(self.scratch) and os.rmdir(self.scratch))
+
+    def test_without_it_the_run_is_as_before(self):
+        with L.Run(self.scratch, '/nonexistent/codex') as run:
+            self.assertIsNone(run.other)
+            self.assertEqual((run.trust_markers, run.touch_refusals()), ({}, {}))
+            self.assertEqual(set(run.paths()), SecondProject.BEFORE)
+            self.assertEqual(set(run.commands()) - SecondProject.BEFORE, {'read', 'net'})
+            self.assertEqual(list((run.root / 'outside').iterdir()), [])
+            for refused in (lambda: run.marker('notify'), lambda: run.write_trust_file('.codex/config.toml', ''),
+                            lambda: run.write_home_file('config.toml', ''), run.hooks_json, run.policy_toml):
+                with self.assertRaises(L.Refused):
+                    refused()
+            self.assertFalse((run.project / '.codex').exists())
+
+    def test_each_marker_command_appends_to_its_own_file_alone_and_exits(self):
+        with L.Run(self.scratch, '/nonexistent/codex', trusted_project=True) as run:
+            outside = run.root / 'outside'
+            shell_files = {'zdotdir', 'bash-env.sh'}
+            self.assertEqual({p.name for p in outside.iterdir()}, shell_files)
+            with self.assertRaises(L.Refused):
+                run.marker('elsewhere')
+            for name in L.PROJECT_MARKERS:
+                path = run.marker(name)
+                self.assertEqual(path.parent, outside)
+                words = shlex.split(run.marker_command(name))
+                self.assertEqual((words[0], words[-2], words[-1]), ('/usr/bin/printf', '>>', str(path)))
+                self.assertEqual(run.marker_argv(name), ['/bin/sh', '-c', run.marker_command(name)])
+                self.assertEqual(run.marker_runs(name), 0)
+                for times in (1, 2):
+                    done = subprocess.run(run.marker_argv(name) + ['an argument notify would add'], capture_output=True,
+                                          env={'PATH': '/nonexistent'})  # absolute binaries only: no PATH needed
+                    self.assertEqual((done.returncode, done.stdout, done.stderr), (0, b'', b''))
+                    self.assertEqual(run.marker_runs(name), times)
+            self.assertEqual({p.name for p in outside.iterdir()},
+                             shell_files | {'m-' + name for name in L.PROJECT_MARKERS})
+            run.clear_markers()
+            self.assertEqual({p.name for p in outside.iterdir()}, shell_files)
+        self.assertFalse(run.root.exists())
+
+    def test_the_shell_start_up_files_are_the_marker_commands(self):
+        with L.Run(self.scratch, '/nonexistent/codex', trusted_project=True) as run:
+            files = run.shell_files()
+            # The one line beside the marker command: a builtin export, starting no program and writing nothing.
+            self.assertEqual(L.STARTUP_LINE, 'export LEVEL_INVENTED_STARTUP=ran')
+            self.assertEqual((files['zdotdir'] / '.zshenv').read_text(),
+                             L.STARTUP_LINE + '\n' + run.marker_command('zdotdir') + '\n')
+            self.assertEqual(files['bash-env'].read_text(), run.marker_command('bash-env') + '\n')
+            if os.path.exists('/bin/zsh'):  # the measured command sees what the start-up file exports
+                done = subprocess.run(['/bin/zsh', '-c', run.commands()['env']], capture_output=True, text=True,
+                                      env={'PATH': L.SYSTEM_PATH, 'ZDOTDIR': str(files['zdotdir'])}, check=True,
+                                      stdin=subprocess.DEVNULL)
+                self.assertEqual(done.stdout, 'startup=ran\nvariable=unset')
+                self.assertEqual(run.marker_runs('zdotdir'), 1)
+                run.clear_markers()
+            # Each is read where its shell reads it: shown here, so that the live control's marker means what it says.
+            # Standard input is /dev/null: bash reads no BASH_ENV when its standard input is a socket (its check for
+            # being started by a remote shell daemon), and a test runner's inherited input can be one.
+            for shell, variable, value, name in (('/bin/zsh', 'ZDOTDIR', files['zdotdir'], 'zdotdir'),
+                                                 ('/bin/bash', 'BASH_ENV', files['bash-env'], 'bash-env')):
+                if os.path.exists(shell):
+                    subprocess.run([shell, '-c', 'true'], env={'PATH': L.SYSTEM_PATH, variable: str(value)}, check=True,
+                                   stdin=subprocess.DEVNULL)
+                    self.assertEqual(run.marker_runs(name), 1, shell)
+
+    def test_the_project_files_parse_and_name_only_the_marker_commands(self):
+        import tomllib
+        with L.Run(self.scratch, '/nonexistent/codex', trusted_project=True) as run:
+            text = (run.mcp_toml() + run.notify_toml() + run.policy_toml() + run.provider_toml() +
+                    run.developer_toml() + run.shell_env_toml() + run.permissions_toml() + run.thread_store_toml() +
+                    run.hook_state_toml([('/invented/.codex/hooks.json:stop:0:0', 'sha256:invented')]))
+            settings = tomllib.loads(text)  # every builder joins with every other
+            self.assertEqual(settings['mcp_servers'][L.MCP_STDIO]['command'], '/bin/sh')
+            self.assertEqual(['/bin/sh'] + settings['mcp_servers'][L.MCP_STDIO]['args'], run.marker_argv('mcp-stdio'))
+            self.assertEqual(settings['mcp_servers'][L.MCP_HTTP]['url'], 'http://127.0.0.1:%d/mcp' % run.other.port)
+            self.assertEqual(settings['notify'], run.marker_argv('notify'))
+            self.assertEqual((settings['approval_policy'], settings['sandbox_mode'], settings['approvals_reviewer'],
+                              settings['sandbox_workspace_write']),
+                             ('never', 'danger-full-access', 'auto_review', {'network_access': True}))
+            self.assertEqual((settings['model_provider'], settings['model'], settings['openai_base_url']),
+                             (L.OTHER_PROVIDER, L.OTHER_MODEL, run.other.base_url))
+            self.assertEqual(settings['model_providers'][L.OTHER_PROVIDER]['base_url'], run.other.base_url)
+            self.assertNotEqual(run.other.port, run.stub.port)
+            self.assertEqual(settings['developer_instructions'], run.trust_markers['project'])
+            self.assertEqual(settings['shell_environment_policy']['set'],
+                             {L.TRUST_ENV: run.trust_markers['project'], 'ZDOTDIR': str(run.shell_files()['zdotdir']),
+                              'BASH_ENV': str(run.shell_files()['bash-env'])})
+            self.assertEqual(settings['default_permissions'], ':danger-full-access')
+            self.assertEqual(settings['experimental_thread_store_endpoint'], run.other_origin())
+            self.assertEqual(settings['hooks'], {'state': {'/invented/.codex/hooks.json:stop:0:0':
+                                                           {'trusted_hash': 'sha256:invented'}}})
+            hooks = json.loads(run.hooks_json())
+            self.assertEqual(set(hooks), {'hooks'})
+            self.assertEqual(set(hooks['hooks']), set(L.HOOK_MARKERS))
+            for event, name in L.HOOK_MARKERS.items():
+                self.assertEqual(hooks['hooks'][event], [{'hooks': [{'type': 'command', 'timeout': 5,
+                                                                     'command': run.marker_command(name)}]}])
+            # Every program any file names is a marker command, and every address is the second listener's.
+            commands = {run.marker_command(n) for n in L.PROJECT_MARKERS}
+            for blob in (text, run.hooks_json()):
+                self.assertEqual(blob.count('printf'), sum(blob.count(json.dumps(c)[1:-1]) for c in commands))
+                self.assertEqual(blob.count('http://'), blob.count(run.other_origin()))
+            self.assertEqual(run.rules_text().count('prefix_rule('), 2)
+            self.assertEqual(set(re.findall(r'pattern = \[([^\]]*)\]', run.rules_text())),
+                             {'"/usr/bin/touch"', '"touch"'})
+
+    def test_project_and_home_files_go_only_where_named(self):
+        with L.Run(self.scratch, '/nonexistent/codex', trusted_project=True) as run:
+            for relative in L.TRUST_FILES:
+                target = run.write_trust_file(relative, 'invented\n')
+                self.assertEqual(target, run.project / relative)
+                self.assertEqual(target.read_text(), 'invented\n')
+            run.write_trust_file('.codex/config.toml', 'replaced\n')
+            self.assertEqual((run.project / '.codex' / 'config.toml').read_text(), 'replaced\n')
+            for relative in L.HOME_FILES:
+                self.assertEqual(run.write_home_file(relative, 'invented\n'), run.home / relative)
+            for bad in ('../outside/x', '.codex/other.toml', 'sub/other.md', 'other/AGENTS.md', '/etc/x', 'config.toml'):
+                with self.subTest(bad=bad), self.assertRaises(L.Refused):
+                    run.write_trust_file(bad, 'x')
+            for bad in ('../x', 'auth.json', 'rules/other.rules'):
+                with self.subTest(bad=bad), self.assertRaises(L.Refused):
+                    run.write_home_file(bad, 'x')
+        self.assertFalse(run.root.exists())
+
+    def test_the_second_rounds_files_parse_and_name_only_the_marker_commands(self):
+        import tomllib
+        with L.Run(self.scratch, '/nonexistent/codex', trusted_project=True) as run:
+            person = tomllib.loads(run.person_mcp_toml())['mcp_servers']
+            self.assertEqual(set(person), {L.MCP_STDIO, L.MCP_PERSON})  # one shares the project's server's name
+            self.assertEqual(['/bin/sh'] + person[L.MCP_STDIO]['args'], run.marker_argv('mcp-person-same'))
+            self.assertEqual(['/bin/sh'] + person[L.MCP_PERSON]['args'], run.marker_argv('mcp-person-other'))
+            helper = tomllib.loads(run.headers_helper_toml())['mcp_servers'][L.MCP_HELPER]
+            self.assertEqual(helper['url'], 'http://127.0.0.1:%d/mcp-helper' % run.other.port)
+            self.assertEqual(helper['http_headers_helper'], run.marker_command('mcp-headers-helper'))
+            # Codex runs a headers helper as `sh -c <command>`: so run, it appends its marker and prints nothing.
+            done = subprocess.run(['sh', '-c', helper['http_headers_helper']], capture_output=True,
+                                  env={'PATH': L.SYSTEM_PATH})
+            self.assertEqual((done.returncode, done.stdout, run.marker_runs('mcp-headers-helper')), (0, b'', 1))
+            with self.assertRaises(tomllib.TOMLDecodeError):
+                tomllib.loads(run.malformed_toml())
+            for which, folder in (('root', run.project), ('sub', run.subfolder())):
+                text = run.agents_md(which)
+                self.assertIn(run.trust_markers['agents-' + which], text)
+                target = run.write_trust_file('AGENTS.md' if which == 'root' else 'sub/AGENTS.md', text)
+                self.assertEqual(target, folder / 'AGENTS.md')
+            self.assertEqual(run.subfolder(), run.project / L.SUBFOLDER)
+            markers = list(run.trust_markers.values())
+            self.assertEqual(len(set(markers)), len(markers))
+            self.assertFalse(any(a != b and a in b for a in markers for b in markers))  # none hides another
+            denied = run.denied_read_folder()
+            self.assertEqual((denied.parent, list(denied.iterdir()), run.denied_read_folder()),
+                             (run.root / 'outside', [], denied))
+
+    def test_the_stub_notes_where_each_watched_marker_sits(self):
+        stub = L.ScriptedStub()
+        self.addCleanup(stub.close)
+        stub.answer(body('LEVEL[k] go'))
+        self.assertEqual(stub.placements, [{}])  # nothing watched, nothing noted, still aligned
+        stub.watched = ('INVENTED-A', 'INVENTED-B', 'INVENTED-C')
+        carrying = body('LEVEL[k] go INVENTED-B', outputs=[('c1', 'an output naming INVENTED-A')])
+        carrying['input'][0]['content'][0]['text'] = 'invented INVENTED-A and INVENTED-A again'
+        carrying['input'][0]['id'] = 'INVENTED-C'  # in an entry's other field, not in the text the model reads
+        carrying['instructions'] = 'base INVENTED-B'
+        carrying['model'] = L.MODEL
+        stub.record_model = True
+        stub.answer(carrying)
+        self.assertEqual(len(stub.placements), len(stub.requests))
+        self.assertEqual(stub.placements[-1], {
+            'INVENTED-A': {'count': 2, 'where': ['input[0]:developer'], 'elsewhere': 1},  # and once in an output
+            'INVENTED-B': {'count': 2, 'where': ['instructions', 'input[1]:user'], 'elsewhere': 0},
+            'INVENTED-C': {'count': 0, 'where': [], 'elsewhere': 1}})
+        self.assertNotIn('invented', json.dumps(stub.placements))  # positions only, never the text
+        self.assertEqual(stub.requests[-1]['model'], L.MODEL)  # the model each request names is kept
+
+    def test_a_client_that_fails_after_its_server_started_leaves_nothing_running(self):
+        """Between the server's start and the Client's return nobody else holds it: a failure there ends it."""
+        started = []
+        real = subprocess.Popen
+
+        def popen(argv, **kwargs):  # a stand-in that stays up until its input closes, in place of Codex
+            started.append(real(['/bin/sh', '-c', 'read unused'], **kwargs))
+            return started[-1]
+        with L.Run(self.scratch, '/nonexistent/codex', trusted_project=True) as run:
+            with mock.patch.object(L.subprocess, 'Popen', popen), \
+                    mock.patch.object(L, 'observe_process', side_effect=RuntimeError('invented failure')):
+                with self.assertRaisesRegex(RuntimeError, 'invented failure'):
+                    L.Client(run)
+            self.assertEqual((len(started), run.clients), (1, []))
+            proc = started[0]
+            self.assertIsNotNone(proc.poll())  # ended and reaped
+            self.assertFalse(L.group_has_members(proc.pid))
+            self.assertTrue(proc.stdin.closed and proc.stdout.closed)
+
+    def test_the_second_listener_is_closed_when_it_cannot_start_serving(self):
+        import socket
+        real, made = L.ScriptedStub.serve, []
+
+        def serve(stub):
+            made.append(stub)
+            if len(made) == 2:  # the second listener's
+                raise OSError('invented serving failure')
+            return real(stub)
+        run = L.Run(self.scratch, '/nonexistent/codex', trusted_project=True)
+        with mock.patch.object(L.ScriptedStub, 'serve', serve):
+            with self.assertRaisesRegex(OSError, 'invented serving failure'):
+                run.__enter__()
+        self.assertIs(run.other, made[1])  # registered before it was to serve, so the run's cleanup closed it
+        self.assertFalse(run.root.exists())
+        for stub in made:
+            self.assertEqual(stub.server.socket.fileno(), -1)
+            with self.assertRaises(OSError):
+                socket.create_connection(('127.0.0.1', stub.port), timeout=1).close()
+
+    def test_closing_a_listener_ends_a_connection_its_handler_holds(self):
+        import socket
+        stub = L.ScriptedStub()
+        self.addCleanup(stub.close)
+        raw = socket.create_connection(('127.0.0.1', stub.port), timeout=5)
+        self.addCleanup(raw.close)  # sends nothing: its handler waits for a request line that never comes
+        deadline = time.monotonic() + 3
+        while not stub.active and time.monotonic() < deadline:
+            time.sleep(0.05)
+        self.assertEqual((stub.connections, len(stub.active)), (1, 1))
+        began = time.monotonic()
+        stub.close()
+        self.assertLess(time.monotonic() - began, 5)
+        try:
+            ended = raw.recv(1) == b''
+        except ConnectionResetError:
+            ended = True
+        self.assertTrue(ended)  # the held connection was ended, not left open
+        self.assertEqual(stub.active, set())
+
+    def test_the_touch_and_variable_commands(self):
+        with L.Run(self.scratch, '/nonexistent/codex', trusted_project=True) as run:
+            commands = run.commands()
+            self.assertEqual(run.stub.allowed_commands, set(commands.values()))
+            self.assertIs(run.other.allowed_commands, run.stub.allowed_commands)
+            for key, folder in (('touch-out', run.root / 'outside'), ('touch-in', run.project)):
+                path = run.paths()[key]
+                self.assertEqual(path.parent, folder)
+                self.assertEqual(shlex.split(commands[key]), ['/usr/bin/touch', str(path)])
+                self.assertEqual(run.touch_refusals()[key], {'touch: %s: Operation not permitted' % path})
+                subprocess.run(['/bin/sh', '-c', commands[key]], check=True)
+                self.assertTrue(path.exists())
+            for env, printed in (({}, 'startup=unset\nvariable=unset'),
+                                 ({L.TRUST_ENV: 'invented'}, 'startup=unset\nvariable=invented'),
+                                 ({L.TRUST_ENV: ''}, 'startup=unset\nvariable='),
+                                 ({L.STARTUP_ENV: 'ran'}, 'startup=ran\nvariable=unset')):
+                done = subprocess.run(['/bin/sh', '-c', commands['env']], capture_output=True, text=True, env=env)
+                self.assertEqual((done.returncode, done.stdout), (0, printed))
+
+    def test_the_second_listener_is_loopback_counts_every_connection_and_closes_with_the_run(self):
+        import socket
+        with L.Run(self.scratch, '/nonexistent/codex', trusted_project=True) as run:
+            other = run.other
+            self.assertTrue(other.base_url.startswith('http://127.0.0.1:'))
+            self.assertEqual(other.server.server_address[0], '127.0.0.1')
+            self.assertEqual((other.connections, other.contacts), (0, []))
+            with socket.create_connection(('127.0.0.1', other.port), timeout=3) as raw:
+                raw.sendall(b'PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n')  # not HTTP/1.1, yet counted
+                raw.recv(64)
+            conn = http.client.HTTPConnection('127.0.0.1', other.port, timeout=3)
+            conn.request('POST', '/mcp', body=b'{}', headers={'Content-Type': 'application/json'})
+            self.assertEqual(conn.getresponse().status, 404)
+            conn.close()
+            deadline = time.monotonic() + 3
+            while other.connections < 2 and time.monotonic() < deadline:
+                time.sleep(0.05)
+            self.assertEqual(other.connections, 2)
+            self.assertEqual(other.contacts, [('POST', '/mcp')])
+            self.assertEqual(run.stub.connections, 0)  # the stub's own count is apart
+            port = other.port
+        with self.assertRaises(OSError):
+            socket.create_connection(('127.0.0.1', port), timeout=1).close()
 
 
 class Judging(unittest.TestCase):
