@@ -1746,11 +1746,13 @@ class TrustedProject(Probing):
     the one trust entry, `untrusted` or `trusted`; each turn sends the level. The project's files are invented by
     the fixture (`Run(trusted_project=True)`), and every program they name is the fixture's marker command.
 
-    Each test observes the entry `trusted` and `untrusted`, each the other's control, and where the safe outcome is
-    an absence, also a positive control: the same declaration in the person's own settings (the Codex home), which
+    Each test observes the entry `trusted` and `untrusted`, each the other's control, and where an outcome is an
+    absence, also a positive control: the same declaration in the person's own settings (the Codex home), which
     shows the declaration works in this fixture. Every observation of a test is recorded before anything is
-    asserted, and a failure states all of them. Each asserts that the App is safe: the project's files start no
-    process and move nothing the App sends. A failure is the finding."""
+    asserted, and a failure states all of them. A test's assertion is the one place its expectation lives: what was
+    observed at the pin for the rows already run, and, for the rows not yet run, a prediction from the public
+    source or, where a docstring says "open", only the test's control. The tests added after the first run also
+    print every observation to standard error (`report`), so one run answers them whether they pass or fail."""
 
     EDITS = app_level('edits')
     SUPERVISED_ROW = app_level('supervised')
@@ -1768,12 +1770,26 @@ class TrustedProject(Probing):
             frame['config'] = config
         return frame, turn
 
-    def start(self, run, client, trust, level=None, **extra):
-        """(the start reply or None, its error or None, the turn's level). An error is recorded, not raised."""
+    def start(self, run, client, trust, level=None, config=None, drop=(), **extra):
+        """(the start reply or None, its error or None, the turn's level). An error is recorded, not raised.
+        `config` adds keys to the frame's `config` beside what the App sends; `drop` removes frame fields."""
         frame, turn = self.frame(run, trust, level)
         frame.update(extra)
+        if config:
+            frame['config'] = dict(frame.get('config') or {}, **config)
+        for field in drop:
+            frame.pop(field, None)
         reply = client.call('thread/start', frame)
         return reply.get('result'), reply.get('error'), turn
+
+    def report(self, observed):
+        """Print every observation of the test to standard error, whatever its outcome."""
+        sys.stderr.write('\nOBSERVED %s:\n%s\n' % (self.id().rsplit('.', 1)[-1], shown(observed)))
+        sys.stderr.flush()
+
+    def placed(self, stub, key):
+        """For the requests carrying the turn `key`: each watched marker's count and places, per request."""
+        return [p for r, p in zip(stub.requests, stub.placements) if r['key'] == key]
 
     def seen(self, run, client, thread, key, **settings):
         """One fixed command's judged outcome, as (outcome, requests raised, effect: its file present or the
@@ -1800,7 +1816,7 @@ class TrustedProject(Probing):
 
     # ----- a: the project layer -----
 
-    def test_a_project_layer_loads_only_when_trusted_and_an_entry_does_as_the_settings_mark(self):
+    def test_a_project_layer_loads_with_a_trusted_mark_or_entry_and_with_no_entry_but_not_with_an_untrusted_entry(self):
         """The project's `.codex/config.toml` names developer instructions (a marker line), approval, sandbox,
         network, reviewer, another provider and model, the built-in provider's address and a notify program.
         `config/read` with layers for the project (as the App reads it), with the home's settings marking A
@@ -1808,10 +1824,11 @@ class TrustedProject(Probing):
         the effective developer instructions and none of the keys the public source strips from a project; disabled
         with a reason when not marked, and the marker not effective. Then, on the same server, three starts at the
         App's edits level, with no entry, a `trusted` entry and an `untrusted` entry: whether the turn's requests
-        carry the marker. A `trusted` entry does as the mark: it carries the marker where the settings do not mark A,
-        and an `untrusted` or no entry carries none. Recorded, not asserted: an `untrusted` entry where the settings
-        mark A trusted (the App never sends that), and the effective approval, sandbox, reviewer, provider and model
-        `config/read` reports."""
+        carry the marker. Observed at the pin: a `trusted` entry carries it as the mark does, and so does a start
+        with no entry where the settings do not mark A (Codex trusts the folder by itself); an `untrusted` entry
+        carries none. Recorded, not asserted: an `untrusted` entry where the settings mark A trusted (the App never
+        sends that), the effective values `config/read` reports, and the home's settings after the start with no
+        entry where they did not mark A."""
         observed = {}
         for marked in (True, False):
             with L.Run(SCRATCH, BINARY, trusted_project=True) as run:
@@ -1851,15 +1868,22 @@ class TrustedProject(Probing):
                     key = 'layers_%s_%s' % ('m' if marked else 'u', entry or 'none')
                     status = self.keyed_turn(run, client, reply['thread']['id'], key, **turn)
                     observed[case] = {'turn': status, 'marker carried': self.carried(run.stub, key, marker)}
+                    if entry is None and not marked:
+                        settings = run.home / 'config.toml'
+                        observed[case]['settings after'] = settings.read_text() if settings.exists() else None
         asserted = {k: observed.get(k) for k in ('marked: entry none', 'marked: entry trusted',
                                                   'not marked: entry none', 'not marked: entry trusted',
                                                   'not marked: entry untrusted')}
+        if isinstance(asserted['not marked: entry none'], dict):  # recorded, not asserted
+            asserted['not marked: entry none'] = {k: v for k, v in asserted['not marked: entry none'].items()
+                                                  if k != 'settings after'}
         reads = {k: observed.get(k) for k in ('marked: config/read', 'not marked: config/read')}
         reads = {k: (v if not isinstance(v, dict) else
                      {'project layers': v['project layers'], 'disabled': v['disabled'],
                       'reason given': [bool(r) for r in v['reasons']], 'marker effective': v['marker effective'],
                       'stripped keys present': v['stripped keys present'] if k.startswith('marked') else '-'})
                  for k, v in reads.items()}
+        self.report(observed)
         self.assertEqual((reads, asserted), (
             {'marked: config/read': {'project layers': 1, 'disabled': [False], 'reason given': [False],
                                      'marker effective': True, 'stripped keys present': []},
@@ -1867,7 +1891,7 @@ class TrustedProject(Probing):
                                          'marker effective': False, 'stripped keys present': '-'}},
             {'marked: entry none': {'turn': 'completed', 'marker carried': True},
              'marked: entry trusted': {'turn': 'completed', 'marker carried': True},
-             'not marked: entry none': {'turn': 'completed', 'marker carried': False},
+             'not marked: entry none': {'turn': 'completed', 'marker carried': True},
              'not marked: entry trusted': {'turn': 'completed', 'marker carried': True},
              'not marked: entry untrusted': {'turn': 'completed', 'marker carried': False}}),
             'observed:\n%s' % shown(observed))
@@ -1955,47 +1979,53 @@ class TrustedProject(Probing):
 
     # ----- c: MCP servers -----
 
-    def mcp_case(self, run, trust):
-        """A fresh server; a start at edits with the entry `trust`; what started within 3 s; one turn; what started
-        by its end; then `mcpServerStatus/list` for the thread, last, because a listing may itself start servers."""
+    MCP_NAMES = (L.MCP_STDIO, L.MCP_HTTP, L.MCP_PERSON, L.MCP_HELPER)
+
+    def mcp_case(self, run, trust, config=None, markers=('mcp-stdio',)):
+        """A fresh server; a start at edits with the entry `trust` (and `config` added to the App's); what started
+        within 3 s; one turn; what started by its end; then `mcpServerStatus/list` for the thread, last, because a
+        listing may itself start servers. "(marker runs, connections)" counts the first of `markers` and the
+        connections the second listener accepted; `markers` gives each of them by name."""
         run.clear_markers()
         connections = run.other.connections
         client = run.start()
-        reply, error, turn = self.start(run, client, trust)
+        reply, error, turn = self.start(run, client, trust, config=config)
         if error:
             client.stop()
             return {'start error': json.dumps(error)[:300]}
         thread = reply['thread']['id']
         time.sleep(3)
-        at_start = (run.marker_runs('mcp-stdio'), run.other.connections - connections)
+        at_start = (run.marker_runs(markers[0]), run.other.connections - connections)
         key = 'mcp_%s_%d' % (trust, len(run.stub.requests))
         status = self.keyed_turn(run, client, thread, key, **turn)
         time.sleep(2)
-        after_turn = (run.marker_runs('mcp-stdio'), run.other.connections - connections)
+        after_turn = (run.marker_runs(markers[0]), run.other.connections - connections)
+        by_marker = {name: run.marker_runs(name) for name in markers}
         offered = sorted({t for r in run.stub.requests if r['key'] == key for t in r['tools']
-                          if L.MCP_STDIO in str(t) or L.MCP_HTTP in str(t)})
+                          if any(name in str(t) for name in self.MCP_NAMES)})
         startup = sorted({(n['params'].get('name'), n['params'].get('status'))
                           for n in client.notes_for('mcpServer/startupStatus/updated')
-                          if n['params'].get('name') in (L.MCP_STDIO, L.MCP_HTTP)})
+                          if n['params'].get('name') in self.MCP_NAMES})
         listing = client.call('mcpServerStatus/list', {'threadId': thread})
         listed = (json.dumps(listing['error'])[:200] if 'error' in listing else
                   sorted(s.get('name') for s in listing['result'].get('data') or []
-                         if s.get('name') in (L.MCP_STDIO, L.MCP_HTTP)))
+                         if s.get('name') in self.MCP_NAMES))
         time.sleep(1)
         client.stop()
         return {'turn': status, 'started at start (marker runs, connections)': at_start,
-                'started by the turn (marker runs, connections)': after_turn, 'tools offered': offered,
-                'startup notifications': startup, 'listed': listed,
-                'after the listing (marker runs, connections)': (run.marker_runs('mcp-stdio'),
+                'started by the turn (marker runs, connections)': after_turn, 'markers': by_marker,
+                'tools offered': offered, 'startup notifications': startup, 'listed': listed,
+                'after the listing (marker runs, connections)': (run.marker_runs(markers[0]),
                                                                  run.other.connections - connections)}
 
-    def test_a_projects_own_mcp_servers_are_not_started(self):
+    def test_a_trusted_projects_own_mcp_servers_are_started_and_an_untrusted_ones_are_not(self):
         """Two MCP servers in the project's `.codex/config.toml`: one whose command is the fixture's marker command,
-        one at the second listener's loopback address. With either entry, neither is started at thread start or by
-        the first turn: no marker line and no connection to the second listener, no startup notification names
-        either, and neither's tools are offered. Recorded, not asserted: what `mcpServerStatus/list` for the thread
-        lists, and whether the listing started either. The positive control: the same two servers in the person's
-        own settings, with the `untrusted` entry: the marker or the connection appears."""
+        one at the second listener's loopback address. Observed at the pin. With the `trusted` entry, both are
+        started at thread start (the marker runs and the second listener accepts a connection) and again by the
+        first turn; startup notifications name both, `starting` then `failed` (the fixture's programs are not MCP
+        servers); none of their tools are offered; and `mcpServerStatus/list` for the thread lists neither. With
+        the `untrusted` entry, nothing of either. Recorded, not asserted: the exact counts. The positive control:
+        the same two servers in the person's own settings, with the `untrusted` entry, are started."""
         observed = {}
         with L.Run(SCRATCH, BINARY, trusted_project=True) as run:
             run.write_trust_file('.codex/config.toml', run.mcp_toml())
@@ -2003,17 +2033,27 @@ class TrustedProject(Probing):
                 observed[trust] = self.mcp_case(run, trust)
         with L.Run(SCRATCH, BINARY, trusted_project=True) as run:
             run.write_home_file('config.toml', run.mcp_toml())
-            observed['control: in the person\'s settings'] = self.mcp_case(run, 'untrusted')
-        control = observed['control: in the person\'s settings']
-        nothing = {'turn': 'completed', 'started at start (marker runs, connections)': (0, 0),
-                   'started by the turn (marker runs, connections)': (0, 0), 'tools offered': [],
-                   'startup notifications': []}
-        asserted = {trust: {k: observed[trust].get(k) for k in nothing} for trust in TRUST_CASES}
-        asserted['control started'] = isinstance(control, dict) and any(
-            control.get(k, (0, 0)) != (0, 0) for k in ('started at start (marker runs, connections)',
-                                                       'started by the turn (marker runs, connections)'))
-        self.assertEqual(asserted, {'untrusted': nothing, 'trusted': nothing, 'control started': True},
-                         'observed:\n%s' % shown(observed))
+            observed["control: in the person's settings"] = self.mcp_case(run, 'untrusted')
+        self.report(observed)
+
+        def started(case):
+            if not isinstance(case, dict) or 'start error' in case:
+                return case
+            return {'turn': case['turn'],
+                    'at start': tuple(n > 0 for n in case['started at start (marker runs, connections)']),
+                    'by the turn': tuple(n > 0 for n in case['started by the turn (marker runs, connections)']),
+                    'tools offered': case['tools offered'], 'startup notifications': case['startup notifications'],
+                    'listed': case['listed']}
+        both = [(L.MCP_HTTP, 'failed'), (L.MCP_HTTP, 'starting'), (L.MCP_STDIO, 'failed'), (L.MCP_STDIO, 'starting')]
+        self.assertEqual({k: started(v) for k, v in observed.items()}, {
+            'untrusted': {'turn': 'completed', 'at start': (False, False), 'by the turn': (False, False),
+                          'tools offered': [], 'startup notifications': [], 'listed': []},
+            'trusted': {'turn': 'completed', 'at start': (True, True), 'by the turn': (True, True),
+                        'tools offered': [], 'startup notifications': both, 'listed': []},
+            "control: in the person's settings": {
+                'turn': 'completed', 'at start': (True, True), 'by the turn': (True, True), 'tools offered': [],
+                'startup notifications': both, 'listed': [L.MCP_HTTP, L.MCP_STDIO]}},
+            'observed:\n%s' % shown(observed))
 
     # ----- d: notify -----
 
@@ -2135,26 +2175,48 @@ class TrustedProject(Probing):
                                         'second listener': (0, 0)} for t in TRUST_CASES},
                          'observed:\n%s' % shown(observed))
 
-    def test_a_projects_thread_store_endpoint_is_not_contacted(self):
-        """The project's `.codex/config.toml` names the second listener's loopback address as
-        `experimental_thread_store_endpoint`. With either entry, on a fresh server: the start succeeds, a turn
-        completes, and the second listener accepts no connection within 2 s after it."""
+    def test_a_trusted_projects_settings_file_codex_cannot_load_refuses_the_start(self):
+        """Two causes, each the project's whole `.codex/config.toml`, each started on a fresh server with each
+        entry. Observed at the pin: a key Codex no longer supports, `experimental_thread_store_endpoint` (named here
+        at the second listener's loopback address): with the `trusted` entry the start is refused with an error
+        naming the key, and the second listener accepts no connection; with the `untrusted` entry the start succeeds
+        and a turn completes. Predicted from the public source (`discover_project_layers` in
+        `codex-rs/config/src/loader/mod.rs` returns a parse error only for a trusted folder) and not yet observed: a
+        file that is not TOML at all does the same, the error naming the project's file. At this pin no supported
+        key points saved conversations or another store at an address: `experimental_thread_store` takes only a
+        local or in-memory store."""
         observed = {}
         with L.Run(SCRATCH, BINARY, trusted_project=True) as run:
-            run.write_trust_file('.codex/config.toml', run.thread_store_toml())
-            for trust in TRUST_CASES:
-                connections = run.other.connections
-                client = run.start()
-                reply, error, turn = self.start(run, client, trust)
-                status = None
-                if not error:
-                    status = self.keyed_turn(run, client, reply['thread']['id'], 'store_%s' % trust, **turn)
-                time.sleep(2)
-                client.stop()
-                observed[trust] = {'start error': error and json.dumps(error)[:300], 'turn': status,
-                                   'connections': run.other.connections - connections}
-        self.assertEqual(observed, {t: {'start error': None, 'turn': 'completed', 'connections': 0}
-                                    for t in TRUST_CASES}, 'observed:\n%s' % shown(observed))
+            for cause, text in (('unsupported key', run.thread_store_toml()), ('not TOML', run.malformed_toml())):
+                run.write_trust_file('.codex/config.toml', text)
+                for trust in TRUST_CASES:
+                    connections = run.other.connections
+                    client = run.start()
+                    reply, error, turn = self.start(run, client, trust)
+                    status = None
+                    if not error:
+                        status = self.keyed_turn(run, client, reply['thread']['id'], 'load_%s_%s'
+                                                 % (cause.replace(' ', '-'), trust), **turn)
+                    time.sleep(2)
+                    client.stop()
+                    observed['%s, %s' % (cause, trust)] = {
+                        'start error': error and json.dumps(error)[:400], 'turn': status,
+                        'connections': run.other.connections - connections}
+        self.report(observed)
+        asserted = {}
+        for case, seen in observed.items():
+            message = seen['start error'] or ''
+            asserted[case] = {'refused': bool(message), 'turn': seen['turn'], 'connections': seen['connections'],
+                              'names the cause': ('experimental_thread_store_endpoint' in message
+                                                  if case.startswith('unsupported') else
+                                                  'config.toml' in message) if message else None}
+        self.assertEqual(asserted, {
+            'unsupported key, untrusted': {'refused': False, 'turn': 'completed', 'connections': 0,
+                                           'names the cause': None},
+            'unsupported key, trusted': {'refused': True, 'turn': None, 'connections': 0, 'names the cause': True},
+            'not TOML, untrusted': {'refused': False, 'turn': 'completed', 'connections': 0, 'names the cause': None},
+            'not TOML, trusted': {'refused': True, 'turn': None, 'connections': 0, 'names the cause': True}},
+            'observed:\n%s' % shown(observed))
 
     # ----- g: instructions from settings -----
 
@@ -2222,13 +2284,16 @@ class TrustedProject(Probing):
 
     # ----- i: the project's other files and settings -----
 
-    def test_a_projects_allow_rule_does_not_take_a_command_out_of_the_sandbox_or_past_the_person(self):
+    def test_a_trusted_projects_allow_rule_takes_a_command_out_of_the_sandbox_and_past_the_person(self):
         """An exec-policy rule in the project's `.codex/rules/invented.rules` allows `/usr/bin/touch` (by its path
-        and by its name). With either entry, on a fresh server: at the App's edits level, `touch` of a file outside
-        the project runs and is refused by the sandbox; at the supervised level, it is put to the client first and
-        declined. The positive control: the same rule in the person's own rules (the Codex home's
-        `rules/default.rules`), with the `untrusted` entry, at edits: the same `touch` succeeds and its file appears,
-        while a plain write outside the project on that thread is still refused by the sandbox."""
+        and by its name). Observed at the pin, on a fresh server for each entry. With the `trusted` entry: at the
+        App's edits level, `touch` of a file outside the project succeeds and its file appears, with no request;
+        at the supervised level, the same, with no request. With the `untrusted` entry: at edits it runs and is
+        refused by the sandbox; at supervised it is put to the client first and declined. The positive control: the
+        same rule in the person's own rules (the Codex home's `rules/default.rules`), with the `untrusted` entry, at
+        edits: the same `touch` succeeds, while a plain write outside the project on that thread is still refused by
+        the sandbox (`sandbox_override_for_first_attempt` in `codex-rs/core/src/tools/sandboxing.rs`: an allow rule
+        runs its command without the sandbox)."""
         observed = {}
         with L.Run(SCRATCH, BINARY, trusted_project=True) as run:
             run.write_trust_file('.codex/rules/invented.rules', run.rules_text())
@@ -2249,52 +2314,336 @@ class TrustedProject(Probing):
                 'start error: %s' % json.dumps(error)[:300] if error else
                 {'touch outside': self.seen(run, client, reply['thread']['id'], 'touch-out', **turn),
                  'plain write outside': self.seen(run, client, reply['thread']['id'], 'out', **turn)})
-        expected = {t: {'edits': (SANDBOX_REFUSED, 0, False), 'supervised': (DECLINED, 1, False)} for t in TRUST_CASES}
+        expected = {'untrusted': {'edits': (SANDBOX_REFUSED, 0, False), 'supervised': (DECLINED, 1, False)},
+                    'trusted': {'edits': (SUCCEEDED, 0, True), 'supervised': (SUCCEEDED, 0, True)}}
+        self.report(observed)
         expected["control: in the person's rules"] = {'touch outside': (SUCCEEDED, 0, True),
                                                       'plain write outside': (SANDBOX_REFUSED, 0, False)}
         self.assertEqual(observed, expected, 'observed:\n%s' % shown(observed))
 
-    def test_a_projects_shell_environment_starts_nothing_in_a_command(self):
+    def test_a_trusted_projects_shell_environment_reaches_commands_and_runs_its_zdotdir(self):
         """The project's `.codex/config.toml` sets, through `shell_environment_policy.set`, a variable of the
         fixture's own, `ZDOTDIR` (a folder whose `.zshenv` is the marker command) and `BASH_ENV` (a file that is the
-        marker command). At the App's full-access level (its default), so that a marker write is not refused, with
-        either entry, on a fresh server: a command runs, and neither start-up file's marker appears. Recorded,
-        asserted only for the `untrusted` entry: what the command sees of the variable (`unset`). The positive
-        control: the same policy in the person's own settings, with the `untrusted` entry: the command sees the
-        variable and at least one of the two markers appears."""
+        marker command). At the App's full-access level (its default), so that a marker write is not refused, on a
+        fresh server for each entry. Observed at the pin. With the `trusted` entry, a command sees the project's
+        variable, and the `ZDOTDIR` marker runs (twice in the first run); the `BASH_ENV` one does not (the commands'
+        shell is zsh). With the `untrusted` entry, the command sees the variable `unset` and neither marker runs. The
+        positive control: the same policy in the person's own settings, with the `untrusted` entry: the command sees
+        the variable and the `ZDOTDIR` marker runs."""
         observed = {}
-
-        def case(run, trust):
-            run.clear_markers()
-            client = run.start()
-            reply, error, turn = self.start(run, client, trust, level=self.FULL_ROW)
-            if error:
-                client.stop()
-                return {'start error': json.dumps(error)[:300]}
-            try:
-                outcome = probe(run, client, reply['thread']['id'], 'env', **turn)
-                command = (outcome.kind, outcome.text)
-            except L.Refused as refused:
-                command = ('unresolved', str(refused)[:200])
-            time.sleep(1)
-            client.stop()
-            return {'command': command, 'zdotdir': run.marker_runs('zdotdir'), 'bash-env': run.marker_runs('bash-env')}
         with L.Run(SCRATCH, BINARY, trusted_project=True) as run:
             run.write_trust_file('.codex/config.toml', run.shell_env_toml())
             for trust in TRUST_CASES:
-                observed[trust] = case(run, trust)
+                observed[trust] = self.shell_case(run, trust)
         with L.Run(SCRATCH, BINARY, trusted_project=True) as run:
             run.write_home_file('config.toml', run.shell_env_toml())
-            marker = run.trust_markers['project']
-            control = observed["control: in the person's settings"] = case(run, 'untrusted')
-        asserted = {t: {k: observed[t].get(k) for k in ('zdotdir', 'bash-env')} for t in TRUST_CASES}
-        asserted['untrusted command'] = observed['untrusted'].get('command')
-        asserted['control'] = isinstance(control, dict) and control.get('command') == (SUCCEEDED, marker) and (
-            control['zdotdir'] + control['bash-env'] > 0)
-        self.assertEqual(asserted, {'untrusted': {'zdotdir': 0, 'bash-env': 0}, 'trusted': {'zdotdir': 0, 'bash-env': 0},
-                                    'untrusted command': (SUCCEEDED, 'unset'), 'control': True},
+            observed["control: in the person's settings"] = self.shell_case(run, 'untrusted')
+        self.report(observed)
+        self.assertEqual({k: self.shell_seen(v) for k, v in observed.items()}, {
+            'untrusted': {'command': (SUCCEEDED, 'unset'), 'zdotdir ran': False, 'bash-env': 0},
+            'trusted': {'command': (SUCCEEDED, 'the variable set'), 'zdotdir ran': True, 'bash-env': 0},
+            "control: in the person's settings": {'command': (SUCCEEDED, 'the variable set'), 'zdotdir ran': True,
+                                                  'bash-env': 0}},
+            'observed:\n%s' % shown(observed))
+
+    def shell_case(self, run, trust, config=None):
+        """A fresh server; a start at full access with the entry `trust` (and `config` added to the App's); one
+        command that prints the fixture's variable; then how often each start-up file's marker ran. The variable
+        is shown as 'the variable set' when it is the value the settings give it."""
+        run.clear_markers()
+        client = run.start()
+        reply, error, turn = self.start(run, client, trust, level=self.FULL_ROW, config=config)
+        if error:
+            client.stop()
+            return {'start error': json.dumps(error)[:300]}
+        try:
+            outcome = probe(run, client, reply['thread']['id'], 'env', **turn)
+            text = 'the variable set' if outcome.text == run.trust_markers['project'] else outcome.text
+            command = (outcome.kind, text)
+        except L.Refused as refused:
+            command = ('unresolved', str(refused)[:200])
+        time.sleep(1)
+        client.stop()
+        return {'command': command, 'zdotdir': run.marker_runs('zdotdir'), 'bash-env': run.marker_runs('bash-env')}
+
+    def shell_seen(self, case):
+        if not isinstance(case, dict) or 'start error' in case:
+            return case
+        return {'command': case['command'], 'zdotdir ran': case['zdotdir'] > 0, 'bash-env': case['bash-env']}
+
+    # ----- withholding while trusted: what the App's start can keep off -----
+
+    def test_with_a_trusted_entry_enabled_false_on_the_start_keeps_each_named_project_mcp_server_off(self):
+        """Not yet observed; predicted from the public source. The start's `config` becomes the session layer, above
+        the project's (`load_with_validation` in `codex-rs/app-server/src/config_manager.rs`), and layers merge key
+        by key (`merge_toml_values` in `codex-rs/config/src/merge.rs`), so `mcp_servers.<name>.enabled = false`
+        lands on the project's own entry. The project names its two servers (as in the MCP row); the person's own
+        settings name a server with the same name as the project's stdio server and one of their own. Each case
+        with the `trusted` entry and the App's own start at edits, on a fresh server. With no override (the
+        control): the project's stdio server starts (its command, not the person's, for the shared name) and the
+        second listener is contacted; the person's own other server starts. With `enabled = false` for each server
+        the project names: neither of the project's starts, no notification names either, the person's server of
+        the same name does not start either (the cost), and the person's other server still starts. No other route
+        was found that works without the names (see README)."""
+        markers = ('mcp-stdio', 'mcp-person-same', 'mcp-person-other')
+        off = {'mcp_servers': {L.MCP_STDIO: {'enabled': False}, L.MCP_HTTP: {'enabled': False}}}
+        observed = {}
+        with L.Run(SCRATCH, BINARY, trusted_project=True) as run:
+            run.write_trust_file('.codex/config.toml', run.mcp_toml())
+            run.write_home_file('config.toml', run.person_mcp_toml())
+            observed['no override'] = self.mcp_case(run, 'trusted', markers=markers)
+            observed['enabled = false for each project server'] = self.mcp_case(run, 'trusted', config=off,
+                                                                               markers=markers)
+        self.report(observed)
+
+        def seen(case):
+            if 'start error' in case:
+                return case
+            named = {name for name, _ in case['startup notifications']}
+            return {'ran': {k: v > 0 for k, v in case['markers'].items()},
+                    'second listener': case['started by the turn (marker runs, connections)'][1] > 0,
+                    "project's servers notified": sorted(named & {L.MCP_STDIO, L.MCP_HTTP}),
+                    "person's own notified": L.MCP_PERSON in named}
+        self.assertEqual({k: seen(v) for k, v in observed.items()}, {
+            'no override': {'ran': {'mcp-stdio': True, 'mcp-person-same': False, 'mcp-person-other': True},
+                            'second listener': True, "project's servers notified": [L.MCP_HTTP, L.MCP_STDIO],
+                            "person's own notified": True},
+            'enabled = false for each project server': {
+                'ran': {'mcp-stdio': False, 'mcp-person-same': False, 'mcp-person-other': True},
+                'second listener': False, "project's servers notified": [], "person's own notified": True}},
+            'observed:\n%s' % shown(observed))
+
+    def test_with_a_trusted_entry_only_an_empty_value_or_include_only_on_the_start_keeps_a_projects_shell_environment_out(self):
+        """Not yet observed; predicted from the public source. Codex builds a command's environment in this order
+        (`populate_env` in `codex-rs/protocol/src/shell_environment.rs`): `inherit`, the default excludes,
+        `exclude`, then `set`, then `include_only`; patterns are `*` and `?` wildcards only. The start's `config`
+        merges key by key over the project's (`set` is a table, so a key the project sets cannot be removed, only
+        given another value; `exclude` and `include_only` are lists, which replace). The project's policy is the one
+        in the shell-environment row; each case with the `trusted` entry, the App's own start at full access, on a
+        fresh server. No override (the control): the command sees the project's variable and the `ZDOTDIR` marker
+        runs. Each key the project sets, given an empty value: the variable is empty and the marker does not run
+        (zsh reads no start-up file when `ZDOTDIR` is empty, so the person's own `~/.zshenv` would not run either).
+        `include_only` listing the names of the environment Codex is given: the variable is `unset` and the marker
+        does not run (the App would have to list every name it keeps). `inherit = "none"`, `exclude` of each key,
+        and the whole table sent again with an empty `set`: the variable and the marker are still there."""
+        observed = {}
+        with L.Run(SCRATCH, BINARY, trusted_project=True) as run:
+            run.write_trust_file('.codex/config.toml', run.shell_env_toml())
+            names = (L.TRUST_ENV, 'ZDOTDIR', 'BASH_ENV')
+            cases = {'no override': None,
+                     'each key set empty': {'set': {name: '' for name in names}},
+                     'include_only the environment Codex is given': {'include_only': sorted(run.environment())},
+                     'inherit none': {'inherit': 'none'},
+                     'exclude each key': {'exclude': list(names)},
+                     'the whole table, with an empty set': {'inherit': 'all', 'set': {}}}
+            for name, policy in cases.items():
+                observed[name] = self.shell_case(
+                    run, 'trusted', config=policy and {'shell_environment_policy': policy})
+        self.report(observed)
+        still = {'command': (SUCCEEDED, 'the variable set'), 'zdotdir ran': True, 'bash-env': 0}
+        self.assertEqual({k: self.shell_seen(v) for k, v in observed.items()}, {
+            'no override': still,
+            'each key set empty': {'command': (SUCCEEDED, ''), 'zdotdir ran': False, 'bash-env': 0},
+            'include_only the environment Codex is given': {'command': (SUCCEEDED, 'unset'), 'zdotdir ran': False,
+                                                            'bash-env': 0},
+            'inherit none': still, 'exclude each key': still, 'the whole table, with an empty set': still},
+            'observed:\n%s' % shown(observed))
+
+    def test_with_a_trusted_entry_a_profile_denying_a_read_keeps_an_allow_rules_command_in_the_sandbox(self):
+        """Open: the control alone is asserted. No setting stops a trusted project's rules from loading or applying
+        (see README); the one thing the source shows that keeps an allowed command sandboxed is a file-system policy
+        with a denied read (`sandbox_override_for_first_attempt` and `unsandboxed_execution_allowed` in
+        `codex-rs/core/src/tools/sandboxing.rs`), and that comes only from a permissions profile. The project's rule
+        allows `touch` (as in the rules row). The control, asserted: the App's own start at edits with the `trusted`
+        entry, where `touch` outside the project succeeds. The observation: the same `trusted` entry with, instead
+        of the mode name and workspace options, a profile sent in the start's `config` (`extends = ":workspace"`, one
+        invented folder under `outside` denied) and named by `permissions` on the start and on each turn. Printed:
+        the reply's approval, sandbox and active profile; `touch` outside the project; the project write; a plain
+        write outside; an escalation."""
+        observed = {}
+        with L.Run(SCRATCH, BINARY, trusted_project=True) as run:
+            run.write_trust_file('.codex/rules/invented.rules', run.rules_text())
+            client = run.start()
+            reply, error, turn = self.start(run, client, 'trusted')
+            observed["control: the App's own start"] = (
+                'start error: %s' % json.dumps(error)[:300] if error else
+                {'touch outside': self.seen(run, client, reply['thread']['id'], 'touch-out', **turn)})
+            profile = 'level_invented_edits'
+            frame, _ = self.frame(run, 'trusted')
+            frame.pop('sandbox')
+            frame['config'] = {'projects': frame['config']['projects'], 'permissions': {
+                profile: {'extends': ':workspace', 'filesystem': {str(run.denied_read_folder()): 'deny'}}}}
+            frame['permissions'] = profile
+            started = client.call('thread/start', frame)
+            turn = {'approvalPolicy': 'on-request', 'approvalsReviewer': 'user', 'permissions': profile}
+            if 'error' in started:
+                observed['with the profile'] = 'start error: %s' % json.dumps(started['error'])[:400]
+            else:
+                reply, thread = started['result'], started['result']['thread']['id']
+                observed['with the profile'] = {
+                    'reported': self.reported(reply), 'profile': reply.get('activePermissionProfile'),
+                    'touch outside': self.seen(run, client, thread, 'touch-out', **turn),
+                    'project write': self.seen(run, client, thread, 'in', **turn),
+                    'plain write outside': self.seen(run, client, thread, 'out', **turn),
+                    'escalation': self.seen(run, client, thread, 'out2', escalate=True, **turn)}
+        self.report(observed)
+        self.assertEqual(observed["control: the App's own start"], {'touch outside': (SUCCEEDED, 0, True)},
                          'observed:\n%s' % shown(observed))
 
+    # ----- the other route: an untrusted entry, and the App hands over the instructions -----
+
+    def test_with_an_untrusted_entry_agents_md_text_handed_over_in_developer_instructions_reaches_the_model(self):
+        """The project's own `AGENTS.md` carries a marker line; the App's own developer instructions carry another.
+        The start's fields at the pin: `developerInstructions` takes the place of the settings'
+        `developer_instructions` (`.or(cfg.developer_instructions)` in `codex-rs/core/src/config/mod.rs`);
+        `baseInstructions` and the `instructions` setting replace Codex's base instructions; there is no field for
+        the instructions Codex reads from `AGENTS.md`. So the App can hand the text over only in
+        `developerInstructions`, after its own. Asserted, predicted: with the `trusted` entry and the App's own
+        instructions (Codex loads the file), the start names the file and the turn carries both markers; with the
+        `untrusted` entry and the App's instructions followed by the file's text, the start names no file and the
+        turn carries both markers. Open, printed: where each marker sits in the request (`ScriptedStub.placements`): the
+        input entry and its role, in order."""
+        observed = {}
+        with L.Run(SCRATCH, BINARY, trusted_project=True) as run:
+            markers = run.trust_markers
+            agents = run.agents_md('root')
+            run.write_trust_file('AGENTS.md', agents)
+            run.stub.watched = (markers['agents-root'], markers['app'])
+            guidance = 'Invented App instructions. %s' % markers['app']
+            client = run.start()
+            cases = {'Codex loads it (trusted entry)': ('trusted', guidance),
+                     'the App hands it over (untrusted entry, after its own)': ('untrusted', guidance + '\n\n' + agents)}
+            for index, (name, (trust, instructions)) in enumerate(cases.items()):
+                reply, error, turn = self.start(run, client, trust, developerInstructions=instructions)
+                if error:
+                    observed[name] = 'start error: %s' % json.dumps(error)[:300]
+                    continue
+                key = 'handover_%d' % index
+                status = self.keyed_turn(run, client, reply['thread']['id'], key, **turn)
+                observed[name] = {
+                    'turn': status,
+                    'files named': sorted(os.path.basename(p) for p in reply.get('instructionSources') or []),
+                    'carried': {k: self.carried(run.stub, key, markers[k]) for k in ('agents-root', 'app')},
+                    'placements': [{('agents' if m == markers['agents-root'] else 'app'): v for m, v in p.items()}
+                                   for p in self.placed(run.stub, key)]}
+        self.report(observed)
+        both = {'agents-root': True, 'app': True}
+        self.assertEqual({k: v if not isinstance(v, dict) else {x: v[x] for x in ('turn', 'files named', 'carried')}
+                          for k, v in observed.items()}, {
+            'Codex loads it (trusted entry)': {'turn': 'completed', 'files named': ['AGENTS.md'], 'carried': both},
+            'the App hands it over (untrusted entry, after its own)': {'turn': 'completed', 'files named': [],
+                                                                       'carried': both}},
+            'observed:\n%s' % shown(observed))
+
+    def test_a_nested_agents_md_is_named_and_carried_with_a_trusted_entry_and_neither_file_with_an_untrusted_one(self):
+        """Not yet observed; predicted. A git project with its own `AGENTS.md` and a nested `sub/AGENTS.md`, each
+        with a marker line of its own; the conversation's folder is `sub`, the one trust entry is for the project's
+        root (as the App sends it), on a fresh server for each entry, with the App's own start at edits. With the
+        `trusted` entry, the start names both files and the turn carries both markers; with the `untrusted` entry,
+        neither. This is what handing over the root's file alone would lose: the nested file Codex itself reads."""
+        observed = {}
+        with L.Run(SCRATCH, BINARY, trusted_project=True, git_marker=True) as run:
+            (run.project / '.git' / 'HEAD').write_text('ref: refs/heads/main\n')
+            run.write_trust_file('AGENTS.md', run.agents_md('root'))
+            run.write_trust_file('sub/AGENTS.md', run.agents_md('sub'))
+            markers = {k: run.trust_markers['agents-' + k] for k in ('root', 'sub')}
+            files = {'root': os.path.realpath(str(run.project / 'AGENTS.md')),
+                     'sub': os.path.realpath(str(run.subfolder() / 'AGENTS.md'))}
+            run.stub.watched = tuple(markers.values())
+            for trust in TRUST_CASES:
+                client = run.start()
+                reply, error, turn = self.start(run, client, trust, cwd=str(run.subfolder()))
+                if error:
+                    observed[trust] = 'start error: %s' % json.dumps(error)[:300]
+                else:
+                    key = 'nested_%s' % trust
+                    status = self.keyed_turn(run, client, reply['thread']['id'], key, **turn)
+                    sources = [os.path.realpath(p) for p in reply.get('instructionSources') or []]
+                    observed[trust] = {'turn': status, 'cwd is sub': same_folder(reply.get('cwd'), run.subfolder()),
+                                       'named': sorted(k for k, path in files.items() if path in sources),
+                                       'other sources': sorted(p for p in sources if p not in files.values()),
+                                       'carried': sorted(k for k, m in markers.items()
+                                                         if self.carried(run.stub, key, m))}
+                client.stop()
+        self.report(observed)
+        self.assertEqual(observed, {
+            'trusted': {'turn': 'completed', 'cwd is sub': True, 'named': ['root', 'sub'], 'other sources': [],
+                        'carried': ['root', 'sub']},
+            'untrusted': {'turn': 'completed', 'cwd is sub': True, 'named': [], 'other sources': [], 'carried': []}},
+            'observed:\n%s' % shown(observed))
+
+    def test_handed_over_instructions_after_a_resume(self):
+        """Open: the control alone is asserted. Two conversations started with the `untrusted` entry and the App's
+        instructions followed by the project's `AGENTS.md` text (a marker line), each with one turn (the control:
+        the turn carries the marker); the server stopped; a second server started; each resumed as the App's
+        Continue resumes it (the folder, the level, the one entry, `excludeTurns`), the first without
+        `developerInstructions`, the second sending the same text again; one turn each. Printed: for each turn,
+        whether the marker is carried, how many times, and where."""
+        observed = {}
+        with L.Run(SCRATCH, BINARY, trusted_project=True) as run:
+            marker = run.trust_markers['agents-root']
+            text = 'Invented App instructions. %s\n\n%s' % (run.trust_markers['app'], run.agents_md('root'))
+            run.write_trust_file('AGENTS.md', run.agents_md('root'))
+            run.stub.watched = (marker,)
+            client = run.start()
+            threads = {}
+            for name in ('resumed without it', 'resumed with it again'):
+                reply, error, turn = self.start(run, client, 'untrusted', developerInstructions=text)
+                if error:
+                    observed[name + ': first turn'] = 'start error: %s' % json.dumps(error)[:300]
+                    continue
+                threads[name] = reply['thread']['id']
+                key = 'before_%d' % len(threads)
+                self.keyed_turn(run, client, threads[name], key, **turn)
+                observed[name + ': first turn'] = {'carried': self.carried(run.stub, key, marker),
+                                                   'placements': self.placed(run.stub, key)}
+            client.stop()
+            again = run.start()
+            for index, (name, thread) in enumerate(threads.items()):
+                frame, turn = self.frame(run, 'untrusted')
+                for field in ('model', 'modelProvider'):
+                    frame.pop(field)
+                frame.update(threadId=thread, excludeTurns=True)
+                if name == 'resumed with it again':
+                    frame['developerInstructions'] = text
+                resumed = again.call('thread/resume', frame)
+                if 'error' in resumed:
+                    observed[name + ': after the resume'] = 'resume error: %s' % json.dumps(resumed['error'])[:300]
+                    continue
+                key = 'after_%d' % index
+                status = self.keyed_turn(run, again, thread, key, **turn)
+                observed[name + ': after the resume'] = {'turn': status, 'carried': self.carried(run.stub, key, marker),
+                                                         'placements': self.placed(run.stub, key)}
+        self.report(observed)
+        self.assertEqual({k: v.get('carried') if isinstance(v, dict) else v for k, v in observed.items()
+                          if k.endswith('first turn')},
+                         {'resumed without it: first turn': True, 'resumed with it again: first turn': True},
+                         'observed:\n%s' % shown(observed))
+
+    # ----- what else a trusted project's settings reach -----
+
+    def test_what_else_a_trusted_projects_settings_start(self):
+        """Not yet observed; predicted. One case per key a project's settings may still set (not stripped) that
+        starts a process or opens a connection and that the rows above do not cover, each with the fixture's
+        marker command or the second listener, on a fresh server for each entry, with the App's own start at edits.
+        The keys considered and left out, and why, are in README.
+        - `mcp_servers.<name>.http_headers_helper` on an HTTP server at the second listener: Codex runs the helper
+          as `sh -c <command>` before it asks the server (`run_helper` in `codex-rs/rmcp-client/src/http_headers.rs`).
+          With the `trusted` entry the helper's marker runs; with the `untrusted` entry it does not. Printed: whether
+          the second listener was then contacted (the helper prints no headers)."""
+        cases = {'mcp_servers.<name>.http_headers_helper': (lambda run: run.headers_helper_toml(), 'mcp-headers-helper')}
+        observed = {}
+        for name, (settings, marker) in cases.items():
+            with L.Run(SCRATCH, BINARY, trusted_project=True) as run:
+                run.write_trust_file('.codex/config.toml', settings(run))
+                for trust in TRUST_CASES:
+                    observed['%s, %s' % (name, trust)] = self.mcp_case(run, trust, markers=(marker,))
+        self.report(observed)
+        self.assertEqual({k: v if 'start error' in v else
+                          {'turn': v['turn'], 'ran': sum(v['markers'].values()) > 0} for k, v in observed.items()},
+                         {'%s, %s' % (name, trust): {'turn': 'completed', 'ran': trust == 'trusted'}
+                          for name in cases for trust in TRUST_CASES},
+                         'observed:\n%s' % shown(observed))
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

@@ -205,6 +205,26 @@ def turn_view(body):
     return text_of(entries[index].get('content')), outputs
 
 
+def placements_of(body, markers):
+    """For each of `markers` that a request body carries: how many times, and where, as a list of places in the
+    body's order: 'instructions' (the request's own instructions field), or 'input[<index>]:<role or type>'
+    for each input entry that carries it. Nothing else of the body is kept."""
+    out = {}
+    entries = (body or {}).get('input') or []
+    for marker in markers:
+        places = []
+        if marker in json.dumps((body or {}).get('instructions')):
+            places.append('instructions')
+        for index, entry in enumerate(entries):
+            if marker in json.dumps(entry):
+                label = (entry.get('role') or entry.get('type')) if isinstance(entry, dict) else type(entry).__name__
+                places.append('input[%d]:%s' % (index, label))
+        count = json.dumps(body).count(marker)
+        if count:
+            out[marker] = {'count': count, 'where': places}
+    return out
+
+
 def shell_call(body, call_id, command, escalate=False, background=False):
     """A call to whichever shell tool the request offers."""
     names = [n.split('.')[-1] for n in tool_names(body)]
@@ -246,6 +266,9 @@ class ScriptedStub:
         self.violations = []  # shell calls a script tried to issue with a command off that list
         self.unexpected = []
         self.watched = ()  # set by a test: invented marker lines whose presence in each request is noted
+        # Aligned with `requests` while markers are watched: for each marker carried, how many times and where
+        # (`placements_of`). The markers' positions alone are kept, never the text around them.
+        self.placements = []
         stub = self
 
         class Handler(BaseHTTPRequestHandler):
@@ -333,9 +356,11 @@ class ScriptedStub:
             key = text.split('LEVEL[', 1)[1].split(']', 1)[0]
         # Which invented markers the request carries anywhere in its body: the markers alone, never the body.
         raw = json.dumps(body) if self.watched else ''
+        placed = placements_of(body, self.watched) if self.watched else {}
         with self.lock:
             self.requests.append({'key': key, 'tools': tool_names(body), 'body_tools': body.get('tools'),
                                   'body_keys': sorted(body), 'markers': [m for m in self.watched if m in raw]})
+            self.placements.append(placed)
             self.outputs.update(outputs)
         script = self.scripts.get(key)
         if script is None:
@@ -662,14 +687,20 @@ RELATIVE_ELSEWHERE = 97
 
 # ---------- a project's own files (the trusted-project rows) ----------
 # The only files a test may write into the project, relative to it.
-TRUST_FILES = ('.codex/config.toml', '.codex/hooks.json', '.codex/rules/invented.rules')
+TRUST_FILES = ('.codex/config.toml', '.codex/hooks.json', '.codex/rules/invented.rules', 'AGENTS.md',
+               'sub/AGENTS.md')
+# The subfolder a conversation may be given, inside the project (where `sub/AGENTS.md` is written).
+SUBFOLDER = 'sub'
 # The only files a test may write into the Codex home (the person's own settings), for a positive control.
 HOME_FILES = ('config.toml', 'rules/default.rules')
 # Hook events that fire in an ordinary turn with one command, each with a marker of its own.
 HOOK_MARKERS = {'SessionStart': 'hook-session-start', 'UserPromptSubmit': 'hook-user-prompt',
                 'PreToolUse': 'hook-pre-tool', 'PostToolUse': 'hook-post-tool', 'Stop': 'hook-stop'}
 # Every marker a program named by a project's file may write; each is one file under the run's `outside` folder.
-PROJECT_MARKERS = tuple(HOOK_MARKERS.values()) + ('mcp-stdio', 'notify', 'zdotdir', 'bash-env')
+PROJECT_MARKERS = tuple(HOOK_MARKERS.values()) + ('mcp-stdio', 'notify', 'zdotdir', 'bash-env', 'mcp-person-same',
+                                                  'mcp-person-other', 'mcp-headers-helper')
+MCP_PERSON = 'level_invented_person'  # a server of the person's own, named in no project file
+MCP_HELPER = 'level_invented_helper'  # an HTTP server whose headers come from a helper command
 OTHER_PROVIDER = 'level_invented_other'
 OTHER_MODEL = 'level-invented-other-model'
 MCP_STDIO = 'level_invented_stdio'
@@ -724,8 +755,11 @@ class Run:
         self.markers = {'a': 'INVENTED-INSTRUCTION-MARKER-A-' + tag,
                         'b': 'INVENTED-INSTRUCTION-MARKER-B-' + tag} if instructions else {}
         # With `trusted_project`: the line the project's own settings give as instructions, and the App's own.
+        # And the lines of the project's own `AGENTS.md` and of a nested one in `sub/`.
         self.trust_markers = {'project': 'INVENTED-PROJECT-SETTINGS-MARKER-' + tag,
-                              'app': 'INVENTED-APP-INSTRUCTIONS-MARKER-' + tag} if trusted_project else {}
+                              'app': 'INVENTED-APP-INSTRUCTIONS-MARKER-' + tag,
+                              'agents-root': 'INVENTED-AGENTS-ROOT-MARKER-' + tag,
+                              'agents-sub': 'INVENTED-AGENTS-SUB-MARKER-' + tag} if trusted_project else {}
         self.name = 'level-' + secrets.token_hex(6)
         self.root = checked_scratch(scratch) / self.name
         self.slash_tmp = SLASH_TMP / ('chirality-level-' + self.name) if slash_tmp else None
@@ -1081,6 +1115,43 @@ class Run:
         self.needs_trusted_project()
         return ('prefix_rule(pattern = ["/usr/bin/touch"], decision = "allow")\n'
                 'prefix_rule(pattern = ["touch"], decision = "allow")\n')
+
+    def person_mcp_toml(self):
+        """For the person's own settings: a server with the same name as the project's stdio server, and one of
+        the person's own, each started as a marker command of its own."""
+        same, other = self.marker_argv('mcp-person-same'), self.marker_argv('mcp-person-other')
+        return ''.join('mcp_servers.%s = { command = %s, args = [%s], startup_timeout_sec = 5 }\n'
+                       % (name, toml_string(argv[0]), ', '.join(toml_string(a) for a in argv[1:]))
+                       for name, argv in ((MCP_STDIO, same), (MCP_PERSON, other)))
+
+    def headers_helper_toml(self):
+        """An HTTP MCP server at the second listener's loopback address whose headers come from a helper command,
+        the marker command (run by Codex as `sh -c <command>`)."""
+        return ('mcp_servers.%s = { url = %s, http_headers_helper = %s, startup_timeout_sec = 5 }\n'
+                % (MCP_HELPER, toml_string(self.other_origin() + '/mcp-helper'),
+                   toml_string(self.marker_command('mcp-headers-helper'))))
+
+    def malformed_toml(self):
+        """A settings file that is not TOML at all."""
+        self.needs_trusted_project()
+        return 'this is = = not toml\n'
+
+    def agents_md(self, which):
+        """The text of the project's own `AGENTS.md` ('root') or of the nested `sub/AGENTS.md` ('sub')."""
+        self.needs_trusted_project()
+        return '# Invented instructions for a fixture\n\n%s\n' % self.trust_markers['agents-' + which]
+
+    def subfolder(self):
+        self.needs_trusted_project()
+        return self.project / SUBFOLDER
+
+    def denied_read_folder(self):
+        """An invented folder under `outside`, made empty on first use, that a permissions profile may deny reading."""
+        self.needs_trusted_project()
+        folder = self.root / 'outside' / 'denied-read'
+        if not folder.exists():
+            os.mkdir(folder, 0o700)
+        return folder
 
     def entry_operations(self):
         """With `working_files`: commands that change the directory entry naming Codex's temporary folder, or an

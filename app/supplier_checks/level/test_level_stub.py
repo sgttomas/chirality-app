@@ -458,13 +458,58 @@ class TrustedProjectFiles(unittest.TestCase):
             self.assertEqual((run.project / '.codex' / 'config.toml').read_text(), 'replaced\n')
             for relative in L.HOME_FILES:
                 self.assertEqual(run.write_home_file(relative, 'invented\n'), run.home / relative)
-            for bad in ('../outside/x', '.codex/other.toml', 'AGENTS.md', '/etc/x', 'config.toml'):
+            for bad in ('../outside/x', '.codex/other.toml', 'sub/other.md', 'other/AGENTS.md', '/etc/x', 'config.toml'):
                 with self.subTest(bad=bad), self.assertRaises(L.Refused):
                     run.write_trust_file(bad, 'x')
             for bad in ('../x', 'auth.json', 'rules/other.rules'):
                 with self.subTest(bad=bad), self.assertRaises(L.Refused):
                     run.write_home_file(bad, 'x')
         self.assertFalse(run.root.exists())
+
+    def test_the_second_rounds_files_parse_and_name_only_the_marker_commands(self):
+        import tomllib
+        with L.Run(self.scratch, '/nonexistent/codex', trusted_project=True) as run:
+            person = tomllib.loads(run.person_mcp_toml())['mcp_servers']
+            self.assertEqual(set(person), {L.MCP_STDIO, L.MCP_PERSON})  # one shares the project's server's name
+            self.assertEqual(['/bin/sh'] + person[L.MCP_STDIO]['args'], run.marker_argv('mcp-person-same'))
+            self.assertEqual(['/bin/sh'] + person[L.MCP_PERSON]['args'], run.marker_argv('mcp-person-other'))
+            helper = tomllib.loads(run.headers_helper_toml())['mcp_servers'][L.MCP_HELPER]
+            self.assertEqual(helper['url'], 'http://127.0.0.1:%d/mcp-helper' % run.other.port)
+            self.assertEqual(helper['http_headers_helper'], run.marker_command('mcp-headers-helper'))
+            # Codex runs a headers helper as `sh -c <command>`: so run, it appends its marker and prints nothing.
+            done = subprocess.run(['sh', '-c', helper['http_headers_helper']], capture_output=True,
+                                  env={'PATH': L.SYSTEM_PATH})
+            self.assertEqual((done.returncode, done.stdout, run.marker_runs('mcp-headers-helper')), (0, b'', 1))
+            with self.assertRaises(tomllib.TOMLDecodeError):
+                tomllib.loads(run.malformed_toml())
+            for which, folder in (('root', run.project), ('sub', run.subfolder())):
+                text = run.agents_md(which)
+                self.assertIn(run.trust_markers['agents-' + which], text)
+                target = run.write_trust_file('AGENTS.md' if which == 'root' else 'sub/AGENTS.md', text)
+                self.assertEqual(target, folder / 'AGENTS.md')
+            self.assertEqual(run.subfolder(), run.project / L.SUBFOLDER)
+            markers = list(run.trust_markers.values())
+            self.assertEqual(len(set(markers)), len(markers))
+            self.assertFalse(any(a != b and a in b for a in markers for b in markers))  # none hides another
+            denied = run.denied_read_folder()
+            self.assertEqual((denied.parent, list(denied.iterdir()), run.denied_read_folder()),
+                             (run.root / 'outside', [], denied))
+
+    def test_the_stub_notes_where_each_watched_marker_sits(self):
+        stub = L.ScriptedStub()
+        self.addCleanup(stub.close)
+        stub.answer(body('LEVEL[k] go'))
+        self.assertEqual(stub.placements, [{}])  # nothing watched, nothing noted, still aligned
+        stub.watched = ('INVENTED-A', 'INVENTED-B')
+        carrying = body('LEVEL[k] go INVENTED-B')
+        carrying['input'][0]['content'][0]['text'] = 'invented INVENTED-A and INVENTED-A again'
+        carrying['instructions'] = 'base INVENTED-B'
+        stub.answer(carrying)
+        self.assertEqual(len(stub.placements), len(stub.requests))
+        self.assertEqual(stub.placements[-1], {
+            'INVENTED-A': {'count': 2, 'where': ['input[0]:developer']},
+            'INVENTED-B': {'count': 2, 'where': ['instructions', 'input[1]:user']}})
+        self.assertNotIn('invented', json.dumps(stub.placements))  # positions only, never the text
 
     def test_the_touch_and_variable_commands(self):
         with L.Run(self.scratch, '/nonexistent/codex', trusted_project=True) as run:
