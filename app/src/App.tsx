@@ -30,7 +30,7 @@ import { RecoveryCustodyPanel } from "./RecoveryCustodyPanel";
 import { CompareResult, initialDraftsState, LastCleanTrialLine, WorkflowDraftsView, type DraftsState } from "./WorkflowDrafts";
 import { LibraryEntries } from "./LibraryEntries";
 import { WorkflowRegistrationReview } from "./WorkflowRegistrationReview";
-import { AskedQuestionContext, type AskedSendResult, type AskedUnavailable } from "./AskedQuestionCard";
+import { AskedQuestionContext, type AskedBinding, type AskedSendResult, type AskedUnavailable } from "./AskedQuestionCard";
 import { BringBackComposer, CleanTrialPanel, DelegatedTrialComposer, composersFor, conversationKey, findConversation, hostMessage, prefillKept } from "./TrialComposer";
 import { preparedMessages, preparedMessageLimit, type PreparedMessage } from "./preparedMessages";
 import { ConversationContext, ProjectLibraryContext, appProjectFolder, conversationFromKey, workflowSourceLimit } from "./WorkflowContext";
@@ -268,10 +268,13 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
   // conversation shown and current, no unconfirmed earlier send to it. The text
   // is the card's, composed from the person's answers; no model, effort or mode
   // choice of the message box goes with it. A failure is held as Send text's is.
+  // A card's press sends only while the conversation view, and the unconfirmed attempts, it was drawn with are current.
   const askedUnavailable: AskedUnavailable | null = !sourceReady ? "not-connected" : busy ? "busy" : selected && heldSend(selected.threadId) ? "unconfirmed" : null;
-  const sendAsked = async (threadId: string, answer: string): Promise<AskedSendResult> => {
+  const askedBinding: AskedBinding = { owner: ordinaryView.current.owner, epoch: ordinaryView.current.epoch, attempts: unconfirmedSequence.current };
+  const sendAsked = async (threadId: string, answer: string, binding: AskedBinding | null): Promise<AskedSendResult> => {
     if (!sourceReady) return { sent: false, unavailable: "not-connected" };
     if (busy || turnActionPending.current) return { sent: false, unavailable: "busy" };
+    if (!binding || ordinaryView.current.owner !== binding.owner || ordinaryView.current.epoch !== binding.epoch || unconfirmedSequence.current !== binding.attempts) return { sent: false, unavailable: "stale" };
     if (!selected || selected.threadId !== threadId || !ordinaryView.current.ready) return { sent: false, unavailable: "other-conversation" };
     if (heldSend(threadId)) return { sent: false, unavailable: "unconfirmed" };
     if (!answer) return { sent: false, unavailable: "nothing-to-send" };
@@ -508,7 +511,7 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
         : item.kind === "delegated" ? <DelegatedTrialComposer pending={item.pending} conversations={currentThreads} busy={!!busy} ready={host?.state === "ready" && host?.generationClosed !== true} act={trialAct} />
         : <BringBackComposer pending={item.pending} conversations={currentThreads} busy={!!busy} ready={host?.state === "ready" && host?.generationClosed !== true} act={trialAct} />}
     </div>)}
-    <AskedQuestionContext.Provider value={{ view: host?.nativeView, send: sendAsked, pending: !!busy, unavailable: askedUnavailable }}>
+    <AskedQuestionContext.Provider value={{ view: host?.nativeView, threadId: selected?.threadId ?? null, send: sendAsked, binding: askedBinding, pending: !!busy, unavailable: askedUnavailable }}>
     <NativeActivityView navigationRef={activityNavigationRef} key={`activity:${JSON.stringify([selected?.generation, selected?.threadId])}`} view={host?.nativeView} threadId={selected?.threadId} runs={runs} offers={offers}
       trialTurns={workflowRoot?.trialTurns} trialChildren={workflowRoot?.trialChildren} delegation={selected?.delegation}
       stopLabelFor={(thread, turn) => stopLabel(host?.codexStops, thread, turn, host?.stopRequests, appHome(host?.homeRouting?.activeModeHomeClass))}
@@ -2850,6 +2853,10 @@ export function App() {
     const root = (snapshot?.threads ?? []).find((t: Json) => t.threadId === target.rootThreadId && same(t.generation, target.generation));
     if (homePendingRef.current || !root || !same(snapshot?.generation, target.generation) || (snapshot?.homeRouting?.activeModeHomeClass ?? null) !== target.home) {
       setMessage("Go to it: that conversation is no longer current in the home in use; the list shows what the next read finds."); return;
+    }
+    // The question's card is at its message in the conversation's view; where that message is not in view, nothing is moved.
+    if (!(snapshot?.nativeView?.items ?? []).some((row: Json) => row?.threadId === target.threadId && row?.turnId === target.turnId && row?.native?.id === target.itemId)) {
+      setMessage("Go to it: the agent's message with that question is not in view in its conversation; open the conversation and read its history to find it."); return;
     }
     flushSync(() => setThreadKey(JSON.stringify([root.generation, root.threadId])));
     revealWorkspaceTarget("conversation", true);

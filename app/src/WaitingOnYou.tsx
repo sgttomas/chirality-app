@@ -187,14 +187,17 @@ function requestEntries(host: Json): WaitingEntry[] {
 
 /** The agent's questions that do not wait, in the active home's native view: one entry per conversation read since
  * that Codex started whose latest such question no message from the person follows (native_items.rs askedQuestions).
- * An entry whose questions the host refused to show is listed all the same: a question was asked. A child's question
- * is grouped under the conversation it descends from, as a child's request is. */
+ * An entry whose questions the host refused to show is listed all the same: a question was asked. Only a top-level
+ * conversation of the home's status (`host.threads`) is listed: the App sends no answer into a delegated agent's
+ * conversation, so a waiting entry of any other conversation is not listed. */
 function askedEntries(host: Json): WaitingEntry[] {
   const view = host?.nativeView, read = list(view?.askedQuestions?.read);
   const home = text(host?.homeRouting?.activeModeHomeClass) || null;
+  const generation = JSON.stringify(host?.generation);
+  const topLevel = new Set(list(host?.threads).filter((t: Json) => JSON.stringify(t?.generation) === generation).map((t: Json) => t?.threadId));
   const ids = (w: Json) => [w?.threadId, w?.turnId, w?.itemId].every(v => typeof v === "string" && v !== "");
-  return list(view?.askedQuestions?.waiting).filter((w: Json) => ids(w) && read.includes(w.threadId)).map((w: Json) => {
-    const root = rootConversation(w.threadId, host.generation, view) ?? w.threadId;
+  return list(view?.askedQuestions?.waiting).filter((w: Json) => ids(w) && read.includes(w.threadId) && topLevel.has(w.threadId)).map((w: Json) => {
+    const root = w.threadId as string;
     return {
       key: JSON.stringify(["asked-question", host.generation, w.threadId, w.turnId, w.itemId]),
       source: "asked-question", kind: "asked-question", count: 1,
@@ -396,7 +399,8 @@ const LAST_RESPONSE: Record<ReadCall, string> = {
 
 export type SourceReading = {
   /** The source's identity: "requests:‹home›" (or "requests" before any home is known), "other-homes", "home:‹class›",
-   * "hot-runs", "run:‹reference›", "reopened", "reopened-run:‹run›", "returns" or "decisions". */
+   * "hot-runs", "run:‹reference›", "reopened", "reopened-run:‹run›", "returns", "decisions", "asked:‹home›" (or "asked") or
+   * "asked-home:‹home›". */
   key: string;
   /** The source in the App's words. */
   name: string;
@@ -792,7 +796,7 @@ export const LAST_READ_OFFER: Record<WaitingEntry["source"], string> = {
   "checkpoint-arrival": "It may already be settled: the checkpoint act there does not yet refuse an arrival that is no longer waiting.",
   "decision-package": "It may already be decided: the decision there does not yet refuse a package that is no longer pending.",
   "return-review": "Returns have no review control in the App yet: it shows the return's record.",
-  "asked-question": "Its card sends your answer as your next message; nothing there checks whether you have replied since.",
+  "asked-question": "Open the question to see its current card. If it offers an answer, you can send it as a message in that conversation.",
 };
 
 /** One entry: what waits, who asks, who must respond, what it concerns, who integrates, and the way to its
@@ -822,10 +826,18 @@ function Limits({ limits }: { limits: string[] }) {
   return <>{" "}What its reader said it could not read: {limits.map((limit, i) => <span key={i}>{i > 0 ? "; " : ""}<AgentText value={limit} source="file" label="Limit:" name="What the reader could not read, as it reported it, not the App's words" /></span>)}.</>;
 }
 
+/** The agent's questions that do not wait are a source of entries, not of items waiting at Codex: what a reading of
+ * them may omit, or showed none of, is said as entries. Every other source keeps its words. */
+const askedSource = (reading: SourceReading) => reading.key === "asked" || reading.key.startsWith("asked:") || reading.key.startsWith("asked-home:");
+const OMIT = { items: { may: "this reading may omit waiting items", had: "may have omitted waiting items", none: "showed nothing waiting from it", limited: "Read with limits in that response, showing nothing waiting" },
+  entries: { may: "this reading may omit entries", had: "may have omitted entries", none: "showed no entries from it", limited: "Read with limits in that response, showing no entries" } } as const;
+const omitWords = (reading: SourceReading) => OMIT[askedSource(reading) ? "entries" : "items"];
+
 /** The time of a source's read, and what its state means for what the list shows of it. */
 function ReadTime({ reading }: { reading: SourceReading }) {
   const when = reading.at === null ? null : clockWords(reading.at);
-  if (reading.state === "limited") return <>Read {when ? `with limits (requested at ${when})` : "earlier with limits"}: this reading may omit waiting items; what it shows is counted as observed now.<Limits limits={reading.limits} /></>;
+  const words = omitWords(reading);
+  if (reading.state === "limited") return <>Read {when ? `with limits (requested at ${when})` : "earlier with limits"}: {words.may}; what it shows is counted as observed now.<Limits limits={reading.limits} /></>;
   if (reading.state === "not-read") return <>{when ? `Checked at ${when}.` : "No read of it has been made yet."}</>;
   const last = reading.lastRead;
   // The retained response is named by when it was requested (its read's start), never as a time it arrived.
@@ -833,9 +845,9 @@ function ReadTime({ reading }: { reading: SourceReading }) {
   return <>The read {when ? `started at ${when} ` : ""}failed. {!last ? "No earlier response to this read has succeeded, so there is no earlier reading of it to show."
     : last.state === "not-read" ? `${response} had not read it. At that read: ${last.note ?? "no reason was given."}`
     : last.entries.length > 0 ? `${response} is shown below as it was then, not counted; its current state is unknown.`
-    : `${response} showed nothing waiting from it; its current state is unknown.`}
-    {last && last.limits.length > 0 && <> That reading had limits and may have omitted waiting items.<Limits limits={last.limits} /></>}
-    {last && last.state === "limited" && last.limits.length === 0 && <> That reading was not whole and may have omitted waiting items.</>}</>;
+    : `${response} ${words.none}; its current state is unknown.`}
+    {last && last.limits.length > 0 && <> That reading had limits and {words.had}.<Limits limits={last.limits} /></>}
+    {last && last.state === "limited" && last.limits.length === 0 && <> That reading was not whole and {words.had}.</>}</>;
 }
 
 /** A record-supplied identity beside the App's sentence that names it through idWords: shown only when it is not a plain identifier. */
@@ -866,7 +878,7 @@ function LastStatusBlock({ last, go }: { last: LastStatus; go: (entry: WaitingEn
     <p>The last successful status response{last.at === null ? "" : ` (requested at ${clockWords(last.at)})`}; its current state is unknown, and nothing here is counted above.</p>
     {last.withEntries.map(reading => <LastReadBlock key={reading.key} reading={reading} go={go} />)}
     {last.notWhole.length > 0 && <Several count={last.notWhole.length} summary={`${numberWords(last.notWhole.length) ?? "?"} sources that response had not read whole`} className="waiting-on-you-last-status-not-whole">
-      {last.notWhole.map(reading => <p key={reading.key}>{reading.lastRead!.state === "not-read" ? "Not read in that response" : "Read with limits in that response, showing nothing waiting"}: {reading.name}.<Beside reading={reading} /> {reading.lastRead!.note}<Limits limits={reading.lastRead!.limits} /></p>)}
+      {last.notWhole.map(reading => <p key={reading.key}>{reading.lastRead!.state === "not-read" ? "Not read in that response" : omitWords(reading).limited}: {reading.name}.<Beside reading={reading} /> {reading.lastRead!.note}<Limits limits={reading.lastRead!.limits} /></p>)}
     </Several>}
   </div>;
 }
@@ -875,7 +887,7 @@ function LastStatusBlock({ last, go }: { last: LastStatus; go: (entry: WaitingEn
 function LastReadBlock({ reading, go }: { reading: SourceReading; go: (entry: WaitingEntry) => void }) {
   const last = reading.lastRead!;
   return <div className="waiting-on-you-last-read" role="group" aria-label="As last read, not counted" data-waiting-source-key={reading.key}>
-    <p>{reading.name}, as last read{last.at === null ? "" : ` at ${clockWords(last.at)}`}; its current state is unknown, and nothing here is counted above.{last.state === "limited" && " That reading had limits and may have omitted waiting items."}</p>
+    <p>{reading.name}, as last read{last.at === null ? "" : ` at ${clockWords(last.at)}`}; its current state is unknown, and nothing here is counted above.{last.state === "limited" && ` That reading had limits and ${omitWords(reading).had}.`}</p>
     {last.entries.map(entry => <WaitingEntryRow key={entry.key} entry={entry} go={go} lastRead={{ at: last.at }} />)}
   </div>;
 }
@@ -915,7 +927,7 @@ export function WaitingOnYou({ readings, view, busy = false, openGroup, go, onOp
         {lastStatus && <LastStatusBlock last={lastStatus} go={go} />}
         {lastReads.filter(reading => reading.call !== "status").map(reading => <LastReadBlock key={reading.key} reading={reading} go={go} />)}
         <RequestsOverview reading={readings.find(r => r.key === "requests" || r.key.startsWith("requests:"))} view={view} busy={busy} open={openGroup} />
-        <p><small>Each source shows what its latest reading observed, and the next reading replaces it: nothing is kept from one reading to the next, so an item a limited reading showed can drop from view when the next reading does not hold it, and after a change of home the requests of the home left are shown only as that home's overview reads them. When a read fails, the list uses the last successful response to that kind of read (the status read, the returns read or the decisions read): what it showed waiting is shown apart, as last read at its time, not counted, its current state unknown, with the sources it had not read whole said as not read or read with limits; a response that showed nothing waiting is said so in the coverage lines. These are the places each kind of item is shown in the App: a request from Codex on its request card, beside its conversation or under the requests outside the selected conversation (in another home, once that home is opened); a checkpoint arrival of a run in this session in that run's panel in the workflow studio; a return in the fleet records panel; a decision package in the decision packages view. They are fed by the same readings, so an item a limited reading omits is omitted there as well until a reading supplies it again. A checkpoint arrival of a run reopened after the App restarted is shown under that run in the recorded runs of the workflow studio, from the records the reopened reading supplied; only a run whose records were not supplied, or do not establish its arrivals' latest dispositions, is unread, and it is named above. An arrival of such a run whose answering act or decline is already in the act records, and not yet counted in its run's record, is not listed and asks nothing of you; where the App cannot tell, it says so above. Returns and decisions are read again every 15 seconds, and returns each time you open this list. A question the agent asked and went on from is listed while no message from you follows it, in a conversation of the home in use that the App has read since that Codex started; it is not a request from Codex, and the agent's turn did not stop for it: Go to it opens the conversation at the question, whose card sends your answer as your next message. A conversation of the home in use not read since that Codex started is named above; one not opened since then, and the conversations of a home not in use, are not read for such questions, and a home not in use is named above only where the App knows of a conversation there. Nothing here answers, dismisses or settles anything; Go to it opens the existing control or record. A question or tool permission already answered is refused there. A decision package and a checkpoint act are checked there against the current content of what they concern, but an earlier decision or act does not stop another being recorded, and neither yet refuses an item that is no longer waiting. Returns have no review control in the App yet: Go to it shows the return's record. A return whose examiner is an agent is not a demand on you, but the records do not yet say whether the examiner is a person or an agent, so every return waiting for review is listed.</small></p>
+        <p><small>Each source shows what its latest reading observed, and the next reading replaces it: nothing is kept from one reading to the next, so an item a limited reading showed can drop from view when the next reading does not hold it, and after a change of home the requests of the home left are shown only as that home's overview reads them. When a read fails, the list uses the last successful response to that kind of read (the status read, the returns read or the decisions read): what it showed waiting is shown apart, as last read at its time, not counted, its current state unknown, with the sources it had not read whole said as not read or read with limits; a response that showed nothing waiting is said so in the coverage lines. These are the places each kind of item is shown in the App: a request from Codex on its request card, beside its conversation or under the requests outside the selected conversation (in another home, once that home is opened); a checkpoint arrival of a run in this session in that run's panel in the workflow studio; a return in the fleet records panel; a decision package in the decision packages view. They are fed by the same readings, so an item a limited reading omits is omitted there as well until a reading supplies it again. A checkpoint arrival of a run reopened after the App restarted is shown under that run in the recorded runs of the workflow studio, from the records the reopened reading supplied; only a run whose records were not supplied, or do not establish its arrivals' latest dispositions, is unread, and it is named above. An arrival of such a run whose answering act or decline is already in the act records, and not yet counted in its run's record, is not listed and asks nothing of you; where the App cannot tell, it says so above. Returns and decisions are read again every 15 seconds, and returns each time you open this list. A question the agent asked and went on from is listed while no message from you follows it, in a top-level conversation of the home in use that the App has read since that Codex started (a question in a delegated agent's conversation is not listed); it is not a request from Codex, and the agent's turn did not stop for it: Go to it opens the conversation at the question, whose card sends your answer as your next message. A conversation of the home in use not read since that Codex started is named above; one not opened since then, and the conversations of a home not in use, are not read for such questions, and a home not in use is named above only where the App knows of a conversation there. Nothing here answers, dismisses or settles anything; Go to it opens the existing control or record. A request from Codex that has already been answered is refused at its request card. A decision package and a checkpoint act are checked there against the current content of what they concern, but an earlier decision or act does not stop another being recorded, and neither yet refuses an item that is no longer waiting. Returns have no review control in the App yet: Go to it shows the return's record. A return whose examiner is an agent is not a demand on you, but the records do not yet say whether the examiner is a person or an agent, so every return waiting for review is listed.</small></p>
       </div>
     </details>
   </section>;

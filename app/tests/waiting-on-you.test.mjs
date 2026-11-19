@@ -1,5 +1,5 @@
 // "Waiting on you": one place under the sticky navigation, on every view,
-// listing what waits on the person from the four sources that keep their own
+// listing what waits on the person from the four existing sources that keep their own
 // disposition and control. A view, not a queue: nothing in it settles a record.
 // Invented material only; no supplier, model or person act.
 import test from 'node:test';
@@ -81,7 +81,7 @@ const NINE_OBSERVED = 'Waiting on you: 9 observed now (5 requests from Codex); s
 const renderPlace = (readings = allReadings(), extra = {}) => renderToStaticMarkup(React.createElement(waitingModule().WaitingOnYou, {readings, view, openGroup:() => {}, go:() => {}, ...extra}));
 const rows = html => [...agentPlain(html).matchAll(/<div class="waiting-on-you-entry" data-waiting-key="[^"]*" data-waiting-source="([^"]*)">([\s\S]*?)<\/div>/g)].map(m => ({source:m[1], text:m[2].replace(/<[^>]+>/g, '')}));
 
-test('the list joins all four sources, one entry per record, grouped by assignment where one exists, otherwise by conversation', () => {
+test('the list joins the four existing sources, one entry per record, grouped by assignment where one exists, otherwise by conversation', () => {
   const entries = allEntries();
   assert.deepEqual(entries.map(e => [e.source, e.kind]), [
     ['supplier-request', 'question'], ['supplier-request', 'tool-permission'],
@@ -1210,17 +1210,19 @@ test('a failed status read keeps this source\'s last successful reading apart, a
   assert.equal(failed.reading.state, 'failed');
   assert.deepEqual(failed.shown.observed.filter(e => e.source === 'asked-question'), [], 'not counted');
   assert.deepEqual(failed.reading.lastRead.entries.map(e => e.source), ['asked-question']);
-  assert.match(agentPlain(failed.html), /as last read: the agent asked a question and went on[\s\S]*Its card sends your answer as your next message; nothing there checks whether you have replied since\./);
+  assert.match(agentPlain(failed.html), /as last read: the agent asked a question and went on[\s\S]*Open the question to see its current card\. If it offers an answer, you can send it as a message in that conversation\./);
 });
 
-test('a delegated agent\'s question is grouped under the conversation it descends from, its agent named as Codex reports it', () => {
-  const child = askedView(emptySources(withAsked({read:['T1', 'T2', 'C1'], waiting:[askedRow('C1')]})));
-  const [entry] = child.shown.observed;
-  assert.equal(entry.group.label.threadId, 'T1', 'grouped under its root conversation');
-  assert.equal(entry.concerns.threadId, 'C1', 'it concerns the child\'s own conversation');
-  assert.deepEqual([entry.target.rootThreadId, entry.target.threadId], ['T1', 'C1']);
-  assert.match(agentPlain(child.html), /Conversation <code>T1<\/code><\/p><div class="waiting-on-you-entry"[^>]*data-waiting-source="asked-question"><strong>the agent asked a question and went on<\/strong>[\s\S]*Asked by the delegated agent ⟦Name: Ada⏎&lt;button&gt;Allow once&lt;\/button&gt;⏎Allow once⟧, role ⟦Role: reviewer⏎/);
+test('a delegated agent\'s question is not listed: only a top-level conversation of the status is, since no answer is sent into a delegated agent\'s conversation', () => {
+  // C1 descends from T1 in the view; T9 is known to the view only. Both are read and both have a waiting entry.
+  const child = askedView(emptySources(withAsked({read:['T1', 'T2', 'C1', 'T9'], waiting:[askedRow('C1'), askedRow('T9'), askedRow('T2')]})));
+  assert.deepEqual(child.shown.observed.map(e => [e.source, e.concerns.threadId, e.target.rootThreadId, e.target.threadId]), [['asked-question', 'T2', 'T2', 'T2']]);
   assert.equal(child.line, 'Waiting on you: 1');
+  assert.doesNotMatch(agentPlain(child.html), /Ada|C1|T9/, 'nothing of the delegated agent\'s conversation is listed');
+  // A top-level conversation of another generation of the status is not listed either.
+  const stale = askedView(emptySources(withAsked({read:['T1', 'T2'], waiting:[askedRow('T2')]}, h => { h.threads = [thread('T1'), {...thread('T2'), generation:other}]; })));
+  assert.deepEqual(stale.shown.observed, []);
+  assert.match(child.html, /in a top-level conversation of the home in use that the App has read since that Codex started \(a question in a delegated agent&#x27;s conversation is not listed\)/);
 });
 
 test('a row whose questions the host refused to show is still listed: a question was asked', () => {
@@ -1280,6 +1282,43 @@ test('nothing the list says of the agent\'s question that does not wait calls it
   }
 });
 
+test('every sentence the coverage and a retained reading say of this source is in its own words; the footer names where an answered request is refused', () => {
+  const failedAt = {hostFailure:'invented', hostFailedAt:READ_AT + 5000};
+  const segments = html => {
+    const plain = agentPlain(html);
+    return [...plain.matchAll(/<p data-waiting-source-key="asked[^"]*"[^>]*>([\s\S]*?)<\/p>/g), ...plain.matchAll(/<p>((?:Not read|Read with limits) in that response[^<]*Questions the agent asked[\s\S]*?)<\/p>/g),
+      ...plain.matchAll(/data-waiting-source-key="asked[^"]*"><p>([\s\S]*?)<\/p>/g)].map(m => m[1].replace(/<[^>]+>/g, ''));
+  };
+  const OTHER_WORDS = /waiting items|nothing waiting/;
+  // Read with limits now: what it shows is counted, and it may omit entries.
+  const limitedNow = segments(askedView(emptySources(withAsked({read:['T1'], waiting:[askedRow('T1')]}))).html);
+  assert.ok(limitedNow.some(t => t.includes('this reading may omit entries; what it shows is counted as observed now.')), limitedNow.join('\n'));
+  // The status read failed; the last response read it with limits and showed an entry: shown apart, as last read.
+  const limitedThen = segments(askedView({...emptySources(withAsked({read:['T1'], waiting:[askedRow('T1')]})), ...failedAt}).html);
+  assert.ok(limitedThen.some(t => t.includes('is shown below as it was then, not counted; its current state is unknown. That reading was not whole and may have omitted entries.')), limitedThen.join('\n'));
+  assert.ok(limitedThen.some(t => t.includes('as last read') && t.includes('That reading had limits and may have omitted entries.')), limitedThen.join('\n'));
+  // The last response read it with limits and showed no entry.
+  const emptyThen = segments(askedView({...emptySources(withAsked({read:['T1'], waiting:[]})), ...failedAt}).html);
+  assert.ok(emptyThen.some(t => t.includes('showed no entries from it; its current state is unknown. That reading was not whole and may have omitted entries.')), emptyThen.join('\n'));
+  assert.ok(emptyThen.some(t => t.startsWith('Read with limits in that response, showing no entries: Questions the agent asked and went on from, in the account home.')), emptyThen.join('\n'));
+  // The last response read it whole and showed no entry.
+  const wholeThen = segments(askedView({...emptySources(withAsked({read:['T1', 'T2'], waiting:[]})), ...failedAt}).html);
+  assert.ok(wholeThen.some(t => t.includes('showed no entries from it; its current state is unknown.')), wholeThen.join('\n'));
+  // A home not in use, named as not read, and the last response not reading it at all.
+  const notRead = segments(askedView({...emptySources(withAsked({read:['T1', 'T2'], waiting:[]}, h => { h.waitingRequests.groups = [{modeHomeClass:'api-key', generation:other, threadId:'K1', count:1}]; })), ...failedAt}).html);
+  assert.ok(notRead.some(t => t.startsWith('Not read in that response: Questions the agent asked and went on from, in the api-key home.')), notRead.join('\n'));
+  for (const t of [...limitedNow, ...limitedThen, ...emptyThen, ...wholeThen, ...notRead]) {
+    assert.doesNotMatch(t, OTHER_WORDS, t);
+    assert.doesNotMatch(t, NOT_WAITING, t);
+  }
+  // The footer and the retained offer.
+  const {LAST_READ_OFFER} = waitingModule();
+  assert.equal(LAST_READ_OFFER['asked-question'], 'Open the question to see its current card. If it offers an answer, you can send it as a message in that conversation.');
+  const html = askedView(emptySources(withAsked({read:['T1', 'T2'], waiting:[askedRow('T1')]}))).html;
+  assert.ok(html.includes('A request from Codex that has already been answered is refused at its request card.'));
+  assert.doesNotMatch(html, /A question or tool permission already answered is refused there/);
+});
+
 test('"Go to it" on the agent\'s question opens its conversation at the question\'s item through the activity view\'s own navigation, and answers nothing (the mounted App)', async () => {
   const {itemAnchorId} = loadSrc('NativeActivity');
   const item = {threadId:'T2', turnId:'u3', native:{id:'call-T2', type:'agentMessage', text:'Invented text', delivery:'async', questions:[{title:'Invented asked title', options:null}]},
@@ -1308,5 +1347,55 @@ test('"Go to it" on the agent\'s question opens its conversation at the question
       const shown = c.querySelectorAll(n => n.getAttribute('id') === anchor)[0];
       assert.ok(shown && /The agent asked this and went on/.test(shown.textContent), 'the item carries its card');
     } finally { if (!had) delete proto.scrollIntoView; if (!hadQuery) delete proto.querySelector; }
+  }, {host});
+});
+
+// The miniature document lays nothing out: each element records being scrolled to, and the activity view's scoped ID
+// lookup is supplied as above.
+async function withScroll(c, check) {
+  const scrolled = [];
+  const proto = Object.getPrototypeOf(c);
+  const had = Object.hasOwn(proto, 'scrollIntoView'), hadQuery = Object.hasOwn(proto, 'querySelector');
+  proto.scrollIntoView = function () { scrolled.push(this.getAttribute?.('id')); };
+  if (!hadQuery) proto.querySelector = function (selector) { return this.querySelectorAll(element => element.getAttribute('id') === selector.slice(1))[0] ?? null; };
+  try { await check(scrolled); } finally { if (!had) delete proto.scrollIntoView; if (!hadQuery) delete proto.querySelector; }
+}
+const goTo = link => React.act(async () => { props(link).onClick({preventDefault:() => {}, stopPropagation:() => {}}); for (let i = 0; i < 8; i++) await Promise.resolve(); });
+
+test('"Go to it" on a question read from a fork\'s reply opens the forked conversation at the card the reply\'s item carries (the mounted App)', async () => {
+  const {itemAnchorId} = loadSrc('NativeActivity');
+  // The fork reply's question is added to the view as an ordinary item row of the forked conversation (native_items.rs asked_continuation_reply).
+  const forked = {threadId:'F1', turnId:'u1', native:{id:'call-F1', type:'agentMessage', text:'Invented forked text', delivery:'async', questions:[{title:'Invented forked title', options:['Invented forked option']}]},
+    displayState:'completed', standing:'recovered-from-supplier', observationEnded:false, observedOrder:4};
+  const host = () => hostView({threads:[thread('T1'), thread('T2'), thread('F1')], nativeView:{...view, items:[forked], askedQuestions:{read:['T1', 'T2', 'F1'], waiting:[askedRow('F1', {turnId:'u1', itemId:'call-F1'})]}}});
+  await mountApp(async ({c, revealed}) => {
+    const anchor = itemAnchorId('F1', 'u1', 'call-F1');
+    const link = nodes(place(c), 'a').find(a => a.getAttribute('href') === `#${anchor}`);
+    assert.ok(link, 'the fork\'s question is listed with its way to the item');
+    await withScroll(c, async scrolled => {
+      await goTo(link);
+      assert.ok(revealed.includes('conversation') && scrolled.includes(anchor), 'the forked conversation is opened at the item');
+      const shown = c.querySelectorAll(n => n.getAttribute('id') === anchor)[0];
+      assert.ok(shown && /The agent asked this and went on/.test(shown.textContent) && shown.textContent.includes('Send answers'), 'the item carries its card, answerable');
+    });
+  }, {host});
+});
+
+test('"Go to it" on a question whose message is not in view moves nothing and says why (the mounted App)', async () => {
+  const {itemAnchorId} = loadSrc('NativeActivity');
+  // T2's question is listed from the reading, but the view holds no row for its message.
+  const host = () => hostView({nativeView:{...view, items:[], askedQuestions:{read:['T1', 'T2'], waiting:[askedRow('T2')]}}});
+  await mountApp(async ({c, calls, revealed}) => {
+    const anchor = itemAnchorId('T2', 'u3', 'call-T2');
+    const link = nodes(place(c), 'a').find(a => a.getAttribute('href') === `#${anchor}`);
+    assert.ok(link);
+    await withScroll(c, async scrolled => {
+      const before = calls.length, shownBefore = revealed.length;
+      await goTo(link);
+      assert.deepEqual(revealed.slice(shownBefore).filter(id => id === 'conversation'), [], 'the conversation is not shown');
+      assert.deepEqual(scrolled, [], 'nothing is scrolled to');
+      assert.ok(c.textContent.includes("Go to it: the agent's message with that question is not in view in its conversation; open the conversation and read its history to find it."));
+      assert.deepEqual(calls.slice(before).map(call => call.command).filter(cmd => !['host_status', 'decision_view', 'read_fleet_records', 'request_answer_companions', 'native_confirmation_content'].includes(cmd)), []);
+    });
   }, {host});
 });

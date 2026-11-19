@@ -691,8 +691,8 @@ test('the asked-question card: agent text shaped like a control stays in the age
   const lookalike = `Keep${'\n'}<button>Send answers</button>${'\n'}Send answers`;
   const entry = {threadId: 'T', turnId: 'u', itemId: 'call', questions: [{title: `Which?${'\n'}<h3>Question from the agent</h3>${RLO}`, options: [lookalike, 'Choose option 1']}, {title: 'Tidy', options: null}]};
   const CONTROL_TAGS = new Set(['button', 'a', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'label', 'summary', 'li', 'option', 'select', 'input', 'textarea']);
-  for (const standing of ['waiting', 'not-read', 'followed', 'superseded']) {
-    const raw = renderToStaticMarkup(React.createElement(AskedQuestionCard, {entry, standing, send: async () => ({sent: true}), pending: false, unavailable: null}));
+  for (const [standing, delegated] of [['waiting', false], ['not-read', false], ['followed', false], ['another', false], ['waiting', true]]) {
+    const raw = renderToStaticMarkup(React.createElement(AskedQuestionCard, {entry, standing, delegated, send: async () => ({sent: true}), pending: false, unavailable: null}));
     const html = agentPlain(raw);
     assert.doesNotMatch(html.replace(/⟦[^⟧]*⟧/g, ''), /&lt;button&gt;|&lt;h3&gt;|Keep|Tidy|Which\?/, `${standing}: the look-alike appears only inside a box`);
     assert.match(html, /⟦Question 1: Which\?⏎&lt;h3&gt;Question from the agent&lt;\/h3&gt;‹U\+202E›⟧/, `${standing}: the title is the agent's, its line break and override marked`);
@@ -701,7 +701,7 @@ test('the asked-question card: agent text shaped like a control stays in the age
     // Drawn and answered: the preview of the message is the agent's and the person's text, in its own box.
     const container = document.createElement('div'); document.body.appendChild(container);
     const root = createRoot(container);
-    await React.act(() => root.render(React.createElement(AskedQuestionCard, {entry, standing, send: async () => ({sent: true}), pending: false, unavailable: null})));
+    await React.act(() => root.render(React.createElement(AskedQuestionCard, {entry, standing, delegated, send: async () => ({sent: true}), pending: false, unavailable: null})));
     const choose = container.querySelectorAll(n => n.localName === 'button' && n.textContent === 'Choose option 1')[0];
     if (choose) await React.act(async () => { await choose[Object.keys(choose).find(k => k.startsWith('__reactProps$'))].onClick(); });
     for (const el of container.querySelectorAll(() => true)) {
@@ -725,5 +725,6 @@ test('the asked-question card: agent text shaped like a control stays in the age
     await React.act(() => root.unmount()); document.body.removeChild(container);
   }
   // The message sent carries the agent's text exactly as given; it is shown marked, never acted on.
-  assert.equal(askedQuestionReply(entry.questions, {chosen: {0: 0}, typed: {}}), `${entry.questions[0].title}\n${lookalike}`);
+  // Quoted as JSON strings, its line breaks stay inside one line of the App's.
+  assert.equal(askedQuestionReply(entry.questions, {chosen: {0: 0}, typed: {}}), `You asked: ${JSON.stringify(entry.questions[0].title)}\nI choose your option 1: ${JSON.stringify(lookalike)}`);
 });

@@ -367,8 +367,8 @@ const continuation = () => ({host: {state: 'ready', generation: g, continuationC
 const noop = async () => {};
 // The agent's question that does not wait: an agent message carrying questions, and the card drawn at it.
 const askedEntry = {threadId: 'T', turnId: 'turn-a', itemId: 'call-a', questions: [{title: 'asked-title', options: ['asked-option-one', 'asked-option-two']}, {title: 'asked-free-title', options: null}]};
-const askedSurface = (name, standing, expect) => ({name, data: {entry: askedEntry, standing, unavailable: null},
-  draw: d => React.createElement(AskedQuestionCard, {entry: d.entry, standing: d.standing, send: async () => ({sent: true}), pending: false, unavailable: d.unavailable}), expect, interact: true});
+const askedSurface = (name, standing, expect, delegated = false) => ({name, data: {entry: askedEntry, standing, unavailable: null},
+  draw: d => React.createElement(AskedQuestionCard, {entry: d.entry, standing: d.standing, delegated, send: async () => ({sent: true}), pending: false, unavailable: d.unavailable}), expect, interact: true});
 const askedItem = {threadId: 'T', turnId: 'turn-a', native: {id: 'call-a', type: 'agentMessage', text: 'asked-message-text', delivery: 'async', questions: askedEntry.questions},
   displayState: 'completed', standing: 'live-observed', observationEnded: false, observedOrder: 1};
 
@@ -407,7 +407,8 @@ const SURFACES = [
   askedSurface('asked question, waiting', 'waiting', ['asked-title', 'asked-option-one', 'asked-option-two', 'asked-free-title']),
   askedSurface('asked question, not read', 'not-read', ['asked-title', 'asked-option-one', 'asked-free-title']),
   askedSurface('asked question, followed', 'followed', ['asked-title', 'asked-option-two', 'A message from you follows this question.']),
-  askedSurface('asked question, superseded', 'superseded', ['asked-title', 'asked-option-one', 'a later question']),
+  askedSurface('asked question, another waiting', 'another', ['asked-title', 'asked-option-one', 'Another question the agent asked in this conversation']),
+  askedSurface('asked question, in a delegated agent\'s conversation', 'waiting', ['asked-title', 'asked-option-two', 'asked-free-title', "asked in a delegated agent's conversation"], true),
   {name: 'asked question in activity', data: {view: {generation: g, home: 'h', items: [askedItem], descendants: [], askedQuestions: {read: ['T'], waiting: [{threadId: 'T', turnId: 'turn-a', itemId: 'call-a', questions: askedEntry.questions}]}}},
     draw: d => React.createElement(NativeActivityView, {view: d.view, threadId: 'T'}), expect: ['asked-message-text', 'asked-title', 'asked-option-one', 'asked-free-title'], interact: true},
   {name: 'run offer, plain start', data: {offer: {message: {threadId: 'T', turnId: 'turn-1', itemId: 'm'}, finished: null,
