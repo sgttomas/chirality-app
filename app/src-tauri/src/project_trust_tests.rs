@@ -353,3 +353,115 @@ fn the_effects_text_is_the_owners_words() {
     assert_eq!(EFFECTS_TEXT, "Chirality sends this project to Codex as trusted. Codex then loads the project's own instructions (AGENTS.md) and its own Codex settings (the .codex folder in the project). With them:\n- MCP servers that the project's settings name are started on this Mac when a conversation starts, outside the sandbox.\n- The project's shell environment applies to every command the agent runs, and a start-up file of the project's own runs inside each command, under the same access level as that command.\n- The project's rules can let commands run outside the sandbox without asking you.\n- If Codex cannot load the project's settings file, no new conversation starts in this project until the file is fixed or trust is switched off.\nYou can switch trust off for this project in Chirality at any time.");
     assert!(ns::bounded("project trust", format!("{EFFECTS_TEXT}\n{INSIDE_REPOSITORY_BEFORE}/a/b{INSIDE_REPOSITORY_AFTER}\n{TAKES_EFFECT} {RUNNING_UNCHANGED}")).is_ok(), "the whole text fits the native confirmation");
 }
+
+// ---- A run with no records store ----
+
+#[test]
+fn with_no_records_store_the_environment_route_has_no_choice_and_the_setup_route_is_not_readable() {
+    let project = folder("trust-no-store-");
+    records_store::use_store_for_test(Some(Err("no records store configured (invented)".into())));
+    let environment = ProjectTrust::for_launch(Some(&project), "explicit Root native environment path inputs");
+    assert_eq!(choice(&environment), AppTrust::NoChoice, "the environment route behaves as before");
+    assert_eq!(environment.view()["sentence"], CHOICE_NONE);
+    let set_up = ProjectTrust::for_launch(Some(&project), crate::desktop_startup::SAVED_REQUEST_SOURCE);
+    assert!(matches!(choice(&set_up), AppTrust::NotRead { detail: Some(_) }), "the setup route stays fail closed");
+    assert_eq!(set_up.view()["sentence"], CHOICE_NOT_READ);
+    let mut reading = cl::TrustReading::not_read(project.clone(), cl::TRUST_READ_FAILED, None);
+    reading.case = cl::TrustCase::Unmarked;
+    reading.choice = Some(choice(&set_up));
+    assert_eq!(reading.status()["lines"], json!([cl::TRUST_CHOICE_NOT_READ]));
+    records_store::use_store_for_test(None);
+    std::fs::remove_dir_all(project).unwrap();
+}
+
+// ---- The store's acts on a project with switches: package, disposal, legal hold ----
+
+/// A project with a record and its switches in a store of its own, and the person's native-act stand-ins.
+struct Retained {
+    project: PathBuf,
+    store: PathBuf,
+    output: PathBuf,
+    actor: Value,
+    observed: Value,
+}
+impl Retained {
+    fn new() -> (Self, ProjectTrust) {
+        let r = Retained { project: folder("trust-retained-project-"), store: folder("trust-retained-store-"), output: folder("trust-retained-output-"),
+            actor: crate::act_control::person(Some("Invented fixture person"), Some("invented-fixture-os")),
+            observed: json!({"fixture":"invented; no live person's act"}) };
+        records_store::use_store_for_test(Some(Ok(records_store::Store { root: r.store.clone(), placement: records_store::Placement::Test, limits: vec![] })));
+        crate::records::append_project(&r.project, None, "app-writer:fixture", "evidence_limit", &crate::records::APP_WRITER,
+            json!({"label":"unresolvable reference","subjectRef":"invented trust fixture"})).unwrap();
+        let trust = ProjectTrust::for_launch(Some(&r.project), crate::desktop_startup::SAVED_REQUEST_SOURCE);
+        (r, trust)
+    }
+    fn act(&self, action: &str, bag: Option<&Path>) -> Result<Value, String> {
+        let plan = crate::records_retention::prepare(&self.project, action, bag, &self.actor, &self.observed)?;
+        crate::records_retention::apply(plan, &self.actor, &self.observed)
+    }
+    fn export(&self, name: &str) -> PathBuf {
+        let bag = self.output.join(name);
+        crate::records_export::export(&self.project, &bag).unwrap();
+        bag
+    }
+}
+impl Drop for Retained {
+    fn drop(&mut self) {
+        records_store::use_store_for_test(None);
+        for p in [&self.project, &self.store, &self.output] { let _ = std::fs::remove_dir_all(p); }
+    }
+}
+
+#[test]
+fn a_package_export_then_import_carries_the_switches_and_the_choice_reads_the_same() {
+    let (r, trust) = Retained::new();
+    let off = trust.switch_off().unwrap();
+    let before = choice(&trust);
+    assert_eq!(before, AppTrust::OffBySwitch { at: off["at"].as_str().unwrap().into() });
+    let bag = r.export("with-switches");
+    assert!(bag.join("payload").join(records_store::TRUST_SWITCHES).is_file() || walk_has(&bag, "switches.jsonl"), "the export carries the switch file");
+    let bytes = std::fs::read(switches(&r.project)).unwrap();
+    // Into another store.
+    records_store::use_store_for_test(Some(Ok(records_store::Store { root: r.output.join("destination-store"), placement: records_store::Placement::Test, limits: vec![] })));
+    let plan = records_store::package::prepare(&r.project, &bag, &r.actor, &r.observed).unwrap();
+    records_store::package::apply(plan, &r.actor, &r.observed).unwrap();
+    assert_eq!(std::fs::read(switches(&r.project)).unwrap(), bytes, "the switch file is imported byte for byte");
+    assert_eq!(choice(&trust), before, "the choice reads the same after import");
+}
+fn walk_has(dir: &Path, name: &str) -> bool {
+    std::fs::read_dir(dir).unwrap().flatten().any(|e| {
+        let p = e.path();
+        if p.is_dir() { walk_has(&p, name) } else { p.file_name().is_some_and(|n| n == name) }
+    })
+}
+
+#[test]
+fn disposal_removes_the_switches_and_the_entry_is_untrusted_with_the_not_readable_sentence() {
+    let (r, trust) = Retained::new();
+    trust.switch_off().unwrap();
+    let file = switches(&r.project);
+    r.act("close", None).unwrap();
+    let bag = r.export("before-disposal");
+    assert_eq!(r.act("dispose", Some(&bag)).unwrap()["state"], "disposed");
+    assert!(!file.exists(), "disposal removes the switch file with the payload");
+    // The identity stands and its records are disposed: the choice is not readable, never the setup default.
+    let after = choice(&trust);
+    assert!(matches!(after, AppTrust::NotRead { .. }), "{after:?}");
+    let mut reading = cl::TrustReading::not_read(r.project.clone(), cl::TRUST_READ_FAILED, None);
+    reading.case = cl::TrustCase::Trusted { key: r.project.to_string_lossy().into_owned() };
+    reading.choice = Some(after);
+    assert_eq!((reading.trust_level(), reading.status()["lines"].clone()), ("untrusted", json!([cl::TRUST_CHOICE_NOT_READ])));
+    assert_eq!(trust.view()["sentence"], CHOICE_NOT_READ);
+    assert!(trust.switch_off().unwrap_err().starts_with(CANNOT_SWITCH));
+}
+
+#[test]
+fn a_legal_hold_does_not_prevent_a_switch() {
+    let (r, trust) = Retained::new();
+    r.act("set-hold", None).unwrap();
+    assert_eq!(trust.view()["canSwitch"], true);
+    trust.switch_off().unwrap();
+    confirmed_on(&trust);
+    assert_eq!(lines(&r.project).len(), 2, "both switches are written under the hold");
+    assert!(matches!(choice(&trust), AppTrust::OnBySwitch { .. }));
+}

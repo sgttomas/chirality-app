@@ -1860,3 +1860,65 @@ fn a_trusted_projects_settings_file_that_stops_a_start_reaches_the_status_and_ot
     wire.close(&host);
     std::fs::remove_dir_all(&base).unwrap();
 }
+
+#[test]
+fn with_no_records_store_the_environment_route_is_unchanged_and_the_setup_route_is_fail_closed() {
+    let (base, project, _, _) = git_project("app-trust-no-store");
+    crate::records_store::use_store_for_test(Some(Err("no records store configured (invented)".into())));
+    for (source, mark, level, case) in [(ENVIRONMENT, "trusted", "trusted", "trusted"), (ENVIRONMENT, "none", "untrusted", "unmarked"),
+                                        (SET_UP, "none", "untrusted", "choice-not-read"), (SET_UP, "trusted", "untrusted", "choice-not-read")] {
+        let (host, _) = app_project_host(&base, &project, source);
+        let k = key(&project);
+        let wire = Responder::attach(&host, move |_| layers_with(if mark == "trusted" { json!({k.clone(): {"trust_level": "trusted"}}) } else { json!({}) }));
+        send(&host, "thread/resume", frame_params("thread/resume", &project)).unwrap();
+        assert_eq!(wire.next_sent().1["params"]["config"]["projects"], json!({key(&project): {"trust_level": level}}), "{source} {mark}");
+        let status = thread_row(&host, "thread")["level"]["projectTrust"].clone();
+        assert_eq!(status["case"], case, "{source} {mark}");
+        if case == "choice-not-read" { assert_eq!(status["lines"], json!([cl::TRUST_CHOICE_NOT_READ])); }
+        wire.close(&host);
+    }
+    crate::records_store::use_store_for_test(None);
+    std::fs::remove_dir_all(&base).unwrap();
+}
+
+#[test]
+fn the_settings_file_message_does_not_outlive_its_cause() {
+    let (base, project, _, _) = git_project("app-trust-refusal-cleared");
+    crate::records_store::attach(&project, true).unwrap();
+    let elsewhere = base.join("elsewhere");
+    std::fs::create_dir_all(&elsewhere).unwrap();
+    let (host, trust) = app_project_host(&base, &project, SET_UP);
+    let wire = Responder::attach(&host, |_| layers_with(json!({})));
+    let error = json!({"code": -32600, "message": "failed to load configuration: `invented` is no longer supported; remove it from config.toml"});
+    let answer = |method: &str, cwd: &Path, outcome: Value| {
+        let params = if method == "thread/start" { json!({"cwd": cwd}) } else { frame_params(method, cwd) };
+        let request = send(&host, method, params).unwrap();
+        wire.next_sent();
+        let mut frame = json!({"jsonrpc": "2.0", "id": request.request_id()});
+        let member = if outcome.get("code").is_some() { "error" } else { "result" };
+        frame[member] = outcome;
+        reply(&host, frame);
+    };
+    let shown = || (host.snapshot()["projectSettingsRefusal"].is_object(), thread_row(&host, "thread")["level"]["projectSettingsRefusal"].is_object());
+    // A refused resume of the conversation: said in both places.
+    answer("thread/resume", &project, error.clone());
+    assert_eq!(shown(), (true, true));
+    // A start that succeeds in another folder leaves it: its cause is this project's file.
+    answer("thread/start", &elsewhere, json!({"thread": {"id": "elsewhere-thread"}}));
+    assert_eq!(shown(), (true, true));
+    // A later start in the same project that succeeds clears both.
+    answer("thread/start", &project, json!({"thread": {"id": "new-thread"}}));
+    assert_eq!(shown(), (false, false));
+    // Refused again; a later resume of the conversation that succeeds clears both.
+    answer("thread/resume", &project, error.clone());
+    assert_eq!(shown(), (true, true));
+    answer("thread/resume", &project, json!({"thread": {"id": "thread"}}));
+    assert_eq!(shown(), (false, false));
+    // Refused again; the person switches trust off: neither is shown from then on.
+    answer("thread/resume", &project, error);
+    assert_eq!(shown(), (true, true));
+    trust.switch_off().unwrap();
+    assert_eq!(shown(), (false, false));
+    wire.close(&host);
+    std::fs::remove_dir_all(&base).unwrap();
+}

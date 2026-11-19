@@ -117,8 +117,10 @@ pub(crate) struct LevelState {
     pub(crate) project_trust: Option<Arc<crate::project_trust::ProjectTrust>>,
     /// The last start, resume or fork Codex refused because a trusted project's own settings file could not be
     /// loaded (`codex_level::project_settings_refusal`), and each conversation's.
-    pub(crate) settings_refusal: Option<Value>,
-    pub(crate) thread_settings_refusal: HashMap<String, Value>,
+    /// Each with the count of the person's switches off when it was noted: one noted before a later switch off is
+    /// no longer shown.
+    pub(crate) settings_refusal: Option<(Value, u64)>,
+    pub(crate) thread_settings_refusal: HashMap<String, (Value, u64)>,
     /// A test's own budget for the trust reading, in place of the reading default.
     #[cfg(test)]
     pub(crate) trust_budget: Option<std::time::Duration>,
@@ -358,16 +360,21 @@ impl Host {
                 refusal["requestRef"] = json!(request_ref);
                 refusal["threadId"] = json!(thread);
                 refusal["at"] = json!(now_rfc3339());
-                if let Target::Conversation(t) = &bound.target { i.level.thread_settings_refusal.insert(t.clone(), refusal.clone()); }
-                i.level.settings_refusal = Some(refusal);
+                let offs = i.level.project_trust.as_ref().map_or(0, |projects| projects.offs());
+                if let Target::Conversation(t) = &bound.target { i.level.thread_settings_refusal.insert(t.clone(), (refusal.clone(), offs)); }
+                i.level.settings_refusal = Some((refusal, offs));
             }
             i.level.request_sent.remove(key);
             i.level.sent_by_request.remove(key);
             return;
         }
-        if bound.trust.is_some() {
-            i.level.settings_refusal = None;
+        // A later start, resume or fork of the same conversation or project that Codex accepted: the refusal no
+        // longer stands.
+        if let Some(trust) = &bound.trust {
+            let root = json!(trust.root.to_string_lossy());
+            if i.level.settings_refusal.as_ref().is_some_and(|(r, _)| r["projectRoot"] == root) { i.level.settings_refusal = None; }
             if let Target::Conversation(t) = &bound.target { i.level.thread_settings_refusal.remove(t); }
+            i.level.thread_settings_refusal.retain(|_, (r, _)| r["projectRoot"] != root);
         }
         let result = &frame["result"];
         let thread = match &bound.target {
@@ -698,7 +705,10 @@ impl Host {
         status["levelDefault"] = chosen_view(i.level.default_chosen.as_ref(), i.default_level, "default", session_only);
         status["levelStartRefusal"] = json!(i.level.start_refusal);
         status["levelSendRefusal"] = json!(i.level.last_refusal);
-        status["projectSettingsRefusal"] = json!(i.level.settings_refusal);
+        // A refusal noted before the person's latest switch off no longer stands.
+        let offs = i.level.project_trust.as_ref().map_or(0, |projects| projects.offs());
+        let standing = |noted: &(Value, u64)| (noted.1 == offs).then(|| noted.0.clone());
+        status["projectSettingsRefusal"] = json!(i.level.settings_refusal.as_ref().and_then(standing));
         status["levelLaunchRead"] = i.level.launch.clone();
         status["levelRecordMissing"] = if i.level.record_missing { json!(cl::RECORD_MISSING_SENTENCE) } else { Value::Null };
         // The level preselected in the ask: the App's default, one press away.
@@ -744,7 +754,7 @@ impl Host {
                     }
                 }
                 if let Some(trust) = project_trust { level["projectTrust"] = trust; }
-                if let Some(refusal) = i.level.thread_settings_refusal.get(&t) { level["projectSettingsRefusal"] = refusal.clone(); }
+                if let Some(refusal) = i.level.thread_settings_refusal.get(&t).and_then(standing) { level["projectSettingsRefusal"] = refusal; }
                 if let Some(cause) = i.level.refused.get(&t) { level["refused"] = cause.clone(); }
                 // This conversation's recorded level could not be used: the ask, with the App's default preselected.
                 if asked { level["ask"] = json!({"sentence": cl::RECORD_MISSING_SENTENCE, "preselected": i.level.app_default.0.map(|l| l.id.as_str())}); }
