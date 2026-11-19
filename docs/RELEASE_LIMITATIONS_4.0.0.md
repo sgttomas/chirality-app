@@ -657,7 +657,7 @@ An entry is added in the same pull request that makes the limitation standing.
   conversation's recovered history before continuing.
 - **Basis:** DEL-01-02 REQ-005 and AC-006.
 
-### LIM-037: An agent's question is lost when Codex stops, and a delegated agent cannot ask one
+### LIM-037: Question requests after Codex stops and limits on questions asked without waiting
 
 - **Id:** LIM-037
 - **Exit criteria:** 4
@@ -672,26 +672,30 @@ An entry is added in the same pull request that makes the limitation standing.
   message and uses Codex's reported turn status. Only a request makes the
   question count as waiting for your answer. A fourth concerns the question
   an agent asks without waiting, on the models Codex gives that form:
-  Chirality shows it and lists it under "Waiting on you" only in a
-  conversation it has read since it last started Codex. A conversation
-  continued from history is not read for this until it receives a message;
-  until then "Waiting on you" names it as not read and says its status is
-  incomplete, and nothing about such a question is kept across a relaunch.
+  Chirality lists it under "Waiting on you" only for a conversation of your
+  own with the agent (not a delegated agent's) that it has read since it last
+  started Codex. A conversation continued from History is not read for this
+  until it receives a message; until then "Waiting on you" names it as not
+  read and says its status is incomplete. Nothing about such a question is
+  kept across a relaunch, and any later message from you ends the listing,
+  whatever it says.
 - **Why:** the question is Codex's own request, which belongs to the running
   turn and is not kept across a stop, and which Codex allows only to the
   conversation's own agent. Codex allows it in an ordinary conversation only
   through a feature it marks as under development, which the App turns on for
-  its own Codex and lists among the settings it applies. Whether an agent uses
-  the request when it needs an answer is the model's choice; the App's
-  guidance asks it to, and the App does not guess from the wording of a
-  message. The question asked without waiting is an item of the conversation,
+  its own Codex and lists among the settings it applies. The shipped guidance
+  uses the request for optional questions in Default mode and directs
+  questions whose answers are needed to the form that does not wait, when
+  Codex offers it. Which an agent uses is the model's choice, and the App does
+  not guess from the wording of a message. The question asked without waiting is an item of the conversation,
   not a request: the App reads it from the items Codex sends while it runs,
   and Codex's summary of an earlier turn, which is what the App reads from
   history, leaves items out.
 - **What the person does instead:** after a stop, send a message to continue.
   Read a completed turn's last message for a question. For a conversation
-  continued from history, read its last turn for a question the agent asked
-  and answer on its card or by a message. The agent you are
+  continued from History, open the stored turn's items to read any question
+  Codex returned. Send an ordinary message in the continued conversation to
+  reply. The agent you are
   talking with can relay a delegated agent's question.
 - **Basis:** DEL-01-04 REQ-001 (requests and their answers); DEL-01-05 (the
   settings the App gives its Codex); DEL-02-04 (the guidance). The level

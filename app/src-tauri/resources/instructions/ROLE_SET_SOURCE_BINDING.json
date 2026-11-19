@@ -9,8 +9,8 @@
   "guidance": [
     {
       "path": "AGENTS.md",
-      "sha256": "84ca5e21c458a80492cd28d4fce845c413a8f184c06e56cc2185544e5c8e5f6e",
-      "byteLength": 9572
+      "sha256": "cf9af7a28e1e74fdc8a607f4772bcd2becaef3a38d34b8cc6d2e0987cc9b4fd8",
+      "byteLength": 9880
     },
     {
       "path": "agents/AGENT_HELPS_HUMANS.md",
