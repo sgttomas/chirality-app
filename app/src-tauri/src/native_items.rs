@@ -153,7 +153,12 @@ enum Reading {
     /// where the conversation was read from its start with nothing decisive
     /// since; the question waiting, if any; and, where none waits because a
     /// message from the person followed a question, that question's identity.
-    Definite { anchor: Option<Anchor>, waiting: Option<Value>, followed: Option<Value> },
+    /// `also`: decisive items of pages that agreed with this reading and could
+    /// not be ordered to it. They are evidence for it as much as `anchor` is,
+    /// so a later page must place them too; `None` where they are more than
+    /// are kept (`ASKED_CONFLICT_ANCHORS`), when a page that does not agree
+    /// leaves only a live decisive item to resolve it.
+    Definite { anchor: Option<Anchor>, waiting: Option<Value>, followed: Option<Value>, also: Option<Vec<Anchor>> },
     /// Readings whose order is not known disagree: published as not read. The
     /// decisive items in conflict are kept so that a history page can restore
     /// a definite reading only by placing every one of them; `None` where they
@@ -471,13 +476,22 @@ impl NativeView {
                 // Receipt positions of the item's start and completion in this
                 // generation: the App's receiving order, never a native sequence.
                 let key = native_key(text(p, "threadId")?, text(p, "turnId")?, text(&p["item"], "id")?);
+                // Whether this item was already received live in this generation (its
+                // start, before this completion).
+                let mut received_before = false;
                 if let Some(row) = self.items.get_mut(&key) {
                     if row["receipt"]["generation"] != *g {
                         row["receipt"] = json!({"generation": g});
                     }
+                    received_before = row["receipt"]["started"].is_u64() || row["receipt"]["completed"].is_u64();
                     row["receipt"][if completed { "completed" } else { "started" }] = json!(pos);
                 }
-                self.asked_live(text(p, "threadId")?, text(p, "turnId")?, &p["item"], completed, pos);
+                // A message from the person counts once for the question reading, at
+                // its first receipt: its completion after a question that came in
+                // between is not a message following that question.
+                if !(received_before && p["item"]["type"] == "userMessage") {
+                    self.asked_live(text(p, "threadId")?, text(p, "turnId")?, &p["item"], completed, pos);
+                }
             }
             Some("item/plan/delta") => {
                 let thread = text(p, "threadId")?;
@@ -957,7 +971,7 @@ impl NativeView {
             return;
         }
         self.asked.entry(thread.into()).or_insert(AskedState {
-            reading: Reading::Definite { anchor: None, waiting: None, followed: None },
+            reading: Reading::Definite { anchor: None, waiting: None, followed: None, also: Some(vec![]) },
             live_at: None,
         });
     }
@@ -1052,7 +1066,7 @@ impl NativeView {
             None => return,
         };
         self.asked.insert(thread.into(), AskedState {
-            reading: Reading::Definite { anchor: Some((turn.into(), id.into())), waiting, followed },
+            reading: Reading::Definite { anchor: Some((turn.into(), id.into())), waiting, followed, also: Some(vec![]) },
             live_at: Some(at),
         });
     }
@@ -1105,8 +1119,9 @@ impl NativeView {
     /// passed over where it is known to be older. Where the order is not known
     /// (a history read can be older than items received live, and Codex may
     /// give the same message another id in history), a conclusion that agrees
-    /// leaves the reading, and one that differs makes the conversation
-    /// unresolved, keeping both decisive items. An unresolved conversation is
+    /// leaves the reading and its decisive item is kept with it, and one that
+    /// differs makes the conversation unresolved, keeping every decisive item
+    /// the reading rested on that the page did not place, and the page's own. An unresolved conversation is
     /// restored to a definite reading only by a page that places every kept
     /// item, each by the same rule; a page that does not adds its own decisive
     /// item to those kept, unless it is known to be older than one of them.
@@ -1117,7 +1132,7 @@ impl NativeView {
         // own (the latest before its decisive message), or, where the page is
         // ordered after a definite reading, the question that reading had waiting
         // or followed, where the page does not show its own as the newer.
-        let definite = |prior: Option<Value>| {
+        let definite = |prior: Option<Value>, also: Option<Vec<Anchor>>| {
             let own = page.followed();
             let followed = match (own, prior) {
                 _ if waiting.is_some() || page.found.is_none() => None,
@@ -1125,34 +1140,64 @@ impl NativeView {
                 (Some((_, turn, item)), _) => Some(followed_entry(thread, &turn, &item)),
                 (None, prior) => prior,
             };
-            Reading::Definite { anchor: page.anchor(), waiting: waiting.clone(), followed }
+            Reading::Definite { anchor: page.anchor(), waiting: waiting.clone(), followed, also }
         };
         match current {
-            None => Some(definite(None)),
-            Some(Reading::Definite { anchor: None, .. }) => Some(definite(None)),
-            Some(Reading::Definite { anchor: Some(anchor), waiting: established, followed }) => match page.place(anchor) {
-                Some(true) => {
-                    let prior = match established {
-                        Some(e) => Some(followed_entry(thread, e["turnId"].as_str().unwrap_or_default(), e["itemId"].as_str().unwrap_or_default())),
-                        None => followed.clone(),
-                    };
-                    Some(definite(prior))
+            None => Some(definite(None, Some(vec![]))),
+            Some(Reading::Definite { anchor: None, .. }) => Some(definite(None, Some(vec![]))),
+            Some(Reading::Definite { anchor: Some(anchor), waiting: established, followed, also }) => {
+                let same = match (established, &waiting) {
+                    (None, None) => true,
+                    (Some(a), Some(b)) => a["turnId"] == b["turnId"] && a["itemId"] == b["itemId"],
+                    _ => false,
+                };
+                let prior = || match established {
+                    Some(e) => Some(followed_entry(thread, e["turnId"].as_str().unwrap_or_default(), e["itemId"].as_str().unwrap_or_default())),
+                    None => followed.clone(),
+                };
+                // The items this reading rests on: the one that established it, and
+                // those of agreeing pages that could not be ordered to it.
+                let extras: &[Anchor] = also.as_deref().unwrap_or(&[]);
+                let placed = page.place(anchor);
+                let placed_extras: Vec<Option<bool>> = extras.iter().map(|a| page.place(a)).collect();
+                if placed == Some(false) || placed_extras.contains(&Some(false)) {
+                    return None;
                 }
-                Some(false) => None,
-                None => {
-                    let same = match (established, &waiting) {
-                        (None, None) => true,
-                        (Some(a), Some(b)) => a["turnId"] == b["turnId"] && a["itemId"] == b["itemId"],
-                        _ => false,
-                    };
-                    (!same).then(|| Self::unresolved(vec![anchor.clone()], page.anchor()))
+                let unplaced: Vec<Anchor> = extras.iter().zip(&placed_extras).filter(|(_, p)| p.is_none()).map(|(a, _)| a.clone()).collect();
+                match (placed, also) {
+                    // At least as new as every item the reading rests on.
+                    (Some(true), Some(_)) if unplaced.is_empty() => Some(definite(prior(), Some(vec![]))),
+                    // At least as new as the establishing item and agreeing: it
+                    // establishes the reading, and the items it did not place stay kept.
+                    (Some(true), _) if same => Some(definite(prior(), also.as_ref().map(|_| unplaced))),
+                    (Some(true), Some(_)) => Some(Self::unresolved(unplaced, page.anchor())),
+                    // Order to the establishing item not known, and agreeing: the
+                    // reading stands, and the page's decisive item is kept with it.
+                    (None, _) if same => {
+                        let add = page.anchor()?;
+                        if *anchor == add || extras.contains(&add) || also.is_none() {
+                            return None;
+                        }
+                        let mut kept = extras.to_vec();
+                        kept.push(add);
+                        Some(Reading::Definite { anchor: Some(anchor.clone()), waiting: established.clone(), followed: followed.clone(),
+                            also: (kept.len() < ASKED_CONFLICT_ANCHORS).then_some(kept) })
+                    }
+                    (None, Some(_)) => {
+                        let mut kept = vec![anchor.clone()];
+                        kept.extend(unplaced);
+                        Some(Self::unresolved(kept, page.anchor()))
+                    }
+                    // Not agreeing, with more agreeing items than are kept.
+                    (_, None) => Some(Reading::Unresolved { anchors: None }),
+                    (Some(false), _) => None,
                 }
-            },
+            }
             Some(Reading::Unresolved { anchors: None }) => None,
             Some(Reading::Unresolved { anchors: Some(kept) }) => {
                 let placed: Vec<Option<bool>> = kept.iter().map(|a| page.place(a)).collect();
                 if placed.iter().all(|p| *p == Some(true)) {
-                    Some(definite(None))
+                    Some(definite(None, Some(vec![])))
                 } else if placed.contains(&Some(false)) {
                     None
                 } else {
@@ -1178,8 +1223,8 @@ impl NativeView {
     /// becomes unresolved, keeping the item that established it.
     fn asked_unsettle(&mut self, thread: &str) {
         if let Some(state) = self.asked.get_mut(thread) {
-            if let Reading::Definite { anchor, .. } = &state.reading {
-                state.reading = Reading::Unresolved { anchors: Some(anchor.iter().cloned().collect()) };
+            if let Reading::Definite { anchor, also, .. } = &state.reading {
+                state.reading = Reading::Unresolved { anchors: also.as_ref().map(|also| anchor.iter().chain(also).cloned().collect()) };
             }
         }
     }
@@ -2252,6 +2297,49 @@ mod asked_question_tests {
             assert_eq!(state(&v, "t"), AskedQuestion::NotRead, "delivery {delivery}");
         }
         assert_eq!(followed(&v), json!([]));
+    }
+    // Pages alone, in an order history does not promise: an agreeing page that cannot be ordered
+    // keeps its decisive item, so a later page that places only some of what was seen decides nothing.
+    #[test]
+    fn an_agreeing_page_that_cannot_be_ordered_keeps_its_item_for_later_pages() {
+        // In the conversation's order: p1 (u1), q (u2), p3 (u3).
+        let mut v = view();
+        let first = page(json!([{"id":"u1","status":"completed","items":[person("p1")]}]));
+        let newest = page(json!([{"id":"u3","status":"completed","items":[person("p3")]}]));
+        let older = page(json!([{"id":"u2","status":"completed","items":[question("q","Asked?")]}]));
+        let older_with_first = page(json!([{"id":"u2","status":"completed","items":[question("q","Asked?")]},{"id":"u1","status":"completed","items":[person("p1")]}]));
+        deliver(&mut v, &first);
+        assert_eq!(state(&v, "t"), AskedQuestion::None);
+        deliver(&mut v, &newest);
+        assert_eq!(state(&v, "t"), AskedQuestion::None, "agreeing, order not known: the reading stands");
+        deliver(&mut v, &older);
+        assert_eq!(state(&v, "t"), AskedQuestion::NotRead);
+        // It places p1 and q, and not p3, which the reader has seen: q is not published as waiting.
+        for delivery in 1..=2 {
+            deliver(&mut v, &older_with_first);
+            assert_eq!(state(&v, "t"), AskedQuestion::NotRead, "delivery {delivery}");
+            assert_eq!(waiting_item(&v, "t"), None, "delivery {delivery}");
+        }
+        // A page that places all three decides: a message from the person follows q.
+        deliver(&mut v, &page(json!([{"id":"u3","status":"completed","items":[person("p3")]},{"id":"u2","status":"completed","items":[question("q","Asked?")]},{"id":"u1","status":"completed","items":[person("p1")]}])));
+        assert_eq!(state(&v, "t"), AskedQuestion::None);
+        assert_eq!(followed(&v), json!([{"threadId":"t","turnId":"u2","itemId":"q"}]));
+    }
+    // A message from the person counts once, at its first receipt: its completion after a question
+    // received in between does not make it a message following that question.
+    #[test]
+    fn a_persons_message_received_at_its_start_is_not_counted_again_at_its_completion() {
+        let mut v = view();
+        live(&mut v, 1, "item/started", "t", "u1", person("p"));
+        live(&mut v, 2, "item/completed", "t", "u1", question("q", "Asked?"));
+        assert_eq!(waiting_item(&v, "t").as_deref(), Some("q"));
+        live(&mut v, 3, "item/completed", "t", "u1", person("p"));
+        assert_eq!(waiting_item(&v, "t").as_deref(), Some("q"), "the message was received before the question");
+        assert_eq!(followed(&v), json!([]));
+        // A new message from the person does follow it.
+        live(&mut v, 4, "item/started", "t", "u2", person("p2"));
+        assert_eq!(state(&v, "t"), AskedQuestion::None);
+        assert_eq!(followed(&v), json!([{"threadId":"t","turnId":"u1","itemId":"q"}]));
     }
     #[test]
     fn an_unorderable_older_page_ending_in_a_persons_message_stays_not_read_however_often_it_comes() {

@@ -1425,8 +1425,8 @@ test('a conversation the status lists among its conversations but knows as a del
   }
 });
 
-test('a status whose conversations are missing or not a list gives no whole reading of this source', () => {
-  for (const threads of [undefined, null, {}, 'T1', {0:thread('T1'), length:1}]) {
+test('a status whose conversations are missing, not a list, or a list with a row that names no conversation gives no whole reading of this source', () => {
+  for (const threads of [undefined, null, {}, 'T1', {0:thread('T1'), length:1}, [{generation:thread('T1').generation}], [thread('T1'), {generation:thread('T1').generation}], [null], [{...thread('T1'), threadId:''}], [{...thread('T1'), threadId:7}]]) {
     const r = askedView(emptySources(withAsked({read:['T1', 'T2'], waiting:[askedRow('T1')]}, h => { if (threads === undefined) delete h.threads; else h.threads = threads; })));
     assert.equal(r.reading.state, 'not-read', JSON.stringify(threads));
     assert.equal(r.shown.complete, false, JSON.stringify(threads));

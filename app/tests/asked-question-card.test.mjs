@@ -211,6 +211,31 @@ test('the mount draws the card only at a completed agent message with questions 
   // Outside a conversation's own view (no host), the card says where answers are sent from and cannot send.
   const alone = unescape(renderToStaticMarkup(React.createElement(AskedQuestionMount, {row: row(asked)})));
   assert.ok(alone.includes("Chirality has not read this conversation's later messages") && alone.includes("Answers can be sent from the conversation's own view."));
+  // No answer can go from there, so no answer field, choice or Send is drawn: the questions and options only.
+  assert.ok(!/<button|<textarea|<input/.test(alone), 'no control outside the conversation\'s own view');
+  assert.ok(alone.includes('Which invented colour?') && alone.includes('Invented blue'));
+  assert.equal(alone.split("Answers can be sent from the conversation's own view.").length, 2, 'said once');
+});
+
+test('a drawing made and not committed does not turn away the press of the button shown', async () => {
+  // A transition draws the card with another answer and then suspends, so that drawing is never committed: the
+  // button on the screen is still the earlier one, and its press sends the answers shown with it.
+  const sent = [];
+  const never = new Promise(() => {});
+  let suspend;
+  function Suspender() { const [on, set] = React.useState(false); suspend = set; if (on) throw never; return null; }
+  const card = React.createElement(AskedQuestionCard, {entry, standing: 'waiting', send: async (...a) => { sent.push(a); return {sent: true}; }, pending: false, unavailable: null});
+  const {container, done} = await mounted(React.createElement(React.Fragment, null, card, React.createElement(Suspender)));
+  try {
+    await click(button(container, 'Choose option 1')[0]);
+    const shown = 'You asked: "Which invented colour?"\nI choose your option 1: "Invented red"';
+    assert.equal(preview(container).replaceAll('⏎', ''), shown);
+    await React.act(async () => { React.startTransition(() => { props(field(container)[1]).onChange({target: {value: 'never committed'}}); suspend(true); }); });
+    assert.equal(preview(container).replaceAll('⏎', ''), shown, 'the drawing with the other answer was not committed');
+    await click(button(container, 'Send answers')[0]);
+    assert.deepEqual(sent.map(a => a[1]), [shown], 'the press of the button shown sends what is shown');
+    assert.ok(!container.textContent.includes('That press belonged to an earlier view'));
+  } finally { await done(); }
 });
 
 test('at a question in a delegated agent\'s conversation the card is information only: the questions and options, the App\'s sentence, no control and no claim of a reply', () => {

@@ -131,12 +131,15 @@ export function AskedQuestionCard({ entry, standing, send, binding = null, pendi
   const [sending, setSending] = useState(false);
   const [outcome, setOutcome] = useState<AskedSendResult | null>(null);
   // A question in a delegated agent's conversation is shown for information only: nothing is sent there from here.
-  const answering = !delegated && (standing === "waiting" || standing === "not-read");
+  // Answer fields are drawn only where an answer can go: in the conversation's own view, which hands the card its send.
+  // Anywhere else (a stored item page in History) the card says where answers are sent from and draws no field.
+  const offersAnswer = !delegated && (standing === "waiting" || standing === "not-read");
+  const answering = offersAnswer && !!send;
   const questions: AskedQuestionText[] = Array.isArray(entry?.questions) ? entry.questions : [];
   const reply = askedQuestionReply(questions, { chosen, typed });
-  // The text the card composes now. A press drawn with other answers (a handler kept from an earlier drawing) sends nothing.
+  // The text of the committed drawing (set at commit, below). A press drawn with other answers (a handler kept from an
+  // earlier drawing) sends nothing; a drawing that was made and not committed changes nothing for the button shown.
   const current = useRef(reply);
-  current.current = reply;
   const blocked: AskedUnavailable | null = !send ? "no-send" : unavailable;
   // A press belongs to one committed control that offers Send, once. Each drawing makes its own binding; the commit of
   // a drawing that offers Send makes that binding the live one, and any other commit, or unmounting, leaves none live.
@@ -149,6 +152,7 @@ export function AskedQuestionCard({ entry, standing, send, binding = null, pendi
   const pressBinding = { used: false };
   useLayoutEffect(() => {
     livePress.current = offered ? pressBinding : null;
+    current.current = reply;
     answeringNow.current = answering;
     return () => { livePress.current = null; answeringNow.current = false; };
   });
@@ -195,6 +199,7 @@ export function AskedQuestionCard({ entry, standing, send, binding = null, pendi
         </> : options.map((option, k) => <div key={k}>Option {k + 1}: <AgentText value={option} label={`Option ${k + 1}:`} /></div>)}
       </div>;
     })}
+    {offersAnswer && !send && <p><Word value="no-send" words={ASKED_UNAVAILABLE} source="record" label="Recorded:" name="A reason the App does not recognise" /></p>}
     {answering && <>
       {reply !== "" && <div><p>This is sent as your message, exactly:</p><AgentText block exactLineEnds value={reply} source="record" label="Your message, as it will be sent:" name="The message the App will send for you: the agent's questions and your answers" /></div>}
       <button className="setup-primary" disabled={reply === "" || sending || pending || !!blocked} onClick={() => { void press(); }}>Send answers</button>

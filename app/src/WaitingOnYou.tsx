@@ -522,7 +522,10 @@ function hostReadings(host: Json, call: ReadEvidence["call"], at: number | null,
   const askedName = active ? `Questions the agent asked and went on from, in the ${active} home,` : "Questions the agent asked and went on from, in the active home,";
   const askedEnded = nativeView?.observationEnded === true || host?.nativeViewObservationEnded === true;
   const askedShaped = running && !!nativeView && sameActivityGeneration(nativeView.generation, host?.generation) && JSON.stringify(nativeView.generation) === JSON.stringify(host?.generation)
-    && Array.isArray(asked?.read) && Array.isArray(asked?.waiting) && Array.isArray(host?.threads);
+    && Array.isArray(asked?.read) && Array.isArray(asked?.waiting)
+    // The census is the status's conversations: a list, every row of it naming its conversation. A row that names none
+    // is a conversation the census cannot count, so nothing is said to be whole from it.
+    && Array.isArray(host?.threads) && host.threads.every((t: Json) => typeof t?.threadId === "string" && t.threadId !== "");
   const conversations: string[] = [...new Set<string>(list(host?.threads).map((t: Json) => t?.threadId).filter((id: Json) => askedAdmittedTopLevel(host, id)))];
   const unread = askedShaped ? conversations.filter(id => !asked.read.includes(id)) : conversations;
   const askedRead = askedShaped && !askedEnded && (conversations.length === 0 || unread.length < conversations.length);
