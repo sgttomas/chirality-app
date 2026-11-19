@@ -721,11 +721,11 @@ test('the prose renderer keeps what malformed syntax would swallow: invisible li
   const invisible = prose(`First\n${ZWSP}${WJ}\nSecond`);
   assert.deepEqual(marks(invisible), ['200B', '2060']);
   assert.match(invisible, /^<div[^>]*><p>First<br\/><span[^>]*>‹U\+200B›<\/span><span[^>]*>‹U\+2060›<\/span><br\/>Second<\/p><\/div>$/);
-  // Cells keep invisible and direction characters at their edges; a row longer than the header keeps every cell.
+  // Cells keep invisible and direction characters at their edges; a row longer than the header keeps every cell, and no row is padded.
   const table = prose(`| ${ZWSP}a${RLO} | b |\n|---|---|\n| c | d | ${ZWJ}e${LRI} |`);
   assert.deepEqual(marks(table), ['200B', '202E', '200D', '2066']);
   assert.match(visible(table), /e/);
-  assert.equal((table.match(/<td>/g) ?? []).length, 6, 'two rows of three cells: the header widened to the longest row');
+  assert.equal((table.match(/<td>/g) ?? []).length, 5, 'the header\'s two cells and the row\'s three: only the cells supplied, none added');
   // A fence's information string is shown as text, whatever it holds; a plain language name too.
   const fence = prose(`\`\`\`js onclick="x" ${RLO}\ncode\n\`\`\``);
   assert.match(fence, /<p class="agent-prose-code-info">js onclick=&quot;x&quot; <span[^>]*>‹U\+202E›<\/span><\/p><pre class="agent-prose-code"><code>code<\/code><\/pre>/);
@@ -744,23 +744,104 @@ test('the prose renderer draws what looks like an HTML tag as its source text: n
 // A seeded generator, so a failure is reproducible.
 const seeded = seed => () => { seed |= 0; seed = seed + 0x6d2b79f5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
 const ALPHABET = ['*', '**', '_', '`', '```', '~~~', '#', '## ', '>', '> ', '-', '- ', '+ ', '1. ', '2) ', '|', '|---|', '[', ']', '(', ')', '![', '\\', '<', '>', '<span title="', '">', '</b>', '<!--', '-->', '<a href=x>', '<https://e.invalid>', ':', '=', '---', '"', "'",
-  ' ', '  ', '\t', '\n', '\n\n', '\r\n', 'a', 'b', 'x', 'é', '家', '🙂', '‮', '⁦', '​', '‍', '﻿', ' ', '\u0085', '͏'];
-// What the renderer may consume as syntax: the markers of what it draws, spaces, tabs and line ends (ASCII
-// punctuation, digits, space, tab, CR, LF). Every other character of the input must be drawn, in order.
+  ' ', '  ', '\t', '\n', '\n\n', '\r\n', 'a', 'b', 'x', 'é', '家', '🙂', '‮', '⁦', '​', '‍', '﻿', ' ', '\u0085', '͏', '︀', '\u{E0100}'];
+// The ASCII characters the renderer may take as syntax: punctuation, digits, space, tab, CR, LF.
 const SYNTAX = /[\x20-\x2f\x3a-\x40\x5b-\x60\x7b-\x7e0-9\t\r\n]/;
-test('property: on generated Markdown, HTML, line breaks and invisible characters, the output holds only the renderer\'s elements and every non-syntax character in order', () => {
+// Syntax characters placed where nothing can make them syntax: inside a code span, a tag or image syntax. Their
+// insides hold every ASCII syntax character those forms allow, pipes and emphasis markers included.
+const INSIDE = ['|', '*', '**', '_', '#', '-', '+', '\\', '!', '[', '(', '~', '=', ':', '.', '1', ' ', 'a', '家'];
+const inert = random => {
+  let inside = 'a';
+  for (let k = 0, n = 1 + Math.floor(random() * 8); k < n; k++) inside += INSIDE[Math.floor(random() * INSIDE.length)];
+  inside += 'z';
+  const form = Math.floor(random() * 3);
+  // What must be shown, contiguous and whole: a code span's inside; a tag's or an image's whole source.
+  return form === 0 ? {source: '`' + inside + '`', shown: inside} : form === 1 ? {source: `<span title="${inside}">`, shown: `<span title="${inside}">`} : {source: `![${inside}](${inside.replace(/[()\s]/g, '')})`, shown: `![${inside}](${inside.replace(/[()\s]/g, '')})`};
+};
+const count = (chars, c) => chars.filter(d => d === c).length;
+test('property: on generated Markdown with its ASCII syntax kept, HTML, tables, line breaks and invisible characters, the output holds only the renderer\'s elements, every character that is not syntax in order and once, no syntax character it was not given, and every code span, tag and image whole', () => {
   const random = seeded(20261119);
-  for (let n = 0; n < 300; n++) {
+  for (let n = 0; n < 400; n++) {
     let input = '';
+    const fragments = [];
+    // Some inputs are tables, so pipes inside the inert forms meet cell boundaries.
+    const table = random() < 0.35;
+    if (table) input += '| h | i |\n|---|---|\n| ';
+    // Inputs with inert forms keep every other syntax character in their noise, but none that could open or close a
+    // code span, a tag or an image around them (a backtick, "<", "!" or a backslash), and tables keep to one row.
+    const withInert = table || random() < 0.5;
     const length = 1 + Math.floor(random() * 60);
-    for (let i = 0; i < length; i++) input += ALPHABET[Math.floor(random() * ALPHABET.length)];
+    for (let i = 0; i < length; i++) {
+      if (withInert && random() < 0.15) { const f = inert(random); fragments.push(f); input += ` ${f.source} `; continue; }
+      const c = ALPHABET[Math.floor(random() * ALPHABET.length)];
+      input += withInert ? (/[`<!\\]/.test(c) ? 'q' : table ? c.replace(/\r?\n/g, ' ') : c) : c;
+    }
     const raw = prose(input);
     assertProseOnly(raw, JSON.stringify(input));
-    const shown = [...visible(raw)], wanted = [...input].filter(c => !SYNTAX.test(c));
-    let at = 0;
-    for (const c of shown) if (at < wanted.length && c === wanted[at]) at++;
-    assert.equal(at, wanted.length, `${JSON.stringify(input)}: missing ${JSON.stringify(wanted.slice(at).join(''))} from ${JSON.stringify(visible(raw))}`);
+    const shownText = visible(raw), shown = [...shownText];
+    // Every character that is not ASCII syntax is shown, in order, and none twice.
+    assert.deepEqual(shown.filter(c => !SYNTAX.test(c)), [...input].filter(c => !SYNTAX.test(c)), `${JSON.stringify(input)} → ${JSON.stringify(shownText)}`);
+    // No syntax character is shown more often than it was supplied (a link's own " (" and ")" aside).
+    for (const c of new Set([...input].filter(c => SYNTAX.test(c) && !' ()\n\r\t'.includes(c)))) assert.ok(count(shown, c) <= count([...input], c), `${JSON.stringify(input)}: ${c} shown more often than supplied`);
+    // Each code span's inside, each tag and each image is shown whole: none of its characters taken as syntax.
+    for (const f of fragments) assert.ok(shownText.includes(f.shown), `${JSON.stringify(input)}: ${JSON.stringify(f.shown)} not shown whole in ${JSON.stringify(shownText)}`);
   }
+});
+
+test('a table\'s cells are split only at pipes outside code spans, tags and image syntax, and every character is kept', () => {
+  const raw = prose('| `a|b` | <span title="x|y">z</span> | ![p|q](r|s) | e\\|f |\n|---|---|---|---|\n| 1 | 2 | 3 | 4 |');
+  assert.equal((raw.match(/<tr>/g) ?? []).length, 2);
+  assert.equal((raw.match(/<td>/g) ?? []).length, 8, 'four cells in each row: no pipe inside the code span, tag or image split one');
+  const shown = visible(raw);
+  for (const whole of ['a|b', '<span title="x|y">z</span>', '![p|q](r|s)', 'e|f']) assert.ok(shown.includes(whole), whole);
+  assert.match(raw, /<code>a\|b<\/code>/);
+  // An emphasis marker inside a tag or an image is its text, even with an opener before it.
+  const em = prose('*a <span title="b*">c* and _d ![e_](f) g_');
+  assert.ok(visible(em).includes('<span title="b*">') && visible(em).includes('![e_](f)'), 'the markers inside are kept');
+  assert.equal((em.match(/<em>/g) ?? []).length, 2, 'each emphasis closes after the tag or image');
+  // A link's brackets are never inside a code span.
+  const link = prose('[`a](b`)');
+  assert.ok(visible(link).includes('a](b'), 'the code span is whole');
+  assert.doesNotMatch(link, /agent-prose-target/);
+});
+
+test('the prose renderer bounds the elements it makes: a header of 1,000 cells over 10,000 one-pipe rows renders quickly, only the cells supplied, the rest shown as written', () => {
+  const {PROSE_MAX_ELEMENTS, PROSE_REST_LINE} = loadSrc('AgentText');
+  const header = '| ' + Array.from({length: 1000}, (_, k) => `h${k}`).join(' | ') + ' |';
+  const input = `Intro\n\n${header}\n|${'---|'.repeat(1000)}\n${'|\n'.repeat(10000)}after`;
+  const {raw, ms} = timed(input);
+  assert.ok(ms < 3000, `rendered in ${ms} ms`);
+  assert.ok(raw.includes(PROSE_REST_LINE), 'a line says the rest is shown as written');
+  assert.ok((raw.match(/<td>/g) ?? []).length === 0, 'the table that would pass the bound is not drawn as a table');
+  assert.match(raw, /<p>Intro<\/p>/, 'the blocks before it are formatted');
+  const shown = visible(raw);
+  assert.ok(shown.includes('h0') && shown.includes('h999') && shown.includes('after'), 'every cell and the text after it are shown');
+  // A table within the bound: only the cells each row supplies.
+  const small = prose(`${header}\n|${'---|'.repeat(1000)}\n${'|\n'.repeat(3)}`);
+  assert.equal((small.match(/<td>/g) ?? []).length, 1000 + 3, 'the header\'s cells and one cell for each one-pipe row');
+  // Many small formatted blocks: the elements drawn formatted stop at the bound, and nothing is lost.
+  const many = Array.from({length: 4000}, (_, k) => `**b${k}** *i${k}*`).join('\n\n');
+  const big = prose(many);
+  const formatted = big.slice(0, big.indexOf(PROSE_REST_LINE));
+  assert.ok(big.includes(PROSE_REST_LINE));
+  assert.ok((formatted.match(/<[a-z]+[ >\/]/g) ?? []).length <= PROSE_MAX_ELEMENTS, 'no more elements than the bound before the rest');
+  assert.ok(visible(big).includes('b0') && visible(big).includes('i3999'));
+  assertProseOnly(formatted, 'the formatted part');
+});
+
+test('the combining grapheme joiner and variation selectors are marked in the agent\'s prose and the person\'s message; an emoji keeps its one presentation selector', () => {
+  const marks = raw => [...raw.matchAll(/‹U\+([0-9A-F]+)›/g)].map(m => m[1]);
+  const person = value => renderToStaticMarkup(React.createElement(PersonText, {value}));
+  // U+034F, a variation selector after a letter, the supplementary selectors, a selector after a selector, and a
+  // selector other than U+FE0E or U+FE0F after an emoji: all marked. The emoji's own U+FE0F, once, is kept.
+  const input = 'a͏b x︀ y\u{E0100}\u{E01EF} ❤️ ❤️️ 🙂︁ ☺︎';
+  for (const raw of [prose(input), person(input)]) {
+    assert.deepEqual(marks(raw), ['034F', 'FE00', 'E0100', 'E01EF', 'FE0F', 'FE01']);
+    assert.ok(raw.includes('❤️ <') || raw.includes('❤️'), 'the heart keeps its emoji presentation');
+    assert.ok(raw.includes('☺︎'), 'a text presentation selector after an emoji is kept too');
+  }
+  // Hidden data carried as a run of selectors after one emoji is shown as marks.
+  assert.equal(marks(prose('🙂' + '︀︁︂'.repeat(4))).length, 12);
 });
 
 test('the speaker\'s label is the strongest text in a bubble: no prose heading or bold is larger or heavier', async () => {
