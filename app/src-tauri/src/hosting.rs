@@ -380,6 +380,9 @@ pub struct HostConfig {
 }
 
 /// Its working folder could not be established, so it is not taken to be outside Chirality's data.
+/// DEL-01-01: a frame whose trust entry no longer rests on what it was built from is not written.
+pub(crate) const TRUST_CHOICE_CHANGED: &str = "refused-not-sent: the project's trust changed after this request was built; nothing written";
+pub(crate) const TRUST_SETTINGS_CHANGED: &str = "refused-not-sent: the Codex settings the App uses changed after this request was built; nothing written";
 pub(crate) const SAVED_IN_APP_DATA_UNKNOWN: &str = "Chirality could not establish where this conversation works, so it was not continued or copied: it might be Chirality's own data folder. Nothing was sent to it.";
 /// The account home's provider, as a session setting (see `HostConfig::new`).
 pub(crate) const ACCOUNT_PROVIDER_FLAG: &str = "model_provider=\"openai\"";
@@ -3197,6 +3200,13 @@ impl Host {
         codex_level::config_post_condition(&params, kind).map_err(|e| format!("refused-not-sent: {e}; {method} was not sent"))?;
         Ok(Some((params, codex_level::Bound { level, method: kind, fields, trust, revision: i.level_revision, target, chosen, origin:provenance.as_ref().map(|c|c.origin), chosen_at:provenance.map(|c|c.at) })))
     }
+    /// A frame carrying a trust entry from a current settings reading is written only while that reading is
+    /// still current: no configuration write admitted, no new generation.
+    fn check_trust_settings_current(i: &Inner, trust: &codex_level::TrustReading) -> Result<(), String> {
+        if matches!(trust.case, codex_level::TrustCase::NotRead { .. }) { return Ok(()); }
+        let current = trust.generation.as_ref().is_some_and(|g| g["generation"] == i.generation && g["configWrites"] == i.level.config_writes);
+        if current { Ok(()) } else { Err(TRUST_SETTINGS_CHANGED.into()) }
+    }
     /// A frame is written only under the level revision it was built under.
     fn check_level_current(i: &Inner, bound: &codex_level::Bound) -> Result<(), String> {
         if i.level_revision != bound.revision {
@@ -3320,9 +3330,20 @@ impl Host {
             // After the writer wait: the local home's settings file and key-address record must still
             // establish the address in force, or nothing is written.
             if !handshake { self.check_local_files(method)?; }
+            // DEL-01-01: the App's choice a trust entry rests on, again after the writer wait, held from here until
+            // the write: still at the revision the frame was built under, or nothing is written.
+            let trust_bound=level.as_ref().and_then(|b|b.trust.as_ref());
+            let trust_projects=trust_bound.filter(|t|t.choice.is_some()).and_then(|_|self.project_trust());
+            let _switches=trust_projects.as_ref().map(|projects|projects.hold_switches());
+            if let (Some(projects),Some(trust))=(&trust_projects,trust_bound) {
+                if projects.choice_read_for(&trust.cwd).map(|read|read.revision)!=trust.choice_revision {return Err(TRUST_CHOICE_CHANGED.into());}
+            }
             {let _gate=self.attachment_gate.lock().unwrap();let mut i=self.inner.0.lock().unwrap();self.check_bound(&i,&bound)?;
                 Self::check_local_request(&i,method,checked,expected_generation,handshake,private_credential,private_config,provider_admission)?;
                 if let Some(bound)=&level {Self::check_level_current(&i,bound)?;}
+                // The settings reading a trust entry rests on: still of this generation, with no configuration
+                // write admitted since.
+                if let Some(trust)=trust_bound {Self::check_trust_settings_current(&i,trust)?;}
                 if !i.pending.contains_key(&id.to_string()){return Err("request no longer pending before actual source write".into());}
                 Self::check_send_admitted(&i,method)?;
                 if let Some(proof)=provider_admission{if matches!(method,"thread/resume"|"thread/fork"){self.check_continuation_proof(&i,proof)?;}else{self.check_provider_admission(&i,proof,checked)?;}}
@@ -3795,6 +3816,7 @@ impl Host {
 
     pub fn history_admit_resume(&self, history: &NativeHistory, dispatch: &HistoryDispatch) -> Result<Value,String> {
         self.check_source(&dispatch.source)?;
+        if let Some(text)=self.settings_notice_error(&dispatch.source.request_ref) {return Err(text);}
         if dispatch.query.method()!="thread/resume"||dispatch.query.params()!=&json!({"threadId":history.selected_thread(),"excludeTurns":true}) {return Err("only original explicit Continue packet can admit".into());}
         let candidate=history.resumed_thread().ok_or("latest history state is not an eligible Continue response")?;
         let snapshot=history.snapshot();let query=serde_json::to_value(&dispatch.query).map_err(|e|e.to_string())?;
@@ -3897,7 +3919,10 @@ impl Host {
             .map(|(_,_,receipt)|receipt)
     }
     pub fn thread_fork_finish(&self, request: &SourceRequest) -> Result<Value,String> {
-        self.check_source(request)?;let evidence=request.evidence();
+        self.check_source(request)?;
+        // DEL-01-01: refused by a trusted project's own settings, as the App says it; not Codex's error object.
+        if let Some(text)=self.settings_notice_error(&request.request_ref) {return Err(text);}
+        let evidence=request.evidence();
         if request.frame["method"]!="thread/fork"||evidence["writeResult"]!="written"||evidence["outcome"]!="response-observed-result"||evidence["sentFrame"].is_null() {return Err(format!("thread/fork has no successful write and correlated result (outcome {}); nothing admitted, no automatic retry",evidence["outcome"]));}
         let response=evidence["response"].clone();
         if response.get("id")!=Some(request.request_id())||response.get("error").is_some()||response.get("result").is_none() {return Err("thread/fork response is uncorrelated or failed; nothing admitted".into());}

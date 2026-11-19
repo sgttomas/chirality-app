@@ -18,7 +18,7 @@
                   "Save a private pending request in {app_data}/desktop-startup/request.json.",
                   "Codex: the copy included with this App (bundled-owner-use-development).",
                   "The current workspace, homes, account/model choices, records and prepared messages stay unchanged. No automatic quit/restart/login/conversation.",
-                  "Chirality will trust this project. What that turns on is shown in full in the App now, under \"Content named by an open native confirmation\". Its sha-256 digest: 9c965be7214bc9786048794e85c582b9ca5c4de1a4b1aff5d1a62cd18b3aee99"],
+                  "Chirality will trust this project. What that turns on is shown in full in the App now, under \"Content named by an open native confirmation\". Its sha-256 digest: d3444886095a2de9f63ccc842aa353cdb0ad5df9866400538145d052d5bfadb9"],
     "generated": {"settings": "{app_data}/shared-settings/settings-<uuid>", "account": "{app_data}/account-homes/account-<uuid>"}
   },
   "launches": [

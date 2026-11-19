@@ -384,6 +384,11 @@ pub enum AppTrust {
     OnBySwitch { at: String },
     /// Off by the person's switch, at `at`.
     OffBySwitch { at: String },
+    /// Off by the line the new-identity act writes for a project whose trust would otherwise be on, at `at`.
+    OffByNewIdentity { at: String },
+    /// The project's folder as given no longer resolves to the folder the App admitted: the App's choice is not
+    /// applied, and the entry is untrusted.
+    FolderChanged,
     /// No choice: the project was opened from the environment route. Today's rule applies.
     NoChoice,
     /// The choice could not be read: treated as an unreadable settings reading (untrusted). `detail` is the
@@ -392,7 +397,7 @@ pub enum AppTrust {
 }
 impl AppTrust {
     pub fn word(&self) -> &'static str {
-        match self { Self::OnBySetup | Self::OnBySwitch { .. } => "on", Self::OffBySwitch { .. } => "off", Self::NoChoice => "none", Self::NotRead { .. } => "not-read" }
+        match self { Self::OnBySetup | Self::OnBySwitch { .. } => "on", Self::OffBySwitch { .. } | Self::OffByNewIdentity { .. } => "off", Self::NoChoice => "none", Self::NotRead { .. } => "not-read", Self::FolderChanged => "folder-changed" }
     }
 }
 
@@ -403,6 +408,8 @@ pub const TRUST_ON_BY_SWITCH_SUFFIX: &str = "), so the App sent a trusted entry 
 pub const TRUST_OFF_BY_SWITCH_PREFIX: &str = "You switched trust off for this project in Chirality (at ";
 pub const TRUST_OFF_BY_SWITCH_SUFFIX: &str = "), so the App sent an untrusted entry for the project root shown below.";
 pub const TRUST_CHOICE_NOT_READ: &str = "The App could not read this project's trust choice, so it sent an untrusted entry for the project root shown below.";
+pub const TRUST_OFF_BY_NEW_IDENTITY: &str = "Chirality's choice for this project is off (the project was given a new identity), so the App sent an untrusted entry for the project root shown below.";
+pub const TRUST_FOLDER_CHANGED: &str = "The project's folder is no longer the folder Chirality opened, so the App sent an untrusted entry for the project root shown below.";
 
 /// The project trust the App sends on one start, resume or fork, and why.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -420,6 +427,10 @@ pub struct TrustReading {
     /// The App's choice for the project this frame's folder is; None when the folder is not the App's project
     /// (today's rule applies, exactly).
     pub choice: Option<AppTrust>,
+    /// The revision of that choice as read (`project_trust::ChoiceRead::revision`), and the project's physical
+    /// folder it was read for: the frame is written only while both still hold.
+    pub choice_revision: Option<String>,
+    pub choice_project: Option<PathBuf>,
 }
 
 /// Why the entry is what it is: the rows of the case table, in their order (DEL-01-01).
@@ -429,6 +440,8 @@ pub enum TrustRow {
     SettingsNotRead,
     /// 7. The App's choice for the project cannot be read (treated as row 1).
     ChoiceNotRead,
+    /// 8. The project's folder no longer resolves to the folder the App admitted (treated as row 1).
+    FolderChanged,
     /// 2. The settings mark the root untrusted.
     MarkedUntrusted,
     /// 3. The person switched trust off in the App.
@@ -446,7 +459,7 @@ impl TrustReading {
     pub fn not_read(cwd: PathBuf, reason: &str, detail: Option<String>) -> Self {
         let root = project_root(&cwd);
         let key = trust_lookup_keys(&root).remove(0);
-        TrustReading { cwd, root, key, case: TrustCase::NotRead { reason: reason.into(), detail }, generation: None, request_ref: None, read_at: None, choice: None }
+        TrustReading { cwd, root, key, case: TrustCase::NotRead { reason: reason.into(), detail }, generation: None, request_ref: None, read_at: None, choice: None, choice_revision: None, choice_project: None }
     }
     /// The row of the case table this reading falls in. The order is the precedence: an unreadable settings
     /// reading or an unreadable choice over everything, then the person's untrusted mark, then the App's off,
@@ -455,8 +468,9 @@ impl TrustReading {
         match (&self.case, &self.choice) {
             (TrustCase::NotRead { .. }, _) => TrustRow::SettingsNotRead,
             (_, Some(AppTrust::NotRead { .. })) => TrustRow::ChoiceNotRead,
+            (_, Some(AppTrust::FolderChanged)) => TrustRow::FolderChanged,
             (TrustCase::MarkedUntrusted { .. }, _) => TrustRow::MarkedUntrusted,
-            (_, Some(AppTrust::OffBySwitch { .. })) => TrustRow::SwitchedOff,
+            (_, Some(AppTrust::OffBySwitch { .. } | AppTrust::OffByNewIdentity { .. })) => TrustRow::SwitchedOff,
             (TrustCase::Trusted { .. }, _) => TrustRow::MarkedTrusted,
             (TrustCase::Unmarked, Some(AppTrust::OnBySetup | AppTrust::OnBySwitch { .. })) => TrustRow::AppOn,
             (TrustCase::Unmarked, _) => TrustRow::Unmarked,
@@ -491,6 +505,8 @@ impl TrustReading {
         let (case, lines): (&str, Vec<String>) = match (self.row(), &self.choice) {
             (TrustRow::SettingsNotRead, _) => ("not-read", vec![not_read.into(), untrusted.into()]),
             (TrustRow::ChoiceNotRead, _) => ("choice-not-read", vec![own(TRUST_CHOICE_NOT_READ.into())]),
+            (TrustRow::FolderChanged, _) => ("folder-changed", vec![own(TRUST_FOLDER_CHANGED.into())]),
+            (TrustRow::SwitchedOff, Some(AppTrust::OffByNewIdentity { .. })) => ("switched-off-new-identity", vec![own(TRUST_OFF_BY_NEW_IDENTITY.into())]),
             (TrustRow::MarkedUntrusted, _) => ("marked-untrusted", vec![TRUST_MARKED_UNTRUSTED.into(), untrusted.into()]),
             (TrustRow::SwitchedOff, Some(AppTrust::OffBySwitch { at })) => ("switched-off", vec![own(format!("{TRUST_OFF_BY_SWITCH_PREFIX}{at}{TRUST_OFF_BY_SWITCH_SUFFIX}"))]),
             (TrustRow::MarkedTrusted, _) => ("trusted", vec![format!("{TRUST_TRUSTED_PREFIX}{}{trusted_suffix}", self.read_at.as_deref().unwrap_or("an unknown time"))]),
@@ -508,7 +524,7 @@ impl TrustReading {
         if let Some(choice) = &self.choice {
             out["appChoice"] = json!(choice.word());
             match choice {
-                AppTrust::OnBySwitch { at } | AppTrust::OffBySwitch { at } => out["appChoiceAt"] = json!(at),
+                AppTrust::OnBySwitch { at } | AppTrust::OffBySwitch { at } | AppTrust::OffByNewIdentity { at } => out["appChoiceAt"] = json!(at),
                 AppTrust::NotRead { detail } if !matches!(self.case, TrustCase::NotRead { .. }) => {
                     out["detail"] = match detail { Some(text) => json!({"text": text, "standing": NOT_THE_APPS_TEXT}), None => Value::Null };
                 }
@@ -530,28 +546,47 @@ pub const PROJECT_SETTINGS_NOT_LOADED: &str = "This project's own Codex settings
 pub const PROJECT_SETTINGS_REMEDY: &str = "You can fix the file, or switch this project's trust off in Chirality and start the conversation again.";
 pub const PROJECT_SETTINGS_FILE_NAMED: &str = "The file Codex named:";
 pub const PROJECT_SETTINGS_FILE_CANDIDATES: &str = "Codex did not name the file. The project's own settings files it may have read are among these:";
+/// Where Codex's text names none of the project's own settings files as a whole path.
+pub const PROJECT_SETTINGS_NOT_ATTRIBUTED: &str = "Codex could not load its settings, so it did not start the conversation. This project was sent as trusted, so one of its own settings files may be the cause.";
+/// After the notice's first sentence, as the start's, resume's or fork's own error text.
+pub const PROJECT_SETTINGS_SEE_TRUST: &str = "See the project's trust in Chirality for the file and Codex's reason.";
 
 /// The App's account of a refused start, resume or fork that carried a trusted entry when Codex says it could not
-/// load the configuration; None for any other reply. `error` is the reply's `error` member.
+/// load the configuration; None for any other reply. `error` is the reply's `error` member. It says only what is
+/// known: attributed, where Codex's text contains as a whole path one of the project's own settings files (inside
+/// the folders from the root Codex computes down to the conversation's folder, after resolving); otherwise not
+/// attributed, with those files as candidates, and the ones in the repository's folders above the conversation's
+/// folder named as such. No file outside those folders is ever named.
 pub fn project_settings_refusal(trust: &TrustReading, error: &Value) -> Option<Value> {
     if trust.trust_level() != "trusted" || error["code"].as_i64() != Some(CONFIG_LOAD_ERROR_CODE) { return None; }
     let message = error["message"].as_str()?;
     if !message.starts_with(CONFIG_LOAD_ERROR_PREFIX) { return None; }
-    // The file Codex names, where it names one: a candidate (between the project root and the conversation's
-    // folder) whose path, as given or resolved, appears in Codex's message. The message is only searched for the
-    // App's own candidates, never parsed. Otherwise the candidates themselves.
-    let candidates = project_settings_candidates(&trust.root, &trust.cwd);
-    let named = candidates.iter().rev().flat_map(|c| {
-        let given = c.to_string_lossy().into_owned();
-        let resolved = std::fs::canonicalize(c).ok().map(|p| p.to_string_lossy().into_owned());
-        std::iter::once(given).chain(resolved)
-    }).find(|spelling| message.contains(spelling.as_str()));
-    let (sentence, files) = match named {
-        Some(file) => (PROJECT_SETTINGS_FILE_NAMED, vec![file]),
-        None => (PROJECT_SETTINGS_FILE_CANDIDATES, candidates.into_iter().map(|p| p.to_string_lossy().into_owned()).collect()),
+    let root = std::fs::canonicalize(&trust.root).ok();
+    // A candidate is named only where it lies inside the root's folders after resolving: resolved through its
+    // nearest part that exists.
+    let resolved = |c: &Path| c.ancestors().find_map(|a| std::fs::canonicalize(a).ok().and_then(|r| Some(r.join(c.strip_prefix(a).ok()?))));
+    let candidates: Vec<(PathBuf, PathBuf)> = project_settings_candidates(&trust.root, &trust.cwd).into_iter()
+        .filter_map(|c| { let r = resolved(&c)?; root.as_ref().is_some_and(|root| r.starts_with(root)).then_some((c, r)) }).collect();
+    let named = candidates.iter().rev().find(|(given, resolved)| whole_path_in(message, given) || whole_path_in(message, resolved));
+    let text = |p: &Path| p.to_string_lossy().into_owned();
+    let (lines, sentence, files) = match named {
+        Some((file, _)) => (PROJECT_SETTINGS_NOT_LOADED, PROJECT_SETTINGS_FILE_NAMED, vec![text(file)]),
+        None => (PROJECT_SETTINGS_NOT_ATTRIBUTED, PROJECT_SETTINGS_FILE_CANDIDATES, candidates.iter().map(|(c, _)| text(c)).collect()),
     };
-    Some(json!({"lines": [PROJECT_SETTINGS_NOT_LOADED], "fileSentence": sentence, "files": files, "filesStanding": "Folders are supplied text.",
-        "codexReason": {"text": message, "standing": NOT_THE_APPS_TEXT}, "remedy": PROJECT_SETTINGS_REMEDY, "projectRoot": trust.root.to_string_lossy()}))
+    let own = trust.cwd.join(".codex").join("config.toml");
+    let above: Vec<String> = if named.is_none() && trust.root != trust.cwd { candidates.iter().filter(|(c, _)| *c != own).map(|(c, _)| text(c)).collect() } else { vec![] };
+    Some(json!({"lines": [lines], "attributed": named.is_some(), "fileSentence": sentence, "files": files, "filesAboveProject": above,
+        "filesStanding": "Folders are supplied text.", "codexReason": {"text": message, "standing": NOT_THE_APPS_TEXT}, "remedy": PROJECT_SETTINGS_REMEDY,
+        "projectRoot": trust.root.to_string_lossy()}))
+}
+/// `path` appears in `message` as a whole path: bounded on each side by the message's edge or a character that
+/// cannot continue a path in Codex's text.
+fn whole_path_in(message: &str, path: &Path) -> bool {
+    let path = path.to_string_lossy();
+    let boundary = |c: char| c.is_whitespace() || matches!(c, '"' | '\'' | '`' | ':' | ',' | ';' | '(' | ')' | '[' | ']' | '<' | '>' | '{' | '}');
+    !path.is_empty() && message.match_indices(path.as_ref()).any(|(at, _)| {
+        message[..at].chars().next_back().is_none_or(boundary) && message[at + path.len()..].chars().next().is_none_or(boundary)
+    })
 }
 
 /// The project's `.codex/config.toml` files Codex may read for a conversation in `cwd`: one in each folder from the
@@ -569,24 +604,43 @@ pub fn project_settings_candidates(root: &Path, cwd: &Path) -> Vec<PathBuf> {
 }
 
 /// The person's mark for `root` in a `config/read` result with layers: the user layers' `projects` table, looked
-/// up by Codex's spellings in Codex's order, so a mark under either spelling is honoured. `Err` when the result
-/// carries no layers or no user layer (a limited reading).
+/// up by Codex's spellings in Codex's order, so a mark under either spelling is honoured. `Err` (a limited reading)
+/// when the result carries no layers or no user layer, or when a user layer's settings cannot be read for the mark:
+/// its `config` is not a table, its `projects` is present and not a table, or an entry or its `trust_level` under
+/// one of the root's spellings is present and not one Codex accepts. An absent mark is `Unmarked`; an unusable one
+/// is never taken for absent. Where the spellings carry conflicting marks, untrusted wins.
 pub fn person_mark(result: &Value, root: &Path) -> Result<TrustCase, String> {
     let layers = result.get("layers").and_then(Value::as_array).ok_or(TRUST_READ_LIMITED)?;
     let user: Vec<&Value> = layers.iter().filter(|l| l["name"]["type"] == "user").collect();
     if user.is_empty() {
         return Err(TRUST_READ_LIMITED.into());
     }
+    let mut marks = Vec::new();
     for key in trust_lookup_keys(root) {
+        let mut mark = None;
         for layer in &user {
-            match layer["config"]["projects"][&key]["trust_level"].as_str() {
-                Some("trusted") => return Ok(TrustCase::Trusted { key }),
-                Some("untrusted") => return Ok(TrustCase::MarkedUntrusted { key }),
-                _ => {}
-            }
+            let config = layer.get("config").and_then(Value::as_object).ok_or(TRUST_READ_LIMITED)?;
+            let projects = match config.get("projects") {
+                None => continue,
+                Some(projects) => projects.as_object().ok_or(TRUST_READ_LIMITED)?,
+            };
+            let entry = match projects.get(&key) {
+                None => continue,
+                Some(entry) => entry.as_object().ok_or(TRUST_READ_LIMITED)?,
+            };
+            let level = match entry.get("trust_level") {
+                None => continue,
+                Some(level) => level.as_str().filter(|l| matches!(*l, "trusted" | "untrusted")).ok_or(TRUST_READ_LIMITED)?,
+            };
+            // The first user layer that marks this spelling, as before.
+            if mark.is_none() { mark = Some(level); }
         }
+        if let Some(level) = mark { marks.push((key, level)); }
     }
-    Ok(TrustCase::Unmarked)
+    if let Some((key, _)) = marks.iter().find(|(_, level)| *level == "untrusted") {
+        return Ok(TrustCase::MarkedUntrusted { key: key.clone() });
+    }
+    Ok(match marks.into_iter().next() { Some((key, _)) => TrustCase::Trusted { key }, None => TrustCase::Unmarked })
 }
 
 /// The conversation a level was taken for when a frame was built.

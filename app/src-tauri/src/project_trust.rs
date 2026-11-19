@@ -17,7 +17,7 @@ use crate::act_control::native_statement as ns;
 use crate::codex_level::{self as cl, AppTrust};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
+use std::sync::{Mutex, MutexGuard};
 
 /// What trust turns on, said wherever the person meets trust: setup's review, the switch-on confirmation and the
 /// per-project view (and, later, the add confirmation). One source; no softer summary anywhere.
@@ -47,8 +47,22 @@ pub const CHOICE_ON_BY_SWITCH_PREFIX: &str = "Trust is on: you switched it on in
 pub const CHOICE_OFF_BY_SWITCH_PREFIX: &str = "Trust is off: you switched it off in Chirality at ";
 pub const CHOICE_NONE: &str = "Chirality makes no trust choice for this project: it was opened from the environment, not set up in Chirality, so the Codex settings the App uses decide.";
 pub const CHOICE_NOT_READ: &str = "The App could not read this project's trust choice, so it sends an untrusted entry until the choice can be read.";
-/// The schema word of a switch line.
+pub const CHOICE_OFF_BY_NEW_IDENTITY: &str = "Chirality's choice for this project is off: the project was given a new identity in the App's records store, and trust is not carried to a new identity. Switch it on to trust the project again.";
+/// Not among the agreed sentences: the view's own account of `AppTrust::FolderChanged` (the status has its own).
+pub const CHOICE_FOLDER_CHANGED: &str = "The project's folder is no longer the folder Chirality opened, so a conversation started in it is sent as untrusted.";
+/// Beside any "on": the App's choice is not the entry itself.
+pub const CHOICE_SETTINGS_CAN_OVERRIDE: &str = "Your own Codex settings can still make a conversation untrusted. What each start sent is shown with the conversation's access level.";
+/// Where an on line made for another store or identity was passed over.
+pub const CHOICE_PASSED_OVER: &str = "A switch-on recorded for another installation or another project identity is not used here.";
+/// The new-identity act's added line, for a project whose trust would otherwise be on.
+pub const NEW_IDENTITY_TRUST_LINE: &str = "The project's trust will be off under its new identity until you switch it on.";
+/// The refusal when what the person reviewed changed while the confirmation was open.
+pub const CHANGED_WHILE_OPEN: &str = "The project or its trust changed while the confirmation was open; nothing written; review it again";
+/// The schema word of a switch line, and the reason the new-identity act's off line carries. A line is exactly
+/// `format`, `at` (an RFC 3339 instant), `trust` ("on" or "off"), `storeId` and `projectId` (the records store and
+/// project identity it was written under), and, on that off line only, `reason`.
 pub const SWITCH_FORMAT: &str = "chirality.project-trust-switch";
+pub const NEW_IDENTITY_REASON: &str = "new identity";
 
 /// How the App came to know a project. A later unit's "add a project in the running App" records
 /// `AddedInApp` here, through [`ProjectTrust::add`], with no second mechanism.
@@ -81,19 +95,29 @@ pub(crate) fn inside_repository(project: &Path) -> Option<Value> {
         "standing": "The folder is supplied text."}))
 }
 
-/// The effects text for `project`, and the repository sentence where it applies.
-pub(crate) fn effects_for(project: &Path) -> Value {
-    json!({"text": EFFECTS_TEXT, "insideRepository": inside_repository(project)})
+/// What trust turns on for `project`, as the lines every surface shows in this order: the effects text, then the
+/// repository sentence where it applies. The one source for setup's review and statement, the switch-on
+/// confirmation and the view.
+pub(crate) fn effects_lines(project: &Path) -> Vec<String> {
+    let mut lines = vec![EFFECTS_TEXT.to_owned()];
+    let root = cl::project_root(project);
+    if root != project { lines.push(format!("{INSIDE_REPOSITORY_BEFORE}{}{INSIDE_REPOSITORY_AFTER}", root.to_string_lossy())); }
+    lines
 }
 
-/// Setup's statement, where a route names a project: the trust line, then the whole effects text.
+/// The effects text for `project`, the repository sentence where it applies, and both as the lines shown.
+pub(crate) fn effects_for(project: &Path) -> Value {
+    json!({"text": EFFECTS_TEXT, "insideRepository": inside_repository(project), "lines": effects_lines(project)})
+}
+
+/// Setup's statement, where a route names a project: the trust line, then what trust turns on.
 pub(crate) fn setup_trust_lines(project: &Path) -> String {
     format!("{WILL_TRUST}\n{}", effects_plain(project))
 }
 /// What setup's confirmation shows in the App beside its native statement, when the setup lines fit the native
-/// statement and the effects text does not.
-pub(crate) fn setup_trust_content(project: &Path) -> Value {
-    json!({"line": WILL_TRUST, "effects": effects_for(project)})
+/// statement and the effects do not: the trust lines as the person reads them, frozen at review.
+pub(crate) fn setup_trust_content(lines: &str) -> Value {
+    json!(lines)
 }
 /// The native line that names that content.
 pub(crate) fn setup_trust_pointer(digest: &str) -> String {
@@ -104,10 +128,7 @@ pub const SETUP_TRUST_AMONG_EFFECTS: &str = "Chirality will trust this project; 
 
 /// The effects as one plain text, for a native confirmation.
 fn effects_plain(project: &Path) -> String {
-    match cl::project_root(project) {
-        root if root != project => format!("{EFFECTS_TEXT}\n{INSIDE_REPOSITORY_BEFORE}{}{INSIDE_REPOSITORY_AFTER}", root.to_string_lossy()),
-        _ => EFFECTS_TEXT.to_owned(),
-    }
+    effects_lines(project).join("\n")
 }
 
 /// A project the App knows: the folder as given and its physical spelling, and how it came to be known.
@@ -118,9 +139,70 @@ pub struct KnownProject {
     pub known: Known,
 }
 
+/// The App's choice for a project as read now, with what it was read under.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ChoiceRead {
+    pub choice: AppTrust,
+    /// Changes whenever the choice could read differently: the store and project identities, the number of the
+    /// validated switch lines and the last of them, or why none could be read.
+    pub revision: String,
+    /// The records store's and the project's identities the switches were read under, where the folder has one.
+    pub identity: Option<(String, String)>,
+    /// An on line made for another store or identity was passed over.
+    pub passed_over: bool,
+}
+
+/// One validated switch line.
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct Switch {
+    on: bool,
+    at: String,
+    store: String,
+    project: String,
+    new_identity: bool,
+}
+
+/// A switch line the App writes: exactly its members, its time an RFC 3339 instant.
+fn parse_switch(line: &Value) -> Option<Switch> {
+    let members = line.as_object()?;
+    let reason = members.get("reason");
+    if members.len() != if reason.is_some() { 6 } else { 5 } || line["format"] != SWITCH_FORMAT { return None; }
+    let at = line["at"].as_str().filter(|at| crate::after_run_end::instant(at).is_some())?.to_owned();
+    let store = line["storeId"].as_str().filter(|s| !s.is_empty())?.to_owned();
+    let project = line["projectId"].as_str().filter(|s| !s.is_empty())?.to_owned();
+    let on = match line["trust"].as_str()? { "on" => true, "off" => false, _ => return None };
+    let new_identity = match reason {
+        None => false,
+        Some(reason) if reason == NEW_IDENTITY_REASON && !on => true,
+        Some(_) => return None,
+    };
+    Some(Switch { on, at, store, project, new_identity })
+}
+/// Every complete line validated, before any is selected or another appended: one the App does not write makes
+/// the whole choice unreadable.
+fn valid_switches(lines: &[Value]) -> Result<Vec<Switch>, String> {
+    lines.iter().enumerate().map(|(n, line)| parse_switch(line)
+        .ok_or_else(|| format!("line {} of the project's trust switches is not one the App writes", n + 1))).collect()
+}
+/// One switch line for the store and project identity it is written under.
+fn switch_line(on: bool, store: &str, project: &str, reason: Option<&str>) -> Value {
+    let mut line = json!({"format": SWITCH_FORMAT, "at": crate::util::now_rfc3339(), "trust": if on {"on"} else {"off"}, "storeId": store, "projectId": project});
+    if let Some(reason) = reason { line["reason"] = json!(reason); }
+    line
+}
+fn revision(parts: Value) -> String {
+    crate::util::sha256_hex(parts.to_string().as_bytes())
+}
+
 struct Preview {
     token: String,
     project: PathBuf,
+    /// What the person reviewed: the project's identity with the store, the choice's revision, the folder it
+    /// resolved to and the root Codex computes, and the content shown.
+    identity: Option<(String, String)>,
+    revision: String,
+    physical: PathBuf,
+    root: Option<PathBuf>,
     content: Value,
 }
 
@@ -130,13 +212,15 @@ pub struct ProjectTrust {
     projects: Mutex<Vec<KnownProject>>,
     /// The one open switch-on preview; a confirmation consumes it.
     preview: Mutex<Option<Preview>>,
-    /// Held across a switch's write: one switch at a time in this App.
+    /// The token of the switch-on confirmation now in its native dialog: at most one at a time.
+    confirming: Mutex<Option<String>>,
+    /// Held across a switch's write, across the new-identity act, and by a Host across the write of a frame whose
+    /// entry rests on the choice: a switch never lands between a frame's last check and its write.
     switching: Mutex<()>,
     /// What the last frame for a known project carried (its `projectTrust` status).
     last_sent: Mutex<Option<Value>>,
-    /// How many times the person has switched trust off in this App session: a refusal noted before the latest
-    /// switch off no longer stands (`Host::level_status`).
-    offs: std::sync::atomic::AtomicU64,
+    /// The latest revision read for each project, by its physical folder.
+    revisions: Mutex<std::collections::HashMap<PathBuf, String>>,
     #[cfg(test)]
     pub(crate) after_confirmation: Mutex<Option<Box<dyn FnOnce() + Send>>>,
 }
@@ -164,47 +248,108 @@ impl ProjectTrust {
     pub(crate) fn project_for(&self, cwd: &Path) -> Option<KnownProject> {
         self.projects.lock().unwrap_or_else(|p| p.into_inner()).iter().find(|p| p.folder == cwd || p.physical == cwd).cloned()
     }
+    /// The project a command names, by the view's `project` value; refused, writing nothing, when it is not one the
+    /// App holds.
+    fn held(&self, project: &str) -> Result<KnownProject, String> {
+        self.launched().filter(|p| p.folder.to_string_lossy() == project)
+            .ok_or_else(|| "This project is not one the App holds; nothing written".to_owned())
+    }
     /// The App's choice for the frame whose working folder is `cwd`, read now; None where `cwd` is no project of
     /// the App's.
     pub(crate) fn choice_for(&self, cwd: &Path) -> Option<AppTrust> {
-        self.project_for(cwd).map(|project| Self::choice(&project))
+        self.choice_read_for(cwd).map(|read| read.choice)
+    }
+    /// As [`Self::choice_for`], with its revision, noted as the latest for the project.
+    pub(crate) fn choice_read_for(&self, cwd: &Path) -> Option<ChoiceRead> {
+        let project = self.project_for(cwd)?;
+        Some(self.read_noting(&project, Some(cwd)))
+    }
+    fn read_noting(&self, project: &KnownProject, cwd: Option<&Path>) -> ChoiceRead {
+        let read = Self::read_choice(project, cwd);
+        self.revisions.lock().unwrap_or_else(|p| p.into_inner()).insert(project.physical.clone(), read.revision.clone());
+        read
+    }
+    /// The latest revision read for the project at `physical`.
+    pub(crate) fn latest_revision(&self, physical: &Path) -> Option<String> {
+        self.revisions.lock().unwrap_or_else(|p| p.into_inner()).get(physical).cloned()
+    }
+    /// Held by a Host across the write of a frame whose entry rests on the choice.
+    pub(crate) fn hold_switches(&self) -> MutexGuard<'_, ()> {
+        self.switching.lock().unwrap_or_else(|p| p.into_inner())
     }
     /// The App's choice for `project`, read from its switches now.
     pub(crate) fn choice(project: &KnownProject) -> AppTrust {
+        Self::read_choice(project, None).choice
+    }
+    /// The App's choice for `project`, read now, for a frame whose working folder is `cwd` where one is given.
+    pub(crate) fn read_choice(project: &KnownProject, cwd: Option<&Path>) -> ChoiceRead {
+        let plain = |choice: AppTrust, why: &str| ChoiceRead { choice, revision: revision(json!([why])), identity: None, passed_over: false };
+        // The folder: as given, and as the frame names it, it must still resolve to the folder the App admitted,
+        // and its root to the same root, or the App's choice is not applied.
+        let physical = |p: &Path| std::fs::canonicalize(p).ok();
+        let resolves = |p: &Path| physical(p).as_deref() == Some(project.physical.as_path());
+        let same_root = |cwd: &Path| physical(&cl::project_root(cwd)) == physical(&cl::project_root(&project.folder));
+        if !resolves(&project.folder) || cwd.is_some_and(|cwd| !resolves(cwd) || !same_root(cwd)) {
+            return plain(AppTrust::FolderChanged, "folder-changed");
+        }
         let default = match project.known { Known::SetUpInApp => AppTrust::OnBySetup, Known::EnvironmentRoute => AppTrust::NoChoice };
         // A run with no records store (none named, or the one named refused): no switch can be read or made in it.
         // On the environment route that is no choice, so the route behaves as before; on the setup route the
         // choice is not readable (below), and the entry goes untrusted.
         if project.known == Known::EnvironmentRoute && crate::records_store::current().is_err() {
-            return AppTrust::NoChoice;
+            return plain(AppTrust::NoChoice, "no-store");
         }
-        match crate::records_store::trust_switches(&project.physical) {
-            Err(detail) => AppTrust::NotRead { detail: Some(detail) },
-            Ok(None) => default,
-            Ok(Some(lines)) => match lines.last() {
-                None => default,
-                Some(line) => match parse_switch(line) {
-                    Some((true, at)) => AppTrust::OnBySwitch { at },
-                    Some((false, at)) => AppTrust::OffBySwitch { at },
-                    None => AppTrust::NotRead { detail: Some("the latest switch line is not one the App writes".into()) },
-                },
-            },
+        let switches = match crate::records_store::trust_switches(&project.physical) {
+            Err(detail) => return ChoiceRead { revision: revision(json!(["not-read", detail])), choice: AppTrust::NotRead { detail: Some(detail) }, identity: None, passed_over: false },
+            Ok(None) => return plain(default, "no-identity"),
+            Ok(Some(switches)) => switches,
+        };
+        let identity = Some((switches.store_id.clone(), switches.project_id.clone()));
+        let revision = revision(json!([switches.store_id, switches.project_id, switches.lines.len(), switches.lines.last()]));
+        let valid = match valid_switches(&switches.lines) {
+            Err(detail) => return ChoiceRead { choice: AppTrust::NotRead { detail: Some(detail) }, revision, identity, passed_over: false },
+            Ok(valid) => valid,
+        };
+        // The latest line that counts: an off line whatever its origin (it only removes trust); an on line only
+        // where it was made under this store and this project identity, else passed over.
+        let mut passed_over = false;
+        let mut choice = default;
+        for switch in valid.iter().rev() {
+            if !switch.on {
+                choice = if switch.new_identity { AppTrust::OffByNewIdentity { at: switch.at.clone() } } else { AppTrust::OffBySwitch { at: switch.at.clone() } };
+                break;
+            }
+            if switch.store == switches.store_id && switch.project == switches.project_id {
+                choice = AppTrust::OnBySwitch { at: switch.at.clone() };
+                break;
+            }
+            passed_over = true;
         }
+        ChoiceRead { choice, revision, identity, passed_over }
     }
 
     // ---- The acts ----
 
-    /// What the switch-on confirmation will show for the launched project, and the token that confirms exactly
-    /// it. Writes nothing.
-    pub(crate) fn preview_on(&self) -> Result<Value, String> {
-        let project = self.launched().ok_or("no project is open; trust cannot be switched")?;
+    /// What the switch-on confirmation will show for the project the view named, and the token that confirms
+    /// exactly it. Writes nothing. Refused while another trust confirmation is open.
+    pub(crate) fn preview_on(&self, project: &str) -> Result<Value, String> {
+        let project = self.held(project)?;
+        if self.confirming.lock().unwrap_or_else(|p| p.into_inner()).is_some() {
+            return Err("A trust confirmation is already open; finish it first; nothing written".into());
+        }
         if let Some(reason) = crate::records_store::trust_switch_refusal(&project.physical) {
             return Err(format!("{CANNOT_SWITCH} {reason}"));
         }
+        let read = self.read_noting(&project, None);
+        if read.choice == AppTrust::FolderChanged { return Err(format!("{CANNOT_SWITCH} {CHOICE_FOLDER_CHANGED}")); }
         let content = Self::content(&project);
         let token = crate::util::opaque_id("project-trust-on-")?;
-        *self.preview.lock().unwrap_or_else(|p| p.into_inner()) = Some(Preview { token: token.clone(), project: project.folder.clone(), content: content.clone() });
+        *self.preview.lock().unwrap_or_else(|p| p.into_inner()) = Some(Preview { token: token.clone(), project: project.folder.clone(),
+            identity: read.identity, revision: read.revision, physical: project.physical.clone(), root: Self::root_of(&project), content: content.clone() });
         Ok(json!({"token": token, "content": content, "perform": PERFORM, "decline": DECLINE}))
+    }
+    fn root_of(project: &KnownProject) -> Option<PathBuf> {
+        std::fs::canonicalize(cl::project_root(&project.folder)).ok()
     }
     fn content(project: &KnownProject) -> Value {
         json!({"project": project.folder.to_string_lossy(), "projectStanding": "The folder is supplied text.", "effects": effects_for(&project.folder),
@@ -212,7 +357,9 @@ impl ProjectTrust {
     }
     /// The person's switch on: only with the token of the open preview, only while what it showed is still what
     /// would be shown, only once, and only when `confirm` (the native confirmation, given the statement and the
-    /// decline and perform labels) returns that the person chose to perform. Then one "on" line is written.
+    /// decline and perform labels) returns that the person chose to perform. After the answer, one "on" line is
+    /// written only where the project's identity, the choice's revision, the folder and its root, and the content
+    /// are all as reviewed.
     pub(crate) fn confirm_on(&self, token: &str, confirm: impl FnOnce(ns::NativeStatement, &str, &str) -> Result<bool, String>) -> Result<Value, String> {
         // Consumed by this attempt, whatever its end: a token is never confirmed twice.
         let preview = self.preview.lock().unwrap_or_else(|p| p.into_inner()).take()
@@ -221,36 +368,57 @@ impl ProjectTrust {
         if Self::content(&project) != preview.content { return Err("What trust turns on for this project changed since the preview; review it again".into()); }
         if let Some(reason) = crate::records_store::trust_switch_refusal(&project.physical) { return Err(format!("{CANNOT_SWITCH} {reason}")); }
         let whole = format!("{}\n{TAKES_EFFECT} {RUNNING_UNCHANGED}", effects_plain(&project.folder));
-        let statement = ns::whole_or_in_app("project trust", "project trust effects", whole, &preview.content,
+        let statement = ns::whole_or_in_app("project trust", "project trust effects", whole.clone(), &json!(whole),
             |digest| format!("{WILL_TRUST} What that turns on is shown in full in the App now, under \"Content named by an open native confirmation\". Its sha-256 digest: {digest}\n{TAKES_EFFECT}"))?;
-        if !confirm(statement, DECLINE, PERFORM)? {
+        // At most one confirmation in its native dialog; a second preview is refused meanwhile.
+        {
+            let mut confirming = self.confirming.lock().unwrap_or_else(|p| p.into_inner());
+            if confirming.is_some() { return Err("A trust confirmation is already open; finish it first; nothing written".into()); }
+            *confirming = Some(token.to_owned());
+        }
+        let answer = confirm(statement, DECLINE, PERFORM);
+        *self.confirming.lock().unwrap_or_else(|p| p.into_inner()) = None;
+        if !answer? {
             return Ok(json!({"state": "cancelled; trust not switched on"}));
         }
         #[cfg(test)]
         if let Some(hook) = self.after_confirmation.lock().unwrap().take() { hook(); }
-        if Self::content(&project) != preview.content { return Err("What trust turns on for this project changed during the confirmation; nothing written; review it again".into()); }
-        self.write(&project, true)
+        self.write(&project, true, Some(&preview))
     }
-    /// The person's switch off: at once, with no confirmation.
-    pub(crate) fn switch_off(&self) -> Result<Value, String> {
-        let project = self.launched().ok_or("no project is open; trust cannot be switched")?;
-        self.write(&project, false)
+    /// The person's switch off for the project the view named: at once, with no confirmation.
+    pub(crate) fn switch_off(&self, project: &str) -> Result<Value, String> {
+        let project = self.held(project)?;
+        self.write(&project, false, None)
     }
-    fn write(&self, project: &KnownProject, on: bool) -> Result<Value, String> {
-        let _one = self.switching.lock().unwrap_or_else(|p| p.into_inner());
-        let at = crate::util::now_rfc3339();
-        let line = json!({"format": SWITCH_FORMAT, "at": at, "trust": if on {"on"} else {"off"}});
-        crate::records_store::append_trust_switch(&project.physical, &line).map_err(|e| format!("{CANNOT_SWITCH} {e}"))?;
-        if !on { self.offs.fetch_add(1, std::sync::atomic::Ordering::SeqCst); }
-        Ok(json!({"state": if on {"switched-on"} else {"switched-off"}, "at": at, "takesEffect": TAKES_EFFECT, "running": RUNNING_UNCHANGED, "view": self.view()}))
+    fn write(&self, project: &KnownProject, on: bool, reviewed: Option<&Preview>) -> Result<Value, String> {
+        let _one = self.hold_switches();
+        let read = Self::read_choice(project, None);
+        if let Some(reviewed) = reviewed {
+            let unchanged = read.identity == reviewed.identity && read.revision == reviewed.revision && project.physical == reviewed.physical
+                && Self::root_of(project) == reviewed.root && Self::content(project) == reviewed.content && read.choice != AppTrust::FolderChanged;
+            if !unchanged { return Err(CHANGED_WHILE_OPEN.into()); }
+        }
+        if read.choice == AppTrust::FolderChanged { return Err(format!("{CANNOT_SWITCH} {CHOICE_FOLDER_CHANGED}")); }
+        let (store, identity) = match (&read.identity, &read.choice) {
+            (Some(identity), _) => identity.clone(),
+            (None, AppTrust::NotRead { detail }) => return Err(format!("{CANNOT_SWITCH} {}", detail.clone().unwrap_or_default())),
+            (None, _) => return Err(format!("{CANNOT_SWITCH} the project has no identity in the records store")),
+        };
+        let line = switch_line(on, &store, &identity, None);
+        crate::records_store::append_trust_switch(&project.physical, &line, |lines| valid_switches(lines).map(|_| ())).map_err(|e| format!("{CANNOT_SWITCH} {e}"))?;
+        drop(_one);
+        Ok(json!({"state": if on {"switched-on"} else {"switched-off"}, "at": line["at"], "takesEffect": TAKES_EFFECT, "running": RUNNING_UNCHANGED, "view": self.view()}))
+    }
+    /// For the new-identity act on `root`: the off line it writes under the new identity, where the App holds the
+    /// project and its trust would otherwise be on by default (DEL-01-01); None otherwise.
+    pub(crate) fn new_identity_off_line(&self, root: &Path) -> Option<impl Fn(&str, &str) -> Value> {
+        let physical = std::fs::canonicalize(root).ok()?;
+        let held = self.projects.lock().unwrap_or_else(|p| p.into_inner()).iter().any(|p| p.physical == physical && p.known == Known::SetUpInApp);
+        held.then_some(|store: &str, project: &str| switch_line(false, store, project, Some(NEW_IDENTITY_REASON)))
     }
 
     // ---- What the person is shown ----
 
-    /// How many switches off this session has written.
-    pub(crate) fn offs(&self) -> u64 {
-        self.offs.load(std::sync::atomic::Ordering::SeqCst)
-    }
     /// Notes what a frame for a known project carried (`threads[].level.projectTrust`).
     pub(crate) fn note_sent(&self, status: Value) {
         *self.last_sent.lock().unwrap_or_else(|p| p.into_inner()) = Some(status);
@@ -258,24 +426,31 @@ impl ProjectTrust {
     /// The per-project view, for the launched project (host status `projectTrustChoice`); None without a project.
     pub(crate) fn view(&self) -> Value {
         let Some(project) = self.launched() else { return Value::Null };
-        let choice = Self::choice(&project);
+        let read = self.read_noting(&project, None);
+        let choice = read.choice.clone();
         let (sentence, at, detail) = match &choice {
             AppTrust::OnBySetup => (CHOICE_ON_BY_SETUP.to_owned(), None, None),
             AppTrust::OnBySwitch { at } => (format!("{CHOICE_ON_BY_SWITCH_PREFIX}{at}."), Some(at.clone()), None),
             AppTrust::OffBySwitch { at } => (format!("{CHOICE_OFF_BY_SWITCH_PREFIX}{at}."), Some(at.clone()), None),
+            AppTrust::OffByNewIdentity { at } => (CHOICE_OFF_BY_NEW_IDENTITY.to_owned(), Some(at.clone()), None),
             AppTrust::NoChoice => (CHOICE_NONE.to_owned(), None, None),
             AppTrust::NotRead { detail } => (CHOICE_NOT_READ.to_owned(), None, detail.clone()),
+            AppTrust::FolderChanged => (CHOICE_FOLDER_CHANGED.to_owned(), None, None),
         };
         let why = match &choice {
             AppTrust::OnBySetup => "set-up", AppTrust::OnBySwitch { .. } => "switched-on", AppTrust::OffBySwitch { .. } => "switched-off",
-            AppTrust::NoChoice => "environment-route", AppTrust::NotRead { .. } => "not-read",
+            AppTrust::OffByNewIdentity { .. } => "new-identity", AppTrust::NoChoice => "environment-route", AppTrust::NotRead { .. } => "not-read",
+            AppTrust::FolderChanged => "folder-changed",
         };
-        let refusal = crate::records_store::trust_switch_refusal(&project.physical);
+        let refusal = crate::records_store::trust_switch_refusal(&project.physical)
+            .or_else(|| (choice == AppTrust::FolderChanged).then(|| CHOICE_FOLDER_CHANGED.to_owned()));
         let on = matches!(choice, AppTrust::OnBySetup | AppTrust::OnBySwitch { .. });
         json!({
             "project": project.folder.to_string_lossy(), "projectStanding": "The folder is supplied text.", "known": project.known.word(),
             "choice": choice.word(), "why": why, "sentence": sentence, "switchedAt": at,
             "detail": detail.map(|text| json!({"text": text, "standing": cl::NOT_THE_APPS_TEXT})),
+            "settingsCanOverride": if on { json!(CHOICE_SETTINGS_CAN_OVERRIDE) } else { Value::Null },
+            "passedOver": if read.passed_over { json!(CHOICE_PASSED_OVER) } else { Value::Null },
             "lastSent": self.last_sent.lock().unwrap_or_else(|p| p.into_inner()).clone(),
             "effects": if on { effects_for(&project.folder) } else { Value::Null },
             "canSwitch": refusal.is_none(),
@@ -283,16 +458,19 @@ impl ProjectTrust {
             "cannotSwitch": refusal.as_ref().map(|_| CANNOT_SWITCH),
             "cannotSwitchDetail": refusal.map(|text| json!({"text": text, "standing": cl::NOT_THE_APPS_TEXT})),
             "takesEffect": TAKES_EFFECT, "running": RUNNING_UNCHANGED,
+            // Beside the records store's "Give this folder a new identity", for a project whose trust is on by its
+            // setup: the act writes one off line under the new identity.
+            "newIdentity": if project.known == Known::SetUpInApp { json!(NEW_IDENTITY_TRUST_LINE) } else { Value::Null },
         })
     }
 }
 
-/// A switch line the App writes: exactly its three members. `(on, at)`.
-fn parse_switch(line: &Value) -> Option<(bool, String)> {
-    let members = line.as_object()?;
-    if members.len() != 3 || line["format"] != SWITCH_FORMAT { return None; }
-    let at = line["at"].as_str()?.to_owned();
-    match line["trust"].as_str()? { "on" => Some((true, at)), "off" => Some((false, at)), _ => None }
+#[cfg(test)]
+impl ProjectTrust {
+    /// The commands as the view names the launched project.
+    fn launched_name(&self) -> String { self.launched().map(|p| p.folder.to_string_lossy().into_owned()).unwrap_or_default() }
+    pub(crate) fn switch_off_launched(&self) -> Result<Value, String> { self.switch_off(&self.launched_name()) }
+    pub(crate) fn preview_on_launched(&self) -> Result<Value, String> { self.preview_on(&self.launched_name()) }
 }
 
 #[cfg(test)]

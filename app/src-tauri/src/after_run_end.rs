@@ -1342,7 +1342,7 @@ fn relations(
 }
 /// RFC3339 instant ordering only; original text remains in the record. Unknown
 /// local offset (-00:00), leap seconds and precision beyond ns are unorderable.
-fn instant(s: &str) -> Option<i128> {
+pub(crate) fn instant(s: &str) -> Option<i128> {
     let b = s.as_bytes();
     if b.len() < 20
         || b[4] != b'-'

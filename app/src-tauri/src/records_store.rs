@@ -2857,42 +2857,83 @@ pub(crate) fn read_log_path(root: &Path) -> Result<PathBuf, String> {
 /// without it.
 pub(crate) const TRUST_SWITCHES: &str = "trust/switches.jsonl";
 
-/// The project folder's attachment as a trust switch needs it: its store folder, or why there is none. `Ok(None)`
-/// only when the folder has no identity at all (nothing can have been switched for it).
-fn trust_switch_dir(root: &Path) -> Result<Option<PathBuf>, String> {
+/// A project's trust switches as read, with the store and the project identity they were read under: every
+/// complete line, oldest first (a torn last line, an append that did not complete, is not read).
+#[derive(Clone, Debug)]
+pub(crate) struct TrustSwitches {
+    pub lines: Vec<Value>,
+    pub store_id: String,
+    pub project_id: String,
+}
+
+/// The project folder's attachment as a trust switch needs it: its store folder with the store's and the
+/// project's identities, or why there is none. `Ok(None)` only when the folder has no identity at all (nothing
+/// can have been switched for it).
+fn trust_switch_place(root: &Path) -> Result<Option<(PathBuf, String, String)>, String> {
+    let (_, store_id) = opened().map_err(|e| format!("records store unavailable: {e}"))?;
     let attachment = attach(root, false).map_err(|e| format!("records store unavailable: {e}"))?;
     if let Some(refusal) = attachment.refusal {
         return Err(refusal);
     }
-    Ok(attachment.dir)
+    Ok(match (attachment.dir, attachment.project) {
+        (Some(dir), Some(project)) => Some((dir, store_id, project)),
+        _ => None,
+    })
 }
 
-/// The project's trust switches, oldest first, read to the last complete line (a torn last line, an append that
-/// did not complete, is not read). `Ok(None)`: the folder has no identity in the store. `Err`: the store, the
-/// attachment or the file could not be read whole, so the latest switch is not known.
-pub(crate) fn trust_switches(root: &Path) -> Result<Option<Vec<Value>>, String> {
-    let Some(dir) = trust_switch_dir(root)? else { return Ok(None) };
-    let _admission = crate::records_retention::read_path(&dir)?;
+/// The switch file's complete lines. The parent chain is checked before a missing file is read as "no switches":
+/// the project's store folder and its `trust` folder must each be a real folder, with no link anywhere on the
+/// path, or the `trust` folder absent; anything else is not read.
+fn read_trust_file(dir: &Path) -> Result<Vec<Value>, String> {
     let path = dir.join(TRUST_SWITCHES);
-    read_store_file(&path)?.require_whole(&path).map(Some)
+    let unreadable = |what: &Path, why: String| format!("records store unreadable: {}: {why}", what.display());
+    crate::storage::check_path(&path).map_err(|e| unreadable(&path, e))?;
+    match std::fs::symlink_metadata(dir) {
+        Ok(m) if m.is_dir() => {}
+        Ok(_) => return Err(unreadable(dir, "the project's store folder is not a folder".into())),
+        Err(e) => return Err(unreadable(dir, e.to_string())),
+    }
+    let folder = path.parent().ok_or("the switch file has no folder")?;
+    match std::fs::symlink_metadata(folder) {
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(vec![]),
+        Err(e) => return Err(unreadable(folder, e.to_string())),
+        Ok(m) if m.is_dir() => {}
+        Ok(_) => return Err(unreadable(folder, "not a folder".into())),
+    }
+    read_store_file(&path)?.require_whole(&path)
+}
+
+/// The project's trust switches. `Ok(None)`: the folder has no identity in the store. `Err`: the store, the
+/// attachment or the file could not be read whole, so the latest switch is not known.
+pub(crate) fn trust_switches(root: &Path) -> Result<Option<TrustSwitches>, String> {
+    let Some((dir, store_id, project_id)) = trust_switch_place(root)? else { return Ok(None) };
+    let _admission = crate::records_retention::read_path(&dir)?;
+    let lines = read_trust_file(&dir)?;
+    Ok(Some(TrustSwitches { lines, store_id, project_id }))
 }
 
 /// Why the person cannot switch this project's trust now (no identity, an attachment the person must resolve, a
 /// closed or disposed project); None when a switch can be written.
 pub(crate) fn trust_switch_refusal(root: &Path) -> Option<String> {
-    match trust_switch_dir(root) {
+    match trust_switch_place(root) {
         Err(reason) => Some(reason),
         Ok(None) => Some("the project has no identity in the records store".into()),
-        Ok(Some(dir)) => crate::records_retention::check_write(&dir).err(),
+        Ok(Some((dir, _, _))) => crate::records_retention::check_write(&dir).err(),
     }
 }
 
-/// Appends one switch line (made by `project_trust`). Admitted through the project's admission control, so a
-/// closed or disposed project is refused; a file not read whole is refused and left as it is; a fragment left by
-/// an interrupted append is closed and named first (`lines`).
-pub(crate) fn append_trust_switch(root: &Path, line: &Value) -> Result<(), String> {
-    let dir = trust_switch_dir(root)?.ok_or("the project has no identity in the records store; nothing written")?;
+/// Appends one switch line (made by `project_trust`), only under the store and identity the line names, and only
+/// where every complete line already there is one `valid` accepts. Admitted through the project's admission
+/// control, so a closed or disposed project is refused; a file not read whole, or holding a line the App does not
+/// write, is refused and left as it is; a fragment left by an interrupted append is closed and named first
+/// (`lines`).
+pub(crate) fn append_trust_switch(root: &Path, line: &Value, valid: impl Fn(&[Value]) -> Result<(), String>) -> Result<(), String> {
+    let (dir, store_id, project_id) = trust_switch_place(root)?.ok_or("the project has no identity in the records store; nothing written")?;
+    if line["storeId"] != store_id.as_str() || line["projectId"] != project_id.as_str() {
+        return Err("the project's identity in the records store changed; nothing written".into());
+    }
     let _admission = crate::records_retention::write_path(&dir)?;
+    valid(&read_trust_file(&dir)?).map_err(|e| format!("{e}; nothing written"))?;
     append_line(&dir.join(TRUST_SWITCHES), line)
 }
 
@@ -3345,6 +3386,13 @@ pub fn adopt(root: &Path) -> Result<Value, String> {
 /// whose link was copied in): the folder is released from any identity the
 /// store records for it, and a new one is minted and linked.
 pub fn new_identity(root: &Path) -> Result<Value, String> {
+    new_identity_with_trust_off(root, None)
+}
+/// [`new_identity`], and, where `trust_off` is given (a project whose trust would otherwise be on by default;
+/// DEL-01-01), one trust switch line it makes for the new store and project identities, written in the new
+/// identity's folder as soon as the identity is registered. The caller holds the App's trust switches across the
+/// act (`ProjectTrust::hold_switches`), so no frame is written on the new identity's default meanwhile.
+pub fn new_identity_with_trust_off(root: &Path, trust_off: Option<&dyn Fn(&str, &str) -> Value>) -> Result<Value, String> {
     let (store, store_id) = created()?;
     let canonical = std::fs::canonicalize(root).map_err(|e| e.to_string())?;
     let _lock = store_lock(&store)?;
@@ -3369,7 +3417,13 @@ pub fn new_identity(root: &Path) -> Result<Value, String> {
     crate::storage::ensure_directory(&canonical.join(".chirality"))?;
     crate::storage::replace_json(&canonical.join(PROJECT_LINK), &link_value(&project, &store_id))?;
     register(&store, &project, &at, "minted")?;
-    Ok(json!({"state":"new identity","projectId":project,"root":at,"limit":"records of the identity this folder had stay with that identity"}))
+    if let Some(line) = trust_off {
+        // Attached as any reader attaches it, then the one line, through the project's write admission.
+        attach(&canonical, false)?;
+        append_line(&project_dir(&store, &project).join(TRUST_SWITCHES), &line(&store_id, &project))
+            .map_err(|e| format!("the new identity was made, and its trust could not be set off: {e}"))?;
+    }
+    Ok(json!({"state":"new identity","projectId":project,"root":at,"limit":"records of the identity this folder had stay with that identity","trustOff":trust_off.is_some()}))
 }
 
 /// The person restores a missing, changed or unreadable project file to the

@@ -1686,7 +1686,7 @@ fn app_project_host(base: &Path, project: &Path, source: &str) -> (Arc<Host>, Ar
 /// The person's switch off, or a switch file damaged past its last complete line.
 fn switched_off(project: &Path, trust: &crate::project_trust::ProjectTrust) {
     crate::records_store::attach(project, true).unwrap();
-    trust.switch_off().unwrap();
+    trust.switch_off_launched().unwrap();
 }
 fn damaged_choice(project: &Path, trust: &crate::project_trust::ProjectTrust) {
     switched_off(project, trust);
@@ -1765,7 +1765,7 @@ fn a_switch_takes_effect_at_the_next_start_resume_or_fork_and_not_on_a_running_c
     let wire = Responder::attach(&host, |_| layers_with(json!({})));
     send(&host, "thread/resume", frame_params("thread/resume", &project)).unwrap();
     assert_eq!(wire.next_sent().1["params"]["config"]["projects"], json!({key(&project): {"trust_level": "trusted"}}));
-    trust.switch_off().unwrap();
+    trust.switch_off_launched().unwrap();
     // The running conversation's next turn carries no trust entry: nothing changes for it.
     send(&host, "turn/start", turn_params("thread")).unwrap();
     let (reads, turn) = wire.next_sent();
@@ -1778,7 +1778,7 @@ fn a_switch_takes_effect_at_the_next_start_resume_or_fork_and_not_on_a_running_c
         assert_eq!(wire.next_sent().1["params"]["config"]["projects"], json!({key(&project): {"trust_level": "untrusted"}}), "{method}");
     }
     // On again, by the confirmed act: the next frame is trusted.
-    let token = trust.preview_on().unwrap()["token"].as_str().unwrap().to_owned();
+    let token = trust.preview_on_launched().unwrap()["token"].as_str().unwrap().to_owned();
     trust.confirm_on(&token, |_, _, _| Ok(true)).unwrap();
     send(&host, "thread/resume", frame_params("thread/resume", &project)).unwrap();
     assert_eq!(wire.next_sent().1["params"]["config"]["projects"], json!({key(&project): {"trust_level": "trusted"}}));
@@ -1917,8 +1917,179 @@ fn the_settings_file_message_does_not_outlive_its_cause() {
     // Refused again; the person switches trust off: neither is shown from then on.
     answer("thread/resume", &project, error);
     assert_eq!(shown(), (true, true));
-    trust.switch_off().unwrap();
+    trust.switch_off_launched().unwrap();
     assert_eq!(shown(), (false, false));
+    wire.close(&host);
+    std::fs::remove_dir_all(&base).unwrap();
+}
+
+// ---- Repair after the independent review: the rule (A) ----
+
+/// A start in a project set up through the App, its frame built trusted and then held at the frame writer while
+/// `between` runs. Returns whether the start's frame was written, and its trust entry when it was.
+fn held_at_the_writer(name: &str, between: impl FnOnce(&Arc<Host>, &crate::project_trust::ProjectTrust)) -> Option<Value> {
+    let (base, project, _, _) = git_project(name);
+    crate::records_store::attach(&project, true).unwrap();
+    let (host, trust) = app_project_host(&base, &project, SET_UP);
+    let (asked_tx, asked_rx) = channel::<()>();
+    let (go_tx, go_rx) = channel::<()>();
+    let (asked_tx, go_rx) = (Mutex::new(asked_tx), Mutex::new(go_rx));
+    let wire = Responder::attach(&host, move |_| {
+        asked_tx.lock().unwrap().send(()).unwrap();
+        go_rx.lock().unwrap().recv().unwrap();
+        layers_with(json!({}))
+    });
+    let (sender, cwd) = (Arc::clone(&host), project.clone());
+    let pending = std::thread::spawn(move || send(&sender, "thread/start", json!({"cwd": cwd})).unwrap());
+    asked_rx.recv_timeout(Duration::from_secs(5)).unwrap();
+    // The reading's own frame is written; the writer is taken before its reply, so the start waits for it.
+    let serial = host.frame_write.lock().unwrap();
+    go_tx.send(()).unwrap();
+    let deadline = std::time::Instant::now() + Duration::from_secs(5);
+    while !host.inner.0.lock().unwrap().source_requests.values().any(|e| e.request.frame["method"] == "thread/start") {
+        assert!(std::time::Instant::now() < deadline, "the start's frame was built");
+        std::thread::yield_now();
+    }
+    between(&host, &trust);
+    drop(serial);
+    let request = pending.join().unwrap();
+    let mut written = None;
+    while let Ok(frame) = wire.frames.recv_timeout(Duration::from_millis(300)) {
+        if frame["method"] == "thread/start" { written = Some(frame["params"]["config"]["projects"].clone()); }
+    }
+    if written.is_none() { assert_eq!(request.write_attempt_observed(), Some(false), "{name}: nothing written"); }
+    wire.close(&host);
+    std::fs::remove_dir_all(&base).unwrap();
+    written
+}
+
+#[test]
+fn a_trusted_frame_waiting_at_the_writer_is_not_written_after_a_switch_off_or_a_settings_write() {
+    // The fixture itself: nothing between, the trusted frame is written.
+    let written = held_at_the_writer("app-trust-held-nothing", |_, _| {}).expect("written");
+    assert_eq!(written.as_object().unwrap().values().next().unwrap(), &json!({"trust_level": "trusted"}));
+    // A switch-off completes while the frame waits: not written.
+    assert_eq!(held_at_the_writer("app-trust-held-off", |_, trust| { trust.switch_off_launched().unwrap(); }), None);
+    // A settings write is admitted while the frame waits: not written.
+    assert_eq!(held_at_the_writer("app-trust-held-settings", |host, _| { host.inner.0.lock().unwrap().level.config_writes += 1; }), None);
+}
+
+#[test]
+fn a_frame_in_a_project_folder_that_now_names_another_folder_is_untrusted_and_says_why() {
+    let base = root("app-trust-repointed");
+    let (first, second) = (base.join("first"), base.join("second"));
+    for p in [&first, &second] { std::fs::create_dir_all(p).unwrap(); }
+    crate::records_store::attach(&first, true).unwrap();
+    let alias = base.join("alias");
+    std::os::unix::fs::symlink(&first, &alias).unwrap();
+    let (host, _trust) = app_project_host(&base, &alias, SET_UP);
+    let wire = Responder::attach(&host, |_| layers_with(json!({})));
+    let entry = |frame: Value| frame["params"]["config"]["projects"].as_object().unwrap().values().next().unwrap().clone();
+    send(&host, "thread/start", json!({"cwd": alias})).unwrap();
+    assert_eq!(entry(wire.next_sent().1), json!({"trust_level": "trusted"}));
+    std::fs::remove_file(&alias).unwrap();
+    std::os::unix::fs::symlink(&second, &alias).unwrap();
+    let second = send(&host, "thread/start", json!({"cwd": alias})).unwrap();
+    assert_eq!(entry(wire.next_sent().1), json!({"trust_level": "untrusted"}));
+    let status = host.inner.0.lock().unwrap().level.request_sent[&second.request_id().to_string()]["projectTrust"].clone();
+    assert_eq!((status["case"].as_str(), status["lines"].clone()), (Some("folder-changed"), json!([cl::TRUST_FOLDER_CHANGED])));
+    wire.close(&host);
+    std::fs::remove_dir_all(&base).unwrap();
+}
+
+// ---- Repair after the independent review: the settings-file message (E) ----
+
+const UNSUPPORTED: &str = "failed to load configuration: `invented_key` is no longer supported; remove it from config.toml";
+fn refuse(host: &Host, request: &SourceRequest, message: &str) {
+    reply(host, json!({"jsonrpc": "2.0", "id": request.request_id(), "error": {"code": -32600, "message": message}}));
+}
+
+#[test]
+fn the_settings_file_message_is_recorded_only_once_its_frame_settled_as_written() {
+    let (base, project, _, _) = git_project("app-trust-notice-settled");
+    let (host, _) = app_project_host(&base, &project, SET_UP);
+    let me = Arc::clone(&host);
+    let wire = Responder::attach(&host, move |_| {
+        // After the reading's own write: the start's reply arrives before its write has settled.
+        *me.before_request_write.lock().unwrap() = Some(Box::new(|h: &Host| {
+            let id = h.inner.0.lock().unwrap().next_id;
+            h.on_line(&serde_json::to_vec(&json!({"jsonrpc": "2.0", "id": id, "error": {"code": -32600, "message": UNSUPPORTED}})).unwrap(), &g(h));
+            assert!(h.snapshot()["projectSettingsRefusal"].is_null(), "not before the write settles");
+        }));
+        layers_with(json!({}))
+    });
+    send(&host, "thread/start", json!({"cwd": project})).unwrap();
+    wire.next_sent();
+    assert_eq!(host.snapshot()["projectSettingsRefusal"]["lines"], json!([cl::PROJECT_SETTINGS_NOT_ATTRIBUTED]), "recorded once written");
+    wire.close(&host);
+    std::fs::remove_dir_all(&base).unwrap();
+}
+
+#[test]
+fn the_settings_file_message_stands_exactly_as_long_as_its_cause() {
+    let (base, project, _, _) = git_project("app-trust-notice-cause");
+    let other = base.join("other");
+    std::fs::create_dir_all(&other).unwrap();
+    crate::records_store::attach(&project, true).unwrap();
+    let (host, trust) = app_project_host(&base, &project, SET_UP);
+    // The settings mark the other folder trusted, and the project as the test says.
+    let project_mark = Arc::new(Mutex::new(json!({})));
+    let (mark, other_key) = (Arc::clone(&project_mark), key(&other));
+    let k = key(&project);
+    let wire = Responder::attach(&host, move |_| {
+        let mut projects = json!({other_key.clone(): {"trust_level": "trusted"}});
+        if let Some(m) = mark.lock().unwrap().as_object() { for (_, v) in m { projects[k.clone()] = v.clone(); } }
+        layers_with(projects)
+    });
+    let start = |cwd: &Path| { let r = send(&host, "thread/start", json!({"cwd": cwd})).unwrap(); wire.next_sent(); r };
+    let shown = || host.snapshot()["projectSettingsRefusal"]["projectRoot"].as_str().map(str::to_owned);
+    // A reply that arrives after a switch-off, for a frame sent before it: not shown.
+    let request = start(&project);
+    trust.switch_off_launched().unwrap();
+    refuse(&host, &request, UNSUPPORTED);
+    assert_eq!(shown(), None);
+    confirmed_on(&trust);
+    // Shown; then a later start whose settings now mark the project untrusted hides it.
+    let request = start(&project);
+    refuse(&host, &request, UNSUPPORTED);
+    assert_eq!(shown(), Some(key(&project)));
+    *project_mark.lock().unwrap() = json!({"mark": {"trust_level": "untrusted"}});
+    let later = start(&project);
+    assert_eq!(later.frame["params"]["config"]["projects"].as_object().unwrap().values().next().unwrap(), &json!({"trust_level": "untrusted"}));
+    assert_eq!(shown(), None, "settings that now make the entry untrusted hide it");
+    *project_mark.lock().unwrap() = json!({});
+    // Another root's notice is not hidden by this project's switch-off.
+    let request = start(&other);
+    refuse(&host, &request, UNSUPPORTED);
+    assert_eq!(shown(), Some(key(&other)));
+    trust.switch_off_launched().unwrap();
+    assert_eq!(shown(), Some(key(&other)), "an unrelated root's notice stands");
+    wire.close(&host);
+    std::fs::remove_dir_all(&base).unwrap();
+}
+fn confirmed_on(trust: &crate::project_trust::ProjectTrust) {
+    let token = trust.preview_on_launched().unwrap()["token"].as_str().unwrap().to_owned();
+    trust.confirm_on(&token, |_, _, _| Ok(true)).unwrap();
+}
+
+#[test]
+fn the_commands_own_error_is_the_notices_first_sentence_and_every_other_refusal_is_unchanged() {
+    let (base, project, _, _) = git_project("app-trust-notice-error");
+    let (host, _) = app_project_host(&base, &project, SET_UP);
+    let wire = Responder::attach(&host, |_| layers_with(json!({})));
+    let fork = || { let r = send(&host, "thread/fork", frame_params("thread/fork", &project)).unwrap(); wire.next_sent(); r };
+    let request = fork();
+    refuse(&host, &request, UNSUPPORTED);
+    let expected = format!("{} {}", cl::PROJECT_SETTINGS_NOT_ATTRIBUTED, cl::PROJECT_SETTINGS_SEE_TRUST);
+    assert_eq!(host.settings_notice_error(request.request_ref()), Some(expected.clone()));
+    let refused = host.thread_fork_finish(&request).unwrap_err();
+    assert_eq!(refused, expected);
+    assert!(!refused.contains(UNSUPPORTED) && !refused.contains("-32600"), "not Codex's error object");
+    // Another refusal: its text as before.
+    let request = fork();
+    reply(&host, json!({"jsonrpc": "2.0", "id": request.request_id(), "error": {"code": -32603, "message": "invented internal error"}}));
+    assert_eq!(host.settings_notice_error(request.request_ref()), None);
+    assert!(host.thread_fork_finish(&request).unwrap_err().starts_with("thread/fork has no successful write and correlated result"));
     wire.close(&host);
     std::fs::remove_dir_all(&base).unwrap();
 }

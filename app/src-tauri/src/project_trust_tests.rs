@@ -27,7 +27,7 @@ fn choice(trust: &ProjectTrust) -> AppTrust {
 }
 /// The person's confirmed switch on, through the native confirmation's stand-in answering "perform".
 fn confirmed_on(trust: &ProjectTrust) -> Value {
-    let token = trust.preview_on().unwrap()["token"].as_str().unwrap().to_owned();
+    let token = trust.preview_on_launched().unwrap()["token"].as_str().unwrap().to_owned();
     trust.confirm_on(&token, |_, _, _| Ok(true)).unwrap()
 }
 
@@ -75,11 +75,14 @@ fn nothing_is_written_by_default_and_each_switch_writes_one_line() {
     assert_eq!(choice(&trust), AppTrust::OnBySetup);
     let _ = trust.view();
     assert!(!dir.join("trust").exists(), "the default writes nothing; reading and the view write nothing");
-    let off = trust.switch_off().unwrap();
+    let off = trust.switch_off_launched().unwrap();
     assert_eq!(off["state"], "switched-off");
     assert_eq!(lines(&project).len(), 1);
     let line = &lines(&project)[0];
-    assert_eq!(line.as_object().unwrap().len(), 3);
+    assert_eq!(line.as_object().unwrap().len(), 5, "format, at, trust, and the store and project identities it was written under");
+    let attached = records_store::attach(&project, false).unwrap();
+    assert_eq!(line["projectId"].as_str(), attached.project.as_deref());
+    assert_eq!(line["storeId"].as_str(), Some(records_store::opened_existing().unwrap().1.as_str()));
     assert_eq!((line["format"].as_str(), line["trust"].as_str(), line["at"].as_str()), (Some(SWITCH_FORMAT), Some("off"), off["at"].as_str()));
     assert_eq!(choice(&trust), AppTrust::OffBySwitch { at: off["at"].as_str().unwrap().into() });
     let on = confirmed_on(&trust);
@@ -92,7 +95,7 @@ fn nothing_is_written_by_default_and_each_switch_writes_one_line() {
 #[test]
 fn the_choice_is_read_to_the_last_complete_line_and_a_torn_tail_is_closed_before_the_next_switch() {
     let (project, trust) = set_up("trust-torn-");
-    let off = trust.switch_off().unwrap();
+    let off = trust.switch_off_launched().unwrap();
     // An append cut short: an "on" line without its newline is not a switch the person was told of.
     std::fs::OpenOptions::new().append(true).open(switches(&project)).unwrap().write_all(br#"{"format":"chirality.project-trust-switch","at":"x","trust":"on"}"#).unwrap();
     assert_eq!(choice(&trust), AppTrust::OffBySwitch { at: off["at"].as_str().unwrap().into() });
@@ -107,17 +110,17 @@ fn the_choice_is_read_to_the_last_complete_line_and_a_torn_tail_is_closed_before
 #[test]
 fn a_damaged_complete_line_hides_the_latest_choice_so_the_choice_is_not_read_and_nothing_is_appended() {
     let (project, trust) = set_up("trust-damaged-");
-    trust.switch_off().unwrap();
+    trust.switch_off_launched().unwrap();
     std::fs::OpenOptions::new().append(true).open(switches(&project)).unwrap().write_all(b"{\"damaged\n").unwrap();
     assert!(matches!(choice(&trust), AppTrust::NotRead { detail: Some(_) }));
     let before = std::fs::read(switches(&project)).unwrap();
-    assert!(trust.switch_off().unwrap_err().starts_with(CANNOT_SWITCH));
+    assert!(trust.switch_off_launched().unwrap_err().starts_with(CANNOT_SWITCH));
     assert_eq!(std::fs::read(switches(&project)).unwrap(), before, "a file not read whole is left as it is");
     assert_eq!(trust.view()["choice"], "not-read");
     assert_eq!(trust.view()["sentence"], CHOICE_NOT_READ);
     // A complete line the App does not write hides the choice too.
     let (other, other_trust) = set_up("trust-foreign-");
-    other_trust.switch_off().unwrap();
+    other_trust.switch_off_launched().unwrap();
     std::fs::OpenOptions::new().append(true).open(switches(&other)).unwrap().write_all(b"{\"format\":\"chirality.project-trust-switch\",\"at\":\"x\",\"trust\":\"maybe\"}\n").unwrap();
     assert!(matches!(choice(&other_trust), AppTrust::NotRead { .. }));
     for p in [project, other] { std::fs::remove_dir_all(p).unwrap(); }
@@ -126,7 +129,7 @@ fn a_damaged_complete_line_hides_the_latest_choice_so_the_choice_is_not_read_and
 #[test]
 fn the_choice_follows_the_identity_when_the_folder_moves_and_is_adopted_and_a_new_identity_starts_without_it() {
     let (project, trust) = set_up("trust-moved-");
-    trust.switch_off().unwrap();
+    trust.switch_off_launched().unwrap();
     let moved = project.with_file_name(format!("{}-moved", project.file_name().unwrap().to_string_lossy()));
     std::fs::rename(&project, &moved).unwrap();
     let at_moved = ProjectTrust::for_launch(Some(&moved), crate::desktop_startup::SAVED_REQUEST_SOURCE);
@@ -146,7 +149,7 @@ fn a_closed_project_or_one_without_identity_cannot_be_switched_and_says_why() {
     let bare = folder("trust-bare-");
     let trust = ProjectTrust::for_launch(Some(&bare), crate::desktop_startup::SAVED_REQUEST_SOURCE);
     assert_eq!(choice(&trust), AppTrust::OnBySetup);
-    for refused in [trust.switch_off().unwrap_err(), trust.preview_on().unwrap_err()] {
+    for refused in [trust.switch_off_launched().unwrap_err(), trust.preview_on_launched().unwrap_err()] {
         assert!(refused.starts_with(CANNOT_SWITCH), "{refused}");
     }
     let view = trust.view();
@@ -160,8 +163,8 @@ fn a_closed_project_or_one_without_identity_cannot_be_switched_and_says_why() {
     let observed = json!({"fixture":"invented; no live person's act"});
     let plan = crate::records_retention::prepare(&project, "close", None, &actor, &observed).unwrap();
     crate::records_retention::apply(plan, &actor, &observed).unwrap();
-    assert!(trust.switch_off().unwrap_err().starts_with(CANNOT_SWITCH));
-    assert!(trust.preview_on().unwrap_err().starts_with(CANNOT_SWITCH));
+    assert!(trust.switch_off_launched().unwrap_err().starts_with(CANNOT_SWITCH));
+    assert!(trust.preview_on_launched().unwrap_err().starts_with(CANNOT_SWITCH));
     assert_eq!(trust.view()["canSwitch"], false);
     assert!(!switches(&project).exists());
     for p in [bare, project] { std::fs::remove_dir_all(p).unwrap(); }
@@ -170,7 +173,7 @@ fn a_closed_project_or_one_without_identity_cannot_be_switched_and_says_why() {
 #[test]
 fn the_store_carries_the_switches_in_its_census_and_export() {
     let (project, trust) = set_up("trust-census-");
-    trust.switch_off().unwrap();
+    trust.switch_off_launched().unwrap();
     let dir = records_store::attach(&project, false).unwrap().dir.unwrap();
     let census = records_store::payload::census(&dir).unwrap();
     assert!(census.members.contains_key(records_store::TRUST_SWITCHES), "{:?}", census.members.keys().collect::<Vec<_>>());
@@ -184,10 +187,10 @@ fn the_store_carries_the_switches_in_its_census_and_export() {
 #[test]
 fn switching_on_takes_the_open_previews_token_once_and_the_native_confirmation() {
     let (project, trust) = set_up("trust-acts-");
-    trust.switch_off().unwrap();
+    trust.switch_off_launched().unwrap();
     let count = || lines(&project).len();
     // Declined at the native confirmation: nothing written, and the token is spent.
-    let preview = trust.preview_on().unwrap();
+    let preview = trust.preview_on_launched().unwrap();
     assert_eq!((preview["perform"].as_str(), preview["decline"].as_str()), (Some(PERFORM), Some(DECLINE)));
     let token = preview["token"].as_str().unwrap().to_owned();
     let mut shown = None;
@@ -205,20 +208,20 @@ fn switching_on_takes_the_open_previews_token_once_and_the_native_confirmation()
     assert_eq!(count(), 1);
     // The content changes while the confirmation is open (the project's folder becomes a repository's top and so
     // stays its own root, but a folder above it becomes one): nothing written.
-    let token = trust.preview_on().unwrap()["token"].as_str().unwrap().to_owned();
+    let token = trust.preview_on_launched().unwrap()["token"].as_str().unwrap().to_owned();
     let above = project.parent().unwrap().join(".git");
     assert!(!above.exists(), "the fixture's parent is no repository");
     let inner = project.join("inner");
     std::fs::create_dir_all(&inner).unwrap();
     let moved_trust = ProjectTrust::for_launch(Some(&inner), crate::desktop_startup::SAVED_REQUEST_SOURCE);
     records_store::attach(&inner, true).unwrap();
-    let token_inner = moved_trust.preview_on().unwrap()["token"].as_str().unwrap().to_owned();
+    let token_inner = moved_trust.preview_on_launched().unwrap()["token"].as_str().unwrap().to_owned();
     *moved_trust.after_confirmation.lock().unwrap() = Some(Box::new({
         let repo = project.join(".git");
         move || { std::fs::create_dir_all(&repo).unwrap(); std::fs::write(repo.join("HEAD"), b"ref: refs/heads/main\n").unwrap(); }
     }));
     let refused = moved_trust.confirm_on(&token_inner, |_, _, _| Ok(true)).unwrap_err();
-    assert!(refused.contains("changed during the confirmation"), "{refused}");
+    assert_eq!(refused, CHANGED_WHILE_OPEN);
     assert!(!switches(&inner).exists(), "nothing written");
     std::fs::remove_dir_all(project.join(".git")).unwrap();
     // The open preview of the project itself, confirmed: one "on" line.
@@ -235,7 +238,7 @@ fn a_preview_whose_effects_changed_is_refused_before_any_confirmation() {
     std::fs::create_dir_all(&project).unwrap();
     records_store::attach(&project, true).unwrap();
     let trust = ProjectTrust::for_launch(Some(&project), crate::desktop_startup::SAVED_REQUEST_SOURCE);
-    let token = trust.preview_on().unwrap()["token"].as_str().unwrap().to_owned();
+    let token = trust.preview_on_launched().unwrap()["token"].as_str().unwrap().to_owned();
     // The project's folder is now inside a repository: what trust turns on changed.
     std::fs::create_dir_all(base.join(".git")).unwrap();
     std::fs::write(base.join(".git").join("HEAD"), b"ref: refs/heads/main\n").unwrap();
@@ -243,7 +246,7 @@ fn a_preview_whose_effects_changed_is_refused_before_any_confirmation() {
     assert!(refused.contains("changed since the preview"), "{refused}");
     assert!(!switches(&project).exists());
     // A fresh preview shows the repository sentence; confirmed, it is written.
-    let preview = trust.preview_on().unwrap();
+    let preview = trust.preview_on_launched().unwrap();
     assert_eq!(preview["content"]["effects"]["insideRepository"]["root"], json!(base.to_string_lossy()));
     let mut shown = String::new();
     trust.confirm_on(preview["token"].as_str().unwrap(), |s, _, _| { shown = s.text.clone(); Ok(true) }).unwrap();
@@ -255,7 +258,7 @@ fn a_preview_whose_effects_changed_is_refused_before_any_confirmation() {
 #[test]
 fn switching_off_is_immediate_with_no_confirmation() {
     let (project, trust) = set_up("trust-off-");
-    let off = trust.switch_off().unwrap();
+    let off = trust.switch_off_launched().unwrap();
     assert_eq!((off["state"].as_str(), off["takesEffect"].as_str(), off["running"].as_str()), (Some("switched-off"), Some(TAKES_EFFECT), Some(RUNNING_UNCHANGED)));
     assert_eq!(off["view"]["choice"], "off");
     std::fs::remove_dir_all(project).unwrap();
@@ -269,12 +272,14 @@ fn no_route_switches_trust_on_without_the_native_confirmation() {
     let own = include_str!("project_trust.rs");
     let product = own.split("#[cfg(test)]\n#[path").next().unwrap();
     assert_eq!(product.matches("self.write(").count(), 2, "one write for on, one for off");
-    let on_write = product.find("self.write(&project, true)").expect("the one on write");
+    let on_write = product.find("self.write(&project, true, Some(&preview))").expect("the one on write, bound to the reviewed preview");
     let confirm = product.find("pub(crate) fn confirm_on(").unwrap();
-    let after_confirm = product[confirm..].find("if !confirm(statement, DECLINE, PERFORM)?").map(|i| i + confirm).unwrap();
+    let after_confirm = product[confirm..].find("let answer = confirm(statement, DECLINE, PERFORM);").map(|i| i + confirm).unwrap();
     let next_fn = product[confirm + 1..].find("pub(crate) fn ").map(|i| i + confirm + 1).unwrap();
     assert!(after_confirm < on_write && on_write < next_fn, "the on write follows the confirmation, inside confirm_on");
-    assert!(!product.contains("self.write(&project, on)") && !product.contains("\"trust\": \"on\""));
+    assert!(!product.contains("self.write(&project, on") && !product.contains("\"trust\": \"on\"") && !product.contains("switch_line(true"));
+    assert_eq!(product.matches("switch_line(").count(), 3, "its definition, the write, and the new identity's off line");
+    assert!(product.contains("switch_line(false, store, project, Some(NEW_IDENTITY_REASON))"));
     // Outside the module: the store's appender is called only here, and confirm_on only by the native command.
     let base = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
     for entry in std::fs::read_dir(&base).unwrap() {
@@ -314,10 +319,10 @@ fn the_effects_text_is_whole_in_the_confirmation_content_and_the_view() {
     assert_eq!(view["effects"]["insideRepository"], Value::Null, "the project is its own root");
     assert_eq!(view["takesEffect"], "A change applies from the next conversation you start, continue or fork.");
     assert_eq!(view["offers"], json!(["switch-off"]));
-    let preview = trust.preview_on().unwrap();
+    let preview = trust.preview_on_launched().unwrap();
     assert_eq!(preview["content"]["effects"]["text"], EFFECTS_TEXT);
     // Off: the view says when, offers switching on, and shows no effects as in force.
-    let off = trust.switch_off().unwrap();
+    let off = trust.switch_off_launched().unwrap();
     let view = trust.view();
     assert_eq!(view["sentence"], format!("{CHOICE_OFF_BY_SWITCH_PREFIX}{}.", off["at"].as_str().unwrap()));
     assert_eq!((view["effects"].clone(), view["offers"].clone()), (Value::Null, json!(["switch-on"])));
@@ -415,7 +420,7 @@ impl Drop for Retained {
 #[test]
 fn a_package_export_then_import_carries_the_switches_and_the_choice_reads_the_same() {
     let (r, trust) = Retained::new();
-    let off = trust.switch_off().unwrap();
+    let off = trust.switch_off_launched().unwrap();
     let before = choice(&trust);
     assert_eq!(before, AppTrust::OffBySwitch { at: off["at"].as_str().unwrap().into() });
     let bag = r.export("with-switches");
@@ -438,7 +443,7 @@ fn walk_has(dir: &Path, name: &str) -> bool {
 #[test]
 fn disposal_removes_the_switches_and_the_entry_is_untrusted_with_the_not_readable_sentence() {
     let (r, trust) = Retained::new();
-    trust.switch_off().unwrap();
+    trust.switch_off_launched().unwrap();
     let file = switches(&r.project);
     r.act("close", None).unwrap();
     let bag = r.export("before-disposal");
@@ -452,7 +457,7 @@ fn disposal_removes_the_switches_and_the_entry_is_untrusted_with_the_not_readabl
     reading.choice = Some(after);
     assert_eq!((reading.trust_level(), reading.status()["lines"].clone()), ("untrusted", json!([cl::TRUST_CHOICE_NOT_READ])));
     assert_eq!(trust.view()["sentence"], CHOICE_NOT_READ);
-    assert!(trust.switch_off().unwrap_err().starts_with(CANNOT_SWITCH));
+    assert!(trust.switch_off_launched().unwrap_err().starts_with(CANNOT_SWITCH));
 }
 
 #[test]
@@ -460,8 +465,221 @@ fn a_legal_hold_does_not_prevent_a_switch() {
     let (r, trust) = Retained::new();
     r.act("set-hold", None).unwrap();
     assert_eq!(trust.view()["canSwitch"], true);
-    trust.switch_off().unwrap();
+    trust.switch_off_launched().unwrap();
     confirmed_on(&trust);
     assert_eq!(lines(&r.project).len(), 2, "both switches are written under the hold");
     assert!(matches!(choice(&trust), AppTrust::OnBySwitch { .. }));
+}
+
+// ---- Repair after the independent review: the persisted choice (B) ----
+
+fn append(project: &Path, line: &str) {
+    std::fs::OpenOptions::new().append(true).open(switches(project)).unwrap().write_all(line.as_bytes()).unwrap();
+}
+fn ids(project: &Path) -> (String, String) {
+    (records_store::opened_existing().unwrap().1, records_store::attach(project, false).unwrap().project.unwrap())
+}
+
+#[test]
+fn every_complete_line_is_validated_so_an_earlier_bad_line_is_not_hidden_by_a_later_valid_one() {
+    let (project, trust) = set_up("trust-every-line-");
+    trust.switch_off_launched().unwrap();
+    // A complete line the App does not write, then a valid one after it, written by hand.
+    append(&project, "{\"format\":\"chirality.project-trust-switch\",\"trust\":\"on\"}\n");
+    let (store, id) = ids(&project);
+    append(&project, &format!("{}\n", json!({"format": SWITCH_FORMAT, "at": "2026-11-19T03:00:00.000Z", "trust": "on", "storeId": store, "projectId": id})));
+    assert!(matches!(choice(&trust), AppTrust::NotRead { detail: Some(ref d) } if d.contains("line 2")), "{:?}", choice(&trust));
+    // And the appender refuses to add a later line behind it.
+    let before = std::fs::read(switches(&project)).unwrap();
+    assert!(trust.switch_off_launched().unwrap_err().starts_with(CANNOT_SWITCH));
+    assert_eq!(std::fs::read(switches(&project)).unwrap(), before);
+    // A line whose time is not an RFC 3339 instant is not one the App writes.
+    let (other, other_trust) = set_up("trust-bad-time-");
+    other_trust.switch_off_launched().unwrap();
+    let (store, id) = ids(&other);
+    append(&other, &format!("{}\n", json!({"format": SWITCH_FORMAT, "at": "yesterday", "trust": "off", "storeId": store, "projectId": id})));
+    assert!(matches!(choice(&other_trust), AppTrust::NotRead { .. }));
+    for p in [project, other] { std::fs::remove_dir_all(p).unwrap(); }
+}
+
+#[test]
+fn an_on_line_made_for_another_store_or_identity_is_passed_over_and_an_off_line_is_honoured_whatever_its_origin() {
+    let (project, trust) = set_up("trust-origin-");
+    let (store, id) = ids(&project);
+    let line = |trust: &str, store: &str, id: &str| format!("{}\n", json!({"format": SWITCH_FORMAT, "at": "2026-11-19T04:00:00.000Z", "trust": trust, "storeId": store, "projectId": id}));
+    let dir = switches(&project);
+    std::fs::create_dir_all(dir.parent().unwrap()).unwrap();
+    // Off here, then an on made in another store, then one made under another identity: both passed over.
+    std::fs::write(&dir, format!("{}{}{}", line("off", &store, &id), line("on", "another-store", &id), line("on", &store, "chirality-project:another"))).unwrap();
+    assert_eq!(choice(&trust), AppTrust::OffBySwitch { at: "2026-11-19T04:00:00.000Z".into() });
+    let view = trust.view();
+    assert_eq!((view["choice"].as_str(), view["passedOver"].as_str()), (Some("off"), Some(CHOICE_PASSED_OVER)));
+    // With nothing before them, the default stands.
+    std::fs::write(&dir, line("on", "another-store", &id)).unwrap();
+    assert_eq!(choice(&trust), AppTrust::OnBySetup);
+    // An off line from elsewhere is honoured.
+    std::fs::write(&dir, line("off", "another-store", "chirality-project:another")).unwrap();
+    assert!(matches!(choice(&trust), AppTrust::OffBySwitch { .. }));
+    // Made here: honoured.
+    std::fs::write(&dir, line("on", &store, &id)).unwrap();
+    assert!(matches!(choice(&trust), AppTrust::OnBySwitch { .. }));
+    assert!(trust.view()["passedOver"].is_null());
+    std::fs::remove_dir_all(project).unwrap();
+}
+
+#[test]
+fn the_revision_changes_with_every_switch_and_with_the_identity() {
+    let (project, trust) = set_up("trust-revision-");
+    let known = trust.launched().unwrap();
+    let first = ProjectTrust::read_choice(&known, None).revision;
+    assert_eq!(ProjectTrust::read_choice(&known, None).revision, first, "reading changes nothing");
+    trust.switch_off_launched().unwrap();
+    let second = ProjectTrust::read_choice(&known, None).revision;
+    assert_ne!(first, second);
+    confirmed_on(&trust);
+    assert_ne!(ProjectTrust::read_choice(&known, None).revision, second);
+    std::fs::remove_dir_all(project).unwrap();
+}
+
+#[test]
+fn an_absent_trust_folder_is_no_switches_and_an_invalid_one_is_not_read() {
+    let (project, trust) = set_up("trust-parent-");
+    let dir = records_store::attach(&project, false).unwrap().dir.unwrap();
+    assert!(!dir.join("trust").exists());
+    assert_eq!(choice(&trust), AppTrust::OnBySetup, "absent: no switches");
+    // A link in its place, to a folder with no switch file: not read, never the default.
+    let elsewhere = folder("trust-parent-elsewhere-");
+    std::os::unix::fs::symlink(&elsewhere, dir.join("trust")).unwrap();
+    assert!(matches!(choice(&trust), AppTrust::NotRead { .. }), "{:?}", choice(&trust));
+    assert!(trust.switch_off_launched().is_err());
+    assert!(!elsewhere.join("switches.jsonl").exists(), "nothing written through the link");
+    // A file in its place: not read.
+    std::fs::remove_file(dir.join("trust")).unwrap();
+    std::fs::write(dir.join("trust"), b"").unwrap();
+    assert!(matches!(choice(&trust), AppTrust::NotRead { .. }));
+    std::fs::remove_file(dir.join("trust")).unwrap();
+    assert_eq!(choice(&trust), AppTrust::OnBySetup);
+    for p in [project, elsewhere] { std::fs::remove_dir_all(p).unwrap(); }
+}
+
+#[test]
+fn a_package_imported_into_another_store_carries_an_off_but_not_an_on() {
+    for on in [false, true] {
+        let (r, trust) = Retained::new();
+        trust.switch_off_launched().unwrap();
+        if on { confirmed_on(&trust); }
+        let before = choice(&trust);
+        let bag = r.export("with-switches");
+        records_store::use_store_for_test(Some(Ok(records_store::Store { root: r.output.join("destination-store"), placement: records_store::Placement::Test, limits: vec![] })));
+        let plan = records_store::package::prepare(&r.project, &bag, &r.actor, &r.observed).unwrap();
+        records_store::package::apply(plan, &r.actor, &r.observed).unwrap();
+        let after = choice(&trust);
+        if on {
+            // The on was confirmed in another store: not used here; the line before it (off) stands.
+            assert!(matches!(after, AppTrust::OffBySwitch { .. }), "{after:?}");
+            assert_eq!(trust.view()["passedOver"], CHOICE_PASSED_OVER);
+        } else {
+            assert_eq!(after, before, "an off is honoured after import");
+        }
+    }
+}
+
+// ---- Repair after the independent review: the acts (C) ----
+
+#[test]
+fn a_switch_off_while_the_confirmation_is_open_invalidates_it_and_a_second_preview_is_refused() {
+    let (project, trust) = set_up("trust-open-");
+    trust.switch_off_launched().unwrap();
+    let token = trust.preview_on_launched().unwrap()["token"].as_str().unwrap().to_owned();
+    let lines_before = lines(&project).len();
+    let refused = trust.confirm_on(&token, |_, _, _| {
+        // While the native dialog is open: a second preview is refused, and the person switches off.
+        assert!(trust.preview_on_launched().unwrap_err().contains("already open"));
+        trust.switch_off_launched().unwrap();
+        Ok(true)
+    }).unwrap_err();
+    assert_eq!(refused, CHANGED_WHILE_OPEN);
+    assert_eq!(lines(&project).len(), lines_before + 1, "only the off was written");
+    assert!(matches!(choice(&trust), AppTrust::OffBySwitch { .. }), "trust stays off");
+    // Once the dialog has closed, a preview can be opened again.
+    assert!(trust.preview_on_launched().is_ok());
+    std::fs::remove_dir_all(project).unwrap();
+}
+
+#[test]
+fn a_new_identity_while_the_confirmation_is_open_writes_nothing_under_either_identity() {
+    let (project, trust) = set_up("trust-open-identity-");
+    trust.switch_off_launched().unwrap();
+    let token = trust.preview_on_launched().unwrap()["token"].as_str().unwrap().to_owned();
+    let old = switches(&project);
+    let refused = trust.confirm_on(&token, |_, _, _| { records_store::new_identity(&project).unwrap(); Ok(true) }).unwrap_err();
+    assert_eq!(refused, CHANGED_WHILE_OPEN);
+    assert_eq!(std::fs::read_to_string(&old).unwrap().lines().count(), 1, "nothing under the old identity");
+    assert!(!switches(&project).exists(), "nothing under the new");
+    std::fs::remove_dir_all(project).unwrap();
+}
+
+#[test]
+fn the_commands_name_their_project_and_the_labels_are_the_fixed_strings() {
+    assert_eq!((PERFORM, DECLINE), ("Trust this project", "Keep untrusted"));
+    let (project, trust) = set_up("trust-named-");
+    let other = folder("trust-named-other-");
+    for refused in [trust.switch_off(&other.to_string_lossy()).unwrap_err(), trust.preview_on(&other.to_string_lossy()).unwrap_err()] {
+        assert_eq!(refused, "This project is not one the App holds; nothing written");
+    }
+    assert!(!switches(&project).exists());
+    let name = trust.view()["project"].as_str().unwrap().to_owned();
+    assert_eq!(trust.switch_off(&name).unwrap()["state"], "switched-off");
+    assert_eq!(trust.preview_on(&name).unwrap()["perform"], "Trust this project");
+    for p in [project, other] { std::fs::remove_dir_all(p).unwrap(); }
+}
+
+#[test]
+fn the_new_identity_act_writes_off_under_the_new_identity_for_a_project_on_by_setup() {
+    let (project, trust) = set_up("trust-new-identity-");
+    confirmed_on(&trust);
+    let line = trust.new_identity_off_line(&project).expect("on by its setup: the act writes off");
+    let done = records_store::new_identity_with_trust_off(&project, Some(&line)).unwrap();
+    assert_eq!(done["trustOff"], true);
+    let written = lines(&project);
+    assert_eq!(written.len(), 1);
+    assert_eq!((written[0]["trust"].as_str(), written[0]["reason"].as_str()), (Some("off"), Some(NEW_IDENTITY_REASON)));
+    assert_eq!(written[0]["projectId"].as_str(), done["projectId"].as_str(), "under the new identity");
+    assert!(matches!(choice(&trust), AppTrust::OffByNewIdentity { .. }));
+    let view = trust.view();
+    assert_eq!((view["why"].as_str(), view["sentence"].as_str(), view["offers"].clone()), (Some("new-identity"), Some(CHOICE_OFF_BY_NEW_IDENTITY), json!(["switch-on"])));
+    // Switched on again by the confirmed act.
+    confirmed_on(&trust);
+    assert!(matches!(choice(&trust), AppTrust::OnBySwitch { .. }));
+    // An environment-route project has no default on: no line.
+    let opened = ProjectTrust::for_launch(Some(&project), "explicit Root native environment path inputs");
+    assert!(opened.new_identity_off_line(&project).is_none());
+    assert!(opened.view()["newIdentity"].is_null());
+    assert_eq!(trust.view()["newIdentity"], NEW_IDENTITY_TRUST_LINE);
+    std::fs::remove_dir_all(project).unwrap();
+}
+
+#[test]
+fn a_folder_that_no_longer_resolves_to_the_folder_admitted_gets_no_choice_applied() {
+    let base = folder("trust-repointed-");
+    let (first, second) = (base.join("first"), base.join("second"));
+    for p in [&first, &second] { std::fs::create_dir_all(p).unwrap(); }
+    records_store::attach(&first, true).unwrap();
+    let alias = base.join("alias");
+    std::os::unix::fs::symlink(&first, &alias).unwrap();
+    let trust = ProjectTrust::default();
+    trust.add(&alias, Known::SetUpInApp);
+    assert_eq!(trust.choice_for(&alias), Some(AppTrust::OnBySetup));
+    // The given path now names another folder.
+    std::fs::remove_file(&alias).unwrap();
+    std::os::unix::fs::symlink(&second, &alias).unwrap();
+    assert_eq!(trust.choice_for(&alias), Some(AppTrust::FolderChanged));
+    let view = trust.view();
+    assert_eq!((view["choice"].as_str(), view["sentence"].as_str(), view["canSwitch"].clone()), (Some("folder-changed"), Some(CHOICE_FOLDER_CHANGED), json!(false)));
+    assert!(trust.preview_on(&alias.to_string_lossy()).is_err());
+    let mut reading = cl::TrustReading::not_read(alias.clone(), cl::TRUST_READ_FAILED, None);
+    reading.case = cl::TrustCase::Trusted { key: alias.to_string_lossy().into_owned() };
+    reading.choice = trust.choice_for(&alias);
+    assert_eq!((reading.trust_level(), reading.status()["lines"].clone()), ("untrusted", json!([cl::TRUST_FOLDER_CHANGED])));
+    std::fs::remove_dir_all(base).unwrap();
 }

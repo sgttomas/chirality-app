@@ -360,3 +360,79 @@ fn a_trusted_projects_settings_file_that_stops_a_start_is_said_plainly_for_both_
     assert_eq!(project_settings_refusal(&r, &json!({"code": -32600, "message": "invalid request: failed to load configuration:"})), None);
     std::fs::remove_dir_all(base).unwrap();
 }
+
+// ---- Repair after the independent review ----
+
+fn user_layer(config: Value) -> Value { json!({"name": {"type": "user", "file": "/invented/config.toml"}, "config": config}) }
+fn layers(user: Vec<Value>) -> Value { json!({"config": {}, "origins": {}, "layers": user}) }
+
+#[test]
+fn an_unusable_settings_shape_is_a_limited_reading_never_an_absent_mark() {
+    let root = tmp("mark-shapes").canonicalize().unwrap();
+    let key = root.to_string_lossy().into_owned();
+    // Absent marks: no projects, no entry, an entry without trust_level.
+    for config in [json!({}), json!({"projects": {}}), json!({"projects": {"/elsewhere": {"trust_level": 7}}}), json!({"projects": {key.clone(): {}}})] {
+        assert_eq!(person_mark(&layers(vec![user_layer(config.clone())]), &root), Ok(TrustCase::Unmarked), "{config}");
+    }
+    // Unusable: not taken for absent.
+    for config in [json!("text"), json!(null), json!([]), json!({"projects": "text"}), json!({"projects": {key.clone(): "trusted"}}),
+                   json!({"projects": {key.clone(): {"trust_level": "yes"}}}), json!({"projects": {key.clone(): {"trust_level": true}}})] {
+        assert_eq!(person_mark(&layers(vec![user_layer(config.clone())]), &root), Err(TRUST_READ_LIMITED.into()), "{config}");
+    }
+    let missing = json!({"name": {"type": "user", "file": "/invented/config.toml"}});
+    assert_eq!(person_mark(&layers(vec![missing]), &root), Err(TRUST_READ_LIMITED.into()), "a user layer with no config");
+    // The marks as before.
+    for (level, case) in [("trusted", TrustCase::Trusted { key: key.clone() }), ("untrusted", TrustCase::MarkedUntrusted { key: key.clone() })] {
+        assert_eq!(person_mark(&layers(vec![user_layer(json!({"projects": {key.clone(): {"trust_level": level}}}))]), &root), Ok(case));
+    }
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn where_the_two_spellings_of_the_root_carry_conflicting_marks_untrusted_wins() {
+    let base = tmp("mark-spellings").canonicalize().unwrap();
+    let real = base.join("real");
+    std::fs::create_dir_all(&real).unwrap();
+    let alias = base.join("alias");
+    std::os::unix::fs::symlink(&real, &alias).unwrap();
+    let (canonical, given) = (real.to_string_lossy().into_owned(), alias.to_string_lossy().into_owned());
+    assert_eq!(trust_lookup_keys(&alias), vec![canonical.clone(), given.clone()]);
+    for (first, second) in [("trusted", "untrusted"), ("untrusted", "trusted")] {
+        let config = json!({"projects": {canonical.clone(): {"trust_level": first}, given.clone(): {"trust_level": second}}});
+        assert!(matches!(person_mark(&layers(vec![user_layer(config)]), &alias), Ok(TrustCase::MarkedUntrusted { .. })), "{first} {second}");
+    }
+    std::fs::remove_dir_all(base).unwrap();
+}
+
+#[test]
+fn the_settings_file_is_attributed_only_as_a_whole_contained_path_and_otherwise_said_as_not_attributed() {
+    let base = tmp("settings-attribution").canonicalize().unwrap();
+    let (root, cwd) = (base.join("repo"), base.join("repo").join("project"));
+    std::fs::create_dir_all(cwd.join(".codex")).unwrap();
+    std::fs::create_dir_all(root.join(".git")).unwrap();
+    std::fs::write(root.join(".git").join("HEAD"), b"ref: refs/heads/main\n").unwrap();
+    let mut r = TrustReading::not_read(cwd.clone(), TRUST_READ_FAILED, None);
+    r.case = TrustCase::Unmarked;
+    r.choice = Some(on());
+    assert_eq!(r.root, root);
+    let own = cwd.join(".codex").join("config.toml");
+    let error = |message: String| json!({"code": -32600, "message": format!("failed to load configuration: {message}")});
+    // A whole path: attributed.
+    let said = project_settings_refusal(&r, &error(format!("{}: TOML parse error", own.display()))).unwrap();
+    assert_eq!((said["lines"].clone(), said["attributed"].clone(), said["files"].clone()), (json!([PROJECT_SETTINGS_NOT_LOADED]), json!(true), json!([own.to_string_lossy()])));
+    // A path that only begins with it: not attributed; the candidates, and those above the project named as such.
+    let said = project_settings_refusal(&r, &error(format!("{}.bak: TOML parse error", own.display()))).unwrap();
+    assert_eq!((said["lines"].clone(), said["attributed"].clone()), (json!([PROJECT_SETTINGS_NOT_ATTRIBUTED]), json!(false)));
+    let above = root.join(".codex").join("config.toml");
+    assert_eq!(said["files"], json!([above.to_string_lossy(), own.to_string_lossy()]));
+    assert_eq!(said["filesAboveProject"], json!([above.to_string_lossy()]));
+    // A candidate whose folder resolves outside the root is never named, even where Codex names it.
+    let outside = base.join("outside");
+    std::fs::create_dir_all(&outside).unwrap();
+    std::fs::create_dir_all(root.join("project")).unwrap();
+    std::os::unix::fs::symlink(&outside, root.join(".codex")).unwrap();
+    let said = project_settings_refusal(&r, &error(format!("{}: TOML parse error", above.display()))).unwrap();
+    assert_eq!((said["attributed"].clone(), said["files"].clone()), (json!(false), json!([own.to_string_lossy()])));
+    assert!(!said.to_string().contains(&format!("\"{}\"", outside.join("config.toml").display())));
+    std::fs::remove_dir_all(base).unwrap();
+}

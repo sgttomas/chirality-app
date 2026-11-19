@@ -1076,8 +1076,8 @@ fn records_store_retention(app:tauri::AppHandle,state:State<'_,AppState>,action:
 /// DEL-01-01: what switching this project's trust on would show, with the token that confirms exactly it. Writes
 /// nothing.
 #[tauri::command(async)]
-fn project_trust_preview_on(state:State<'_,AppState>)->Result<Value,String>{
-    state.project_trust.preview_on()
+fn project_trust_preview_on(state:State<'_,AppState>,project:String)->Result<Value,String>{
+    state.project_trust.preview_on(&project)
 }
 /// DEL-01-01: the person switches this project's trust on, a confirmed act: the open preview's token, then the
 /// native confirmation of the whole effects text ("Keep untrusted" / "Trust this project"), then one line in the
@@ -1092,8 +1092,8 @@ fn project_trust_confirm_on(app:tauri::AppHandle,state:State<'_,AppState>,token:
 }
 /// DEL-01-01: the person switches this project's trust off: at once, with no confirmation.
 #[tauri::command(async)]
-fn project_trust_switch_off(state:State<'_,AppState>)->Result<Value,String>{
-    state.project_trust.switch_off()
+fn project_trust_switch_off(state:State<'_,AppState>,project:String)->Result<Value,String>{
+    state.project_trust.switch_off(&project)
 }
 /// RS §13.8 "Project identity": the person resolves a project identity limit.
 #[tauri::command(async)]
@@ -1117,7 +1117,19 @@ fn records_store_identity(state: State<'_, AppState>, action: String) -> Result<
     }
     match action.as_str() {
         "adopt" => records_store::adopt(project),
-        "new-identity" => records_store::new_identity(project),
+        // DEL-01-01: trust is not carried to a new identity. Where the project's trust would otherwise be on by
+        // default, the act writes one off line under the new identity as soon as it is registered; the switches
+        // are held across the act, so no switch or frame lands between (`ProjectTrust::hold_switches`).
+        "new-identity" => {
+            let _switches = state.project_trust.hold_switches();
+            match state.project_trust.new_identity_off_line(project) {
+                Some(line) => records_store::new_identity_with_trust_off(project, Some(&line)).map(|mut done| {
+                    done["trustLine"] = json!(project_trust::NEW_IDENTITY_TRUST_LINE);
+                    done
+                }),
+                None => records_store::new_identity(project),
+            }
+        }
         "restore-link" => records_store::restore_link(project),
         _ => Err("unknown records store identity action; nothing changed".into()),
     }
@@ -2011,6 +2023,12 @@ fn start_conversation_inner(app:&tauri::AppHandle,state:&AppState,home:Arc<runti
                 .map_err(|error| format!("Native start dispatched; original role preparation failed: {error}. Native effect remains as observed in the retained receipt; no automatic resend"))?;
             let waited = home.host.source_request_wait(&receipt, std::time::Duration::from_secs(20));
             home.history.lock().unwrap().reconcile(&home.host);
+            // DEL-01-01: a start refused by a trusted project's own settings is said as the App says it, never as
+            // Codex's error object.
+            if let Some(text) = waited.as_ref().ok().filter(|evidence| evidence["response"].get("error").is_some())
+                .and_then(|_| home.host.settings_notice_error(receipt.request_ref())) {
+                return Err(text);
+            }
             match waited {
                 Ok(evidence) if home.history.lock().unwrap().start_admitted(&receipt) => Ok(evidence["response"].clone()),
                 Ok(evidence) => Err(format!("Native start remains {} (write {}); no automatic retry", evidence["outcome"], evidence["writeResult"])),

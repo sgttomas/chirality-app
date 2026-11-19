@@ -628,9 +628,11 @@ fn write_profile(path: &Path, requested: &RequestedInputs) -> Result<(), String>
 /// root. A route that names no project says nothing new.
 fn with_project_trust(review: &mut Value, project: Option<&Path>) {
     let Some(project) = project else { return };
+    // The review's own list shows the trust line and what it turns on, the repository sentence included where it
+    // applies, in the words the statement carries.
     if let Some(effects) = review["effects"].as_array_mut() {
         effects.push(json!(crate::project_trust::WILL_TRUST));
-        effects.push(json!(crate::project_trust::EFFECTS_TEXT));
+        effects.extend(crate::project_trust::effects_lines(project).into_iter().map(Value::from));
     }
     review["projectTrust"] = json!({"line": crate::project_trust::WILL_TRUST, "effects": crate::project_trust::effects_for(project)});
 }
@@ -712,6 +714,9 @@ struct Preview {
     project: Option<PathBuf>,
     source_refs: [Reference; 3],
     project_ref: Option<Reference>,
+    /// The trust lines the review showed for the project it names (DEL-01-01), frozen: the statement carries these,
+    /// and a change from them before the confirmation refuses.
+    trust: Option<String>,
 }
 pub(crate) struct DesktopSetup {
     data: Result<PathBuf, String>,
@@ -1552,6 +1557,7 @@ impl DesktopSetup {
             kind: PreviewKind::RetainProject { admission, request },
             account,
             shared,
+            trust: project.as_deref().map(crate::project_trust::setup_trust_lines),
             project,
             source_refs: active.shared.clone(),
             project_ref,
@@ -1597,15 +1603,20 @@ impl DesktopSetup {
     /// confirmation shows of it, when it does not fit, is `desktop_setup_confirmation::statement`'s.
     pub fn preview_statement(&self, token: &str) -> Result<String, String> {
         let setup = self.preview_setup_statement(token)?;
-        Ok(match self.preview_trusted_project(token)? {
-            Some(project) => format!("{setup}\n{}", crate::project_trust::setup_trust_lines(&project)),
+        Ok(match self.preview_trust_lines(token)? {
+            Some(lines) => format!("{setup}\n{lines}"),
             None => setup,
         })
     }
-    /// The project setup's confirmation says Chirality will trust: the one the preview names, if any.
-    pub(crate) fn preview_trusted_project(&self, token: &str) -> Result<Option<PathBuf>, String> {
+    /// The trust lines the review showed for the project it names, if any, as frozen at review; refused when what
+    /// trust turns on for that project would now be said differently.
+    pub(crate) fn preview_trust_lines(&self, token: &str) -> Result<Option<String>, String> {
         let preview = self.preview.as_ref().filter(|p| p.token == token).ok_or("Setup preview changed; review the effects again")?;
-        Ok(preview.project.clone())
+        match (&preview.project, &preview.trust) {
+            (Some(project), Some(lines)) if crate::project_trust::setup_trust_lines(project) == *lines => Ok(Some(lines.clone())),
+            (None, None) => Ok(None),
+            _ => Err("Setup preview changed; review the effects again".into()),
+        }
     }
     /// The setup lines alone, as before DEL-01-01 added the trust lines.
     pub(crate) fn preview_setup_statement(&self, token: &str) -> Result<String, String> {
@@ -1710,6 +1721,7 @@ impl DesktopSetup {
             kind: PreviewKind::NewHome,
             account,
             shared,
+            trust: project.as_deref().map(crate::project_trust::setup_trust_lines),
             project,
             source_refs,
             project_ref,
@@ -7148,6 +7160,9 @@ mod tests {
         let effects: Vec<&str> = review["effects"].as_array().unwrap().iter().map(|e| e.as_str().unwrap()).collect();
         let at = effects.iter().position(|e| *e == crate::project_trust::WILL_TRUST).expect("the trust line among the effects");
         assert_eq!(effects.get(at + 1), Some(&crate::project_trust::EFFECTS_TEXT), "followed by the whole effects text");
+        // The review's own list carries every line the statement carries, the repository sentence included.
+        let lines = crate::project_trust::effects_lines(project);
+        assert_eq!(effects[at + 1..at + 1 + lines.len()], lines.iter().map(String::as_str).collect::<Vec<_>>()[..]);
         assert_eq!(review["projectTrust"]["line"], crate::project_trust::WILL_TRUST);
         assert_eq!(review["projectTrust"]["effects"], crate::project_trust::effects_for(project));
     }
@@ -7172,6 +7187,14 @@ mod tests {
         let inside = setup.preview_new_settings(Some(below.clone())).unwrap();
         assert_project_trust_said(&inside, &below);
         assert_eq!(inside["projectTrust"]["effects"]["insideRepository"]["root"], json!(repository.to_string_lossy()));
+        let shown = inside["effects"].as_array().unwrap();
+        assert!(shown.iter().any(|e| e.as_str().unwrap().starts_with(crate::project_trust::INSIDE_REPOSITORY_BEFORE)), "the repository sentence in the rendered list");
+        // What the review showed is what the confirmation carries: a change between them refuses.
+        let token = inside["token"].as_str().unwrap().to_owned();
+        assert!(setup.preview_statement(&token).unwrap().ends_with(&crate::project_trust::setup_trust_lines(&below)));
+        std::fs::rename(repository.join(".git"), repository.join("git-moved")).unwrap();
+        assert_eq!(setup.preview_statement(&token).unwrap_err(), "Setup preview changed; review the effects again");
+        std::fs::rename(repository.join("git-moved"), repository.join(".git")).unwrap();
         // A route that names no project says nothing new, in its review or its statement.
         for route in ["new-home", "new-settings"] {
             let review = if route == "new-home" { setup.preview(f.shared.clone(), None, SUPPLIER).unwrap() } else { setup.preview_new_settings(None).unwrap() };

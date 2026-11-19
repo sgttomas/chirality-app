@@ -115,18 +115,34 @@ pub(crate) struct LevelState {
     pub(crate) config_writes: u64,
     /// DEL-01-01: the App's projects and their trust, as the last trust reading found it configured.
     pub(crate) project_trust: Option<Arc<crate::project_trust::ProjectTrust>>,
-    /// The last start, resume or fork Codex refused because a trusted project's own settings file could not be
-    /// loaded (`codex_level::project_settings_refusal`), and each conversation's.
-    /// Each with the count of the person's switches off when it was noted: one noted before a later switch off is
-    /// no longer shown.
-    pub(crate) settings_refusal: Option<(Value, u64)>,
-    pub(crate) thread_settings_refusal: HashMap<String, (Value, u64)>,
+    /// The last start, resume or fork Codex refused, after a frame carrying a trusted entry was written, saying it
+    /// could not load its settings (`codex_level::project_settings_refusal`), and each conversation's.
+    pub(crate) settings_refusal: Option<SettingsNotice>,
+    pub(crate) thread_settings_refusal: HashMap<String, SettingsNotice>,
+    /// Such a refusal whose reply came before its frame's write settled: recorded only once the write settles as
+    /// written, by request key.
+    pub(crate) unsettled_notices: HashMap<String, SettingsNotice>,
+    /// The trust level each project root's latest written entry carried: a notice stands only while it is trusted.
+    pub(crate) latest_trust: HashMap<String, String>,
     /// A test's own budget for the trust reading, in place of the reading default.
     #[cfg(test)]
     pub(crate) trust_budget: Option<std::time::Duration>,
     /// The unit tests' Host makes no trust reading (its peers answer no `config/read`); a test turns it on.
     #[cfg(test)]
     pub(crate) trust_reads: bool,
+}
+
+/// A settings-file notice and what it rests on: its project root, its request, the conversation it names, and the
+/// App's choice revision and project its trusted entry was sent under. It is shown only while the root's latest
+/// entry is still trusted and the choice is still at that revision (`notice_stands`).
+#[derive(Clone, Debug)]
+pub(crate) struct SettingsNotice {
+    pub(crate) value: Value,
+    pub(crate) root: String,
+    pub(crate) request_ref: String,
+    pub(crate) thread: Option<String>,
+    pub(crate) project: Option<PathBuf>,
+    pub(crate) revision: Option<String>,
 }
 
 impl Places {
@@ -313,6 +329,16 @@ impl Host {
     /// After a leveled request's write attempt: what was sent, and `level_sent` once per conversation per chosen
     /// level. A re-send of the same choice to the same conversation writes nothing.
     pub(super) fn level_write_noted(i: &mut Inner, key: &str, written: bool) {
+        // A settings-file refusal whose reply came first stands only once its frame settles as written.
+        if let Some(notice) = i.level.unsettled_notices.remove(key) {
+            if written { Self::record_settings_notice(i, notice); }
+        }
+        if written {
+            if let Some(trust) = i.source_requests.get(key).and_then(|e| e.request.level.as_ref()).and_then(|b| b.trust.as_ref()) {
+                let (root, level) = (trust.root.to_string_lossy().into_owned(), trust.trust_level().to_owned());
+                i.level.latest_trust.insert(root, level);
+            }
+        }
         let Some(e) = i.source_requests.get(key) else { return };
         if e.attempt_position.is_none() { return; }
         let Some(bound) = e.request.level.clone() else { return };
@@ -354,15 +380,17 @@ impl Host {
         if let Some(error) = frame.get("error") {
             // DEL-01-01: a trusted entry sent, and Codex could not load the configuration: the project's own
             // settings file stopped the start. Other refusals are left as they are.
-            if let Some(mut refusal) = bound.trust.as_ref().and_then(|trust| cl::project_settings_refusal(trust, error)) {
+            if let Some((trust, mut refusal)) = bound.trust.as_ref().and_then(|trust| cl::project_settings_refusal(trust, error).map(|r| (trust, r))) {
                 let thread = match &bound.target { Target::Conversation(t) | Target::ForkOf(t) => Some(t.clone()), Target::New => None };
                 refusal["method"] = json!(e.request.frame["method"]);
                 refusal["requestRef"] = json!(request_ref);
                 refusal["threadId"] = json!(thread);
                 refusal["at"] = json!(now_rfc3339());
-                let offs = i.level.project_trust.as_ref().map_or(0, |projects| projects.offs());
-                if let Target::Conversation(t) = &bound.target { i.level.thread_settings_refusal.insert(t.clone(), (refusal.clone(), offs)); }
-                i.level.settings_refusal = Some((refusal, offs));
+                let notice = SettingsNotice { value: refusal, root: trust.root.to_string_lossy().into_owned(), request_ref: request_ref.clone(),
+                    thread: match &bound.target { Target::Conversation(t) => Some(t.clone()), _ => None },
+                    project: trust.choice_project.clone(), revision: trust.choice_revision.clone() };
+                // Only from a frame that settled as written; a reply first is held until the write settles.
+                if e.written { Self::record_settings_notice(i, notice); } else { i.level.unsettled_notices.insert(key.to_owned(), notice); }
             }
             i.level.request_sent.remove(key);
             i.level.sent_by_request.remove(key);
@@ -371,10 +399,10 @@ impl Host {
         // A later start, resume or fork of the same conversation or project that Codex accepted: the refusal no
         // longer stands.
         if let Some(trust) = &bound.trust {
-            let root = json!(trust.root.to_string_lossy());
-            if i.level.settings_refusal.as_ref().is_some_and(|(r, _)| r["projectRoot"] == root) { i.level.settings_refusal = None; }
+            let root = trust.root.to_string_lossy().into_owned();
+            if i.level.settings_refusal.as_ref().is_some_and(|n| n.root == root) { i.level.settings_refusal = None; }
             if let Target::Conversation(t) = &bound.target { i.level.thread_settings_refusal.remove(t); }
-            i.level.thread_settings_refusal.retain(|_, (r, _)| r["projectRoot"] != root);
+            i.level.thread_settings_refusal.retain(|_, n| n.root != root);
         }
         let result = &frame["result"];
         let thread = match &bound.target {
@@ -428,6 +456,30 @@ impl Host {
             "approvalsReviewer": result.get("approvalsReviewer").cloned().unwrap_or(Value::Null),
             "sandbox": result.get("sandbox").cloned().unwrap_or(Value::Null), "agreement": agreement});
         Self::queue_level_entry(i, entry);
+    }
+
+    fn record_settings_notice(i: &mut Inner, notice: SettingsNotice) {
+        if let Some(t) = &notice.thread { i.level.thread_settings_refusal.insert(t.clone(), notice.clone()); }
+        i.level.settings_refusal = Some(notice);
+    }
+    /// A notice stands exactly as long as its cause: while the latest entry written for its root is still trusted,
+    /// and the App's choice it was sent under is still at the revision it was sent under.
+    fn notice_stands(i: &Inner, notice: &SettingsNotice) -> bool {
+        let settings = i.level.latest_trust.get(&notice.root).is_none_or(|level| level == "trusted");
+        let choice = match (&notice.project, &notice.revision, &i.level.project_trust) {
+            (Some(project), Some(revision), Some(projects)) => projects.latest_revision(project).is_none_or(|now| now == *revision),
+            _ => true,
+        };
+        settings && choice
+    }
+    /// The command's own error text for a start, resume or fork whose refusal is a standing settings-file notice:
+    /// the notice's first sentence and where to look, never Codex's error object.
+    pub(crate) fn settings_notice_error(&self, request_ref: &str) -> Option<String> {
+        let i = self.inner.0.lock().unwrap();
+        let notice = i.level.settings_refusal.as_ref().filter(|n| n.request_ref == request_ref)
+            .or_else(|| i.level.thread_settings_refusal.values().find(|n| n.request_ref == request_ref))?;
+        let first = notice.value["lines"][0].as_str()?;
+        Some(format!("{first} {}", cl::PROJECT_SETTINGS_SEE_TRUST))
     }
 
     // ---- The person's choice ----
@@ -705,9 +757,8 @@ impl Host {
         status["levelDefault"] = chosen_view(i.level.default_chosen.as_ref(), i.default_level, "default", session_only);
         status["levelStartRefusal"] = json!(i.level.start_refusal);
         status["levelSendRefusal"] = json!(i.level.last_refusal);
-        // A refusal noted before the person's latest switch off no longer stands.
-        let offs = i.level.project_trust.as_ref().map_or(0, |projects| projects.offs());
-        let standing = |noted: &(Value, u64)| (noted.1 == offs).then(|| noted.0.clone());
+        // A notice is shown only while its cause stands.
+        let standing = |notice: &SettingsNotice| Self::notice_stands(i, notice).then(|| notice.value.clone());
         status["projectSettingsRefusal"] = json!(i.level.settings_refusal.as_ref().and_then(standing));
         status["levelLaunchRead"] = i.level.launch.clone();
         status["levelRecordMissing"] = if i.level.record_missing { json!(cl::RECORD_MISSING_SENTENCE) } else { Value::Null };
@@ -778,7 +829,13 @@ impl Host {
     pub(super) fn trust_reading(&self, method: &str, params: &Value, generation: Option<&Value>) -> Option<cl::TrustReading> {
         let mut reading = self.trust_reading_settings(method, params, generation)?;
         let projects = self.project_trust.lock().unwrap().clone();
-        if let Some(projects) = &projects { reading.choice = projects.choice_for(&reading.cwd); }
+        if let Some(projects) = &projects {
+            if let (Some(project), Some(read)) = (projects.project_for(&reading.cwd), projects.choice_read_for(&reading.cwd)) {
+                reading.choice = Some(read.choice);
+                reading.choice_revision = Some(read.revision);
+                reading.choice_project = Some(project.physical);
+            }
+        }
         self.inner.0.lock().unwrap().level.project_trust = projects;
         Some(reading)
     }

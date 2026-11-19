@@ -29,7 +29,7 @@ pub(crate) fn prepare(
         (
             controller.preview_statement(preview_token)?,
             controller.preview_setup_statement(preview_token)?,
-            controller.preview_trusted_project(preview_token)?,
+            controller.preview_trust_lines(preview_token)?,
             controller.preview_action(preview_token)?,
         )
     };
@@ -55,19 +55,19 @@ pub(crate) fn prepare(
 /// order: the whole statement where it fits the native statement; otherwise, where the route names a project, the
 /// setup lines whole with the trust line naming the effects text the App shows beside it (DEL-01-01); otherwise the
 /// whole statement in the App, the native statement naming it, and the trust line where a project is named.
-pub(crate) fn statement(effects: &str, setup: &str, project: Option<&std::path::Path>, action: &str) -> Result<ns::NativeStatement, String> {
+pub(crate) fn statement(effects: &str, setup: &str, trust: Option<&str>, action: &str) -> Result<ns::NativeStatement, String> {
     if let Ok(text) = ns::bounded("Desktop setup", effects.to_owned()) {
         return Ok(ns::NativeStatement { text, in_app: None });
     }
-    if let Some(project) = project {
-        let content = crate::project_trust::setup_trust_content(project);
+    if let Some(lines) = trust {
+        let content = crate::project_trust::setup_trust_content(lines);
         let digest = ns::content_digest("Desktop setup", &content)?;
         if let Ok(text) = ns::bounded("Desktop setup", format!("{setup}\n{}", crate::project_trust::setup_trust_pointer(&digest))) {
             return Ok(ns::NativeStatement { text, in_app: Some(ns::InApp { kind: "project trust effects", digest, content }) });
         }
     }
     let content = json!({"effects":effects});
-    let trust = if project.is_some() { format!("\n{}", crate::project_trust::SETUP_TRUST_AMONG_EFFECTS) } else { String::new() };
+    let trust = if trust.is_some() { format!("\n{}", crate::project_trust::SETUP_TRUST_AMONG_EFFECTS) } else { String::new() };
     ns::whole_or_in_app(
         "Desktop setup",
         "desktop setup effects",
@@ -451,10 +451,11 @@ mod tests {
         use crate::project_trust as pt;
         let project = std::env::temp_dir().canonicalize().unwrap().join(crate::util::opaque_id("setup-trust-").unwrap());
         std::fs::create_dir(&project).unwrap();
-        let whole = |setup: &str| format!("{setup}\n{}", pt::setup_trust_lines(&project));
+        let lines = pt::setup_trust_lines(&project);
+        let whole = |setup: &str| format!("{setup}\n{lines}");
         // Whole, where it fits.
         let short = "Save a pending project request only.";
-        let fits = statement(&whole(short), short, Some(&project), "Save project for next launch").unwrap();
+        let fits = statement(&whole(short), short, Some(&lines), "Save project for next launch").unwrap();
         assert!(fits.in_app.is_none());
         assert_eq!(fits.text, format!("{short}\n{}\n{}", pt::WILL_TRUST, pt::EFFECTS_TEXT));
         // The setup lines whole, the effects in the App, named by digest.
@@ -462,15 +463,16 @@ mod tests {
         // (1500 characters); with the pointer line alone it does not.
         let setup = "Create NEW App-owned account directory: /invented/x\n".repeat(20);
         let setup = setup.trim_end();
-        let split = statement(&whole(setup), setup, Some(&project), "Save project for next launch").unwrap();
+        let split = statement(&whole(setup), setup, Some(&lines), "Save project for next launch").unwrap();
         let in_app = split.in_app.as_ref().unwrap();
-        assert_eq!((in_app.kind, in_app.content.clone()), ("project trust effects", pt::setup_trust_content(&project)));
-        assert_eq!(in_app.content["effects"]["text"], pt::EFFECTS_TEXT);
+        // The content the App shows is the plain text the person reads, as frozen at review.
+        assert_eq!((in_app.kind, in_app.content.clone()), ("project trust effects", json!(lines)));
+        assert!(in_app.content.as_str().unwrap().contains(pt::EFFECTS_TEXT));
         assert_eq!(split.text, format!("{setup}\n{}", pt::setup_trust_pointer(&in_app.digest)));
         // Not even the setup lines with the pointer fit: the whole statement in the App, the trust line natively.
         let long = "Create NEW App-owned account directory: /invented/x\n".repeat(26);
         let long = long.trim_end();
-        let all = statement(&whole(long), long, Some(&project), "Save project for next launch").unwrap();
+        let all = statement(&whole(long), long, Some(&lines), "Save project for next launch").unwrap();
         let in_app = all.in_app.as_ref().unwrap();
         assert_eq!((in_app.kind, in_app.content.clone()), ("desktop setup effects", json!({"effects": whole(long)})));
         assert!(all.text.starts_with("Save project for next launch. Complete reviewed effects are shown in the App") && all.text.ends_with(pt::SETUP_TRUST_AMONG_EFFECTS), "{}", all.text);
@@ -503,7 +505,7 @@ mod tests {
             None => assert!(text.contains(crate::project_trust::EFFECTS_TEXT)),
             Some((kind, content)) => {
                 assert_eq!(kind, "project trust effects");
-                assert_eq!(content["effects"]["text"], crate::project_trust::EFFECTS_TEXT);
+                assert_eq!(content, json!(crate::project_trust::setup_trust_lines(&project)));
             }
         }
     }
@@ -524,11 +526,12 @@ mod tests {
         let (setup, pointer) = sheet.split_at(sheet.len() - 1);
         let setup = setup.join("\n");
         let project = std::path::Path::new(&project);
-        let whole = format!("{setup}\n{}", crate::project_trust::setup_trust_lines(project));
-        let shown = statement(&whole, &setup, Some(project), "Create settings and save for next launch").unwrap();
+        let lines = crate::project_trust::setup_trust_lines(project);
+        let whole = format!("{setup}\n{lines}");
+        let shown = statement(&whole, &setup, Some(&lines), "Create settings and save for next launch").unwrap();
         assert_eq!(shown.text, sheet.join("\n"));
         assert_eq!(pointer[0], crate::project_trust::setup_trust_pointer(&shown.in_app.as_ref().unwrap().digest));
-        assert_eq!(shown.in_app.unwrap().content, crate::project_trust::setup_trust_content(project));
+        assert_eq!(shown.in_app.unwrap().content, json!(lines));
     }
     #[test]
     fn retained_project_confirmation_uses_its_exact_action_and_original_parent() {
