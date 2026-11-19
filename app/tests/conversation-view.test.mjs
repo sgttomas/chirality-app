@@ -264,6 +264,43 @@ test('the composer offers Send when no turn runs, and while one runs Update (onl
   });
 });
 
+test('the centre holds the conversation: an empty or new conversation shows one plain line at most; the activity\'s source, its limits and "no activity" are in Conversation tools', async () => {
+  const toolsHost = document.createElement('div'); document.body.appendChild(toolsHost);
+  const transcriptOf = container => container.querySelectorAll(n => (n.getAttribute?.('class') ?? '').startsWith('chat-transcript-content'))[0];
+  const toolsOf = () => toolsHost.querySelectorAll(n => n.getAttribute?.('id') === 'conversation-tools-content')[0];
+  const lines = node => node.querySelectorAll(n => ['p', 'li', 'h3', 'h4', 'summary'].includes(n.localName) && inView(n));
+  const view = {generation: g, home: 'h', typesPin: '0.169.0', supplierStanding: 'unverified-development', limits: ['Invented limit of the activity.'], items: [], turns: [], turnRecords: [], revisions: [], descendants: [], goals: {}, checklistGaps: []};
+  try {
+    // A chosen conversation with nothing observed: nothing of the App's in the centre.
+    await mounted(host({nativeView: view}), async ({container}) => {
+      const centre = transcriptOf(container);
+      assert.ok(centre, 'the transcript is drawn');
+      assert.ok(lines(centre).length <= 1, `at most one line in the centre: ${centre.textContent}`);
+      assert.doesNotMatch(centre.textContent, /No activity observed|Activity source and limits|Invented limit/);
+      const tools = toolsOf();
+      assert.ok(tools && !container.contains(tools), 'the tools are drawn in the right panel');
+      const activity = tools.querySelectorAll(n => n.localName === 'section' && n.getAttribute('aria-label') === 'Activity')[0];
+      assert.ok(activity, 'under its own plain heading');
+      assert.equal(nodes(activity, 'h3')[0].textContent, 'Activity');
+      assert.match(activity.textContent, /No activity observed for this conversation in the current Codex generation\./);
+      const disclosure = nodes(activity, 'details')[0];
+      assert.equal(nodes(disclosure, 'summary')[0].textContent, 'Activity source and limits', 'one action away');
+      assert.match(disclosure.textContent, /This view shows what the App received live in this generation and what it has read from Codex history/);
+      assert.match(disclosure.textContent, /Invented limit of the activity\./, 'the limits are stated');
+      const box = disclosure.querySelectorAll(n => n.textContent.includes('Invented limit') && (n.getAttribute?.('aria-label') ?? '').includes('does not vouch'))[0];
+      assert.ok(box, 'the limits are marked as text the App did not write');
+    }, {toolsHost});
+    // A new conversation: one plain line.
+    const container = document.createElement('div'); document.body.appendChild(container); const root = createRoot(container);
+    try {
+      await React.act(async () => root.render(React.createElement(ConversationPanel, {host: host(), threadKey: '', setThreadKey: () => {}, answer: noop, runAct: noop, send: noop, steer: noop,
+        submitAttachments: noop, interrupt: noop, checkPlanMode: noop, codexBusy: false, startNew: startSettings(), toolsHost})));
+      const centre = transcriptOf(container);
+      assert.equal(lines(centre).length, 1, `one line: ${centre.textContent}`);
+    } finally { await React.act(() => root.unmount()); document.body.removeChild(container); }
+  } finally { document.body.removeChild(toolsHost); }
+});
+
 test('the attach control opens the present attachment selection, which stays mounted while closed', async () => {
   const panel = React.createElement('div', {id: 'workspace-attachments'}, 'Selected text attachments');
   await mounted(host(), async ({container}) => {

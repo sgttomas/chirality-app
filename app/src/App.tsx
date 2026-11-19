@@ -21,7 +21,7 @@ import { EXACT_TEXT } from "./exactText";
 import { ArrivalRecord, CompatibilityAdvisory, HistoryReferenceNotice, RunBringBack, RunPanel, SelectedWorkflow, hasUnsavedHistoryReference, isRecordedRun, runBringBackDefault, type OpenArrivalFileAct } from "./RunPanel";
 import { chatWorkflow, workflowArguments, workflowContext } from "./workflowSelection";
 import { FileActPanel, type FileActPanelHandle } from "./FileActPanel";
-import { NativeActivityView, activityModel, sameActivityGeneration, type NativeActivityHandle } from "./NativeActivity";
+import { ActivitySource, NativeActivityView, activityModel, sameActivityGeneration, type NativeActivityHandle } from "./NativeActivity";
 import { ContinuationContext, historyPageBinding, StoredItemPage, StoredTurnPage, storedStopFor } from "./NativeHistory";
 import { ObserverAttachment } from "./ObserverAttachment";
 import { PlanModeControl } from "./PlanMode";
@@ -716,6 +716,9 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
       continueAs={role => { void roleAct("asking for a handoff summary", "continue_as_begin", { generation: selected.generation, threadId: selected.threadId, role }); }}
       forkUnavailable={host?.homeRouting?.activeModeHomeClass === LOCAL_MODE && !LOCAL_FORK_AVAILABLE ? LOCAL_FORK_UNAVAILABLE : undefined}
       fork={() => { void forkSelected(); }} /></details>}
+    {/* The activity's own account (whether anything is observed, its source and limits): here, one action away, so the
+        centre holds only the conversation. */}
+    {selected && <ActivitySource view={host?.nativeView} threadId={selected.threadId} />}
     {selected && <ContinuationContext key={`prior-work:${JSON.stringify([selected.generation, selected.threadId, selected.resumeRequestRef])}`} host={host} thread={selected} />}
     {handoffs.map((handoff: Json) => <ContinueAsPanel key={handoff.id} handoff={handoff} entries={startEntries(host)} homeClass={host?.homeRouting?.activeModeHomeClass ?? null} generation={host?.generation ?? null} busy={!!busy} ready={host?.state === "ready"} local={localRoute}
       start={(choice, source) => startContinueAs({ ...choice, entrySource: "person", modeHomeClass: source.modeHomeClass, generation: source.generation, role: handoff.targetRole ?? null, preselected: false, continueAs: handoff.id })}

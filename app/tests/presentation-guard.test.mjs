@@ -326,7 +326,7 @@ const where = ({path, key}) => `${path.join('.')}${key === undefined ? '' : ` ke
 // The fixtures. g is a valid generation; T the conversation; every supplied text is distinctive so a positive check
 // can find it.
 const {NativeRequestCard, WaitingRequestsIndicator, requestScopeKey} = loadSrc('RequestCards');
-const {NativeActivityView, RunStartMarker, RunEndMarker, RunLabel, StopLabel} = loadSrc('NativeActivity');
+const {ActivitySource, NativeActivityView, RunStartMarker, RunEndMarker, RunLabel, StopLabel} = loadSrc('NativeActivity');
 const {StoredTurnPage, StoredItemPage, historyPageBinding, ContinuationContext} = loadSrc('NativeHistory');
 const {RunOffer} = loadSrc('RunOffers');
 const {AgentText, AgentProse, PersonText} = loadSrc('AgentText');
@@ -439,8 +439,9 @@ const SURFACES = [
   draw: d => React.createElement(WaitingRequestsIndicator, {overview: d.overview, view: d.view, open: () => {}}), expect: ['thread with spaces', 'coverage-words', 'source-home', 'source-state', 'child-nickname']},
   {name: 'activity', data: {view: ACTIVITY, threadId: 'T', runs: [run, unplacedRun], offers: [finishedOffer, unresolvedOffer], stop, trialTurns: [{threadId: 'T', turnId: 'turn-1', label: 'trial-turn-label'}],
     trialChildren: [{threadId: 'C', label: 'trial-child-label'}], delegation: {reading: 'missing', reason: 'delegation-reason', readAt: 'delegation-read-at'}},
-  draw: d => React.createElement(NativeActivityView, {view: d.view, threadId: d.threadId, runs: d.runs, offers: d.offers, offerControls: {generation: g, ready: true, busy: false, act: noop},
-    stopLabelFor: () => d.stop, trialTurns: d.trialTurns, trialChildren: d.trialChildren, delegation: d.delegation}),
+  // The transcript, and the activity's source and limits as the conversation's tools carry them.
+  draw: d => React.createElement('div', null, React.createElement(NativeActivityView, {view: d.view, threadId: d.threadId, runs: d.runs, offers: d.offers, offerControls: {generation: g, ready: true, busy: false, act: noop},
+    stopLabelFor: () => d.stop, trialTurns: d.trialTurns, trialChildren: d.trialChildren, delegation: d.delegation}), React.createElement(ActivitySource, {view: d.view, threadId: d.threadId})),
   expect: ['run-text-body', 'user-message-words', 'agent-message-words', 'reasoning-preview', 'plan-preview', 'command-words', '/command-folder', 'command-output', 'change-path', 'moved-path', 'diff-words',
     'mcp-server', 'mcp-tool', 'mcp-argument', 'mcp-result-text', 'mcp-resource-text', 'mcp-error', 'dyn-namespace / dyn-tool', 'dyn-text', 'fn-namespace / fn-name', 'fn-output', 'requested-model', 'delegation-prompt',
     'agent-state-message', 'agent-path', 'search-query', 'future-item-kind', 'second-turn-words', 'native-turn-error', 'error-notice-message — error-notice-details', 'checklist-explanation', 'checklist-step', 'earlier-step',

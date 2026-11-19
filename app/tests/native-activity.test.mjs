@@ -10,7 +10,7 @@ import {agentPlain,agentBoxNames} from './support/agent-text.mjs';
 const url=new URL('../src/NativeActivity.tsx',import.meta.url);
 const compiled=ts.transpileModule(readFileSync(url,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}});
 const exports={};new Function('require','exports',compiled.outputText)(localRequire(createRequire(url)),exports);
-const {NativeActivityView,RowBoundary,activityModel,displayStateText,resultNotSupplied}=exports;
+const {ActivitySource,NativeActivityView,RowBoundary,activityModel,displayStateText,resultNotSupplied}=exports;
 
 // Invented rows in the host snapshot shape (native_items.rs), native items per the pinned 0.160.0 ThreadItem.
 const row=(turnId,observedOrder,native,extra={})=>({threadId:'T',turnId,native,displayState:'completed',standing:'live-observed',observationEnded:false,observedOrder,...extra});
@@ -143,10 +143,25 @@ test('the delegation view follows the host’s NPTD §7.1 reading, and arrived d
   assert.doesNotMatch(withReading(empty,undefined),/Delegation availab|Delegation not available|<h4>Descendants/,'no reading: nothing claimed');
 });
 
-test('empty and unselected states stay explicit',()=>{
+const source=(v,threadId='T')=>agentPlain(renderToStaticMarkup(React.createElement(ActivitySource,{view:v,threadId})));
+test('empty and unselected states stay explicit: the empty sentence is said with the activity\'s source, not in the transcript',()=>{
   assert.ok(render(view(),null).includes('Select a conversation'));
-  assert.ok(render({items:[],turns:[],revisions:[],descendants:[],goals:{},checklistGaps:[]},'T').includes('No activity observed'));
-  assert.ok(render(null,'T').includes('No activity observed'));
+  const empty={items:[],turns:[],revisions:[],descendants:[],goals:{},checklistGaps:[]};
+  for(const v of [empty,null]){
+    assert.ok(!render(v,'T').includes('No activity observed'),'the transcript of an empty conversation holds nothing of the App\'s');
+    assert.ok(source(v).includes('<p>No activity observed for this conversation in the current Codex generation.</p>'));
+  }
+  assert.ok(!source(view()).includes('No activity observed'),'said only where nothing is observed');
+});
+
+test('the activity\'s source and limits are stated whole, under a plain heading, with what Codex supplied marked',()=>{
+  const html=source(view());
+  assert.match(html,/^<section class="v4-activity-source" aria-label="Activity"><h3>Activity<\/h3><details class="v4-transcript-source"><summary>Activity source and limits<\/summary>/);
+  assert.ok(html.includes('This view shows what the App received live in this generation and what it has read from Codex history; earlier generations&#x27; observations remain under the native JSON in Host diagnostics.'));
+  assert.ok(html.includes('Codex types <code>0.160.0</code> · supplier standing ⟦Standing: unverified-development⟧.'));
+  assert.match(html,/⟦Limits:[^⟧]*Tool success is not checking, acceptance or reliance\.[^⟧]*Parent completion says nothing about children\.[^⟧]*⟧/,'the limits, whole and marked as text the App did not write');
+  assert.ok(source({...view(),typesPin:null,supplierStanding:null,limits:[]}).includes('Codex types not reported · supplier standing not established.'));
+  assert.ok(!renderRaw().includes('Activity source and limits'),'not in the transcript');
 });
 
 test('an unfinished message, reasoning or compaction never reads as finished',()=>{
@@ -192,8 +207,8 @@ test('a plan read from Codex history shows no revision number',()=>{
   const v=view();v.revisions[0].standing='recovered-from-supplier';v.items=v.items.map(r=>r.native.id==='turn-2-plan'?{...r,standing:'recovered-from-supplier'}:r);
   const html=render(v);
   assert.match(html,/Plan<\/b><div>.*· read from Codex history/);assert.ok(!html.includes('in this conversation'));
-  // The view's own account of its sources (Activity source and limits) names Codex history too; the row's label is once.
-  assert.equal(html.replace(/<details class="v4-transcript-source">[\s\S]*?<\/details>/,'').match(/read from Codex history/g).length,1,'the history label appears once');
+  // The view's own account of its sources (Activity source and limits) is in the conversation's tools; the row's label is once.
+  assert.equal(html.match(/read from Codex history/g).length,1,'the history label appears once');
   v.items=v.items.map(r=>r.native.id==='turn-2-plan'?{...r,standing:'live-observed'}:r);
   assert.match(render(v),/Plan<\/b> · revision read from Codex history/,'a recovered revision on a live row still says so');
   v.revisions[0].standing='something-else';assert.match(render(v),/Plan<\/b><div>/,'an unrecognised standing shows no ordinal');
@@ -232,7 +247,7 @@ test('off-schema collections and nested values render as text instead of throwin
   assert.ok(html.includes('[⟦Codex sent: {&quot;st&quot;:2}⟧] ⟦Step: {&quot;s&quot;:1}⟧'));
   assert.ok(html.includes('C · last observed Codex status ⟦Codex sent: {&quot;deep&quot;:&quot;status&quot;}⟧'));
   assert.ok(html.includes('D · last observed Codex status running'));assert.ok(html.includes('E · last observed Codex status not reported'));
-  assert.ok(render({items:{},turns:'x',turnRecords:5,revisions:{},descendants:'d',checklistGaps:{}},'T').includes('No activity observed'));
+  assert.ok(source({items:{},turns:'x',turnRecords:5,revisions:{},descendants:'d',checklistGaps:{}}).includes('No activity observed'));
   const latest=view();latest.revisions=[{kind:'checklist',revisionId:'l',threadId:'T',turnId:'turn-1',ordinal:1,content:{explanation:{e:1},steps:'not an array'}}];
   const latestHtml=render(latest);assert.ok(latestHtml.includes('revision 1 of 1'));assert.ok(latestHtml.includes('<ol></ol>'));assert.ok(latestHtml.includes('{&quot;e&quot;:1}'));
   for(const odd of ['__proto__','toString',{x:1}]) assert.equal(typeof displayStateText({displayState:odd}),'string');

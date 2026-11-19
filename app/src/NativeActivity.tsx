@@ -639,6 +639,18 @@ function TurnEnd({ turn, observationEnded, stop, live }: { turn: ActivityTurn; o
   </>;
 }
 
+/** The activity's own account of itself, which the conversation's tools carry so the centre holds only the
+ * conversation: that nothing is observed for the conversation, where nothing is, and where the activity is read from
+ * and its limits. */
+export function ActivitySource({ view, threadId }: { view: Json; threadId: string }) {
+  const empty = activityModel(view, threadId).turns.length === 0;
+  return <section className="v4-activity-source" aria-label="Activity">
+    <h3>Activity</h3>
+    {empty && <p>No activity observed for this conversation in the current Codex generation.</p>}
+    <details className="v4-transcript-source"><summary>Activity source and limits</summary><p>This view shows what the App received live in this generation and what it has read from Codex history; earlier generations' observations remain under the native JSON in Host diagnostics.</p><p>Codex types {view?.typesPin ? <SuppliedId value={view.typesPin} label="Types:" name="The pinned Codex types, as recorded; the App does not vouch for its words" /> : "not reported"} · supplier standing {view?.supplierStanding === undefined || view?.supplierStanding === null ? "not established" : <AgentText value={text(view.supplierStanding)} source="codex" label="Standing:" name="The supplier's standing, as recorded; the App does not vouch for its words" />}.</p>{list(view?.limits).length > 0 && <AgentText block value={list(view?.limits).map(text).join("\n")} source="codex" label="Limits:" name="The activity view's limits, as recorded; the App does not vouch for its words" />}</details>
+  </section>;
+}
+
 export function NativeActivityView({ view, threadId, offers, offerControls, runs, stopLabelFor, trialTurns, trialChildren, delegation, navigationRef, appRole, waiting = false, waitingTurns = [] }: { view: Json; threadId: string | null | undefined; offers?: Json[]; offerControls?: OfferControls; runs?: Json[]; stopLabelFor?: (threadId: string, turnId: string) => Json | null; trialTurns?: Json[]; trialChildren?: Json[]; delegation?: Json; navigationRef?: Ref<NativeActivityHandle>;
   /** The conversation's role as the App bound it (the host's thread row `appRole`), for its agent's label. */
   appRole?: Json;
@@ -719,7 +731,6 @@ export function NativeActivityView({ view, threadId, offers, offerControls, runs
     {model.checklistGaps.map((gap, i) => <p key={i}>Checklist for turn <SuppliedId value={gap.turnId} label="Turn:" name="Turn identity as Codex reported it, not the App's words" />: <AgentText value={text(gap.reason)} source="codex" label="Reason:" name="Why the checklist is missing, as recorded; the App does not vouch for its words" /></p>)}
     {unplaced.length > 0 && <div><small>Workflow runs in this conversation whose position this view cannot show:</small>
       {unplaced.map((run: Json) => <div key={text(run.reference)}>{!shownTurns.has(run.turn) && <RunStartMarker run={run} />}{run.lifecycle?.end && !shownTurns.has(run.endedAfterTurn) && <RunEndMarker run={run} />}</div>)}</div>}
-    {model.turns.length === 0 && <p className="panel-empty">No activity observed for this conversation in the current Codex generation.</p>}
     {model.turns.map((turn, index) => {
       const live = turnLive(turn, observationEnded);
       const { segments, folded, atTurn, messages } = turnSegments(turn.items);
@@ -759,6 +770,5 @@ export function NativeActivityView({ view, threadId, offers, offerControls, runs
     })}
     <DelegationLine delegation={target === threadId ? delegation : null} descendants={model.children.length} />
     {model.children.length > 0 && <section className="v4-descendants" aria-label="Descendants"><h4>Descendants</h4><p>A completed turn here says nothing about these descendants.</p><ul>{model.children.map((c: Json, i: number) => <li key={text(c?.threadId) || `child-${i}`}><RowBoundary value={c} label="descendant"><Child child={c} trialLabel={childLabel(c?.threadId)} /></RowBoundary></li>)}</ul></section>}
-    <details className="v4-transcript-source"><summary>Activity source and limits</summary><p>This view shows what the App received live in this generation and what it has read from Codex history; earlier generations' observations remain under the native JSON in Host diagnostics.</p><p>Codex types {view?.typesPin ? <SuppliedId value={view.typesPin} label="Types:" name="The pinned Codex types, as recorded; the App does not vouch for its words" /> : "not reported"} · supplier standing {view?.supplierStanding === undefined || view?.supplierStanding === null ? "not established" : <AgentText value={text(view.supplierStanding)} source="codex" label="Standing:" name="The supplier's standing, as recorded; the App does not vouch for its words" />}.</p>{list(view?.limits).length > 0 && <AgentText block value={list(view?.limits).map(text).join("\n")} source="codex" label="Limits:" name="The activity view's limits, as recorded; the App does not vouch for its words" />}</details>
   </div>;
 }
