@@ -23,14 +23,14 @@ SOW-207 is the arrangement, SOW-208 the account of use and SOW-209 the dispositi
 
 Terms:
 
-- **Validation in use.** A practitioner doing realistic work to judge fitness for use. Agent-operated scenarios, automated checks and fixture runs are verification and never establish it. Real use by the owner on invented material is validation.
+- **Validation in use.** A practitioner doing realistic work to judge fitness for use. Agent-operated scenarios, automated checks and fixture runs are verification and never establish it. Real use by the owner on invented material counts as validation when it is part of the agreed practitioner validation described in this scope.
 - **What to notice.** Four design aims, none of them a score: whether the results warranted confidence for the attention they took (the owner's measure); where the person had to work around the product; where agent and person could not see the same thing; and where a record was needed and missing, or kept and never read.
 - **Disposition.** For one observation: a proposed revision, a scoped departure, or no change, with who decided and in what scope. A proposal stays a proposal until its decision and adoption are evidenced.
 
 Boundary:
 
 - **CLM-001** — The owner is the practitioner and decides the period and the activities; the coordinator routes observations to their owners.
-- **CLM-002** — Agents do development testing. The owner's product testing begins after readiness has been recommended to the owner, and a control operated by an agent establishes no act of the owner.
+- **CLM-002** — Agents do development testing. The owner's criterion 13 evaluation begins after Agent 0 recommends the candidate ready. A control operated by an agent establishes no act of the owner.
 - **CLM-003** — `DEL-10-02` receives method feedback and `DEL-10-01` carries the adopted method and edition, with the owner deciding consequential adoption or departure. Feature owners keep changes to their requirements and their focused checks. `DEL-09-01` owns the examination support. Routing an observation performs none of those later acts.
 - **CLM-004** — SWBPIPE's own project builds the host and its surface for offering, recording and presenting human acts; coordination with it is relayed by the human. `DEL-04-01` carries the operation policy: for the first increment five acts are reserved to a person, with operation-specific additions undecided (owner, with the affected App and host design owners), and routine tool permission is the person's own Codex setting and never stands for one of them.
 - **CLM-005** — The owner decides replacement and publication on their own evidence, which `DEL-11-03` assembles; `DEL-11-01` carries preservation and continuing obligations. Replacement retires no other project and establishes no professional reliance.

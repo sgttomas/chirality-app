@@ -117,7 +117,8 @@ v4 has replaced it.
 **Testing.** The owner's words direct it: "I expect you to do thorough user
 testing via computer use and only when that's worked out the bugs and you
 think you're ready for publishing would i then use the app for testing." This
-is direction, not evidence that any criterion is met. Agents do the
+directs agent testing and sets the sequence for the owner's criterion 13
+evaluation. Each criterion requires its stated evidence. Agents do the
 development testing. The journeys and examinations of criteria 1 to 6 and 15
 are carried out by agent-operated journey examination: an agent operates the
 built App's shipped controls through the computer-use ability native to its
@@ -143,10 +144,12 @@ the actors their own texts state. Criterion 8's witness on the installed,
 signed candidate needs the person's protection act and the person's
 confirmation of a lowered policy (DEL-01-04 AC-009), which the owner performs
 as bounded acts, like sign-in, apart from and before the evaluation of
-criterion 13. The first human evaluation of the product is the owner's own use
-of the candidate, which begins once Agent 0 has recommended that it is ready
-(criterion 13); the owner's bounded acts before it (sign-in and the keychain
-acts) are not that evaluation. Agents' testing and the owner's own use
+criterion 13. The owner may use a development build at any time, including
+before agents' testing is complete (owner, 19 November 2026). That use meets
+no exit criterion, including criterion 13. The evaluation that criterion 13 counts is
+the owner's own use of the candidate once Agent 0 has recommended that it is
+ready; the owner's bounded acts before it (sign-in and the keychain acts) are
+not that evaluation. Agents' testing and the owner's own use
 are different things: agents' testing verifies behaviour, and only the owner's
 own use judges whether the product is fit for real work (DEL-09-12). A control
 operated by an agent establishes no act of the owner.
@@ -462,9 +465,9 @@ the owner decide on what was actually observed.
     ready, the owner uses it and answers yes or no before it is published.
     What the owner uses it for, and for how long, is the owner's to choose at
     the time. With the recommendation, Agent 0 tells the owner which criteria
-    were examined by agents and that no person has yet carried out the
-    journeys or performed the acts the human-positive cases named under
-    Testing need, which read as not examined. Agent 0 gives every observation the owner makes a disposition;
+    agents examined, whether a person has carried out any journey in a counted
+    examination, and which human-positive cases named under Testing remain not
+    examined. Agent 0 gives every observation the owner makes a disposition;
     that is Agent 0's responsibility and not a question returned to the owner.
     The criterion is met on yes. A yes meets this criterion only: any other
     criterion that is unmet stays unmet.
