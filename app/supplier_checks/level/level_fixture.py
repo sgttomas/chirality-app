@@ -10,7 +10,7 @@ behaving so.
   the turns are keyed on content, never on request order. It keeps in memory, for the test only,
   the tool names offered and the output Codex returned for each scripted call. It writes nothing
   to disk and never logs a body or a header value.
-- `Run`: one fresh root (home, user home, project, outside, tmpdir) under a scratch folder, removed
+- `Run`: one fresh root (home, user home, project, outside, tmpdir, and where asked a second project) under a scratch folder, removed
   afterwards; with `working_files`, the home and TMPDIR are laid out as the App lays them out. Codex is started with an environment built here and nothing inherited: PATH, HOME,
   TZ, CODEX_HOME, TMPDIR, LANG and the examination launcher's proxy overrides. The App's
   account-home flags point the built-in provider at the stub.
@@ -67,6 +67,8 @@ NET_PROBE = ('$SIG{ALRM} = sub { print "timed out\\n"; exit 4 }; alarm 3; '
              'Proto => "tcp", Timeout => 3); if ($s) { print $s "GET /level-net-probe HTTP/1.0\\r\\n\\r\\n"; '
              '<$s>; print "connected\\n"; exit 0 } print "connect failed: $!\\n"; exit 3')
 APP_TOOL = 'level_invented_records_read'
+# The relative write's file name: it lands in the folder the command runs in.
+RELATIVE_NAME = 'w-relative'
 
 
 class Refused(Exception):
@@ -241,6 +243,7 @@ class ScriptedStub:
         self.allowed_commands = None  # set by Run: the only commands a shell call may carry
         self.violations = []  # shell calls a script tried to issue with a command off that list
         self.unexpected = []
+        self.watched = ()  # set by a test: invented marker lines whose presence in each request is noted
         stub = self
 
         class Handler(BaseHTTPRequestHandler):
@@ -317,9 +320,11 @@ class ScriptedStub:
         key = None
         if 'LEVEL[' in text:
             key = text.split('LEVEL[', 1)[1].split(']', 1)[0]
+        # Which invented markers the request carries anywhere in its body: the markers alone, never the body.
+        raw = json.dumps(body) if self.watched else ''
         with self.lock:
             self.requests.append({'key': key, 'tools': tool_names(body), 'body_tools': body.get('tools'),
-                                  'body_keys': sorted(body)})
+                                  'body_keys': sorted(body), 'markers': [m for m in self.watched if m in raw]})
             self.outputs.update(outputs)
         script = self.scripts.get(key)
         if script is None:
@@ -637,16 +642,47 @@ class RecordingRefusal:
         self.server.server_close()
 
 
+# Names the run's own layout uses in its root (the plain one and the App's, `working_files`), and `.git`, which
+# beside the project would be a repository marker above it.
+RUN_FOLDERS = ('home', 'userhome', 'outside', 'tmpdir', 'Invented App Data', 'Invented App Data Working Files',
+               '.git')
+# The relative write's exit when the folder it finds itself in is neither project: nothing is written.
+RELATIVE_ELSEWHERE = 97
+
+
 class Run:
-    """A fresh root and one stub. Use as a context manager; the root is removed on exit."""
+    """A fresh root and one stub. Use as a context manager; the root is removed on exit.
+
+    With `second_project` (a folder name), a second project folder B is made beside the project A, in the run's
+    root, with the same care: its name checked, 0700, and with `second_git_marker` a `.git` folder inside it. The
+    app server is still started in A. `instructions` writes an invented `AGENTS.md` into each of A and B, each
+    with its own marker line (`markers`); `project_settings` writes an invented `.codex/config.toml` into each,
+    naming a writable root of its own under `outside` (`settings_roots`)."""
 
     def __init__(self, scratch, binary, slash_tmp=False, git_marker=False, project_name='project',
-                 working_files=False, var_tmp=False, proxy=None):
+                 working_files=False, var_tmp=False, proxy=None, second_project=None, second_git_marker=False,
+                 instructions=False, project_settings=False):
         self.binary = binary
         self.proxy = proxy  # a RecordingRefusal in place of the closed port, or None for the closed port
         if '/' in project_name or project_name in ('', '.', '..'):
             raise Refused('a project folder name, not a path')
         self.project_name = project_name  # only this folder's name may carry characters the scratch base may not
+        if second_project is not None:
+            if '/' in second_project or second_project in ('', '.', '..'):
+                raise Refused('a second project folder name, not a path')
+            if second_project == project_name or second_project in RUN_FOLDERS or second_project.startswith('codex-stderr-'):
+                raise Refused('the second project folder needs a name of its own')
+            if any(c in second_project for c in UNSAFE_PATH_CHARACTERS):
+                raise Refused('only the first project folder name may carry %r' % UNSAFE_PATH_CHARACTERS)
+        elif second_git_marker or instructions or project_settings:
+            raise Refused('a second project folder is needed for its marker, instructions or settings')
+        self.second_project = second_project
+        self.second_git_marker = second_git_marker
+        self.instructions = instructions
+        self.project_settings = project_settings
+        tag = secrets.token_hex(4)  # distinct per run, so a marker seen cannot be left from another run
+        self.markers = {'a': 'INVENTED-INSTRUCTION-MARKER-A-' + tag,
+                        'b': 'INVENTED-INSTRUCTION-MARKER-B-' + tag} if instructions else {}
         self.name = 'level-' + secrets.token_hex(6)
         self.root = checked_scratch(scratch) / self.name
         self.slash_tmp = SLASH_TMP / ('chirality-level-' + self.name) if slash_tmp else None
@@ -687,12 +723,17 @@ class Run:
         try:
             for child in ('userhome', self.project_name, 'outside'):
                 os.mkdir(self.root / child, 0o700)
+            if self.second_project is not None:
+                os.mkdir(self.project_b, 0o700)
             for folder in (self.home, self.tmpdir):
                 os.makedirs(folder, 0o700)
             if self.working_files:
                 (self.home / 'config.toml').write_bytes(b'')  # new, empty settings
             if self.git_marker:
                 os.mkdir(self.project / '.git', 0o700)
+            if self.second_git_marker:
+                os.mkdir(self.project_b / '.git', 0o700)
+            self.write_project_files()
             if self.slash_tmp is not None:
                 os.mkdir(self.slash_tmp, 0o700)  # fails if it appeared since the check
                 self.made_slash_tmp = True
@@ -763,6 +804,35 @@ class Run:
     def project(self):
         return self.root / self.project_name
 
+    @property
+    def project_b(self):
+        """The second project folder B, or None."""
+        return self.root / self.second_project if self.second_project is not None else None
+
+    def settings_roots(self):
+        """With `project_settings`: the writable root each project's own settings name, {'a': ..., 'b': ...}."""
+        if not self.project_settings:
+            return {}
+        return {'a': self.root / 'outside' / 'root-a', 'b': self.root / 'outside' / 'root-b'}
+
+    def write_project_files(self):
+        """The invented instruction and settings files of A and B, as the run's options ask."""
+        folders = {'a': self.project, 'b': self.project_b}
+        if self.instructions:
+            for side, folder in folders.items():
+                (folder / 'AGENTS.md').write_text('# Invented instructions for a fixture\n\n%s\n' % self.markers[side])
+        for side, root in self.settings_roots().items():
+            os.mkdir(root, 0o700)
+            os.mkdir(folders[side] / '.codex', 0o700)
+            (folders[side] / '.codex' / 'config.toml').write_text(
+                '[sandbox_workspace_write]\nwritable_roots = [%s]\n' % toml_string(root))
+
+    def relative_landings(self):
+        """Where the relative write (`commands()['relative']`) lands if it runs in A or in B."""
+        if self.second_project is None:
+            return {}
+        return {'a': self.project / RELATIVE_NAME, 'b': self.project_b / RELATIVE_NAME}
+
     def environment(self, extra=None):
         package = Path(self.binary).resolve().parent.parent
         env = {'PATH': str(package / 'codex-path') + ':' + SYSTEM_PATH, 'HOME': str(self.root / 'userhome'),
@@ -791,6 +861,10 @@ class Run:
             out['slashtmp'] = self.slash_tmp / 'w-slashtmp'
         if self.var_tmp is not None:
             out['vartmp'] = self.var_tmp / 'w-vartmp'
+        if self.second_project is not None:
+            out['in-b'] = self.project_b / 'w-in-b'
+        for side, root in self.settings_roots().items():
+            out['root-' + side] = root / ('w-root-' + side)
         return out
 
     def commands(self):
@@ -802,6 +876,14 @@ class Run:
         cmds['late'] = 'sleep 4; printf ok > %s' % shlex.quote(str(p['late']))
         cmds['read'] = '/bin/ls %s' % shlex.quote(str(self.project))
         cmds['net'] = '/usr/bin/perl -e %s %d' % (shlex.quote(NET_PROBE), self.stub.port)
+        if self.second_project is not None:
+            # Run in whatever folder the command is given: the folder it prints, and the file it writes there.
+            # The relative write checks, in the same shell call, that the folder it is in is one of the two
+            # projects, and writes nothing anywhere else: a command given some other folder exits 97.
+            cmds['pwd'] = '/bin/pwd -P'
+            cmds['relative'] = 'case "$(/bin/pwd -P)" in %s|%s) printf ok > %s;; *) exit %d;; esac' % (
+                shlex.quote(os.path.realpath(self.project)), shlex.quote(os.path.realpath(self.project_b)),
+                RELATIVE_NAME, RELATIVE_ELSEWHERE)
         if self.working_files:
             cmds.update({key: command for key, (command, _) in self.entry_operations().items()})
         return cmds

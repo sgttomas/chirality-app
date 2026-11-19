@@ -67,9 +67,9 @@ every possible false pass is excluded.
 
 ## Files
 
-- `level_fixture.py`: the stub, a fresh root per run, the App side of the
-  JSON-RPC exchange, and `judge`. Every approval request the fixture receives
-  is declined.
+- `level_fixture.py`: the stub, a fresh root per run (with, where a test asks,
+  a second project folder), the App side of the JSON-RPC exchange, and
+  `judge`. Every approval request the fixture receives is declined.
 - `test_level_live.py`: one fact per test.
   - It needs `CHIRALITY_CODEX_BIN` set to the pinned binary, whose digest is
     checked before every start, and is skipped otherwise.
@@ -97,7 +97,12 @@ app-server`), with an environment built whole:
 
 The stub answers the WebSocket upgrade with 426, so Codex uses HTTP at once.
 The project has no `.git` above it, as the launcher requires; some cases put a
-`.git` folder inside the project. The cases that write to `/tmp` use a folder
+`.git` folder inside the project. The app server is always started in the
+project, A. The folder-per-conversation rows add a second project, B, beside
+A in the run's root (`Run(second_project=...)`), made with the same care, and,
+as each row says, an invented `AGENTS.md` with a marker line of its own or an
+invented `.codex/config.toml` naming a writable root of its own under
+`outside`, in each of A and B. The cases that write to `/tmp` use a folder
 `/private/tmp/chirality-level-<run>/` that the run refuses to start if it
 exists, makes itself, and removes afterwards; the case that writes to
 `/private/var/tmp` uses `/private/var/tmp/chirality-level-<run>/` on the same
@@ -185,6 +190,30 @@ control.
 | **A child's question.** With the feature, a child spawned by `spawn_agent` that calls `request_user_input` is answered "request_user_input can only be used by the root thread"; nothing reaches the client on the child's thread. | The parent's own question reaches the client. | `QuestionInAnOrdinaryConversation.test_a_childs_question_is_refused_and_reaches_no_one` |
 | **What a catalogue model is told.** For a model with an entry in Codex's bundled catalogue (`gpt-6.1-sol`), the request to the provider carries no `tools`. With the feature, the request holds the tool's description "This tool is only available in Default or Plan mode" and the catalogue's own Default-mode words: to use the tool "only for optional questions where the answer would materially improve" the work and, with no answers, to "continue with best judgment instead of asking again". A call is raised and answered. Not shown: what any model does with those words. | Without the feature, the request does not hold that description and the call is refused. | `QuestionInAnOrdinaryConversation.test_what_a_catalogue_model_is_told_about_the_tool_with_and_without_the_feature` |
 | **The question that does not wait.** With no feature set and no collaboration mode sent, on a model whose catalogue entry lists it (`gpt-6.1-sol`), a `request_user_input_async` call is answered `{"accepted":true}` at once and raises no request. The turn completes with no answer from anyone. The question arrives as an `agentMessage` item whose id is the call's, with `delivery` `async` and `questions` as given (a title and option strings). After the server is ended and the conversation resumed, `thread/read` with its turns still holds that item and its questions. Not shown: how a reply is tied to the question; the source says it arrives as an ordinary next message. | On the fixture's invented model, which has no catalogue entry, the same call is answered as unsupported and no such item arrives. | `QuestionThatDoesNotWait.test_the_question_arrives_as_an_agent_message_item_and_the_turn_does_not_wait`, `QuestionThatDoesNotWait.test_on_a_model_the_catalogue_does_not_list_it_for_the_same_call_is_unsupported` |
+
+### One app server, a folder per conversation
+
+What the pinned Codex does with a conversation given its own folder, B, by an
+app server started in another, A. Unless its row says otherwise, each start
+and resume carries the fields the App sends at the edits level: the folder,
+the level's approval, reviewer, mode name and workspace options, and one trust
+entry for the folder's root, `untrusted`, as the App sends it for a folder the
+person's settings do not mark; each turn sends the edits level and no folder.
+The fixture supplies the rest as the other rows do (an invented model, the
+built-in provider, no guidance and no App tool), and gives the trust entry
+directly where the App first reads the settings to choose it. Where a test
+fails, its message names the folder observed.
+
+| Fact | Control | Test |
+| --- | --- | --- |
+| **Reported and listed.** The start reply's `cwd` and its thread's `cwd` are B. In `thread/list` (`sortDirection` `desc`, as the App sends it), the conversation's row reports B. With the `cwd` filter set to B, the list holds that conversation and not one started in A; set to A, the reverse. | A conversation started in A on the same server, reported and listed under A. | `FolderPerConversation.test_a_thread_started_in_b_reports_b_and_is_listed_under_b_alone` |
+| **Where a command runs.** `/bin/pwd -P` prints B. A write to a relative name succeeds and its file lands in B, not in A. A conversation in A is open on the same server and the two take turns (B, A, B, A, B): each runs and writes in its own folder every time. The relative write checks the folder it is in within the same shell call and writes only in A or in B. | The conversation in A, run between B's turns, prints A and lands in A. | `FolderPerConversation.test_a_command_in_a_thread_started_in_b_runs_in_b` |
+| **The sandbox's project.** At edits, the write in B succeeds; the write in A, the server's own folder, runs and is refused by the sandbox, as is the write outside. | On the same thread at full access, the write in A succeeds. | `FolderPerConversation.test_at_the_edits_level_the_sandbox_takes_b_as_the_project_and_refuses_a` |
+| **The project's instructions.** With a `trusted` entry for B, the start reply's `instructionSources` names B's `AGENTS.md` and not A's, and the requests the stub receives for that conversation's turn carry B's marker line and not A's. With the `untrusted` entry, no instruction file is named and no marker is carried. The markers are looked for in the requests carrying that turn's key. B's untrusted start comes before its trusted one and A's after. | A conversation started in A: with a `trusted` entry it names A's file and carries A's marker alone; with the `untrusted` entry, none. | `FolderPerConversation.test_a_thread_started_in_b_loads_bs_instructions_and_not_as` |
+| **The project's own settings.** The setting is `sandbox_workspace_write.writable_roots` in a project's `.codex/config.toml`, chosen because the rows above show it in the start reply's `sandbox.writableRoots` and in effect, and show that a turn's `writableRoots: []` does not remove it. A's names `outside/root-a`, B's `outside/root-b`, and the home's own settings mark A trusted. The start departs from what the App sends in one field: it sends no `config.sandbox_workspace_write` (the next row sends it). With B's entry `trusted`, the reply lists root-b and not root-a, the write in root-b succeeds and the write in root-a is refused by the sandbox. With B's entry `untrusted`, neither of the two is listed and both writes are refused. | A conversation started in A with its entry `trusted` lists root-a; the write in B succeeds in each case. | `FolderPerConversation.test_a_thread_started_in_b_loads_bs_own_settings_and_only_when_b_is_trusted` |
+| **The App's own start against a trusted project's writable root.** The App's start at edits, whole, with its `config.sandbox_workspace_write` (`writable_roots = []`) beside a `trusted` entry for B, whose own settings name root-b. The reply lists neither of the two roots and the write in root-b is refused by the sandbox; the write in B succeeds. | The row above: the same trusted start without that one field lists root-b, and the write there succeeds. | `FolderPerConversation.test_with_the_apps_own_start_a_trusted_projects_writable_root_is_not_added` |
+| **The trust mark written.** As the trust-mark rows: at full access, in the App's layout with the home's new, empty settings, with A and B both git projects. A start in B with no trust entry writes `[projects."<B>"] trust_level = "trusted"` into the home's `config.toml`, and nothing for A. With one entry for B, `untrusted`, as the App sends it, nothing is written. As in the trust-mark rows, the file is read once, two seconds after the start. | Each start is the other's control. | `FolderPerConversation.test_a_start_in_b_marks_b_in_the_settings_unless_an_entry_for_b_is_sent` |
+| **Continued in B after a restart.** A conversation started in B and saved; the server stopped; a second server started, again in A; the conversation resumed as the App's Continue resumes it: the thread, `excludeTurns`, B as its folder, the level and the one entry. The reply is for that thread and its `cwd` and its thread's `cwd` are B; `/bin/pwd -P` prints B; the relative write lands in B; the write in B succeeds; the write in A runs and is refused by the sandbox. The folder sent is the folder saved, as it always is from the App: the row shows the conversation continuing in B, not which of the two Codex took it from. | The write in B, against the write in A. | `FolderPerConversation.test_resumed_with_b_in_a_new_server_started_in_a_the_thread_is_governed_by_b` |
 
 One further observation about the supplier is held out of this folder pending
 the owner's decision.
