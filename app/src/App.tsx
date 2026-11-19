@@ -6,7 +6,7 @@ import { LOCAL_ENTRY, LOCAL_FORK_AVAILABLE, LOCAL_FORK_UNAVAILABLE, LOCAL_MODE, 
 import { NativeWaitingBridge } from "./NativeWaitingBridge";
 import { ConnectorSourcePanel } from "./ConnectorSourcePanel";
 import { FleetRecordsPanel, readFleetPacket, type FleetPacket } from "./FleetRecordsPanel";
-import { WaitingOnYou, WAITING_SOURCE_POLL_MS, decisionPackageAnchor, reopenedDispositionsUnestablished, waitingReadings, type WaitingEntry } from "./WaitingOnYou";
+import { WaitingOnYou, WAITING_SOURCE_POLL_MS, decisionPackageAnchor, reopenedDispositionsUnestablished, waitingReadings, type WaitingEntry, type WaitingTarget } from "./WaitingOnYou";
 import { RecordsStorePanel } from "./RecordsStorePanel";
 import { ConnectorRoutePanel, emptyRouteRead, routeReadTransition, type RouteReadState, type RouteView } from "./ConnectorRoutePanel";
 // The interface reads host snapshots and asks the host to act. It holds no pipe
@@ -2841,9 +2841,32 @@ export function App() {
     fleet: waitingFleet?.packet ?? null, fleetReadAt: waitingFleet?.at ?? null, fleetFailure: fleetAutoFailure?.message ?? null, fleetFailedAt: fleetAutoFailure?.at ?? null,
     decisions: waitingDecisions?.view ?? null, decisionsReadAt: waitingDecisions?.at ?? null, decisionsFailure: decisionsFailure?.message ?? null, decisionsFailedAt: decisionsFailure?.at ?? null,
   });
+  // The agent's question that does not wait: its conversation is opened as a conversation is chosen, and the activity
+  // view's own navigation (the one a request card's link uses) reveals its item, where its card is. Only within the home
+  // in use and the Codex generation it was read from; otherwise nothing is moved and the reason is said.
+  const goToAsked = (target: Extract<WaitingTarget, { kind: "asked-question" }>) => {
+    const same = (a: Json, b: Json) => JSON.stringify(a) === JSON.stringify(b);
+    const snapshot = currentHost.current;
+    const root = (snapshot?.threads ?? []).find((t: Json) => t.threadId === target.rootThreadId && same(t.generation, target.generation));
+    if (homePendingRef.current || !root || !same(snapshot?.generation, target.generation) || (snapshot?.homeRouting?.activeModeHomeClass ?? null) !== target.home) {
+      setMessage("Go to it: that conversation is no longer current in the home in use; the list shows what the next read finds."); return;
+    }
+    flushSync(() => setThreadKey(JSON.stringify([root.generation, root.threadId])));
+    revealWorkspaceTarget("conversation", true);
+    const generation = { appSession: target.generation.appSession, home: target.generation.home, spawnCounter: target.generation.spawnCounter };
+    const location = { generation, rootThreadId: root.threadId, threadId: target.threadId, turnId: target.turnId, itemId: target.itemId };
+    const isCurrent = () => {
+      const shown = currentHost.current;
+      return !homePendingRef.current && same(shown?.generation, target.generation) && (shown?.homeRouting?.activeModeHomeClass ?? null) === target.home
+        && (shown?.threads ?? []).some((t: Json) => t.threadId === root.threadId && same(t.generation, target.generation))
+        && (shown?.nativeView?.items ?? []).some((row: Json) => row?.threadId === target.threadId && row?.turnId === target.turnId && row?.native?.id === target.itemId);
+    };
+    activityNavigationRef.current?.reveal({ location, isCurrent });
+  };
   const goToWaiting = (entry: WaitingEntry) => {
     const target = entry.target;
     if (target.kind === "request") { void openRequests(target.group, target.anchor); return; }
+    if (target.kind === "asked-question") { goToAsked(target); return; }
     // A run's record is in the workflow studio, a return in Records and Fleet, a package in
     // Connectors and examination: revealing the target shows its view and opens its disclosure.
     revealWorkspaceTarget(document.getElementById?.(target.anchor) ? target.anchor : target.kind === "run" ? "workflow-studio" : target.kind === "return" ? "workspace-records" : "workspace-evidence", true);

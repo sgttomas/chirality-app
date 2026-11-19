@@ -41,7 +41,8 @@ const runRecords = (disposition = 'waiting') => [
 const declaration = {reading:'recognized', categories:{checkpoints:'recognized'}, elements:{checkpoints:[{reading:'recognized', value:{name:'CP-review', required_act:'A4', actor:'the_person', subject:{class:'named_output'}, reached_when:{kind:'output_produced', output:'report'}}}]}};
 const run = (disposition, over = {}) => ({reference:'run-1', conversation:'T1', home:'account', generation:g, source:'sent', workflow:{name:'invented-flow', origin:'project', revision:'r'},
   lifecycle:{state:"open (live); only the person's explicit end ends it", records:runRecords(disposition)}, compatibility:[{preparation:{declaration}}], status:{}, ...over});
-const view = {home:'account', generation:g, items:[], turns:[], turnRecords:[], revisions:[], descendants:[
+// The native view has read both conversations since its Codex started, and no question the agent asked and went on from is listed.
+const view = {home:'account', generation:g, items:[], turns:[], turnRecords:[], revisions:[], askedQuestions:{read:['T1', 'T2'], waiting:[]}, descendants:[
   {threadId:'C1', parentThreadId:'T1', parentSource:'collabAgentToolCall.senderThreadId', guidance:'not-known', nativeThread:{id:'C1', agentRole:`reviewer${LOOK}`, agentNickname:`Ada${LOOK}`}}]};
 const hostView = (over = {}) => ({state:'ready', generation:g, threads:[thread('T1'), thread('T2')], roleLimits:{account:{roles:[]}}, homeRouting:{activeModeHomeClass:'account'}, nativeView:view,
   serverRequests:[
@@ -74,6 +75,9 @@ const clock = at => { const d = new Date(at), p = n => String(n).padStart(2, '0'
 const allSources = (over = {}) => ({host:hostView(), hostReadAt:READ_AT - 1000, fleet:fleet(), fleetReadAt:READ_AT, decisions:decisions(), decisionsReadAt:READ_AT + 1000, ...over});
 const allEntries = (over = {}) => waitingModule().waitingEntries(allSources(over));
 const allReadings = (over = {}) => waitingModule().waitingReadings(allSources(over));
+// The shared fixture's home not in use (api-key) has a conversation the App knows of (K1, from the overview), so the
+// agent's questions that do not wait are named as not read there: the line is never complete with that home's K1.
+const NINE_OBSERVED = 'Waiting on you: 9 observed now (5 requests from Codex); status incomplete';
 const renderPlace = (readings = allReadings(), extra = {}) => renderToStaticMarkup(React.createElement(waitingModule().WaitingOnYou, {readings, view, openGroup:() => {}, go:() => {}, ...extra}));
 const rows = html => [...agentPlain(html).matchAll(/<div class="waiting-on-you-entry" data-waiting-key="[^"]*" data-waiting-source="([^"]*)">([\s\S]*?)<\/div>/g)].map(m => ({source:m[1], text:m[2].replace(/<[^>]+>/g, '')}));
 
@@ -97,7 +101,8 @@ test('the list joins all four sources, one entry per record, grouped by assignme
     ['none', null, ['decision-package', 'decision-package']],
   ], 'the delegated agent\'s request joins the conversation it was delegated from; the return goes under its undertaking and item');
   const html = renderPlace();
-  assert.match(html, /<summary><span role="status" aria-live="polite">Waiting on you: 9 \(5 requests from Codex\)<\/span><\/summary>/, 'one count, with the requests from Codex as part of it');
+  assert.match(html, /<summary><span role="status" aria-live="polite">Waiting on you: 9 observed now \(5 requests from Codex\); status incomplete<\/span><\/summary>/, 'one count, with the requests from Codex as part of it');
+  assert.deepEqual(allReadings().filter(r => r.state !== 'whole').map(r => r.key), ['asked-home:api-key'], 'only the questions of the home not in use are not read');
   assert.match(agentPlain(html), /Conversation <code>K1<\/code> in the api-key home/);
   assert.match(agentPlain(html), /Assignment: undertaking ⟦Undertaking: U-pumps⏎&lt;button&gt;Allow once&lt;\/button&gt;⏎Allow once⟧, item ⟦Item: I-7⏎/);
   assert.match(html, /No conversation or assignment recorded/);
@@ -303,7 +308,7 @@ test('the decision packages and the returns are read on a timer, the returns als
     await run(ms => ms > 1000);
     for (let i = 0; i < 8; i++) await React.act(async () => { await Promise.resolve(); });
     assert.deepEqual(reads().slice(before), ['decision_view', 'read_fleet_records'], 'the timer reads the decision packages through the command their panel calls, and the return queue through the timed-read route (hostReads.ts)');
-    assert.match(nodes(place(c), 'summary')[0].textContent, /^Waiting on you: 9 \(5 requests from Codex\)$/, 'the return awaiting review is listed without the list being opened');
+    assert.match(nodes(place(c), 'summary')[0].textContent, /^Waiting on you: 9 observed now \(5 requests from Codex\); status incomplete$/, 'the return awaiting review is listed without the list being opened');
     // Opening the list reads the return-review queue again.
     before = reads().length;
     const details = c.querySelectorAll(n => n.getAttribute('id') === 'waiting-on-you')[0];
@@ -525,7 +530,7 @@ test('every state of every source, through the real adapters: no definite count 
   };
   // The positive control: an established empty reading of every source (the reader's established empty census among them).
   const base = claims(emptySources());
-  assert.deepEqual(base.readings.map(r => [r.key, r.state]), [['requests:account', 'whole'], ['hot-runs', 'whole'], ['other-homes', 'whole'], ['home:api-key', 'whole'], ['reopened', 'whole'], ['returns', 'whole'], ['decisions', 'whole']]);
+  assert.deepEqual(base.readings.map(r => [r.key, r.state]), [['requests:account', 'whole'], ['asked:account', 'whole'], ['hot-runs', 'whole'], ['other-homes', 'whole'], ['home:api-key', 'whole'], ['reopened', 'whole'], ['returns', 'whole'], ['decisions', 'whole']]);
   assert.equal(base.shown.complete, true);
   assert.equal(base.line, 'Waiting on you: 0');
   assert.match(base.html, /Nothing recorded is waiting on you\./);
@@ -663,7 +668,7 @@ test('the list keeps no memory: each reading replaces the one before, and what a
   const items = list => list.map(e => e.source + ':' + (e.concerns.package ?? e.concerns.item ?? e.concerns.run ?? e.concerns.threadId));
   const twoReturns = () => { const p = fleet(); p.workspace.undertakings[0].queue[1] = {...p.workspace.undertakings[0].queue[0], item:'I-9', returnRef:'ret-9'}; return p; };
   const first = waitingView(waitingReadings(allSources({fleet:twoReturns(), fleetReadAt:READ_AT})));
-  assert.equal(first.complete, true);
+  assert.deepEqual(first.readings.filter(r => r.state !== 'whole').map(r => r.key), ['asked-home:api-key'], 'every source whole but the questions of the home not in use');
   assert.deepEqual(items(first.observed).filter(i => i.startsWith('return')), [`return-review:I-7${LOOK}`, 'return-review:I-9']);
   // A limited fleet read that lists only ret-1, reviewed; a limited decision read that lists only pkg-1, decided.
   const limitedFleet = twoReturns(); limitedFleet.limits = [{source:{}, reason:'invented'}];
@@ -674,7 +679,7 @@ test('the list keeps no memory: each reading replaces the one before, and what a
   assert.deepEqual(items(next.observed).filter(i => /^(return|decision)/.test(i)), [], 'nothing of either source is observed now, and nothing from the earlier reading is carried');
   assert.equal(Object.hasOwn(next, 'lastSeen'), false, 'there is no store of entries seen earlier');
   assert.deepEqual(next.lastReads, [], 'no source failed, so no last-read block');
-  assert.deepEqual(next.coverage.map(row => [row.reading.key, row.reading.state]), [['returns', 'limited'], ['decisions', 'limited']], 'each limited source keeps its row');
+  assert.deepEqual(next.coverage.map(row => [row.reading.key, row.reading.state]), [['asked-home:api-key', 'not-read'], ['returns', 'limited'], ['decisions', 'limited']], 'each limited source keeps its row');
   // The module offers nothing that folds readings over time.
   const module = waitingModule();
   for (const gone of ['foldWaiting', 'WaitingMemory']) assert.equal(module[gone], undefined, `${gone} is gone`);
@@ -686,7 +691,7 @@ test('a waiting arrival whose run turns busy is not shown while the run is not r
   await mountApp(async ({c, run:timers, setSnapshot}) => {
     await timers(ms => ms > 1000);   // the fleet is read
     const line = () => nodes(place(c), 'summary')[0].textContent;
-    assert.equal(line(), 'Waiting on you: 9 (5 requests from Codex)');
+    assert.equal(line(), NINE_OBSERVED);
     // The run's lock is busy: the host gives its placeholder.
     setSnapshot(hostView({workflowRoot:{...hostView().workflowRoot, runs:[busy]}})); await timers(ms => ms <= 1000);
     assert.equal(line(), 'Waiting on you: 8 observed now (5 requests from Codex); status incomplete', 'the arrival is not counted, and the count is not definite');
@@ -694,9 +699,11 @@ test('a waiting arrival whose run turns busy is not shown while the run is not r
     assert.match(place(c).textContent, /The run run-1 could not be read \(an operation on it was in progress\), so whether one of its checkpoints waits for your act is not known\. Checked at \d\d:\d\d:\d\d\./);
     assert.doesNotMatch(place(c).textContent, /a checkpoint was reached/, 'the arrival is not shown: the run\'s reading that showed it has been replaced');
     assert.equal(c.querySelectorAll(n => n.getAttribute('aria-label') === 'As last read, not counted').length, 0, 'not read is not a failed read: no last-read block');
-    // The run is read again and its record shows the act performed: the count is definite again.
+    // The run is read again and its record shows the act performed: it is read whole again, and only the questions of the
+    // home not in use (K1) keep the count from being definite.
     setSnapshot(hostView({workflowRoot:{...hostView().workflowRoot, runs:[run('performed')]}})); await timers(ms => ms <= 1000);
-    assert.equal(line(), 'Waiting on you: 8 (5 requests from Codex)');
+    assert.equal(line(), 'Waiting on you: 8 observed now (5 requests from Codex); status incomplete');
+    assert.doesNotMatch(place(c).textContent, /The run run-1 could not be read/);
   });
 });
 
@@ -707,7 +714,7 @@ test('the third reader\'s first finding: after a failed status read, the nested 
   await mountApp(async ({c, calls, run, fire, setSnapshot}) => {
     await run(ms => ms > 1000);
     const line = () => nodes(place(c), 'summary')[0].textContent;
-    assert.equal(line(), 'Waiting on you: 9 (5 requests from Codex)');
+    assert.equal(line(), NINE_OBSERVED);
     const overviewNow = () => c.querySelectorAll(n => n.getAttribute('aria-label') === 'Requests waiting for your answer')[0];
     assert.match(overviewNow().textContent, /Requests from Codex waiting for your answer/, 'read whole: as now');
     setSnapshot(new Error('invented status failure')); await run(ms => ms <= 1000);
@@ -741,10 +748,11 @@ test('the third reader\'s first finding: after a failed status read, the nested 
     setSnapshot(new Error('invented status failure')); await run(ms => ms <= 1000);   // read 2 fails
     await React.act(async () => { held.resolve(hostView()); for (let i = 0; i < 8; i++) await Promise.resolve(); });
     assert.match(line(), /status incomplete$/, 'the older reply does not make the status whole');
-    // A later read succeeds, with the question answered at its source: the count is definite again, and the overview is current.
+    // A later read succeeds, with the question answered at its source: the requests are read whole again, and the overview is
+    // current; only the questions of the home not in use (K1) keep the count from being definite.
     const answered = hostView(); answered.serverRequests = answered.serverRequests.map(r => r.requestIdentity === 'q1' ? {...r, state:'answered', replyWriteResult:'written'} : r);
     setSnapshot(answered); await run(ms => ms <= 1000);
-    assert.equal(line(), 'Waiting on you: 8 (4 requests from Codex)');
+    assert.equal(line(), 'Waiting on you: 8 observed now (4 requests from Codex); status incomplete');
     assert.equal(lastReadBlocks(c).length, 0);
     assert.ok(overviewNow());
   });
@@ -758,7 +766,7 @@ test('fleet and decision reads: an older whole reply never replaces a newer fail
     const settle = async fn => React.act(async () => { fn(); for (let i = 0; i < 8; i++) await Promise.resolve(); });
     const line = () => nodes(place(c), 'summary')[0].textContent;
     await run(ms => ms > 1000); await settle(() => { fleetReplies[0].resolve(fleet()); decisionReplies[0].resolve(decisions()); });
-    assert.equal(line(), 'Waiting on you: 9 (5 requests from Codex)');
+    assert.equal(line(), NINE_OBSERVED);
     await run(ms => ms > 1000);   // reads A start and are held
     await run(ms => ms > 1000);   // reads B start
     await settle(() => { fleetReplies[2].reject(new Error('invented')); decisionReplies[2].reject(new Error('invented')); });
@@ -830,7 +838,7 @@ test('the third reader\'s fourth finding: a return a limited reading shows revie
     const line = () => nodes(place(c), 'summary')[0].textContent;
     const shown = () => /a return is waiting for review/.test(place(c).textContent);
     await run(ms => ms > 1000);
-    assert.equal(line(), 'Waiting on you: 9 (5 requests from Codex)'); assert.ok(shown());
+    assert.equal(line(), NINE_OBSERVED); assert.ok(shown());
     await run(ms => ms > 1000);   // limited: the return is recorded reviewed
     assert.ok(!shown()); assert.equal(line(), 'Waiting on you: 8 observed now (5 requests from Codex); status incomplete');
     await run(ms => ms > 1000);   // limited again, with no rows
@@ -885,7 +893,7 @@ test('the fourth reader\'s first finding: what is retained is the last successfu
   await mountApp(async ({c, run, setSnapshot}) => {
     await run(ms => ms > 1000);
     const line = () => nodes(place(c), 'summary')[0].textContent;
-    assert.equal(line(), 'Waiting on you: 9 (5 requests from Codex)', 'run-1 read whole, its arrival waiting');
+    assert.equal(line(), NINE_OBSERVED, 'run-1 read whole, its arrival waiting');
     setSnapshot(hostView({workflowRoot:{...hostView().workflowRoot, runs:[busy]}})); await run(ms => ms <= 1000);   // its lock is taken: the busy placeholder
     setSnapshot(new Error('invented status failure')); await run(ms => ms <= 1000);   // the status poll fails
     assert.match(line(), /; status incomplete$/);
@@ -955,7 +963,10 @@ test('the fourth reader\'s third finding: another home\'s group whose generation
   assert.ok(shown.notes.includes('Requests in the api-key home are not read: the overview gave a group without a generation the App can use.'));
   // The positive control: the same group with a generation of the shape is counted, and the count is definite.
   const good = waitingView(waitingReadings(emptySources(withHost(h => { h.waitingRequests.groups = [{modeHomeClass:'api-key', generation:other, threadId:'K1', count:2}]; }))));
-  assert.equal(waitingLine(good.observed, good.complete), 'Waiting on you: 2 (2 requests from Codex)');
+  assert.equal(good.readings.find(r => r.key === 'home:api-key').state, 'whole');
+  // K1 is a conversation of the home not in use the App now knows of: the agent's questions there are not read.
+  assert.deepEqual(good.readings.filter(r => r.state !== 'whole').map(r => r.key), ['asked-home:api-key']);
+  assert.equal(waitingLine(good.observed, good.complete), 'Waiting on you: 2 observed now (2 requests from Codex); status incomplete');
 });
 
 // ---- A reopened arrival's evidence (criterion 4): Go to it reaches that same run's checkpoint evidence ----
@@ -1117,4 +1128,185 @@ test('the reopened destination shows the projection beside the recorded disposit
   const ended = draw(carriedRow({answerability:undefined, state:'ended'}));
   assert.match(ended, /Arrival 1: reached; act not yet recorded\./);
   assert.doesNotMatch(ended, /is not known|gave no projection|act records, read with this reading|not yet counted/);
+});
+
+// ---- The fifth source: the agent's question that does not wait (Codex's request_user_input_async) ----
+// The native view's askedQuestions (native_items.rs): the conversations read since that Codex started, and for each the
+// latest such question no message from the person follows. Invented identities only; the question's wording is never drawn here.
+const askedRow = (threadId, over = {}) => ({threadId, turnId:'u3', itemId:`call-${threadId}`, questions:[{title:`Invented asked title${LOOK}`, options:['Invented option']}], ...over});
+const withAsked = (asked, edit = () => {}) => withHost(h => { h.nativeView = {...h.nativeView, askedQuestions:asked}; edit(h); });
+const askedView = sources => { const {waitingReadings, waitingView, waitingLine} = waitingModule(); const readings = waitingReadings(sources); const shown = waitingView(readings);
+  return {readings, shown, line:waitingLine(shown.observed, shown.complete), html:renderPlace(readings), reading:readings.find(r => r.key === 'asked:account')}; };
+const askedRows = html => rows(html).filter(r => r.source === 'asked-question');
+// What the list may never say of the agent's question that does not wait.
+const NOT_WAITING = /\bis waiting\b|\bare waiting\b|\bwaits\b|\bheld\b|\bhold(s|ing)?\b|\bblock/i;
+
+test('the agent asked a question and went on: listed in a conversation read, in the total, not among the requests from Codex, with "Go to it" and no wording of the question', () => {
+  const {readings, shown, line, html, reading} = askedView(emptySources(withAsked({read:['T1', 'T2'], waiting:[askedRow('T1')]})));
+  assert.equal(reading.state, 'whole');
+  assert.deepEqual(shown.observed.map(e => [e.source, e.kind, e.count]), [['asked-question', 'asked-question', 1]]);
+  assert.equal(shown.complete, true, readings.filter(r => r.state !== 'whole').map(r => r.key).join());
+  assert.equal(line, 'Waiting on you: 1', 'counted in the total, and not as a request from Codex');
+  const [row] = askedRows(html);
+  assert.match(row.text, /^the agent asked a question and went on · Asked by the conversation’s own agent · Who must respond: you · Concerns: the conversation T1 · Who integrates the result: not recorded Go to it$/);
+  const {itemAnchorId} = loadSrc('NativeActivity');
+  assert.match(html, new RegExp(`<a href="#${itemAnchorId('T1', 'u3', 'call-T1')}">Go to it</a>`), 'it leads to the question\'s item in its conversation');
+  assert.doesNotMatch(html, /Invented asked title|Invented option/, 'the card draws the question; the list does not');
+  assert.doesNotMatch(html, /<button[^>]*>[^<]*(Answer|Dismiss|Send)/, 'nothing answers or dismisses');
+  const entry = shown.observed[0];
+  assert.deepEqual({...entry.target, generation:null}, {kind:'asked-question', generation:null, home:'account', rootThreadId:'T1', threadId:'T1', turnId:'u3', itemId:'call-T1', anchor:itemAnchorId('T1', 'u3', 'call-T1')});
+});
+
+test('a conversation read with nothing asked: nothing is listed, and the count is definite', () => {
+  const {reading, shown, line, html} = askedView(emptySources(withAsked({read:['T1', 'T2'], waiting:[]})));
+  assert.equal(reading.state, 'whole');
+  assert.equal(shown.complete, true);
+  assert.equal(line, 'Waiting on you: 0');
+  assert.match(html, /Nothing recorded is waiting on you\./);
+});
+
+test('a conversation not read since that Codex started is named; the status is incomplete, with no definite total and no "nothing is waiting"', () => {
+  // T2 not read: read with limits; what the read conversation holds is still listed.
+  const limited = askedView(emptySources(withAsked({read:['T1'], waiting:[askedRow('T1')]})));
+  assert.equal(limited.reading.state, 'limited');
+  assert.equal(limited.line, 'Waiting on you: 1 observed now; status incomplete');
+  assert.ok(limited.shown.notes.includes('Questions the agent asked and went on from, in the account home, were read with limits: 1 conversation of that Codex is not read since it started (conversation T2), so whether the agent asked a question there that no message from you follows is not known.'));
+  assert.doesNotMatch(limited.html, /Nothing recorded is waiting on you/);
+  assert.match(limited.html, /data-waiting-source-key="asked:account" data-waiting-state="limited"/);
+  // None read: not read, and nothing of it is listed, even where the view holds a row.
+  const none = askedView(emptySources(withAsked({read:[], waiting:[askedRow('T1')]})));
+  assert.equal(none.reading.state, 'not-read');
+  assert.deepEqual(askedRows(none.html), []);
+  assert.equal(none.line, 'Waiting on you: 0 observed now; status incomplete');
+  assert.match(none.html, /are not read: 2 conversations of that Codex are not read since it started \(conversation T1, conversation T2\)/);
+  assert.doesNotMatch(none.html, /Nothing recorded is waiting on you/);
+  // A row for a conversation the view does not list as read is never listed.
+  const stray = askedView(emptySources(withAsked({read:['T1', 'T2'], waiting:[askedRow('T9')]})));
+  assert.deepEqual(stray.shown.observed, []);
+  // No reading in the view, or one of another generation: not read, with the App's reason.
+  for (const edit of [h => { delete h.nativeView.askedQuestions; }, h => { h.nativeView = {...h.nativeView, generation:other}; }]) {
+    const missing = askedView(emptySources(withAsked({read:['T1', 'T2'], waiting:[]}, edit)));
+    assert.equal(missing.reading.state, 'not-read');
+    assert.ok(missing.shown.notes.includes("Questions the agent asked and went on from, in the account home, are not read: the App's status gave no reading of them for that Codex."));
+  }
+  // Codex not running: not read.
+  const stopped = askedView(emptySources(withAsked({read:['T1', 'T2'], waiting:[askedRow('T1')]}, h => { h.state = 'stopped'; })));
+  assert.equal(stopped.reading.state, 'not-read');
+  assert.ok(stopped.shown.notes.includes('Questions the agent asked and went on from, in the account home, are not read while Codex is not running.'));
+});
+
+test('an ended observation is not read: nothing of it is listed or counted, and the reason is said', () => {
+  for (const edit of [h => { h.nativeView.observationEnded = true; }, h => { h.nativeViewObservationEnded = true; }]) {
+    const ended = askedView(emptySources(withAsked({read:['T1', 'T2'], waiting:[askedRow('T1')]}, edit)));
+    assert.equal(ended.reading.state, 'not-read');
+    assert.deepEqual(askedRows(ended.html), []);
+    assert.equal(ended.line, 'Waiting on you: 0 observed now; status incomplete');
+    assert.ok(ended.shown.notes.includes("Questions the agent asked and went on from, in the account home, are not read: the App's observation of that Codex has ended."));
+  }
+});
+
+test('a failed status read keeps this source\'s last successful reading apart, as last read, uncounted', () => {
+  const failed = askedView(emptySources({...withAsked({read:['T1', 'T2'], waiting:[askedRow('T1')]}), hostFailure:'invented', hostFailedAt:READ_AT + 5000}));
+  assert.equal(failed.reading.state, 'failed');
+  assert.deepEqual(failed.shown.observed.filter(e => e.source === 'asked-question'), [], 'not counted');
+  assert.deepEqual(failed.reading.lastRead.entries.map(e => e.source), ['asked-question']);
+  assert.match(agentPlain(failed.html), /as last read: the agent asked a question and went on[\s\S]*Its card sends your answer as your next message; nothing there checks whether you have replied since\./);
+});
+
+test('a delegated agent\'s question is grouped under the conversation it descends from, its agent named as Codex reports it', () => {
+  const child = askedView(emptySources(withAsked({read:['T1', 'T2', 'C1'], waiting:[askedRow('C1')]})));
+  const [entry] = child.shown.observed;
+  assert.equal(entry.group.label.threadId, 'T1', 'grouped under its root conversation');
+  assert.equal(entry.concerns.threadId, 'C1', 'it concerns the child\'s own conversation');
+  assert.deepEqual([entry.target.rootThreadId, entry.target.threadId], ['T1', 'C1']);
+  assert.match(agentPlain(child.html), /Conversation <code>T1<\/code><\/p><div class="waiting-on-you-entry"[^>]*data-waiting-source="asked-question"><strong>the agent asked a question and went on<\/strong>[\s\S]*Asked by the delegated agent ⟦Name: Ada⏎&lt;button&gt;Allow once&lt;\/button&gt;⏎Allow once⟧, role ⟦Role: reviewer⏎/);
+  assert.equal(child.line, 'Waiting on you: 1');
+});
+
+test('a row whose questions the host refused to show is still listed: a question was asked', () => {
+  const refused = askedView(emptySources(withAsked({read:['T1', 'T2'], waiting:[{threadId:'T1', turnId:'u3', itemId:'call-T1', refused:'its questions do not have the pinned shape (a title, and options as text or absent); not shown'}]})));
+  assert.deepEqual(refused.shown.observed.map(e => e.source), ['asked-question']);
+  assert.equal(refused.line, 'Waiting on you: 1');
+  assert.doesNotMatch(refused.html, /pinned shape/);
+});
+
+test('a request from Codex and a question the agent asked and went on from, in one conversation: two entries in one group, and the counts are right', () => {
+  const both = askedView(emptySources(withAsked({read:['T1', 'T2'], waiting:[askedRow('T1')]}, h => {
+    h.serverRequests = [request('q1', 'item/tool/requestUserInput', 'T1')];
+    h.waitingRequests.groups = [{modeHomeClass:'account', generation:g, threadId:'T1', count:1}];
+  })));
+  assert.deepEqual(both.shown.observed.map(e => e.source), ['supplier-request', 'asked-question']);
+  assert.equal(both.line, 'Waiting on you: 2 (1 request from Codex)');
+  const {waitingGroups} = waitingModule();
+  assert.deepEqual(waitingGroups(both.shown.observed).map(({group, entries}) => [group.label.threadId, entries.length]), [['T1', 2]]);
+  const texts = rows(both.html).map(r => r.text);
+  assert.ok(texts[0].startsWith('a question is waiting') && texts[1].startsWith('the agent asked a question and went on'));
+});
+
+test('a home not in use: nothing of it is listed; where the App knows of a conversation there, its questions are named as not read', () => {
+  // The overview names K1 in the api-key home: that home's questions are not read.
+  const known = askedView(emptySources(withAsked({read:['T1', 'T2'], waiting:[]}, h => { h.waitingRequests.groups = [{modeHomeClass:'api-key', generation:other, threadId:'K1', count:1}]; })));
+  const home = known.readings.find(r => r.key === 'asked-home:api-key');
+  assert.equal(home.state, 'not-read');
+  assert.equal(known.shown.complete, false);
+  assert.ok(known.shown.notes.includes('Questions the agent asked and went on from, in the api-key home, are not read: the App reads them only in the home in use, so whether the agent asked one there that no message from you follows is not known (conversation K1).'));
+  // A home whose conversations the status does not name is not named; the footer says these questions are read only in the home in use.
+  const unknown = askedView(emptySources(withAsked({read:['T1', 'T2'], waiting:[]})));
+  assert.equal(unknown.readings.some(r => r.key.startsWith('asked-home:')), false);
+  assert.match(unknown.html, /the conversations of a home not in use, are not read for such questions, and a home not in use is named above only where the App knows of a conversation there\./);
+});
+
+test('nothing the list says of the agent\'s question that does not wait calls it waiting, held or blocking', () => {
+  const cases = [
+    emptySources(withAsked({read:['T1', 'T2'], waiting:[askedRow('T1')]})),
+    emptySources(withAsked({read:['T1'], waiting:[askedRow('T1')]})),
+    emptySources(withAsked({read:[], waiting:[]})),
+    emptySources(withAsked({read:['T1', 'T2'], waiting:[askedRow('T1')]}, h => { h.nativeView.observationEnded = true; })),
+    emptySources(withAsked({read:['T1', 'T2'], waiting:[askedRow('T1')]}, h => { h.waitingRequests.groups = [{modeHomeClass:'api-key', generation:other, threadId:'K1', count:1}]; })),
+    {...emptySources(withAsked({read:['T1', 'T2'], waiting:[askedRow('T1')]})), hostFailure:'invented', hostFailedAt:READ_AT + 5000},
+  ];
+  const {WAITING_WORDS, LAST_READ_OFFER} = waitingModule();
+  assert.equal(WAITING_WORDS['asked-question'], 'the agent asked a question and went on');
+  assert.doesNotMatch(LAST_READ_OFFER['asked-question'], NOT_WAITING);
+  for (const sources of cases) {
+    const {readings, html} = askedView(sources);
+    for (const row of askedRows(html)) assert.doesNotMatch(row.text, NOT_WAITING, row.text);
+    for (const r of readings.filter(r => r.key.startsWith('asked'))) {
+      for (const sentence of [r.note, r.lastRead?.note].filter(Boolean)) assert.doesNotMatch(sentence, NOT_WAITING, sentence);
+    }
+    const footer = agentPlain(html).match(/A question the agent asked and went on from[^.]*\.[^.]*\./)?.[0];
+    assert.ok(footer, 'the footer says what the list does with it');
+    assert.doesNotMatch(footer, NOT_WAITING, footer);
+  }
+});
+
+test('"Go to it" on the agent\'s question opens its conversation at the question\'s item through the activity view\'s own navigation, and answers nothing (the mounted App)', async () => {
+  const {itemAnchorId} = loadSrc('NativeActivity');
+  const item = {threadId:'T2', turnId:'u3', native:{id:'call-T2', type:'agentMessage', text:'Invented text', delivery:'async', questions:[{title:'Invented asked title', options:null}]},
+    displayState:'completed', standing:'live-observed', observationEnded:false, observedOrder:1};
+  const host = () => hostView({nativeView:{...view, items:[item], askedQuestions:{read:['T1', 'T2'], waiting:[askedRow('T2')]}}});
+  await mountApp(async ({c, calls, revealed}) => {
+    const anchor = itemAnchorId('T2', 'u3', 'call-T2');
+    const link = nodes(place(c), 'a').find(a => a.getAttribute('href') === `#${anchor}`);
+    assert.ok(link, 'the entry is listed with its way to the item');
+    // The miniature document lays nothing out: each element records being scrolled to, and the activity view's scoped
+    // ID lookup is supplied as request-activity-navigation.test.mjs supplies it; its result is an actual mounted element.
+    const scrolled = [];
+    const proto = Object.getPrototypeOf(c);
+    const had = Object.hasOwn(proto, 'scrollIntoView'), hadQuery = Object.hasOwn(proto, 'querySelector');
+    proto.scrollIntoView = function () { scrolled.push(this.getAttribute?.('id')); };
+    if (!hadQuery) proto.querySelector = function (selector) {
+      assert.match(selector, /^#[a-z0-9-]+$/);
+      return this.querySelectorAll(element => element.getAttribute('id') === selector.slice(1))[0] ?? null;
+    };
+    try {
+      const before = calls.length;
+      await React.act(async () => { props(link).onClick({preventDefault:() => {}, stopPropagation:() => {}}); for (let i = 0; i < 8; i++) await Promise.resolve(); });
+      assert.deepEqual(calls.slice(before).map(call => call.command).filter(cmd => !['host_status', 'decision_view', 'read_fleet_records', 'request_answer_companions', 'native_confirmation_content'].includes(cmd)), [], 'nothing is sent, answered or dismissed');
+      assert.ok(revealed.includes('conversation'), 'the conversation is shown');
+      assert.ok(scrolled.includes(anchor), 'the activity view scrolls to the question\'s item');
+      const shown = c.querySelectorAll(n => n.getAttribute('id') === anchor)[0];
+      assert.ok(shown && /The agent asked this and went on/.test(shown.textContent), 'the item carries its card');
+    } finally { if (!had) delete proto.scrollIntoView; if (!hadQuery) delete proto.querySelector; }
+  }, {host});
 });
