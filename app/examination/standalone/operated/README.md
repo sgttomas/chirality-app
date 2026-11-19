@@ -981,7 +981,8 @@ this method or by the scripted driver once it has passed
 lane notices such a merge by the files it touches, at least these (the list
 is not exclusive): `app/src/FirstUse.tsx`; in `app/src/App.tsx`, the branch
 that renders `FirstUseSetup` and decides that setup is required;
-`app/src/DailyWorkspace.tsx`, which holds the page's styles;
+`app/src/DailyWorkspace.tsx`, the page's frame, and `app/src/workspace.css`
+with `app/src/styles/`, which hold the page's styles;
 `app/src/hostReads.ts`, through which the page reads the App's state; in
 `app/src-tauri/src/lib.rs`, `host_status` and the `desktop_setup_*`
 commands; and `app/src-tauri/src/desktop_startup.rs`, which decides that

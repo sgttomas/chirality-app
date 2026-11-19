@@ -153,6 +153,13 @@ code_paths:
 - app/src/RunPanel.tsx
 - app/src/DailyWorkspace.tsx
 - app/src/App.tsx
+# The one visual form (REQ-011): the shared rules, then one stylesheet for each group of views,
+# all loaded by main.tsx. visual_preview serves the front end with a stand-in host so that views
+# can be looked at without running the App; it is not in the product build.
+- app/src/workspace.css
+- app/src/styles/**
+- app/src/main.tsx
+- app/examination/visual_preview/**
 checks:
 - app/src-tauri/src/workflow_library_tests.rs
 - app/src-tauri/src/workflow_library_entries_tests.rs
