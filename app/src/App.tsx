@@ -37,7 +37,8 @@ import { preparedMessages, preparedMessageLimit, type PreparedMessage } from "./
 import { ConversationContext, ProjectLibraryContext, appProjectFolder, conversationFromKey, workflowSourceLimit } from "./WorkflowContext";
 import { WorkspaceDisclosure, WorkspaceConnectionStatus, revealWorkspaceTarget, revealWorkspaceLink, registerWorkspaceViews } from "./DailyWorkspace";
 import { ActivityStrip, MoreBack, MoreList, MORE_VIEWS, WorkspaceShell, isMoreView, isRightPanelTab, turnPhase, type MoreView, type RightPanelTab, RIGHT_PANEL_TABS, type TabSelection } from "./WorkspaceShell";
-import { AccountRow, Navigator, folderName, navigatorEntries, navigatorProjects, samePath, type NavigatorEntry } from "./Navigator";
+import { Navigator, folderName, navigatorEntries, navigatorProjects, samePath, type NavigatorEntry } from "./Navigator";
+import { AccountRow, accountRowWords, useAccountController, type AccountCommands } from "./AccountControls";
 import { flushSync } from "react-dom";
 import { UnsentWork, useReportUnsent } from "./unsentWork";
 import { DesktopSetupPanel } from "./DesktopSetupPanel";
@@ -46,7 +47,7 @@ import { invoke, invokeTimedRead, useOrderedHost, shownBeforePress, POLL_MS } fr
 import { readingAfterWrite, readingRefusal, readingSentence } from "./readingSentences";
 import { REFRESH_FAILED, commandThenRefresh, observationLine, observationText, refreshAfterAction, withRefreshFailure } from "./statusRefresh";
 import { FirstUseSetup } from "./FirstUse";
-import { AccountStatus, DIDNT_SAY, accountReadError, accountReadRef, accountReading, reportedPlan, signInCompletion, type ReadAccountStatus } from "./AccountStatus";
+import { AccountStatus, DIDNT_SAY, accountReadError, accountReadRef, accountReading, reportedPlan, signInCompletion, signInPending, type ReadAccountStatus } from "./AccountStatus";
 import { registeredRevisionAnchor, runEvidenceAnchor, stripRun } from "./RunJourney";
 import { RunTab } from "./RunTab";
 import { WorkflowLibrary } from "./WorkflowLibrary";
@@ -159,7 +160,7 @@ export type StartOutcome = { opened: string } | { failed: string } | { notConfir
 /** The new conversation's own settings, which the App holds: its role and model, with their panels. `binding`
  * changes whenever the settings a start would send change (the chooser's edits, role, source and home): a Send
  * captured before such a change starts nothing. */
-export type StartSettings = { role: string; model: string; blocked: string; rolePanel: ReactNode; modelPanel: ReactNode; notice?: ReactNode; binding?: string; start: () => Promise<StartOutcome | null> };
+export type StartSettings = { role: string; model: string; blocked: string; rolePanel: ReactNode; modelPanel: ReactNode; notice?: ReactNode; binding?: string; /** Codex reports no account: the empty conversation says to sign in, and invites no first message. */ noAccount?: boolean; start: () => Promise<StartOutcome | null> };
 
 // The host's refusals of a start that are made before anything is dispatched, so nothing started
 // (lib.rs start_conversation: start_source/check_start_source, runtime_session.rs:2803, 2806, 2933; access.rs:160,
@@ -796,7 +797,7 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
             : threadKey ? <p className="panel-empty">Selected conversation is no longer available in this generation; choose a current conversation or press New chat.</p>
             : !sourceReady ? <p className="panel-empty">Connect to Codex before sending. Your draft stays here. <a href="#workspace-connection">Open connection controls</a></p>
             : <>{startNew?.notice}{pick ? <p className="panel-empty"><strong>{pick.title}</strong> is picked. Say what it should work on.</p>
-              : <p className="panel-empty">Write your first message below. Sending starts a new conversation with the settings under it.</p>}</>}
+              : <p className="panel-empty">{startNew?.noAccount ? "Sign in with your ChatGPT account, then write your first message here." : "Write your first message below. Sending starts a new conversation with the settings under it."}</p>}</>}
           {selected && ordered.length > 0 && <section id="conversation-requests" className="permission-card-list" aria-label="Requests from Codex in this conversation" aria-live="polite">
             {/* One mounted owner per request through its change of state: the same wrapper while it waits and after, so
                 its card and its answer companion keep what they hold when it is answered. An outstanding request is
@@ -889,7 +890,7 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
         follow={{ act: (command, args) => (startAct ?? runAct)(command, args), read: readStatus, step: setBusy, repick: next => setPick?.(next) }}/>}
       <div className="chat-composer-line">
         <textarea id="ordinary-composer-text" ref={composerField} rows={1} aria-label="Chat input" aria-describedby="ordinary-send-readiness" disabled={!!busy} value={text}
-          placeholder={pick ? "What should the workflow work on?" : running && steeringTarget ? "Add to the running turn…" : selected ? `Message ${speaker}…` : newChat ? "Write your first message…" : "Choose a conversation or press New chat…"}
+          placeholder={pick ? "What should the workflow work on?" : running && steeringTarget ? "Add to the running turn…" : selected ? `Message ${speaker}…` : newChat ? (!sourceReady ? "Connect to Codex to send…" : startNew?.noAccount ? "Sign in to send…" : "Write your first message…") : "Choose a conversation or press New chat…"}
           onChange={e => { textRevision.current += 1; textWrittenFor.current = threadKey; setText(e.target.value); }}
           onKeyDown={event => {
             // Enter sends and Shift+Enter breaks the line, as 3.0.1 does, only while no turn runs in the conversation shown.
@@ -3350,6 +3351,13 @@ export function App() {
     if (!runTabMove || holdsUnsent() || requestWaiting) return;
     selectView("current-run");
   }, [runTabMove]); // eslint-disable-line react-hooks/exhaustive-deps
+  // The account's actions, shared by the account row (in the navigator and in its collapsed strip) and the workspace
+  // line: the present commands under their present conditions, each failure said on the App line.
+  const accountCommands: AccountCommands = {
+    checkAgain: async (generation, modeHomeClass) => { try { await readAccountStatus(generation, modeHomeClass, () => true); } catch (error) { setMessage(`Check again: ${readingSentence(error) ?? String(error)}`); throw error; } },
+    startSignIn: async generation => { try { await homeAction("oauth_start", { generation, mode: "browser" }); } catch (error) { setMessage(`oauth_start: ${String(error)}`); throw error; } },
+    signOut: async (generation, modeHomeClass) => { try { await homeAction("logout_home", { generation, modeHomeClass }); } catch (error) { setMessage(`logout_home: ${String(error)}`); throw error; } } };
+  const account = useAccountController(host, () => currentHost.current, accountCommands);
   const changePermissionLevel = async (owner: string, scope: "default" | { conversation: string }, levelId: string) => {
     if (homePendingRef.current || owner !== levelOwner(currentHost.current)) throw Error("The Codex home changed. Choose the level again in the current view; nothing was changed.");
     let refreshFailed = false;
@@ -3386,16 +3394,22 @@ export function App() {
   // the target in it, so focus and scrolling land on a target that is shown.
   const showToolsTarget = (target: string) => { navigated.current = true; selectView("conversation-tools", true); revealWorkspaceTarget(target, true); };
   const openSettings = () => revealWorkspaceTarget("workspace-tools", true);
+  const accountRow = <AccountRow host={host} account={account} reveals={{ openSettings, openConnection: () => revealWorkspaceTarget("workspace-connection", true) }}/>;
   const shownRow = selectedThread ? (host?.threads ?? []).find((t: Json) => t.threadId === selectedThread && JSON.stringify(t.generation) === JSON.stringify(host?.generation)) : null;
   const workspaceShown = firstRead === "read" && !setupRequired;
   // The centre's notices above the transcript.
+  // Where the account row says "Signed in" (one reading for both: Codex ready, no setup needed, a ChatGPT account
+  // read, no completed sign-in still unconfirmed), the conversation carries no line about it. A sign-in Codex
+  // reported completed, with no account read answered since, is not said as the earlier reading.
+  const signedInReady = accountRowWords(host, account.awaiting).signedIn;
+  const lineReading = account.awaiting && signInReading !== "reading" ? "unread" : signInReading;
   const centreNotices = <>
-    <WorkspaceConnectionStatus state={host?.state} setupRequired={host?.desktopSetup?.launch?.state === "setup-required"} savedSetup={!!host?.desktopSetup?.pending} generationClosed={host?.generationClosed} startRefusal={host?.lastStartRefusal} codexHome={host?.codexHome} refusalCause={host?.startRefusalCause} build={host?.build} signIn={signInReading}
-      plan={reportedPlan(host)} codexError={accountReadError(host)}
-      checkAgain={async () => { const shown = currentHost.current; try { await readAccountStatus(shown?.generation, shown?.homeRouting?.activeModeHomeClass, () => true); } catch (error) { setMessage(`Check again: ${readingSentence(error) ?? String(error)}`); } }}
+    {!signedInReady && <WorkspaceConnectionStatus state={host?.state} setupRequired={host?.desktopSetup?.launch?.state === "setup-required"} savedSetup={!!host?.desktopSetup?.pending} generationClosed={host?.generationClosed} startRefusal={host?.lastStartRefusal} codexHome={host?.codexHome} refusalCause={host?.startRefusalCause} build={host?.build} signIn={lineReading}
+      plan={reportedPlan(host)} codexError={account.awaiting ? null : accountReadError(host)} busy={account.acting || signInPending(host)}
+      checkAgain={() => account.act("check-again", host)}
       // On Settings & tools with Connection and access open, that section carries the sign-in: one sign-in button on a
       // view, never two. Closed, the line carries it again, so the view always shows a way to sign in.
-      startSignIn={rightTab === "settings" && !rightCollapsed && connectionShown ? undefined : async () => { try { await homeAction("oauth_start", { generation: currentHost.current?.generation, mode: "browser" }); } catch (error) { setMessage(`oauth_start: ${String(error)}`); } }}/>
+      startSignIn={rightTab === "settings" && !rightCollapsed && connectionShown ? undefined : () => account.act("sign-in", host)}/>}
     {offer && <ActControlPanel offer={offer} choice={choice} setChoice={setChoice} decide={decide} close={() => setOffer(null)} />}
     <div className="workspace-notices"><div id="other-requests">
       {outsideRequests.length > 0 && <h3>Requests outside the selected conversation</h3>}
@@ -3427,6 +3441,7 @@ export function App() {
   // conversation is started with its first message.
   const startNew: StartSettings = { role, model, blocked: startBlocked, start: startConversation,
     binding: JSON.stringify([editRevision.current, chooserHome.current.epoch, model, modelProvider, entryId, role, roleTouched, host?.generation ?? null, host?.homeRouting?.activeModeHomeClass ?? null]),
+    noAccount: signInReading === "no-account" && !account.awaiting,
     notice: signedInNotice ? <p role="status" aria-label="Signed in">You're signed in. Choose a model to start a conversation.</p> : undefined,
     rolePanel: <RoleChoice group="start-thread-role" roleSet={host?.roleSet} limits={host?.roleLimits} role={role} preselected={!roleTouched && !!role && role === host?.roleSet?.defaultRole} setRole={next => { expireEndpointPreview(); roleInitialized.current = true; setRoleTouched(true); setRole(next); }}/>,
     modelPanel: <div className="workspace-start-fields">
@@ -3480,11 +3495,11 @@ export function App() {
         <WaitingOnYou readings={waitingReads} view={host?.nativeView} busy={homePending} onOpen={() => { void readFleetOnOpen(); }} openGroup={group => { void openRequests(group); }} go={goToWaiting}/>
         </div>}
         {firstRead === "read" && <WorkspaceShell hidden={setupRequired} rightTab={rightTab} onRightTab={selectTab} rightCollapsed={rightCollapsed} setRightCollapsed={collapseRight}
-          navigator={<Navigator projects={projects} selectedKey={threadKey} choose={conversationChooser.choose ? key => { navigated.current = true; conversationChooser.choose?.(key); openedConversation(key); } : null} answer={answerIn} newChat={newChat} openSettings={openSettings}/>}
+          navigator={<Navigator projects={projects} selectedKey={threadKey} choose={conversationChooser.choose ? key => { navigated.current = true; conversationChooser.choose?.(key); openedConversation(key); } : null} answer={answerIn} newChat={newChat} account={accountRow}/>}
           collapsedNavigator={openNavigator => <div className="woven-collapsed-strip" aria-label="Collapsed chat navigation">
             {projects.some(project => project.entries.some(entry => entry.needsAnswer)) ? <button type="button" aria-label="Needs answer" onClick={openNavigator}>!</button> : null}
             <button type="button" aria-label="New chat" disabled={!conversationChooser.choose} onClick={newChat}>＋</button>
-            <div className="woven-collapsed-settings"><AccountRow open={openSettings}/></div>
+            <div className="woven-collapsed-settings">{accountRow}</div>
           </div>}
           strip={<ActivityStrip phase={statusCurrent ? turnPhase(shownRow, !!shownRow && waitingThreads.has(shownRow.threadId)) : null}
             run={statusCurrent && !shownBeforePress(hostReads) && selectedThread ? stripRun(host?.workflowRoot, host, selectedThread) : null}/>}

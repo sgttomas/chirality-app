@@ -68,6 +68,7 @@ code_paths:
 # In 4.0.0 the local route is not offered: every view that would offer it is gated on this.
 - app/src/localRoute.ts
 - app/src/AccountStatus.tsx
+- app/src/AccountControls.tsx
 - app/src/DesktopSetupPanel.tsx
 - app/src/FirstUse.tsx
 # The first view at launch follows the launch readings, and moves nowhere over unsent work.
@@ -91,6 +92,7 @@ checks:
 - app/tests/access-provider.test.mjs
 - app/tests/model-choice.test.mjs
 - app/tests/first-view.test.mjs
+- app/tests/account-controls.test.mjs
 # What the account, model list and history reads contact at the pin (AccountRead).
 - app/supplier_checks/level/test_level_live.py
 - app/tests/local-model-settings.test.mjs

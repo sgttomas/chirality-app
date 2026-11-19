@@ -69,6 +69,9 @@ const selectedTab = c => tabs(c).find(b => b.getAttribute('aria-selected') === '
 const moreEntries = c => nodes(c, 'button').filter(b => b.getAttribute('data-more-view'));
 const chooseMore = (c, view) => React.act(async () => props(moreEntries(c).find(b => b.getAttribute('data-more-view') === view)).onClick());
 const pressTab = (c, label) => React.act(async () => props(tabs(c).find(t => t.textContent === label)).onClick());
+// The account row (AccountControls.tsx): its button, and the popover it opens.
+const accountRow = c => nodes(c, 'button').find(b => b.getAttribute('class') === 'account-controls-row');
+const accountPopover = c => nodes(c, 'div').find(d => d.getAttribute('role') === 'dialog' && d.getAttribute('aria-label') === 'Account and settings');
 const conversationChosen = c => chosenIn(choiceLists(conversationView(c))[0]);
 const strip = c => labelled(c, 'Activity status');
 
@@ -237,11 +240,21 @@ test('mounted: closing the right panel collapses its region, and the toggle ther
     await React.act(async () => props(labelled(c, 'Open right panel')).onClick());
     assert.equal(columns(), '292px 12px minmax(420px, 1fr) 12px 480px');
     assert.equal(labelled(c, 'Open right panel'), undefined);
-    // The navigator closes and opens again; its collapsed form keeps New chat and Settings & tools.
+    // The navigator closes and opens again; its collapsed form keeps New chat and the account row, whose popover
+    // opens from there and offers Settings & tools.
     await React.act(async () => props(labelled(c, 'Close Navigator')).onClick());
     assert.equal(navigator(c), undefined);
     const strip = labelled(c, 'Collapsed chat navigation');
-    assert.ok(labelled(strip, 'New chat')); assert.ok(labelled(strip, 'Settings & tools'));
+    assert.ok(labelled(strip, 'New chat')); assert.ok(accountRow(strip));
+    await React.act(async () => props(accountRow(strip)).onClick());
+    assert.ok(accountPopover(strip), 'the popover opens from the collapsed strip');
+    assert.ok(nodes(accountPopover(strip), 'button').some(b => b.textContent === 'Settings & tools…'));
+    // From the strip, Settings & tools… goes there: the popover closes and the tab is selected.
+    await React.act(async () => props(nodes(accountPopover(strip), 'button').find(b => b.textContent === 'Settings & tools…')).onClick());
+    assert.ok(!accountPopover(c), 'the popover closes');
+    assert.equal(selectedTab(c), 'Settings & tools');
+    // In the strip the row is the avatar alone: its name and tooltip say the state.
+    assert.equal(accountRow(labelled(c, 'Collapsed chat navigation')).getAttribute('title'), accountRow(labelled(c, 'Collapsed chat navigation')).getAttribute('aria-label').replace('Account and settings, ', ''));
     await React.act(async () => props(labelled(c, 'Open Navigator')).onClick());
     assert.ok(navigator(c));
     // The handles resize by keyboard, within 3.0.1's bounds.
@@ -253,14 +266,17 @@ test('mounted: closing the right panel collapses its region, and the toggle ther
   });
 });
 
-test('mounted: New chat shows the empty conversation with its message box focused; the account row selects Settings & tools', async () => {
+test('mounted: New chat shows the empty conversation with its message box focused; the account row\'s Settings & tools selects that tab', async () => {
   await mountApp(baseHost(), async ({c, revealed}) => {
     const field = chatInput(c); let focused = 0; field.focus = () => { focused++; };
     await React.act(async () => props(nodes(navigator(c), 'button').find(b => b.textContent === '＋ New chat')).onClick());
     assert.equal(conversationChosen(c), '', 'no conversation is chosen'); assert.ok(byId(c, 'workspace-start'), 'the settings line is the new conversation\'s');
     assert.equal(focused, 1, 'the message box is focused');
     assert.equal(selectedTab(c), 'Workflows', 'the right panel is left as it is');
-    await React.act(async () => props(labelled(navigator(c), 'Settings & tools')).onClick());
+    await React.act(async () => props(accountRow(navigator(c))).onClick());
+    assert.equal(selectedTab(c), 'Workflows', 'opening the popover selects nothing');
+    await React.act(async () => props(nodes(accountPopover(c), 'button').find(b => b.textContent === 'Settings & tools…')).onClick());
+    assert.equal(accountPopover(c), undefined, 'the popover closes');
     assert.equal(selectedTab(c), 'Settings & tools'); assert.ok(revealed.includes('workspace-tools'));
     assert.ok(shown(byId(c, 'workspace-tools')));
   });

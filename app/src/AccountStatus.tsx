@@ -122,7 +122,31 @@ export function signInCompletion(host: Json): string | null {
     && ((typeof identity === "string" && !!identity) || (typeof identity === "number" && Number.isSafeInteger(identity)))
     ? JSON.stringify([generation, source.observationRef, identity]) : null;
 }
-function accountSummary(host: Json): string {
+/** What Codex reports of the sign-in started for the current process and home, where the host observed one: the one
+ * reading behind the sign-in line of the account panel and of the account popover. A sign-in of an earlier process
+ * or of another home is "none". */
+export type SignInPhase = "none" | "cancel-not-found" | "canceled" | "completed" | "failed" | "pending";
+export function signInPhase(host: Json): SignInPhase {
+  const generation = host?.generation, oauth = host?.homeOAuth, source = oauth?.source;
+  if (host?.state !== "ready" || host?.generationClosed || host?.homeRouting?.activeModeHomeClass !== "account"
+    || oauth?.state !== "source-observed" || !sameActivityGeneration(source?.generation, generation)) return "none";
+  return source.cancelStatus === "notFound" ? "cancel-not-found" : source.cancelStatus === "canceled" ? "canceled"
+    : source.phase === "CompletedSuccess" ? "completed" : ["CompletedFailure", "StartRejected"].includes(source.phase) ? "failed"
+    : source.phase === "Pending" ? "pending" : "none";
+}
+/** The App's sentence for each sign-in phase. */
+export const SIGN_IN_PHASE_WORDS: Record<SignInPhase, string> = {
+  none: "",
+  "cancel-not-found": "Codex had no pending sign-in to cancel. Account status is separate.",
+  canceled: "The pending sign-in was canceled. Account status is separate.",
+  completed: "Sign-in completed.",
+  failed: "Sign-in did not complete. Private details are withheld.",
+  pending: "Waiting for sign-in to complete.",
+};
+/** A sign-in Codex reports pending for the current process and home. */
+export const signInPending = (host: Json): boolean => signInPhase(host) === "pending";
+/** The account panel's sentence for the current reading: for a ChatGPT account, the account as Codex reports it. */
+export function accountSummary(host: Json): string {
   const reading = accountReading(host);
   return reading === "chatgpt-account" ? `Codex reports a ChatGPT account for this connection: ${reportedChatgptAccount(host?.accountObservation)}.` : ACCOUNT_PANEL_WORDS[reading];
 }
@@ -160,11 +184,7 @@ export function AccountStatus({ host, navigating, busy, read }: { host: Json; na
     checkedCompletions.current.add(completion);
     void check();
   }, [completion, busy, readEpoch]);
-  const signIn = !matching ? "" : source.cancelStatus === "notFound" ? "Codex had no pending sign-in to cancel. Account status is separate."
-    : source.cancelStatus === "canceled" ? "The pending sign-in was canceled. Account status is separate."
-    : source.phase === "CompletedSuccess" ? "Sign-in completed."
-    : ["CompletedFailure", "StartRejected"].includes(source.phase) ? "Sign-in did not complete. Private details are withheld."
-    : source.phase === "Pending" ? "Waiting for sign-in to complete." : "";
+  const signIn = ready ? SIGN_IN_PHASE_WORDS[signInPhase(host)] : "";
   return <div aria-label="Account status">
     <h3>Account status</h3>
     {signIn && <p>{signIn}</p>}

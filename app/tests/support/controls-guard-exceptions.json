@@ -686,5 +686,41 @@
   "count": 1,
   "basis": "an App-owned literal vocabulary",
   "reason": "section is an element of includedSections(found) (imported from IncludedWorkflows.tsx), so section.label is a literal set there (core, superseded, other) or a word of LIBRARY_GROUPS, the App's table of the shipped Library groups, taken by wordOf only when the entry's key and label are both in it; workflow-library-tab.test.mjs shows an unknown group under Other workflows here. The guard does not follow a field of a returned object."
+ },
+ {
+  "file": "AccountControls.tsx",
+  "where": "@aria-label",
+  "expr": "`Account and settings, ${words.state}`",
+  "component": "AccountRow",
+  "count": 1,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "words is accountRowWords(host, account.awaiting) (AccountControls.tsx), whose every state is an App literal or, while Codex is not ready, the title connectionWords returns (DailyWorkspace.tsx), itself only App literals. The guard does not follow a property of a call's result, nor an imported function."
+ },
+ {
+  "file": "AccountControls.tsx",
+  "where": "@title",
+  "expr": "words.state",
+  "component": "AccountRow",
+  "count": 1,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "words is accountRowWords(host, account.awaiting) (AccountControls.tsx), whose every state is an App literal or, while Codex is not ready, the title connectionWords returns (DailyWorkspace.tsx), itself only App literals. The guard does not follow a property of a call's result, nor an imported function."
+ },
+ {
+  "file": "AccountControls.tsx",
+  "where": "<button>",
+  "expr": "words.state",
+  "component": "AccountRow",
+  "count": 1,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "words is accountRowWords(host, account.awaiting) (AccountControls.tsx), whose every state is an App literal or, while Codex is not ready, the title connectionWords returns (DailyWorkspace.tsx), itself only App literals. The guard does not follow a property of a call's result, nor an imported function."
+ },
+ {
+  "file": "AccountControls.tsx",
+  "where": "<button>",
+  "expr": "words.detail",
+  "component": "AccountRow",
+  "count": 1,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "words is accountRowWords(host, account.awaiting) (AccountControls.tsx), whose every detail is an App literal, null, or \"Plan: \" followed by reportedPlan(host) (AccountStatus.tsx), which returns only an element of the App's own PLAN_TYPES list, else null. The guard does not follow a property of a call's result, nor an imported function."
  }
 ]

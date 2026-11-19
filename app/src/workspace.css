@@ -3778,3 +3778,16 @@ div.woven-chat-section-heading--folder:hover { background:transparent; }
 /* The right region clips rather than hides: a reveal's scrollIntoView could otherwise scroll the hidden overflow and
    take the tab bar out of view. Only the panel's own content (#right-view-content) scrolls. */
 .woven-workspace .woven-region--coordination { overflow: clip; }
+/* The account popover (AccountControls.tsx): the state's one action is the primary button; the App controls are
+   menu rows, as 3.0.1 draws them, not boxed buttons. */
+.account-controls-popover .account-controls-group > strong { font-size:13px; color:var(--ink); }
+.account-controls-popover .account-controls-group > .setup-primary:not(:disabled) { background:var(--cta); color:var(--cta-ink); border-color:var(--cta); }
+.account-controls-popover .account-controls-group > button:not(.account-controls-menu-action) { justify-self:start; text-align:left; }
+.account-controls-popover .account-controls-group > .setup-primary { justify-self:stretch; }
+.account-controls-popover .account-controls-menu-action { margin:0 -8px; padding:6px 8px; border-color:transparent; border-radius:6px; color:var(--ink); font-weight:500; }
+.account-controls-popover .account-controls-menu-action:hover,
+.account-controls-popover .account-controls-menu-action:focus-visible { background:var(--accent-soft); }
+.account-controls-popover .account-controls-group:last-child { gap:2px; }
+.account-controls-popover:focus { outline:none; }
+.account-controls-avatar-mark { position:absolute; right:-4px; bottom:-4px; width:14px; height:14px; border-radius:50%; background:var(--ink); color:var(--ground, #fff); font-size:9px; font-weight:700; line-height:14px; text-align:center; box-shadow:0 0 0 2px var(--ground, #fff); }
+.account-controls-popover .account-controls-group p[role="status"] { color:var(--ink); font-weight:600; }
