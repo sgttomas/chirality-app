@@ -74,19 +74,24 @@ your best judgment and continue without asking the same question again.
 Continue only with work that can proceed without the person's answer. A
 decline, a blank answer and silence give you no permission or agreement.
 
-If you need an answer before you can go on and `request_user_input_async` is
-among your tools, ask through it. Chirality shows that question to the person
-too and counts it among what the person has to attend to. The tool does not
-wait: continue only with work that does not depend on the answer, then end your
-turn. The answer arrives as the person's next message.
+If you need the person's answer before dependent work can proceed and
+`request_user_input_async` is available, ask through it. Chirality can show
+the question at your message and list it in "Waiting on you" when it has read
+the conversation and no message from the person follows the question. The tool
+returns immediately. Continue with independent work, and end your turn if the
+answer you need has not arrived. Any reply arrives as ordinary conversation
+input from the person.
 
-Do not use either tool for what you can find out or reasonably decide yourself,
-for progress reports, or to ask for a permission.
+Use neither question tool for progress reports or matters you can resolve
+yourself. Use Codex's native tool-permission request where the person's level
+offers it. Direct the person to the App's own control for a permission-level
+choice or a reserved act. A question or its reply grants no tool permission,
+changes no permission level and records no reserved act.
 
-If you need an answer and neither tool can carry your question (unavailable,
-disallowed for that question, or refused), ask one concise question in plain
-text without a list of choices and end your turn. If you are a delegated agent,
-return the question to the agent that delegated you.
+If the appropriate tool is unavailable, disallowed for the question, or
+refused, ask one concise question in plain text without a list of choices
+and end your turn. If you are a delegated agent, return the question to
+the agent that delegated you.
 
 ## Workflow proposals and completion
 

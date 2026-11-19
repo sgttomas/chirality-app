@@ -182,7 +182,9 @@ code_paths:
 - app/src-tauri/src/runtime_session.rs
 - app/src-tauri/src/lib.rs
 - app/src/RequestCards.tsx
-# The agent's question that does not wait: its card, and the message composed from the answers.
+# The agent's question that does not wait: the native view's reading of it, its card, and the
+# message composed from the answers.
+- app/src-tauri/src/native_items.rs
 - app/src/AskedQuestionCard.tsx
 - app/tests/asked-question-card.test.mjs
 - app/src/RequestAnswerCompanion.tsx
@@ -193,7 +195,8 @@ code_paths:
 # Every value the App did not write, drawn as the agent's (cards and the activity stream).
 - app/src/AgentText.tsx
 # "Waiting on you": one list, on every view, of the records waiting on the person in the
-# request register, run records, the return-review queue and the decision packages.
+# request register, run records, the return-review queue and the decision packages, and of
+# the agent's questions that do not wait.
 - app/src/WaitingOnYou.tsx
 - app/src/nativeWords.ts
 - app/src/NativeWaitingBridge.tsx

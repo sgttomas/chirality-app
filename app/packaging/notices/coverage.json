@@ -18,8 +18,8 @@
  ],
  "inputs_sha256": {
   "app/packaging/font_notice/index.json": "ad2b50d268aa1df4c856a9cb446cd0fb6821deed4a65e4214c6d5f0df69ac03f",
-  "app/packaging/notices/coverage-inputs.json": "d4d021513d575462153d1f56e17394102c75d2a70bb9814444760c7a6ae7a99d",
-  "app/packaging/notices/coverage-review.json": "7024dd0d0e16b7d1f5136fe0cd8a2755360b01d1e3d9a6626e99d229277c3d47",
+  "app/packaging/notices/coverage-inputs.json": "8fe41185df450c23203288ab96a220839b80c1ef309d19cb6d9379a8fc42ce61",
+  "app/packaging/notices/coverage-review.json": "9a1ba3124ed17b81b3f6070ecaf5385dc947e31ab0771eaf382f2b78dc3d4319",
   "app/packaging/notices/index.json": "fbf873b839b167d5347b233a7d019df4d053809e8dc9e31968e04b4e6cf46ac4",
   "app/packaging/notices/transitive-index.json": "557c17f96f1a82982d0933a5c0ea570f000db17dad4278d67b16fd63379ed517",
   "app/packaging/sqlite_notice/index.json": "cfbe3f95ea753d14f7d50a4f55d0263693726a30f4847e5430ccadf4d943fc3b",

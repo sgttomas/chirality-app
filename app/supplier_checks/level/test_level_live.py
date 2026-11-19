@@ -1789,8 +1789,8 @@ class QuestionThatDoesNotWait(unittest.TestCase):
             self.assertEqual(ids(whole[asked_turn])[1:], ['call_sumask', 'msg_sumask'])
             self.assertEqual(kinds(whole[reply_turn]), ['userMessage', 'agentMessage'])
             # The summary of the turn that asked holds one message from the person and one agent message: an item
-            # of the turn is left out. Which agent message it keeps is not asserted (the source says the final one;
-            # here it kept the question and left out the closing message).
+            # of the turn is left out. Which agent message it keeps is not asserted: the pinned projection selects
+            # the first user message and the last agent message from the items it receives.
             asked = next(t for t in summary if t['id'] == asked_turn)
             self.assertEqual(kinds(asked), ['userMessage', 'agentMessage'])
             self.assertTrue(set(ids(asked)) < set(ids(whole[asked_turn])))

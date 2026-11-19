@@ -64,28 +64,35 @@ On some models Codex gives the agent a second way to ask, which does not wait:
 the agent asks, its turn goes on, and nothing is held for your answer. The
 question appears as a card at the agent's message, with the choices it offers
 and room for your own answer. Choose or type, read the message the card shows
-(each question you answered, with your answer beneath it), and press **Send
-answers**: it is sent as your own next message in that conversation, exactly
-as shown. Nothing is sent until you press, and you can as well answer by
+(each question you answered, in quotation marks, then the option you chose or
+your own answer), and press **Send answers**: it is sent as your own next message in that conversation,
+exactly as shown. Nothing is sent until you press, and you can as well answer by
 writing a message yourself.
 
 "Waiting on you" lists such a question as "the agent asked a question and went
 on" until a message from you follows it. It is counted in the line's number
-and not among the requests from Codex.
+and not among the requests from Codex. Any later message from you ends that
+listing, whatever it says; Chirality does not judge whether it answered the
+question.
 
 Its limits:
 
-- Chirality knows of such a question only in a conversation it has read since
-  it last started Codex: one started or forked since then, or one that has
-  received a message since then. A conversation continued from history is
-  not read for this until you send it a message; until then the card says so
-  and still takes your answer, and "Waiting on you" names the conversation as
-  not read and says its status is incomplete.
+- Chirality lists such a question only after it has established the
+  conversation's reading in the Codex process and home in use. Continuing
+  from History does not establish that reading: until the conversation
+  receives a message, "Waiting on you" names it as not read and says its
+  status is incomplete. You can open a stored turn's items in History to see
+  any question Codex returned, then reply by sending a message in the
+  continued conversation.
+- Only the conversation's own agent is given this way to ask. A question seen
+  in a delegated agent's conversation is shown with no way to answer it
+  there; the agent you are talking with can relay it.
 - Nothing about such a question is kept across a relaunch.
 - Sending from the card follows the rules of the message box's own Send: one
   operation at a time, the conversation open in front of you, and no earlier
-  message to it left unconfirmed. The model and effort chosen in the message
-  box do not go with it.
+  ordinary text send to it left unconfirmed. The card sends no model, effort
+  or collaboration-mode choice from the message box. If the agent's turn is
+  still running, the send goes the way the message box's Send goes then.
 
 ## Interrupt one observed live turn
 
