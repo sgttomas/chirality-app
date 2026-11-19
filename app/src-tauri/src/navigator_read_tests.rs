@@ -355,6 +355,29 @@ fn the_latest_run_is_the_latest_start_by_instant() {
     assert!(instant("2026-13-01T00:00:00Z").is_none() && instant("2026-11-01T00:00:00").is_none());
 }
 
+// An impossible calendar date is unparsable: it sorts last and is said.
+#[test]
+fn an_impossible_calendar_date_is_not_a_start_time() {
+    assert!(instant("2026-02-30T00:00:00Z").is_none());
+    assert!(instant("2028-02-29T00:00:00Z").is_some(), "29 February in a leap year");
+    assert!(instant("2026-02-29T00:00:00Z").is_none(), "29 February in a common year");
+    assert!(instant("2000-02-29T00:00:00Z").is_some() && instant("1900-02-29T00:00:00Z").is_none());
+    assert!(instant("2026-04-31T00:00:00Z").is_none() && instant("2026-11-01T24:00:00Z").is_none());
+    let mut g = empty();
+    g.current_root = Some("/w/alpha".into());
+    g.folders = vec![attached("/w/alpha", "P")];
+    g.held = held(vec![
+        run("run:impossible", "t", RecordedLifecycle::OpenInterrupted, "2026-02-30T00:00:00Z"),
+        run("run:first-of-march", "t", RecordedLifecycle::OpenInterrupted, "2026-03-01T00:00:00Z"),
+    ]);
+    g.homes = vec![account(vec![thread("t", "/w/alpha", 1)], vec![])];
+    g.index = vec![index("account", "t", "/w/alpha", &[])];
+    let read = compose(g);
+    assert_eq!(entry(&read, "t").run.as_ref().unwrap().run_id, "run:first-of-march");
+    let alpha = project(&read, "/w/alpha");
+    assert!(alpha.runs_read.limits.iter().any(|l| l.starts_with("1 run of this project has no start time that can be read")), "{:?}", alpha.runs_read.limits);
+}
+
 // E1: a run's home comes only from the App's records.
 #[test]
 fn a_run_whose_home_the_app_does_not_record_joins_no_listed_conversation() {
