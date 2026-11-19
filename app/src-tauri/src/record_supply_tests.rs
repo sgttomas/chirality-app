@@ -396,6 +396,7 @@ fn invented_run(run: &str, ended: bool, n: usize) -> RecordedRun {
         workflow: Value::Null,
         assurance: Value::Null,
         lifecycle: if ended { RecordedLifecycle::Ended { stopped_by: "the person".into(), cause: "ended by the person".into() } } else { RecordedLifecycle::OpenInterrupted },
+        start_observed_at: None,
         restart_interruptions: vec![],
         records: (0..n).map(|i| json!({"kind":"checkpoint_arrival","runId":run,"recordId":format!("{run}-{i}"),"observedAt":"2026-01-01T00:00:00Z","body":{}})).collect(),
         declared: Err("invented".into()),
