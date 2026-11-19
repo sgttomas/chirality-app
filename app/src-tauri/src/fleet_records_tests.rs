@@ -960,10 +960,6 @@ fn fleet_reader_a_store_project_folder_that_cannot_be_listed_does_not_establish_
 /// Finding 3: absence needs the parent's listing not to hold the name, and is
 /// checked again at the end through the parent's stamp: a fleet folder made
 /// and removed again during the read is caught on either side.
-
-/// Finding 3: absence needs the parent's listing not to hold the name, and is
-/// checked again at the end through the parent's stamp: a fleet folder made
-/// and removed again during the read is caught on either side.
 #[test]
 fn fleet_reader_absence_needs_a_listing_without_the_name_and_a_folder_come_and_gone_is_caught() {
     let mut census = Census::default();
@@ -986,10 +982,6 @@ fn fleet_reader_absence_needs_a_listing_without_the_name_and_a_folder_come_and_g
         assert_sources_keep_their_absences(&view);
     }
 }
-
-/// Finding 4: an absent store fleet folder read as empty registers no
-/// accepted prefix, so a later write that makes the folder and stops before
-/// its log meets only the true missing-log limit.
 
 /// Finding 4: an absent store fleet folder read as empty registers no
 /// accepted prefix, so a later write that makes the folder and stops before
