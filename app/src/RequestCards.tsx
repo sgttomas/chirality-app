@@ -645,7 +645,8 @@ export function NativeRequestCard({ request, view, answer, readRequest, observat
           <button disabled={busy} onClick={() => { setChosen(c => { const next = { ...c }; delete next[q.id]; return next; }); setDrafts(d => { const next = { ...d }; delete next[q.id]; return next; }); }}>Leave unanswered</button>
           <p>Selected: {chosen[q.id] !== undefined ? q.isSecret ? "[masked]" : <SelectedOption options={q.options} index={chosen[q.id]} /> : drafts[q.id] !== undefined ? q.isSecret ? "[masked]" : "your own answer, in the field above" : "—"}</p>
         </div>)}
-        <button disabled={busy} onClick={() => send({ answers: questionAnswers(p.questions, chosen, drafts) }, "question-answers")}>{wordOf(QUESTION_CHOICE_WORDS, "question-answers")}</button>
+        {/* With nothing entered the answers would be empty, which Codex reads as a decline: only the decline button sends that. */}
+        <button disabled={busy || Object.keys(questionAnswers(p.questions, chosen, drafts)).length === 0} onClick={() => send({ answers: questionAnswers(p.questions, chosen, drafts) }, "question-answers")}>{wordOf(QUESTION_CHOICE_WORDS, "question-answers")}</button>
         <p>Unanswered questions are omitted; entered empty answers are preserved.</p>
         <button disabled={busy} onClick={() => send({ answers: {} }, "question-decline")}>{wordOf(QUESTION_CHOICE_WORDS, "question-decline")}</button>
       </>}
@@ -657,7 +658,7 @@ export function NativeRequestCard({ request, view, answer, readRequest, observat
         <button disabled={busy} onClick={() => send({ action: "decline", content: null, _meta: null })}>Decline <code>decline</code></button>
         <button disabled={busy} onClick={() => send({ action: "cancel", content: null, _meta: null })}>Cancel <code>cancel</code></button>
       </>}
-      <p>{method === QUESTION ? "Send answers and the decline each send at once, with no further confirmation." : "Sending opens a native confirmation."} Closing this card leaves the request waiting; the App never answers it by itself.</p>
+      <p>{method === QUESTION ? "Both buttons submit directly from this card." : "Sending opens a native confirmation."} Closing this card leaves the request waiting; the App never answers it by itself.</p>
     </div>}
     {error && <ErrorLine kind={error.kind} reported={error.reported} />}
     <p><small>Register: state <SuppliedId value={request.state} label="State:" name={REGISTER} /> · reply <SuppliedId value={request.replyWriteResult} label="Reply:" name={REGISTER} /> · Codex confirmation <SuppliedId value={request.acknowledgmentObservation?.status ?? "not-observed"} label="Confirmation:" name={REGISTER} />{request.settlement && <> · settled by <AgentText value={text(request.settlement.origin)} source="codex" label="Origin:" name={REGISTER} /> as <SuppliedId value={request.settlement.kind} label="Kind:" name={REGISTER} /></>}</small></p>

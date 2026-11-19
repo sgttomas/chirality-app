@@ -41,7 +41,7 @@ test('the card\'s answer words are the shared table\'s, entry for entry, and the
   assert.deepEqual([...renderRaw(legacy,project).matchAll(/<button[^>]*>([^<]*)<\/button>/g)].map(m=>unescape(m[1])),
     [shared.decisions.approved,shared.decisions.approved_for_session,shared.decisions.abort,shared.decisions.denied]);
   const q=renderRaw(question(),project);
-  assert.ok(q.includes(`<button>${shared.questionChoices['question-answers']}</button>`));
+  assert.ok(q.includes(`<button disabled="">${shared.questionChoices['question-answers']}</button>`),'not offered until an answer is entered');
   assert.ok(unescape(q).includes(`<button>${shared.questionChoices['question-decline']}</button>`));
 });
 
