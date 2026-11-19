@@ -1409,5 +1409,238 @@ class Question(unittest.TestCase):
             self.assertEqual(requests, ['item/tool/requestUserInput'])
 
 
+QUESTION_FLAG = 'features.default_mode_request_user_input=true'
+INVENTED_QUESTION = {'id': 'q1', 'header': 'Invented', 'question': 'Invented question?',
+                     'options': [{'label': 'Yes', 'description': 'Invented yes'},
+                                 {'label': 'No', 'description': 'Invented no'}]}
+
+
+def question_script(call_id):
+    def script(body, outputs, stub):
+        if call_id in outputs:
+            return [L.message('Asked.', 'msg_' + call_id)]
+        return [{'type': 'function_call', 'name': 'request_user_input', 'call_id': call_id, 'id': 'fc_' + call_id,
+                 'arguments': json.dumps({'questions': [INVENTED_QUESTION]})}]
+    return script
+
+
+def questions_raised(client, call_id=None):
+    return [r for r in client.server_requests if r['method'] == 'item/tool/requestUserInput'
+            and (call_id is None or r['params'].get('itemId') == call_id)]
+
+
+def question_tool_description(request):
+    for tool in request['body_tools'] or []:
+        if isinstance(tool, dict) and tool.get('name') == 'request_user_input':
+            return tool.get('description') or ''
+    return None
+
+
+class QuestionInAnOrdinaryConversation(unittest.TestCase):
+    """Case 7: the supplier's question tool in Default mode, once Codex is started with the under-development
+    feature `default_mode_request_user_input`. No collaboration mode is sent on any turn here."""
+
+    def ask(self, run, client, thread, key, **settings):
+        """Start a turn whose scripted model asks the invented question; return (turn id, the request raised)."""
+        call_id = 'call_' + key
+        run.stub.scripts[key] = question_script(call_id)
+        params = dict({'threadId': thread, 'input': [{'type': 'text', 'text': 'LEVEL[%s] go' % key}]}, **settings)
+        turn = client.result('turn/start', params)['turn']['id']
+        self.assertTrue(client.wait(lambda: questions_raised(client, call_id), 30))
+        self.assertIn(call_id, run.stub.issued)
+        asked = questions_raised(client, call_id)[0]
+        self.assertEqual((asked['thread'], asked['params'].get('turnId')), (thread, turn))
+        return turn, asked
+
+    def completed(self, client, thread, turn, timeout=30):
+        done = client.wait(lambda: client.notes_for('turn/completed', thread, turn), timeout)
+        self.assertTrue(done)
+        return done[0]['params']['turn']['status']
+
+    def test_at_every_level_of_the_apps_table_the_question_reaches_the_client_and_its_answer_reaches_the_agent(self):
+        table = json.loads(LEVELS_TABLE.read_text())
+        for row in table['levels']:
+            with self.subTest(level=row['id']), L.Run(SCRATCH, BINARY) as run:
+                start, each_turn = level_settings(row)
+                client = run.start(flags=[QUESTION_FLAG])
+                client.question_policy = 'hold'
+                thread = client.start_thread(**start)['thread']['id']
+                key = 'ask_' + row['id'].replace('-', '_')
+                turn, asked = self.ask(run, client, thread, key, **each_turn)
+                params = asked['params']
+                self.assertIs(params.get('isBlocking'), False)  # Codex marks it as one that need not block
+                self.assertIsNone(params.get('autoResolutionMs'))
+                self.assertEqual(len(params['questions']), 1)
+                question = params['questions'][0]
+                self.assertEqual({k: question.get(k) for k in INVENTED_QUESTION}, INVENTED_QUESTION)
+                self.assertIs(question.get('isOther'), True)  # Codex adds the free answer itself
+                self.assertEqual([r['method'] for r in client.server_requests if r['thread'] == thread],
+                                 ['item/tool/requestUserInput'])  # the question and nothing else was asked
+                listed = question_tool_description(next(r for r in run.stub.requests if r['key'] == key))
+                self.assertIn('Default', listed)
+                self.assertIn('Plan', listed)
+                self.assertFalse(client.notes_for('turn/completed', thread, turn))
+                client.answer_question(asked, {'q1': ['Yes']})
+                self.assertEqual(self.completed(client, thread, turn), 'completed')
+                self.assertEqual(json.loads(run.stub.outputs['call_' + key]), {'answers': {'q1': {'answers': ['Yes']}}})
+
+    def test_without_the_feature_the_same_start_refuses_the_question(self):
+        """The control for the row above, on the level the App uses by default."""
+        full = next(r for r in json.loads(LEVELS_TABLE.read_text())['levels'] if r['id'] == 'full')
+        start, each_turn = level_settings(full)
+        with L.Run(SCRATCH, BINARY) as run:
+            client = run.start()
+            client.question_policy = 'hold'
+            thread = client.start_thread(**start)['thread']['id']
+            run.stub.scripts['plain'] = question_script('call_plain')
+            _, done = client.turn(thread, 'LEVEL[plain] go', **each_turn)
+            self.assertEqual(done['turn']['status'], 'completed')
+            self.assertIn('call_plain', run.stub.issued)
+            self.assertEqual(questions_raised(client), [])
+            self.assertIn('unavailable in Default mode', run.stub.outputs.get('call_plain', ''))
+            listed = question_tool_description(next(r for r in run.stub.requests if r['key'] == 'plain'))
+            self.assertNotIn('Default', listed)
+
+    def test_held_declined_interrupted_relaunched_resumed_and_forked(self):
+        full = next(r for r in json.loads(LEVELS_TABLE.read_text())['levels'] if r['id'] == 'full')
+        start, each_turn = level_settings(full)
+        with L.Run(SCRATCH, BINARY) as run:
+            client = run.start(flags=[QUESTION_FLAG])
+            client.question_policy = 'hold'
+            thread = client.start_thread(**start)['thread']['id']
+
+            # Unanswered, the question waits: Codex answers nothing for the person and the turn does not end.
+            turn, held = self.ask(run, client, thread, 'held', **each_turn)
+            held_since = time.monotonic()
+            self.assertFalse(client.wait(lambda: client.notes_for('turn/completed', thread, turn), HOLD))
+            self.assertGreaterEqual(time.monotonic() - held_since, HOLD - 1)
+            self.assertIsNone(client.proc.poll())  # the server is still up
+            self.assertNotIn('call_held', run.stub.outputs)  # and the agent has been told nothing
+            client.answer_question(held, {'q1': ['A free answer, invented.']})
+            self.assertEqual(self.completed(client, thread, turn), 'completed')
+            self.assertEqual(json.loads(run.stub.outputs['call_held']),
+                             {'answers': {'q1': {'answers': ['A free answer, invented.']}}})
+
+            # An explicit decline is an answer with no answers, and the agent is told exactly that.
+            turn, declined = self.ask(run, client, thread, 'declined', **each_turn)
+            client.answer_question(declined, {})
+            self.assertEqual(self.completed(client, thread, turn), 'completed')
+            self.assertEqual(json.loads(run.stub.outputs['call_declined']), {'answers': {}})
+
+            # Interrupting the turn ends it; the question's call is not answered.
+            turn, interrupted = self.ask(run, client, thread, 'interrupted', **each_turn)
+            client.result('turn/interrupt', {'threadId': thread, 'turnId': turn})
+            self.assertEqual(self.completed(client, thread, turn, 20), 'interrupted')
+            self.assertNotIn('call_interrupted', run.stub.outputs)
+
+            # Ended with a question outstanding, as a quit or a crash ends it.
+            turn, outstanding = self.ask(run, client, thread, 'relaunch', **each_turn)
+            client.kill()
+            client.drain()
+
+            again = run.start(flags=[QUESTION_FLAG])
+            again.question_policy = 'hold'
+            resumed_at = time.monotonic()
+            again.result('thread/resume', {'threadId': thread})
+            time.sleep(10)
+            turns = again.result('thread/turns/list', {'threadId': thread})['data']
+            self.assertEqual(next(t['status'] for t in turns if t['id'] == turn), 'interrupted')
+
+            # A new question on the resumed conversation is raised and answered.
+            turn, resumed = self.ask(run, again, thread, 'resumed', **each_turn)
+            again.answer_question(resumed, {'q1': ['No']})
+            self.assertEqual(self.completed(again, thread, turn), 'completed')
+            self.assertEqual(json.loads(run.stub.outputs['call_resumed']), {'answers': {'q1': {'answers': ['No']}}})
+
+            # And on a fork of it.
+            fork = again.result('thread/fork', {'threadId': thread})['thread']['id']
+            turn, forked = self.ask(run, again, fork, 'forked', **each_turn)
+            again.answer_question(forked, {'q1': ['Yes']})
+            self.assertEqual(self.completed(again, fork, turn), 'completed')
+            self.assertEqual(json.loads(run.stub.outputs['call_forked']), {'answers': {'q1': {'answers': ['Yes']}}})
+
+            # Over the second server's whole life, read to its end: the question outstanding when the first
+            # server ended, and the interrupted one, were never raised again, while new ones were (the control).
+            again.stop()
+            again.drain()
+            observed = time.monotonic() - resumed_at
+            self.assertEqual(questions_raised(again, outstanding['params']['itemId']), [], 'within %.1f s' % observed)
+            self.assertEqual(questions_raised(again, interrupted['params']['itemId']), [])
+            self.assertEqual(len(questions_raised(again)), 2)
+
+    def test_a_childs_question_is_refused_and_reaches_no_one(self):
+        with L.Run(SCRATCH, BINARY) as run:
+            client = run.start(flags=[QUESTION_FLAG])
+            client.question_policy = 'hold'
+            thread = client.start_thread()['thread']['id']
+            # The control: the parent's own question reaches the client.
+            turn, asked = self.ask(run, client, thread, 'parentask')
+            client.answer_question(asked, {'q1': ['Yes']})
+            self.assertEqual(self.completed(client, thread, turn), 'completed')
+            run.stub.scripts['spawn'] = spawn_script('childask')
+            run.stub.scripts['childask'] = question_script('call_childask')
+            child = spawn_child(self, run, client, thread)
+            self.assertIn('call_childask', run.stub.issued)
+            self.assertEqual(questions_raised(client, 'call_childask'), [])
+            self.assertEqual([r for r in client.server_requests if r['thread'] == child], [])
+            self.assertIn('can only be used by the root thread', run.stub.outputs.get('call_childask', ''))
+
+
+CATALOGUE_MODEL = 'gpt-6.1-sol'  # a model whose entry in the pinned Codex's bundled catalogue lists the tool below
+ASYNC_QUESTION = {'title': 'Invented question, asked without waiting?', 'options': ['Invented yes', 'Invented no']}
+
+
+class QuestionThatDoesNotWait(unittest.TestCase):
+    """Case 8: `request_user_input_async`, which Codex offers by the model's catalogue entry, with no feature set
+    and no collaboration mode sent. It raises no request: the question arrives as an agent message item."""
+
+    def test_the_question_arrives_as_an_agent_message_item_and_the_turn_does_not_wait(self):
+        with L.Run(SCRATCH, BINARY) as run:
+            client = run.start()
+            thread = client.start_thread(model=CATALOGUE_MODEL)['thread']['id']
+
+            def script(body, outputs, stub):
+                if 'call_nowait' in outputs:
+                    return [L.message('Carried on.', 'msg_nowait')]
+                if 'request_user_input_async' not in L.tool_names(body):
+                    stub.not_offered.add('call_nowait')
+                    return [L.message('The tool was not offered.', 'msg_not_offered')]
+                return [{'type': 'function_call', 'name': 'request_user_input_async', 'call_id': 'call_nowait',
+                         'id': 'fc_nowait', 'arguments': json.dumps({'questions': [ASYNC_QUESTION]})}]
+            run.stub.scripts['nowait'] = script
+            turn, done = client.turn(thread, 'LEVEL[nowait] go')
+            self.assertNotIn('call_nowait', run.stub.not_offered, 'inconclusive: the tool was not offered')
+            self.assertIn('call_nowait', run.stub.issued)
+            self.assertEqual(done['turn']['status'], 'completed')  # with no answer from anyone
+            self.assertEqual(json.loads(run.stub.outputs['call_nowait']), {'accepted': True})
+            self.assertEqual([r['method'] for r in client.server_requests if r['thread'] == thread], [])
+            asked = [i for i in client.items(thread, turn, 'agentMessage') if i.get('questions')]
+            self.assertEqual(len(asked), 1)
+            self.assertEqual(asked[0]['questions'], [ASYNC_QUESTION])
+            self.assertEqual(asked[0].get('delivery'), 'async')
+            self.assertEqual(asked[0]['id'], 'call_nowait')
+
+            # After the server is ended and the conversation resumed, its history still holds the question.
+            client.kill()
+            client.drain()
+            again = run.start()
+            again.result('thread/resume', {'threadId': thread})
+            read = again.result('thread/read', {'threadId': thread, 'includeTurns': True})
+            kept = [i for t in read['thread']['turns'] for i in t.get('items') or []
+                    if i.get('type') == 'agentMessage' and i.get('questions')]
+            self.assertEqual([i['questions'] for i in kept], [[ASYNC_QUESTION]])
+
+    def test_a_model_the_catalogue_does_not_list_it_for_is_not_offered_it(self):
+        with L.Run(SCRATCH, BINARY) as run:
+            client = run.start()
+            thread = client.start_thread()['thread']['id']
+            run.stub.scripts['plainmodel'] = lambda body, outputs, stub: [L.message('Done.', 'msg_plainmodel')]
+            _, done = client.turn(thread, 'LEVEL[plainmodel] go')
+            self.assertEqual(done['turn']['status'], 'completed')
+            tools = next(r['tools'] for r in run.stub.requests if r['key'] == 'plainmodel')
+            self.assertIn('request_user_input', tools)
+            self.assertNotIn('request_user_input_async', tools)
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)
