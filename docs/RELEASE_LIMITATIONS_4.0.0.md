@@ -700,9 +700,9 @@ An entry is added in the same pull request that makes the limitation standing.
   both folders were deleted whole and nothing the App holds or imported names
   them, the App cannot tell that from a project that never had any: the return
   queue can then read as empty and "Waiting on you" can show nothing waiting.
-- **Why:** a project that has never used fleet coordination has neither
-  folder, and reading that as incomplete would mark every ordinary project
-  incomplete from its first launch. The App keeps no other record of whether
+- **Why:** a freshly set-up project has neither folder, and reading that as
+  incomplete would mark every ordinary project incomplete from its first
+  launch. The App keeps no other record of whether
   fleet records ever existed for a project.
 - **What the person does instead:** do not delete a project's
   `.chirality/fleet` folder while work is delegated. If it was deleted,
