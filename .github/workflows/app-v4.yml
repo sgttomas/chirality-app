@@ -146,6 +146,7 @@ jobs:
           call_custody after_run_end chat_workflow native_links startup_refusal
           native_conversation_links::delegation::tests
           recovery_root_cold_ waiting_requests_tests::
+          native_items::asked_question_tests asked_question_reply_tests
           runtime_session::workflow_root_tests::library_entries_tests
           stop_bound_tests home_hold::tests session_liveness::tests local_process_lock_tests
           prepared_turn_refusal_is_typed_only_for_a_correlated_native_error saved_working_folder_ sent_working_folder_
