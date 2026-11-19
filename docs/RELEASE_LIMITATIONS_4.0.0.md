@@ -666,9 +666,9 @@ An entry is added in the same pull request that makes the limitation standing.
   Codex, quit the App, or Codex ends unexpectedly) is not asked again when the
   conversation is continued: its turn shows as interrupted and the question is
   shown only as a past request. An agent that was delegated work cannot ask
-  this way at all. And an agent can still ask in its message instead: such a
-  conversation shows that the turn ended and is not marked as needing an
-  answer.
+  this way at all. And an agent may also ask in a message. Chirality shows the
+  message and uses Codex's reported turn status. Only a request makes the
+  question count as waiting for your answer.
 - **Why:** the question is Codex's own request, which belongs to the running
   turn and is not kept across a stop, and which Codex allows only to the
   conversation's own agent. Codex allows it in an ordinary conversation only
@@ -678,8 +678,8 @@ An entry is added in the same pull request that makes the limitation standing.
   guidance asks it to, and the App does not guess from the wording of a
   message.
 - **What the person does instead:** after a stop, send a message to continue.
-  Read a completed turn's last message for a question. A delegated agent's
-  question reaches you through the agent you are talking with.
+  Read a completed turn's last message for a question. The agent you are
+  talking with can relay a delegated agent's question.
 - **Basis:** DEL-01-04 REQ-001 (requests and their answers); DEL-01-05 (the
   settings the App gives its Codex); DEL-02-04 (the guidance). The level
   fixtures show the behaviour at the pinned Codex version

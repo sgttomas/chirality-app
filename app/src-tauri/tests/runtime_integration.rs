@@ -379,7 +379,7 @@ fn reviewed_v4_seed_entry_preserves_edits_and_old_composition_new_entry_reads_ne
     // guidance digest is the reviewed AGENTS.md bound in ROLE_SET_SOURCE_BINDING.json.
     assert_eq!(
         chirality_app_v4_lib::util::sha256_hex(COMMON_DEFAULT),
-        "367af032137e997f9d2035465e5368b6eea7654ad398405e8ec20875a41dbe8b"
+        "4c6e1afd262b2b9076c703b4fa4c71e524ebbe249ec8e4e6a39d6988e2a34ab6"
     );
     for role in Role::ALL {
         assert_eq!(
