@@ -25,6 +25,9 @@ use std::{
 const PROFILE: &str = "desktop-startup/request.json";
 const LIMIT: u64 = 64 * 1024;
 const SUPPLIER: &str = "bundled-owner-use-development";
+/// The source of a launch from the saved setup request: the person set the project up through the App
+/// (`project_trust::how_known`).
+pub(crate) const SAVED_REQUEST_SOURCE: &str = "explicit saved desktop request, revalidated this launch";
 /// App-owned settings created only by the explicit new-settings setup: a new
 /// leaf per setup, beside (never inside) the protected App-data domains.
 const SETTINGS: &str = "shared-settings";
@@ -619,6 +622,19 @@ fn write_profile(path: &Path, requested: &RequestedInputs) -> Result<(), String>
     result
 }
 
+/// DEL-01-01: where a setup route names a project, its review says, where the effects are listed, that Chirality
+/// will trust the project, followed by the whole effects text (`project_trust::EFFECTS_TEXT`); `projectTrust` holds
+/// the same, with the repository sentence and its root as supplied text where the project's folder is not its own
+/// root. A route that names no project says nothing new.
+fn with_project_trust(review: &mut Value, project: Option<&Path>) {
+    let Some(project) = project else { return };
+    if let Some(effects) = review["effects"].as_array_mut() {
+        effects.push(json!(crate::project_trust::WILL_TRUST));
+        effects.push(json!(crate::project_trust::EFFECTS_TEXT));
+    }
+    review["projectTrust"] = json!({"line": crate::project_trust::WILL_TRUST, "effects": crate::project_trust::effects_for(project)});
+}
+
 pub(crate) struct Launch {
     /// The project, only as admitted against the established App data folder.
     pub workspace: Option<AdmittedProject>,
@@ -1141,7 +1157,7 @@ impl DesktopSetup {
             shared_paths,
             bootstrap: Some(bootstrap),
             namespaces: Some(namespaces),
-            source: "explicit saved desktop request, revalidated this launch",
+            source: SAVED_REQUEST_SOURCE,
         })
     }
     fn recheck_storage(&self) -> Result<(), String> {
@@ -1529,7 +1545,8 @@ impl DesktopSetup {
             Some(shared.clone()),
         )?;
         let token = crate::util::opaque_id("desktop-project-preview-")?;
-        let result = json!({"defaults":Self::first_use_defaults("retain-account-project"),"token":token,"kind":"retain-account-project","affirmative":"Save project for next launch","accountHome":account.display().to_string(),"project":project.as_ref().map(|p|p.display().to_string()),"effects":[format!("Retain the currently admitted account directory {}",account.display()),format!("Project on next launch: {}",project.as_ref().map(|p|p.display().to_string()).unwrap_or_else(||"explicitly absent".into())),"Save only a pending project request; create no home, links or credentials"],"resources":resource_view(&plan)?,"standing":"Original admitted account/shared/supplier references are retained; active workspace and all current owners/choices remain unchanged"});
+        let mut result = json!({"defaults":Self::first_use_defaults("retain-account-project"),"token":token,"kind":"retain-account-project","affirmative":"Save project for next launch","accountHome":account.display().to_string(),"project":project.as_ref().map(|p|p.display().to_string()),"effects":[format!("Retain the currently admitted account directory {}",account.display()),format!("Project on next launch: {}",project.as_ref().map(|p|p.display().to_string()).unwrap_or_else(||"explicitly absent".into())),"Save only a pending project request; create no home, links or credentials"],"resources":resource_view(&plan)?,"standing":"Original admitted account/shared/supplier references are retained; active workspace and all current owners/choices remain unchanged"});
+        with_project_trust(&mut result, project.as_deref());
         self.preview = Some(Preview {
             token,
             kind: PreviewKind::RetainProject { admission, request },
@@ -1626,6 +1643,7 @@ impl DesktopSetup {
         ]);
         effects["standing"] = json!("Nothing is created until you confirm. No other Codex settings, home or credential is read, imported or changed.");
         effects["defaults"] = Self::first_use_defaults("new-settings");
+        with_project_trust(&mut effects, preview.project.as_deref());
         Ok(effects)
     }
     pub fn preview(
@@ -1655,7 +1673,8 @@ impl DesktopSetup {
             Some(shared.clone()),
         )?;
         let token = crate::util::opaque_id("desktop-preview-")?;
-        let effects = json!({"defaults":Self::first_use_defaults("new-home"),"token":token,"kind":"new-home","affirmative":"Prepare home and save for next launch","accountHome":account.display().to_string(),"effects":[format!("Create new account directory {}",account.display()),format!("Create config.toml link → {}",shared.config_toml.display()),format!("Create AGENTS.md link → {}",shared.global_agents_md.display()),format!("Create skills link → {}",shared.skills.display()),format!("Save private pending request {}",data.join(PROFILE).display())],"project":project.as_ref().map(|p|p.display().to_string()),"resources":resource_view(&plan)?,"standing":"No credential import or existing-home adoption. Only the explicit prepare/save action creates these paths. Missing targets remain visible source limits."});
+        let mut effects = json!({"defaults":Self::first_use_defaults("new-home"),"token":token,"kind":"new-home","affirmative":"Prepare home and save for next launch","accountHome":account.display().to_string(),"effects":[format!("Create new account directory {}",account.display()),format!("Create config.toml link → {}",shared.config_toml.display()),format!("Create AGENTS.md link → {}",shared.global_agents_md.display()),format!("Create skills link → {}",shared.skills.display()),format!("Save private pending request {}",data.join(PROFILE).display())],"project":project.as_ref().map(|p|p.display().to_string()),"resources":resource_view(&plan)?,"standing":"No credential import or existing-home adoption. Only the explicit prepare/save action creates these paths. Missing targets remain visible source limits."});
+        with_project_trust(&mut effects, project.as_deref());
         let source_refs = [
             &shared.config_toml,
             &shared.global_agents_md,
@@ -4696,6 +4715,9 @@ mod tests {
             .preview_project(Some(f.project.clone()))
             .unwrap();
         assert_eq!(preview["accountHome"], h.to_str().unwrap());
+        // DEL-01-01: the route that keeps the sign-in folder and names a project says it will trust it, with the
+        // whole effects text.
+        assert_project_trust_said(&preview, &f.project);
         // Preview success exercises genuine retained-source guards. Do not save
         // a second pending plan: fresh admission below consumes the exact config
         // continuation request with H/P unchanged.
@@ -7102,6 +7124,42 @@ mod tests {
         for view in [shared, kept] {
             let text = view.to_string();
             assert!(!text.contains("read-only") && !text.contains("auth.json") && !text.contains("by default"), "no default is restated as the settings in use");
+        }
+    }
+    /// DEL-01-01: a review that names a project says, where its effects are listed, that Chirality will trust
+    /// it, then the whole effects text; `projectTrust` says the same with the repository sentence where it applies.
+    fn assert_project_trust_said(review: &Value, project: &Path) {
+        let effects: Vec<&str> = review["effects"].as_array().unwrap().iter().map(|e| e.as_str().unwrap()).collect();
+        let at = effects.iter().position(|e| *e == crate::project_trust::WILL_TRUST).expect("the trust line among the effects");
+        assert_eq!(effects.get(at + 1), Some(&crate::project_trust::EFFECTS_TEXT), "followed by the whole effects text");
+        assert_eq!(review["projectTrust"]["line"], crate::project_trust::WILL_TRUST);
+        assert_eq!(review["projectTrust"]["effects"], crate::project_trust::effects_for(project));
+    }
+    #[test]
+    fn each_setup_route_that_names_a_project_says_chirality_will_trust_it_and_what_that_turns_on() {
+        let f = Fixture::new();
+        let mut setup = f.setup();
+        let launch = setup.resolve(None, true, || panic!("setup has no probe"));
+        setup.admit_root(launch, Ok(f.data.clone()));
+        // The route with the person's own settings, and the route with new settings.
+        let own = setup.preview(f.shared.clone(), Some(f.project.clone()), SUPPLIER).unwrap();
+        assert_project_trust_said(&own, &f.project);
+        assert_eq!(own["projectTrust"]["effects"]["insideRepository"], Value::Null, "the project is its own root");
+        let new = setup.preview_new_settings(Some(f.project.clone())).unwrap();
+        assert_project_trust_said(&new, &f.project);
+        // A project below a repository's top: the review names that root, as supplied text in its own field.
+        let repository = f.root.join("repository");
+        std::fs::create_dir_all(repository.join(".git")).unwrap();
+        std::fs::write(repository.join(".git").join("HEAD"), b"ref: refs/heads/main\n").unwrap();
+        let below = repository.join("inner");
+        std::fs::create_dir_all(&below).unwrap();
+        let inside = setup.preview_new_settings(Some(below.clone())).unwrap();
+        assert_project_trust_said(&inside, &below);
+        assert_eq!(inside["projectTrust"]["effects"]["insideRepository"]["root"], json!(repository.to_string_lossy()));
+        // A route that names no project says nothing new.
+        for review in [setup.preview(f.shared.clone(), None, SUPPLIER).unwrap(), setup.preview_new_settings(None).unwrap()] {
+            assert!(review.get("projectTrust").is_none());
+            assert!(!review.to_string().contains(crate::project_trust::WILL_TRUST));
         }
     }
     #[test]

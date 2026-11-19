@@ -238,6 +238,7 @@ fn namespace_admission_final_geometry_failure_and_unavailable_rec_are_truthful()
         end_observation: Mutex::new(None),
         terminal_publication: original.terminal_publication.clone(),
         liveness: original.liveness.clone(),
+        project_trust: original.project_trust.clone(),
     };
     let binding = f.bootstrap.native_namespaces(true).unwrap();
     f.bootstrap.prepare_key().unwrap();

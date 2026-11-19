@@ -208,3 +208,155 @@ fn the_level_ledger_rows_are_valid_under_0_6_only_and_carry_no_decision_actor() 
         assert!(!before.is_valid(&row), "a 0.5 reader refuses {}", row["entryId"]);
     }
 }
+
+// ---- DEL-01-01: the project trust case table, with the App's own choice ----
+
+/// A reading of `case` for an invented folder, with the App's `choice`.
+fn reading(case: TrustCase, choice: Option<AppTrust>) -> TrustReading {
+    let mut r = TrustReading::not_read(PathBuf::from("/invented/project"), TRUST_READ_FAILED, None);
+    r.case = case;
+    r.choice = choice;
+    r.read_at = Some("2026-11-19T00:00:00Z".into());
+    r
+}
+fn trusted() -> TrustCase { TrustCase::Trusted { key: "/invented/project".into() } }
+fn marked_untrusted() -> TrustCase { TrustCase::MarkedUntrusted { key: "/invented/project".into() } }
+fn not_read() -> TrustCase { TrustCase::NotRead { reason: TRUST_READ_FAILED.into(), detail: None } }
+fn on() -> AppTrust { AppTrust::OnBySetup }
+fn off() -> AppTrust { AppTrust::OffBySwitch { at: "2026-11-19T01:00:00Z".into() } }
+fn choice_not_read() -> AppTrust { AppTrust::NotRead { detail: Some("invented store limit".into()) } }
+
+#[test]
+fn row_1_a_settings_reading_that_is_not_whole_and_current_is_untrusted_whatever_the_apps_choice() {
+    for choice in [None, Some(on()), Some(AppTrust::OnBySwitch { at: "t".into() }), Some(off()), Some(AppTrust::NoChoice), Some(choice_not_read())] {
+        let r = reading(not_read(), choice.clone());
+        assert_eq!((r.row(), r.trust_level()), (TrustRow::SettingsNotRead, "untrusted"), "{choice:?}");
+        assert_eq!(r.status()["lines"], json!([TRUST_NOT_READ, TRUST_UNTRUSTED_SENT]), "the existing sentences for their case");
+    }
+    // A stale reading is a reading that is not current: never trusted, the App's on included.
+    let mut r = reading(trusted(), Some(on()));
+    r.generation = Some(json!({"generation": 1, "configWrites": 0}));
+    assert_eq!(r.stale().trust_level(), "untrusted");
+}
+
+#[test]
+fn row_2_the_persons_untrusted_mark_wins_over_the_apps_on() {
+    for choice in [None, Some(on()), Some(AppTrust::OnBySwitch { at: "t".into() }), Some(AppTrust::NoChoice)] {
+        let r = reading(marked_untrusted(), choice.clone());
+        assert_eq!((r.row(), r.trust_level()), (TrustRow::MarkedUntrusted, "untrusted"), "{choice:?}");
+        assert_eq!(r.status()["case"], "marked-untrusted");
+        assert_eq!(r.status()["lines"], json!([TRUST_MARKED_UNTRUSTED, TRUST_UNTRUSTED_SENT]));
+    }
+    assert_eq!(reading(marked_untrusted(), Some(on())).status()["appChoice"], "on", "the view can say the App's on was overridden");
+}
+
+#[test]
+fn row_3_the_apps_off_wins_over_the_settings_trusted_mark() {
+    for case in [trusted(), TrustCase::Unmarked] {
+        let r = reading(case.clone(), Some(off()));
+        assert_eq!((r.row(), r.trust_level()), (TrustRow::SwitchedOff, "untrusted"), "{case:?}");
+        let status = r.status();
+        assert_eq!(status["case"], "switched-off");
+        assert_eq!(status["lines"], json!(["You switched trust off for this project in Chirality (at 2026-11-19T01:00:00Z), so the App sent an untrusted entry for the project root shown below."]));
+        assert_eq!(status["appChoiceAt"], "2026-11-19T01:00:00Z");
+    }
+}
+
+#[test]
+fn row_4_the_settings_trusted_mark_is_trusted_as_now() {
+    for choice in [None, Some(on()), Some(AppTrust::NoChoice)] {
+        let r = reading(trusted(), choice.clone());
+        assert_eq!((r.row(), r.trust_level()), (TrustRow::MarkedTrusted, "trusted"), "{choice:?}");
+        assert_eq!(r.status()["case"], "trusted");
+        assert_eq!(r.status()["lines"], json!([format!("{TRUST_TRUSTED_PREFIX}2026-11-19T00:00:00Z{TRUST_TRUSTED_SUFFIX}")]));
+    }
+}
+
+#[test]
+fn row_5_unmarked_with_the_apps_on_is_trusted_and_says_why() {
+    let r = reading(TrustCase::Unmarked, Some(on()));
+    assert_eq!((r.row(), r.trust_level()), (TrustRow::AppOn, "trusted"));
+    assert_eq!(r.status()["case"], "app-on-by-setup");
+    assert_eq!(r.status()["lines"], json!(["You set this project up in Chirality and have not switched its trust off, so the App sent a trusted entry for the project root shown below."]));
+    assert_eq!(r.projects(), json!({"/invented/project": {"trust_level": "trusted"}}));
+    let r = reading(TrustCase::Unmarked, Some(AppTrust::OnBySwitch { at: "2026-11-19T02:00:00Z".into() }));
+    assert_eq!((r.row(), r.trust_level()), (TrustRow::AppOn, "trusted"));
+    assert_eq!(r.status()["lines"], json!(["You switched trust on for this project in Chirality (at 2026-11-19T02:00:00Z), so the App sent a trusted entry for the project root shown below."]));
+}
+
+#[test]
+fn row_6_otherwise_untrusted_as_now_and_a_folder_that_is_not_the_apps_project_is_exactly_as_before() {
+    for choice in [None, Some(AppTrust::NoChoice)] {
+        let r = reading(TrustCase::Unmarked, choice.clone());
+        assert_eq!((r.row(), r.trust_level()), (TrustRow::Unmarked, "untrusted"), "{choice:?}");
+        assert_eq!(r.status()["case"], "unmarked");
+        assert_eq!(r.status()["lines"], json!([TRUST_UNTRUSTED_SENT]));
+    }
+    // No App project: the status is today's, with no field of the App's choice.
+    let status = reading(TrustCase::Unmarked, None).status();
+    assert!(status.get("appChoice").is_none());
+}
+
+#[test]
+fn row_7_an_unreadable_choice_is_untrusted_over_every_mark() {
+    for case in [trusted(), TrustCase::Unmarked, marked_untrusted()] {
+        let r = reading(case.clone(), Some(choice_not_read()));
+        assert_eq!((r.row(), r.trust_level()), (TrustRow::ChoiceNotRead, "untrusted"), "{case:?}");
+        let status = r.status();
+        assert_eq!(status["case"], "choice-not-read");
+        assert_eq!(status["lines"], json!(["The App could not read this project's trust choice, so it sent an untrusted entry for the project root shown below."]));
+        assert_eq!(status["detail"], json!({"text": "invented store limit", "standing": NOT_THE_APPS_TEXT}));
+    }
+}
+
+#[test]
+fn the_apps_sentences_say_tried_to_send_for_an_unwritten_frame() {
+    for (case, choice, want) in [
+        (TrustCase::Unmarked, on(), "You set this project up in Chirality and have not switched its trust off, so the App tried to send a trusted entry for the project root shown below."),
+        (TrustCase::Unmarked, AppTrust::OnBySwitch { at: "T".into() }, "You switched trust on for this project in Chirality (at T), so the App tried to send a trusted entry for the project root shown below."),
+        (trusted(), off(), "You switched trust off for this project in Chirality (at 2026-11-19T01:00:00Z), so the App tried to send an untrusted entry for the project root shown below."),
+        (trusted(), choice_not_read(), "The App could not read this project's trust choice, so it tried to send an untrusted entry for the project root shown below."),
+    ] {
+        let status = reading(case, Some(choice)).status_for_write(false);
+        assert_eq!(status["lines"], json!([want]));
+        assert_eq!(status["sent"], Value::Null);
+    }
+}
+
+#[test]
+fn a_trusted_projects_settings_file_that_stops_a_start_is_said_plainly_for_both_observed_causes() {
+    let base = tmp("settings-refusal");
+    let project = base.canonicalize().unwrap();
+    let cwd = project.join("sub");
+    std::fs::create_dir_all(cwd.join(".codex")).unwrap();
+    std::fs::create_dir_all(project.join(".codex")).unwrap();
+    let mut r = TrustReading::not_read(cwd.clone(), TRUST_READ_FAILED, None);
+    r.case = TrustCase::Unmarked;
+    r.choice = Some(on());
+    assert_eq!((r.root.clone(), r.trust_level()), (cwd.clone(), "trusted"), "no .git: the folder is its own root");
+    // A parse error naming the project's file.
+    let file = cwd.join(".codex").join("config.toml");
+    let parse = json!({"code": -32600, "message": format!("failed to load configuration: {}: TOML parse error at line 1, column 5", file.display())});
+    let said = project_settings_refusal(&r, &parse).unwrap();
+    assert_eq!(said["lines"], json!([PROJECT_SETTINGS_NOT_LOADED]));
+    assert_eq!(said["lines"][0], "This project's own Codex settings file could not be loaded, so Codex did not start the conversation.");
+    assert_eq!((said["fileSentence"].as_str(), said["files"].clone()), (Some(PROJECT_SETTINGS_FILE_NAMED), json!([file.to_string_lossy()])));
+    assert_eq!(said["codexReason"], json!({"text": parse["message"], "standing": NOT_THE_APPS_TEXT}));
+    assert_eq!(said["remedy"], "You can fix the file, or switch this project's trust off in Chirality and start the conversation again.");
+    // A key no longer supported: Codex names no path, so the candidates from the root to the folder are said.
+    let mut below = TrustReading::not_read(cwd.clone(), TRUST_READ_FAILED, None);
+    below.root = project.clone();
+    below.case = TrustCase::Unmarked;
+    below.choice = Some(on());
+    let unsupported = json!({"code": -32600, "message": "failed to load configuration: `invented_key` is no longer supported; remove it from config.toml"});
+    let said = project_settings_refusal(&below, &unsupported).unwrap();
+    assert_eq!(said["fileSentence"], PROJECT_SETTINGS_FILE_CANDIDATES);
+    assert_eq!(said["files"], json!([project.join(".codex/config.toml").to_string_lossy(), cwd.join(".codex/config.toml").to_string_lossy()]));
+    // Not this case: an untrusted entry's refusal, another code, another beginning.
+    let mut untrusted = r.clone();
+    untrusted.choice = Some(off());
+    assert_eq!(project_settings_refusal(&untrusted, &parse), None, "an untrusted entry's refusal is left as it is");
+    assert_eq!(project_settings_refusal(&r, &json!({"code": -32603, "message": parse["message"]})), None);
+    assert_eq!(project_settings_refusal(&r, &json!({"code": -32600, "message": "invalid request: failed to load configuration:"})), None);
+    std::fs::remove_dir_all(base).unwrap();
+}

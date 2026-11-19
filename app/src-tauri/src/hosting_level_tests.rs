@@ -1670,3 +1670,193 @@ fn round_two_refused_start_retry_keeps_its_recorded_default() {
     assert_eq!(host.default_level().unwrap().id,"supervised");
     wire.close(&host);host.app_runtime_custody().unwrap().record_app_session_end(&[]).unwrap();std::fs::remove_dir_all(base).unwrap();
 }
+
+// ---- DEL-01-01: the App's own trust choice in the frames ----
+
+const SET_UP: &str = crate::desktop_startup::SAVED_REQUEST_SOURCE;
+const ENVIRONMENT: &str = "explicit Root native environment path inputs";
+
+/// A trusting Host whose launched project is `project`, known as `source` says.
+fn app_project_host(base: &Path, project: &Path, source: &str) -> (Arc<Host>, Arc<crate::project_trust::ProjectTrust>) {
+    let host = trusting_host(base, project, "edits");
+    let trust = Arc::new(crate::project_trust::ProjectTrust::for_launch(Some(project), source));
+    host.configure_project_trust(Arc::clone(&trust));
+    (host, trust)
+}
+/// The person's switch off, or a switch file damaged past its last complete line.
+fn switched_off(project: &Path, trust: &crate::project_trust::ProjectTrust) {
+    crate::records_store::attach(project, true).unwrap();
+    trust.switch_off().unwrap();
+}
+fn damaged_choice(project: &Path, trust: &crate::project_trust::ProjectTrust) {
+    switched_off(project, trust);
+    let file = crate::records_store::attach(project, false).unwrap().dir.unwrap().join(crate::records_store::TRUST_SWITCHES);
+    use std::io::Write;
+    std::fs::OpenOptions::new().append(true).open(file).unwrap().write_all(b"{\"damaged\n").unwrap();
+}
+const START_RESUME_FORK: [(&str, &str); 3] = [("thread/start", "start"), ("thread/resume", "resume"), ("thread/fork", "fork")];
+fn frame_params(method: &str, cwd: &Path) -> Value {
+    match method {
+        "thread/start" => json!({"cwd": cwd}),
+        "thread/resume" => json!({"threadId": "thread", "excludeTurns": true}),
+        _ => json!({"threadId": "thread", "deferGoalContinuation": true}),
+    }
+}
+
+#[test]
+fn every_row_of_the_case_table_through_start_resume_and_fork_with_exactly_one_entry() {
+    type Prepare = fn(&Path, &crate::project_trust::ProjectTrust);
+    let none: Prepare = |_, _| {};
+    let unmarked = || json!({});
+    let cases: Vec<(&str, &str, Prepare, Box<dyn Fn(&str) -> Value + Send>, &str, &str)> = vec![
+        ("5: unmarked, set up through the App", SET_UP, none, Box::new(move |_| layers_with(unmarked())), "trusted", "app-on-by-setup"),
+        ("2: the person's untrusted mark over the App's on", SET_UP, none, Box::new(|k| layers_with(json!({k: {"trust_level": "untrusted"}}))), "untrusted", "marked-untrusted"),
+        ("3: the App's off over the settings' trusted mark", SET_UP, switched_off, Box::new(|k| layers_with(json!({k: {"trust_level": "trusted"}}))), "untrusted", "switched-off"),
+        ("1: an unreadable reading over the App's on", SET_UP, none, Box::new(|_| json!({"error": {"code": -32603, "message": "invented"}})), "untrusted", "not-read"),
+        ("7: an unreadable choice over the trusted mark", SET_UP, damaged_choice, Box::new(|k| layers_with(json!({k: {"trust_level": "trusted"}}))), "untrusted", "choice-not-read"),
+        ("4: the trusted mark", SET_UP, none, Box::new(|k| layers_with(json!({k: {"trust_level": "trusted"}}))), "trusted", "trusted"),
+        ("6: environment route, unmarked", ENVIRONMENT, none, Box::new(move |_| layers_with(unmarked())), "untrusted", "unmarked"),
+        ("4: environment route, the trusted mark", ENVIRONMENT, none, Box::new(|k| layers_with(json!({k: {"trust_level": "trusted"}}))), "trusted", "trusted"),
+    ];
+    for (n, (what, source, prepare, answer, level, case)) in cases.into_iter().enumerate() {
+        let (base, project, _, _) = git_project(&format!("app-trust-{n}"));
+        let (host, trust) = app_project_host(&base, &project, source);
+        prepare(&project, &trust);
+        let k = key(&project);
+        let wire = Responder::attach(&host, move |_| answer(&k));
+        for (method, _) in START_RESUME_FORK {
+            send(&host, method, frame_params(method, &project)).unwrap();
+            let (reads, frame) = wire.next_sent();
+            assert_eq!(reads.len(), 1, "{what} {method}: one settings reading, just before");
+            assert_eq!(frame["params"]["config"]["projects"], json!({key(&project): {"trust_level": level}}), "{what} {method}: exactly one entry, under the canonical spelling");
+        }
+        let trust_status = thread_row(&host, "thread")["level"]["projectTrust"].clone();
+        assert_eq!((trust_status["case"].as_str(), trust_status["sent"].as_str()), (Some(case), Some(level)), "{what}");
+        assert_eq!(trust_status["appChoice"], json!(if source == SET_UP { if case == "switched-off" { "off" } else if case == "choice-not-read" { "not-read" } else { "on" } } else { "none" }), "{what}");
+        assert_eq!(trust.view()["lastSent"]["case"], json!(case), "{what}: the view shows what the last frame sent");
+        wire.close(&host);
+        std::fs::remove_dir_all(&base).unwrap();
+    }
+}
+
+#[test]
+fn a_folder_that_is_not_the_apps_project_gets_todays_rule_exactly() {
+    let (base, project, _, _) = git_project("app-trust-elsewhere");
+    let (host, trust) = app_project_host(&base, &project, SET_UP);
+    let wire = Responder::attach(&host, |_| layers_with(json!({})));
+    // A subfolder of the project, and a folder outside it: the App's on is not inferred.
+    for cwd in [project.join("sub"), base.clone()] {
+        send(&host, "thread/start", json!({"cwd": cwd})).unwrap();
+        let (_, frame) = wire.next_sent();
+        let entry = frame["params"]["config"]["projects"].as_object().unwrap().clone();
+        assert_eq!(entry.len(), 1);
+        assert_eq!(entry.values().next().unwrap(), &json!({"trust_level": "untrusted"}), "{}", cwd.display());
+    }
+    assert!(trust.view()["lastSent"].is_null(), "no frame of the App's project was sent");
+    wire.close(&host);
+    std::fs::remove_dir_all(&base).unwrap();
+}
+
+#[test]
+fn a_switch_takes_effect_at_the_next_start_resume_or_fork_and_not_on_a_running_conversation() {
+    let (base, project, _, _) = git_project("app-trust-next");
+    let (host, trust) = app_project_host(&base, &project, SET_UP);
+    crate::records_store::attach(&project, true).unwrap();
+    let wire = Responder::attach(&host, |_| layers_with(json!({})));
+    send(&host, "thread/resume", frame_params("thread/resume", &project)).unwrap();
+    assert_eq!(wire.next_sent().1["params"]["config"]["projects"], json!({key(&project): {"trust_level": "trusted"}}));
+    trust.switch_off().unwrap();
+    // The running conversation's next turn carries no trust entry: nothing changes for it.
+    send(&host, "turn/start", turn_params("thread")).unwrap();
+    let (reads, turn) = wire.next_sent();
+    assert!(reads.is_empty() && turn["params"].get("config").and_then(|c| c.get("projects")).is_none());
+    // The view says the choice is off while the last frame sent was trusted: they can differ.
+    let view = trust.view();
+    assert_eq!((view["choice"].as_str(), view["lastSent"]["sent"].as_str()), (Some("off"), Some("trusted")));
+    for (method, _) in START_RESUME_FORK {
+        send(&host, method, frame_params(method, &project)).unwrap();
+        assert_eq!(wire.next_sent().1["params"]["config"]["projects"], json!({key(&project): {"trust_level": "untrusted"}}), "{method}");
+    }
+    // On again, by the confirmed act: the next frame is trusted.
+    let token = trust.preview_on().unwrap()["token"].as_str().unwrap().to_owned();
+    trust.confirm_on(&token, |_, _, _| Ok(true)).unwrap();
+    send(&host, "thread/resume", frame_params("thread/resume", &project)).unwrap();
+    assert_eq!(wire.next_sent().1["params"]["config"]["projects"], json!({key(&project): {"trust_level": "trusted"}}));
+    assert_eq!(thread_row(&host, "thread")["level"]["projectTrust"]["case"], "app-on-by-switch");
+    wire.close(&host);
+    std::fs::remove_dir_all(&base).unwrap();
+}
+
+/// A Host of another home, made from `account`'s App custody as the App makes its key and local homes, ready with
+/// the one conversation in `cwd`.
+fn other_home(account: &Arc<Host>, cwd: &Path) -> Arc<Host> {
+    let host = Arc::new(Host::new_with_app_custody(account.app_runtime_custody().unwrap()).unwrap());
+    let generation = g(&host);
+    let mut i = host.inner.0.lock().unwrap();
+    i.state = "ready".into();
+    i.home = "level-home".into();
+    i.spawn_counter = 1;
+    i.generation = generation.clone();
+    i.journal.begin_generation(generation.clone());
+    i.threads.push(json!({"generation": generation, "threadId": "thread", "cwd": cwd}));
+    i.level.trust_reads = true;
+    drop(i);
+    host.set_default_level("edits").unwrap();
+    host
+}
+
+#[test]
+fn a_key_home_and_a_local_home_apply_the_same_rule() {
+    let (base, project, _, _) = git_project("app-trust-homes");
+    let account = trusting_host(&base, &project, "edits");
+    // A home made before the App's projects are configured gets them too: one for every home.
+    let key_home = other_home(&account, &project);
+    let trust = Arc::new(crate::project_trust::ProjectTrust::for_launch(Some(&project), SET_UP));
+    account.configure_project_trust(Arc::clone(&trust));
+    let local_home = other_home(&account, &project);
+    for (name, home) in [("key", &key_home), ("local", &local_home)] {
+        assert!(Arc::ptr_eq(&home.project_trust().unwrap(), &trust), "{name}");
+        let wire = Responder::attach(home, |_| layers_with(json!({})));
+        send(home, "thread/resume", frame_params("thread/resume", &project)).unwrap();
+        assert_eq!(wire.next_sent().1["params"]["config"]["projects"], json!({key(&project): {"trust_level": "trusted"}}), "{name}");
+        assert_eq!(thread_row(home, "thread")["level"]["projectTrust"]["case"], "app-on-by-setup", "{name}");
+        wire.close(home);
+    }
+    std::fs::remove_dir_all(&base).unwrap();
+}
+
+#[test]
+fn a_trusted_projects_settings_file_that_stops_a_start_reaches_the_status_and_other_refusals_do_not() {
+    let (base, project, _, _) = git_project("app-trust-refusal");
+    let file = project.join(".codex").join("config.toml");
+    std::fs::create_dir_all(file.parent().unwrap()).unwrap();
+    let refused = |host: &Arc<Host>, wire: &Responder, method: &str, error: Value| {
+        let request = send(host, method, frame_params(method, &project)).unwrap();
+        wire.next_sent();
+        reply(host, json!({"jsonrpc": "2.0", "id": request.request_id(), "error": error}));
+    };
+    let parse = json!({"code": -32600, "message": format!("failed to load configuration: {}: TOML parse error", file.display())});
+    // Trusted (set up through the App): said plainly, for a start and for a resume.
+    let (host, _) = app_project_host(&base, &project, SET_UP);
+    let wire = Responder::attach(&host, |_| layers_with(json!({})));
+    refused(&host, &wire, "thread/start", parse.clone());
+    let said = host.snapshot()["projectSettingsRefusal"].clone();
+    assert_eq!(said["lines"], json!([cl::PROJECT_SETTINGS_NOT_LOADED]));
+    assert_eq!((said["method"].as_str(), said["files"].clone()), (Some("thread/start"), json!([file.to_string_lossy()])));
+    assert_eq!(said["codexReason"]["standing"], cl::NOT_THE_APPS_TEXT);
+    refused(&host, &wire, "thread/resume", json!({"code": -32600, "message": "failed to load configuration: `invented` is no longer supported; remove it from config.toml"}));
+    let row = thread_row(&host, "thread");
+    assert_eq!(row["level"]["projectSettingsRefusal"]["fileSentence"], cl::PROJECT_SETTINGS_FILE_CANDIDATES);
+    assert_eq!(row["level"]["projectSettingsRefusal"]["remedy"], cl::PROJECT_SETTINGS_REMEDY);
+    // Another refusal of a trusted entry is left as it is.
+    refused(&host, &wire, "thread/fork", json!({"code": -32603, "message": "invented internal error"}));
+    assert_eq!(host.snapshot()["projectSettingsRefusal"]["method"], "thread/resume", "the fork's refusal adds nothing");
+    wire.close(&host);
+    // Untrusted (environment route, unmarked): the same error adds nothing.
+    let (host, _) = app_project_host(&base, &project, ENVIRONMENT);
+    let wire = Responder::attach(&host, |_| layers_with(json!({})));
+    refused(&host, &wire, "thread/start", parse);
+    assert!(host.snapshot()["projectSettingsRefusal"].is_null());
+    wire.close(&host);
+    std::fs::remove_dir_all(&base).unwrap();
+}

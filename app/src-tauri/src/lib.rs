@@ -25,6 +25,7 @@ pub mod catalog;
 mod checkpoint_recorder;
 mod model_turn_recorder;
 pub mod codex_level;
+pub(crate) mod project_trust;
 pub(crate) mod lasting_rules;
 pub(crate) mod level_choice;
 pub mod codex_stop;
@@ -146,6 +147,8 @@ pub struct AppState {
     connector_sources: Mutex<connector_source::Session>,
     connector_drafts: Mutex<connector_materialization::Registry>,
     workspace: Option<PathBuf>,
+    /// DEL-01-01: the App's projects and their trust, shared by every home's Host.
+    project_trust: Arc<project_trust::ProjectTrust>,
     act: Arc<Mutex<Option<ActControl>>>,
     workflows: Mutex<runtime_session::WorkflowRootSession>,
     file_acts: Mutex<file_act_root::FileActRoot>,
@@ -906,6 +909,9 @@ fn host_status(state: State<'_, AppState>) -> Value {
     s["codexStops"] = json!({"outcomes":state.codex_stops.lock().unwrap().clone(),"stopWaitLimitSeconds":codex_stop::STOP_WAIT_LIMIT.as_secs(),"records":codex_stop::RECORDS_LIMIT});
     s["connectorRouteAvailability"] = connector_route_view::availability(state.workspace.as_deref(), &state.project_context, state.project_context_limit.as_deref());
     s["recordsStore"] = records_store::status(state.workspace.as_deref());
+    // DEL-01-01: the launched project's trust: the App's choice and why, what the last frame sent, what trust
+    // turns on, and whether it can be switched now.
+    s["projectTrustChoice"] = state.project_trust.view();
     s["recordsStore"]["placementChoice"] = records_store::choice_view(state.app_user_data_root.lock().unwrap().as_deref().map_err(Clone::clone), tauri::is_dev());
     s["nativeConversationLinks"] = state.native_links.lock().map(|links| links.snapshot()).unwrap_or_else(|_|json!({"state":"unavailable","limit":"native relationship recording session unavailable; native operation outcomes remain as observed"}));
     s["recordChain"] = records_index::chain_status(state.workspace.as_deref());
@@ -1066,6 +1072,28 @@ fn records_store_retention(app:tauri::AppHandle,state:State<'_,AppState>,action:
     let acts=state.act.try_lock().map_err(|_|"Act context busy; review again")?;
     if action=="close" {workflows.retention_ready()?;if acts.as_ref().is_some_and(|a|!a.writer_ready()){return Err("Native act records became pending; review again".into());}}
     records_retention::apply(plan,&actor,&current)
+}
+/// DEL-01-01: what switching this project's trust on would show, with the token that confirms exactly it. Writes
+/// nothing.
+#[tauri::command(async)]
+fn project_trust_preview_on(state:State<'_,AppState>)->Result<Value,String>{
+    state.project_trust.preview_on()
+}
+/// DEL-01-01: the person switches this project's trust on, a confirmed act: the open preview's token, then the
+/// native confirmation of the whole effects text ("Keep untrusted" / "Trust this project"), then one line in the
+/// project's records. No other route switches trust on.
+#[tauri::command(async)]
+fn project_trust_confirm_on(app:tauri::AppHandle,state:State<'_,AppState>,token:String)->Result<Value,String>{
+    state.project_trust.confirm_on(&token,|statement,decline,perform|{
+        let mut refused=None;
+        let yes=confirm_choice(&app,project_trust::TITLE,Ok(statement),decline,perform,&mut refused);
+        refused.map_or(Ok(yes),Err)
+    })
+}
+/// DEL-01-01: the person switches this project's trust off: at once, with no confirmation.
+#[tauri::command(async)]
+fn project_trust_switch_off(state:State<'_,AppState>)->Result<Value,String>{
+    state.project_trust.switch_off()
 }
 /// RS §13.8 "Project identity": the person resolves a project identity limit.
 #[tauri::command(async)]
@@ -3339,7 +3367,12 @@ fn freeze_startup_state(launch: desktop_startup::Launch, desktop: Arc<Mutex<desk
     let project_context_limit = project.as_ref().err().cloned();
     let project_context = project.unwrap_or_else(|_|recovery::ExplicitAppProjectContext::unknown());
     let home = Arc::new(runtime_session::HomeSession::new(home_resources::HomeClass::Account,Arc::new(Host::new()),host_config.clone()).expect("account entry"));
+    // DEL-01-01: how the launched project came to be known decides its trust by default; every home made from
+    // this Host's App custody shares it.
+    let trust = Arc::new(project_trust::ProjectTrust::for_launch(workspace.as_deref(), source));
+    home.host.configure_project_trust(Arc::clone(&trust));
     let state = AppState {
+        project_trust: trust,
         desktop_setup: Some(desktop),
         endpoint_edits:Arc::new(Mutex::new(Default::default())),
         compiled_development_selection: compiled_selection,
@@ -3637,6 +3670,7 @@ pub fn run() {
             read_connector_routes,
             read_fleet_records,
             records_store_import, records_store_identity, records_store_choose, records_chain_heads, records_store_export, records_store_verify_export, records_store_import_package, records_store_retention,
+            project_trust_preview_on, project_trust_confirm_on, project_trust_switch_off,
             prepare_connector_source, select_connector_source, anchor_connector_source, revise_connector_source,
             read_connector_git, cancel_connector_git, anchor_connector_git,
             recheck_published_connector_draft, prepare_connector_reconstruction, prepare_connector_draft, publish_connector_draft, cancel_connector_draft, reconcile_connector_draft, inspect_connector_drafts,
@@ -3739,7 +3773,7 @@ mod workflow_root_context_tests {
         let control=Arc::new(Mutex::new(Some(ActControl::new(&root))));
         let mut workflows=runtime_session::WorkflowRootSession::default();workflows.open_library(root.clone(),"project",Some(&root),control.clone()).unwrap();
         let library=workflows.active_library().unwrap();
-        let state=AppState{desktop_setup:None,endpoint_edits:Arc::new(Mutex::new(Default::default())),compiled_development_selection:json!({"standing":"test-fixture-not-observed"}),connector_drafts:Mutex::new(connector_materialization::Registry::default()),connector_sources:Mutex::new(connector_source::Session::default()),workspace:Some(root.clone()),act:control,file_acts:Mutex::new(file_act_root::FileActRoot::default()),file_act_lapses:Mutex::new(file_act_lapse::Observer::default()),workflows:Mutex::new(workflows),decision_writer_status:Mutex::new(Value::Null),person_name:Mutex::new(None),instructions_root:Mutex::new(Err("unavailable".into())),app_user_data_root:Mutex::new(Err("unavailable".into())),external_observation:Mutex::new(Default::default()),trace_selection:Mutex::new(Default::default()),attachment_selection:Mutex::new(runtime_session::AttachmentSelectionSession::new(Some(root.clone()))),role_log:role_observations::RoleLog::open(&root).map(Arc::new),native_links:Mutex::new(native_conversation_links::Session::default()),delegation_reconciliation:Mutex::new(Value::Null),project_context:recovery::ExplicitAppProjectContext::unknown(),project_context_limit:Some("unknown".into()),homes:Mutex::new(runtime_session::HomeRouter::new(home.clone()).unwrap()),home_bootstrap:Mutex::new(Err("descriptor unavailable; no inferred home".into())),native_namespaces:Mutex::new(Err("unavailable".into())),key_namespace_admission:Mutex::new(Value::Null),key_setup:Mutex::new(()),local_credentials:Default::default(),root_home_inputs:Value::Null,codex_stop_gate:Mutex::new(()),codex_stops:Mutex::new(Vec::new()),continue_as:Mutex::new(Default::default()),app_quit:Default::default()};
+        let state=AppState{desktop_setup:None,endpoint_edits:Arc::new(Mutex::new(Default::default())),compiled_development_selection:json!({"standing":"test-fixture-not-observed"}),connector_drafts:Mutex::new(connector_materialization::Registry::default()),connector_sources:Mutex::new(connector_source::Session::default()),workspace:Some(root.clone()),project_trust:Arc::new(project_trust::ProjectTrust::default()),act:control,file_acts:Mutex::new(file_act_root::FileActRoot::default()),file_act_lapses:Mutex::new(file_act_lapse::Observer::default()),workflows:Mutex::new(workflows),decision_writer_status:Mutex::new(Value::Null),person_name:Mutex::new(None),instructions_root:Mutex::new(Err("unavailable".into())),app_user_data_root:Mutex::new(Err("unavailable".into())),external_observation:Mutex::new(Default::default()),trace_selection:Mutex::new(Default::default()),attachment_selection:Mutex::new(runtime_session::AttachmentSelectionSession::new(Some(root.clone()))),role_log:role_observations::RoleLog::open(&root).map(Arc::new),native_links:Mutex::new(native_conversation_links::Session::default()),delegation_reconciliation:Mutex::new(Value::Null),project_context:recovery::ExplicitAppProjectContext::unknown(),project_context_limit:Some("unknown".into()),homes:Mutex::new(runtime_session::HomeRouter::new(home.clone()).unwrap()),home_bootstrap:Mutex::new(Err("descriptor unavailable; no inferred home".into())),native_namespaces:Mutex::new(Err("unavailable".into())),key_namespace_admission:Mutex::new(Value::Null),key_setup:Mutex::new(()),local_credentials:Default::default(),root_home_inputs:Value::Null,codex_stop_gate:Mutex::new(()),codex_stops:Mutex::new(Vec::new()),continue_as:Mutex::new(Default::default()),app_quit:Default::default()};
         let (_,context)=current_actor_context_for(&state,&home);
         let package=root.join(workflow_workspace::development_catalog::NAME);std::fs::create_dir(&package).unwrap();
         let catalog=workflow_workspace::development_catalog::DevelopmentCatalog::load().unwrap();for(name,bytes)in catalog.select_embedded().snapshot().files(){std::fs::write(package.join(name),bytes).unwrap();}

@@ -891,6 +891,8 @@ pub struct AppRuntimeCustody {
     terminal_publication:Arc<TerminalPublicationController>,
     /// The session's liveness lock, kept while any of its homes' Hosts lives.
     liveness:Option<Arc<crate::session_liveness::Hold>>,
+    /// DEL-01-01: the App's projects and their trust, one for every home of the session.
+    project_trust:Arc<Mutex<Option<Arc<crate::project_trust::ProjectTrust>>>>,
 }
 impl AppRuntimeCustody {
     pub(crate) fn close_distribution_publication(&self) { self.terminal_publication.lock_state().closing=true; }
@@ -1132,6 +1134,9 @@ pub struct Host {
     /// DEL-01-02: this App session's liveness lock, shared with the App
     /// custody of the session's other homes.
     session_liveness: Mutex<Option<Arc<crate::session_liveness::Hold>>>,
+    /// DEL-01-01: the App's projects and their trust (`project_trust`), shared with every home made from this
+    /// Host's App custody. None: no frame's folder is an App project, and today's rule applies.
+    project_trust: Arc<Mutex<Option<Arc<crate::project_trust::ProjectTrust>>>>,
     /// DEL-01-01/05: this Host's identity in the process's home holds, the
     /// homes it holds, and its starts in progress (none may take a home over).
     hold_id: usize,
@@ -1345,6 +1350,7 @@ impl Host {
             probe_processes: Mutex::new(Vec::new()),
             quit_fence: std::sync::atomic::AtomicBool::new(false),
             session_liveness: Mutex::new(None),
+            project_trust: Arc::new(Mutex::new(None)),
             hold_id: crate::home_hold::next_id(),
             home_holds: Mutex::new(Vec::new()),
             home_starting: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
@@ -1623,11 +1629,11 @@ impl Host {
         if i.app_session.is_empty(){i.app_session=opaque_id("app-session:")?;}
             if !i.home.is_empty()&&i.spawn_counter>0{let mut counters=self.spawn_counters.lock().unwrap();let current=counters.entry(i.home.clone()).or_default();*current=(*current).max(i.spawn_counter);}
             (i.app_session.clone(),i.recovery.clone(),i.recovery_initialization_error.clone().or_else(||i.recovery_error.clone()).or_else(||if i.recovery.is_none(){Some("original App ledger unavailable; pointer history memory-only/unverified".into())}else{None}),i.recovery_path.clone())};
-        let custody=Arc::new(AppRuntimeCustody{session,ledger,writer:Arc::clone(&self.recovery_writer),counters:Arc::clone(&self.spawn_counters),contexts:Arc::clone(&self.submission_contexts),sources:Mutex::new(vec![AppRecoverySource{inner:Arc::downgrade(&self.inner),queue:Arc::clone(&self.inner.0.lock().unwrap().pending_recovery)}]),initial_limit:limit,recovery_path,end_observation:Mutex::new(None),terminal_publication:Arc::new(TerminalPublicationController::default()),liveness:self.session_liveness.lock().unwrap().clone()});*cached=Some(Arc::clone(&custody));Ok(custody)
+        let custody=Arc::new(AppRuntimeCustody{session,ledger,writer:Arc::clone(&self.recovery_writer),counters:Arc::clone(&self.spawn_counters),contexts:Arc::clone(&self.submission_contexts),sources:Mutex::new(vec![AppRecoverySource{inner:Arc::downgrade(&self.inner),queue:Arc::clone(&self.inner.0.lock().unwrap().pending_recovery)}]),initial_limit:limit,recovery_path,end_observation:Mutex::new(None),terminal_publication:Arc::new(TerminalPublicationController::default()),liveness:self.session_liveness.lock().unwrap().clone(),project_trust:Arc::clone(&self.project_trust)});*cached=Some(Arc::clone(&custody));Ok(custody)
     }
     pub fn new_with_app_custody(custody:Arc<AppRuntimeCustody>)->Result<Self,String>{
         let writer=Arc::clone(&custody.writer);let _writer=writer.lock().unwrap();if custody.end_observation.lock().unwrap().is_some(){return Err("App session end already observed; no new home source in this App session".into());}
-        let recovery=custody.ledger.as_ref().map(|ledger|ledger.lock().unwrap().observation());let mut host=Self::new();host.recovery_writer=Arc::clone(&custody.writer);host.spawn_counters=Arc::clone(&custody.counters);host.submission_contexts=Arc::clone(&custody.contexts);
+        let recovery=custody.ledger.as_ref().map(|ledger|ledger.lock().unwrap().observation());let mut host=Self::new();host.project_trust=Arc::clone(&custody.project_trust);host.recovery_writer=Arc::clone(&custody.writer);host.spawn_counters=Arc::clone(&custody.counters);host.submission_contexts=Arc::clone(&custody.contexts);
         {let mut i=host.inner.0.lock().unwrap();i.app_session=custody.session.clone();i.recovery=custody.ledger.clone();i.recovery_snapshot=recovery;i.recovery_initialization_error=custody.initial_limit.clone();i.recovery_path=custody.recovery_path.clone();}*host.session_liveness.lock().unwrap()=custody.liveness.clone();
         custody.sources.lock().unwrap().push(AppRecoverySource{inner:Arc::downgrade(&host.inner),queue:Arc::clone(&host.inner.0.lock().unwrap().pending_recovery)});*host.runtime_custody.lock().unwrap()=Some(Arc::clone(&custody));Ok(host)
     }

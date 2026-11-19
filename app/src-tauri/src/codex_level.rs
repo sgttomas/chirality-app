@@ -374,6 +374,36 @@ pub const TRUST_READ_LIMITED: &str = "The App's reading of the Codex settings it
 pub const TRUST_READ_TIMED_OUT: &str = "The App's reading of the Codex settings it uses did not complete in time.";
 pub const TRUST_READ_STALE: &str = "The App's reading of the Codex settings it uses was no longer the latest when the request was built.";
 
+/// The App's own trust choice for the project a frame's working folder is (the owner's decision of 19 November
+/// 2026; `project_trust`). Read just before each start, resume and fork, beside the settings reading.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum AppTrust {
+    /// On by default: the person set this project up in Chirality and has not switched its trust off.
+    OnBySetup,
+    /// On by the person's switch (a confirmed act), at `at`.
+    OnBySwitch { at: String },
+    /// Off by the person's switch, at `at`.
+    OffBySwitch { at: String },
+    /// No choice: the project was opened from the environment route. Today's rule applies.
+    NoChoice,
+    /// The choice could not be read: treated as an unreadable settings reading (untrusted). `detail` is the
+    /// store's own account of why, kept as supplied text.
+    NotRead { detail: Option<String> },
+}
+impl AppTrust {
+    pub fn word(&self) -> &'static str {
+        match self { Self::OnBySetup | Self::OnBySwitch { .. } => "on", Self::OffBySwitch { .. } => "off", Self::NoChoice => "none", Self::NotRead { .. } => "not-read" }
+    }
+}
+
+/// The status's sentences for the App's own choice, beside the closed sentences above.
+pub const TRUST_ON_BY_SETUP: &str = "You set this project up in Chirality and have not switched its trust off, so the App sent a trusted entry for the project root shown below.";
+pub const TRUST_ON_BY_SWITCH_PREFIX: &str = "You switched trust on for this project in Chirality (at ";
+pub const TRUST_ON_BY_SWITCH_SUFFIX: &str = "), so the App sent a trusted entry for the project root shown below.";
+pub const TRUST_OFF_BY_SWITCH_PREFIX: &str = "You switched trust off for this project in Chirality (at ";
+pub const TRUST_OFF_BY_SWITCH_SUFFIX: &str = "), so the App sent an untrusted entry for the project root shown below.";
+pub const TRUST_CHOICE_NOT_READ: &str = "The App could not read this project's trust choice, so it sent an untrusted entry for the project root shown below.";
+
 /// The project trust the App sends on one start, resume or fork, and why.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TrustReading {
@@ -387,6 +417,28 @@ pub struct TrustReading {
     pub generation: Option<Value>,
     pub request_ref: Option<String>,
     pub read_at: Option<String>,
+    /// The App's choice for the project this frame's folder is; None when the folder is not the App's project
+    /// (today's rule applies, exactly).
+    pub choice: Option<AppTrust>,
+}
+
+/// Why the entry is what it is: the rows of the case table, in their order (DEL-01-01).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TrustRow {
+    /// 1. The settings reading is not whole and current.
+    SettingsNotRead,
+    /// 7. The App's choice for the project cannot be read (treated as row 1).
+    ChoiceNotRead,
+    /// 2. The settings mark the root untrusted.
+    MarkedUntrusted,
+    /// 3. The person switched trust off in the App.
+    SwitchedOff,
+    /// 4. The settings mark the root trusted.
+    MarkedTrusted,
+    /// 5. Not marked, and the App's choice is on.
+    AppOn,
+    /// 6. Otherwise.
+    Unmarked,
 }
 
 impl TrustReading {
@@ -394,7 +446,21 @@ impl TrustReading {
     pub fn not_read(cwd: PathBuf, reason: &str, detail: Option<String>) -> Self {
         let root = project_root(&cwd);
         let key = trust_lookup_keys(&root).remove(0);
-        TrustReading { cwd, root, key, case: TrustCase::NotRead { reason: reason.into(), detail }, generation: None, request_ref: None, read_at: None }
+        TrustReading { cwd, root, key, case: TrustCase::NotRead { reason: reason.into(), detail }, generation: None, request_ref: None, read_at: None, choice: None }
+    }
+    /// The row of the case table this reading falls in. The order is the precedence: an unreadable settings
+    /// reading or an unreadable choice over everything, then the person's untrusted mark, then the App's off,
+    /// then the person's trusted mark, then the App's on.
+    pub fn row(&self) -> TrustRow {
+        match (&self.case, &self.choice) {
+            (TrustCase::NotRead { .. }, _) => TrustRow::SettingsNotRead,
+            (_, Some(AppTrust::NotRead { .. })) => TrustRow::ChoiceNotRead,
+            (TrustCase::MarkedUntrusted { .. }, _) => TrustRow::MarkedUntrusted,
+            (_, Some(AppTrust::OffBySwitch { .. })) => TrustRow::SwitchedOff,
+            (TrustCase::Trusted { .. }, _) => TrustRow::MarkedTrusted,
+            (TrustCase::Unmarked, Some(AppTrust::OnBySetup | AppTrust::OnBySwitch { .. })) => TrustRow::AppOn,
+            (TrustCase::Unmarked, _) => TrustRow::Unmarked,
+        }
     }
     /// What the reading becomes when it is not the newest of the frame's generation: never trusted.
     pub fn stale(mut self) -> Self {
@@ -404,7 +470,7 @@ impl TrustReading {
         self
     }
     pub fn trust_level(&self) -> &'static str {
-        if matches!(self.case, TrustCase::Trusted { .. }) { "trusted" } else { "untrusted" }
+        if matches!(self.row(), TrustRow::MarkedTrusted | TrustRow::AppOn) { "trusted" } else { "untrusted" }
     }
     /// The `config.projects` value: exactly one entry, for the project root under the spelling Codex looks up
     /// first.
@@ -418,20 +484,88 @@ impl TrustReading {
         let trusted_suffix = if written { TRUST_TRUSTED_SUFFIX } else { "). The App tried to send a trusted entry for the project root shown below." };
         let untrusted = if written { TRUST_UNTRUSTED_SENT } else { "The App tried to send an untrusted entry for the project root shown below." };
         let not_read = if written { TRUST_NOT_READ } else { "The App could not read the Codex settings it uses for this project, so it tried to send an untrusted entry for the project root shown below." };
-        let (case, lines, matched): (&str, Vec<String>, Option<&String>) = match &self.case {
-            TrustCase::Trusted { key } => ("trusted", vec![format!("{TRUST_TRUSTED_PREFIX}{}{trusted_suffix}", self.read_at.as_deref().unwrap_or("an unknown time"))], Some(key)),
-            TrustCase::MarkedUntrusted { key } => ("marked-untrusted", vec![TRUST_MARKED_UNTRUSTED.into(), untrusted.into()], Some(key)),
-            TrustCase::Unmarked => ("unmarked", vec![untrusted.into()], None),
-            TrustCase::NotRead { .. } => ("not-read", vec![not_read.into(), untrusted.into()], None),
+        // The App's own sentences, in the manner of the closed ones: "sent" where the frame was written, "tried to
+        // send" where it was not.
+        let own = |sentence: String| if written { sentence } else { sentence.replace(" sent a", " tried to send a") };
+        let matched_key = match &self.case { TrustCase::Trusted { key } | TrustCase::MarkedUntrusted { key } => Some(key), _ => None };
+        let (case, lines): (&str, Vec<String>) = match (self.row(), &self.choice) {
+            (TrustRow::SettingsNotRead, _) => ("not-read", vec![not_read.into(), untrusted.into()]),
+            (TrustRow::ChoiceNotRead, _) => ("choice-not-read", vec![own(TRUST_CHOICE_NOT_READ.into())]),
+            (TrustRow::MarkedUntrusted, _) => ("marked-untrusted", vec![TRUST_MARKED_UNTRUSTED.into(), untrusted.into()]),
+            (TrustRow::SwitchedOff, Some(AppTrust::OffBySwitch { at })) => ("switched-off", vec![own(format!("{TRUST_OFF_BY_SWITCH_PREFIX}{at}{TRUST_OFF_BY_SWITCH_SUFFIX}"))]),
+            (TrustRow::MarkedTrusted, _) => ("trusted", vec![format!("{TRUST_TRUSTED_PREFIX}{}{trusted_suffix}", self.read_at.as_deref().unwrap_or("an unknown time"))]),
+            (TrustRow::AppOn, Some(AppTrust::OnBySwitch { at })) => ("app-on-by-switch", vec![own(format!("{TRUST_ON_BY_SWITCH_PREFIX}{at}{TRUST_ON_BY_SWITCH_SUFFIX}"))]),
+            (TrustRow::AppOn, _) => ("app-on-by-setup", vec![own(TRUST_ON_BY_SETUP.into())]),
+            (TrustRow::SwitchedOff | TrustRow::Unmarked, _) => ("unmarked", vec![untrusted.into()]),
         };
         let mut out = json!({"case": case, "sent": if written {json!(self.trust_level())} else {Value::Null}, "requested":self.trust_level(), "lines": lines, "projectRoot": self.root.to_string_lossy(),
-            "sentKey": if written {json!(self.key)} else {Value::Null}, "requestedKey":self.key, "matchedKey": matched, "readAt": self.read_at, "standing": "Folders and keys are supplied text."});
+            "sentKey": if written {json!(self.key)} else {Value::Null}, "requestedKey":self.key, "matchedKey": matched_key, "readAt": self.read_at, "standing": "Folders and keys are supplied text."});
         if let TrustCase::NotRead { reason, detail } = &self.case {
             out["reason"] = json!(reason);
             out["detail"] = match detail { Some(text) => json!({"text": text, "standing": NOT_THE_APPS_TEXT}), None => Value::Null };
         }
+        // Present only for a frame whose folder is the App's project: what the App's own choice was.
+        if let Some(choice) = &self.choice {
+            out["appChoice"] = json!(choice.word());
+            match choice {
+                AppTrust::OnBySwitch { at } | AppTrust::OffBySwitch { at } => out["appChoiceAt"] = json!(at),
+                AppTrust::NotRead { detail } if !matches!(self.case, TrustCase::NotRead { .. }) => {
+                    out["detail"] = match detail { Some(text) => json!({"text": text, "standing": NOT_THE_APPS_TEXT}), None => Value::Null };
+                }
+                _ => {}
+            }
+        }
         out
     }
+}
+
+// ---- A trusted project's own settings file that stops a start (DEL-01-01) ----
+
+/// The error code and the fixed beginning of the message with which the pinned Codex refuses a start, resume or
+/// fork whose configuration it could not load (observed at the pin; `app/supplier_checks/level/`, class
+/// `TrustedProject`). Nothing more of the message is parsed.
+pub const CONFIG_LOAD_ERROR_CODE: i64 = -32600;
+pub const CONFIG_LOAD_ERROR_PREFIX: &str = "failed to load configuration:";
+pub const PROJECT_SETTINGS_NOT_LOADED: &str = "This project's own Codex settings file could not be loaded, so Codex did not start the conversation.";
+pub const PROJECT_SETTINGS_REMEDY: &str = "You can fix the file, or switch this project's trust off in Chirality and start the conversation again.";
+pub const PROJECT_SETTINGS_FILE_NAMED: &str = "The file Codex named:";
+pub const PROJECT_SETTINGS_FILE_CANDIDATES: &str = "Codex did not name the file. The project's own settings files it may have read are among these:";
+
+/// The App's account of a refused start, resume or fork that carried a trusted entry when Codex says it could not
+/// load the configuration; None for any other reply. `error` is the reply's `error` member.
+pub fn project_settings_refusal(trust: &TrustReading, error: &Value) -> Option<Value> {
+    if trust.trust_level() != "trusted" || error["code"].as_i64() != Some(CONFIG_LOAD_ERROR_CODE) { return None; }
+    let message = error["message"].as_str()?;
+    if !message.starts_with(CONFIG_LOAD_ERROR_PREFIX) { return None; }
+    // The file Codex names, where it names one: a candidate (between the project root and the conversation's
+    // folder) whose path, as given or resolved, appears in Codex's message. The message is only searched for the
+    // App's own candidates, never parsed. Otherwise the candidates themselves.
+    let candidates = project_settings_candidates(&trust.root, &trust.cwd);
+    let named = candidates.iter().rev().flat_map(|c| {
+        let given = c.to_string_lossy().into_owned();
+        let resolved = std::fs::canonicalize(c).ok().map(|p| p.to_string_lossy().into_owned());
+        std::iter::once(given).chain(resolved)
+    }).find(|spelling| message.contains(spelling.as_str()));
+    let (sentence, files) = match named {
+        Some(file) => (PROJECT_SETTINGS_FILE_NAMED, vec![file]),
+        None => (PROJECT_SETTINGS_FILE_CANDIDATES, candidates.into_iter().map(|p| p.to_string_lossy().into_owned()).collect()),
+    };
+    Some(json!({"lines": [PROJECT_SETTINGS_NOT_LOADED], "fileSentence": sentence, "files": files, "filesStanding": "Folders are supplied text.",
+        "codexReason": {"text": message, "standing": NOT_THE_APPS_TEXT}, "remedy": PROJECT_SETTINGS_REMEDY, "projectRoot": trust.root.to_string_lossy()}))
+}
+
+/// The project's `.codex/config.toml` files Codex may read for a conversation in `cwd`: one in each folder from the
+/// project root down to `cwd`, in that order. `cwd` outside `root` gives the root's alone.
+pub fn project_settings_candidates(root: &Path, cwd: &Path) -> Vec<PathBuf> {
+    let mut out = vec![root.join(".codex").join("config.toml")];
+    if let Ok(below) = cwd.strip_prefix(root) {
+        let mut at = root.to_path_buf();
+        for part in below.components() {
+            at.push(part);
+            out.push(at.join(".codex").join("config.toml"));
+        }
+    }
+    out
 }
 
 /// The person's mark for `root` in a `config/read` result with layers: the user layers' `projects` table, looked

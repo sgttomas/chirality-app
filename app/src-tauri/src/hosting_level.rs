@@ -113,6 +113,12 @@ pub(crate) struct LevelState {
     pub(crate) records_unread: bool,
     /// Advanced by every attempted configuration write; a trust reading made before one is not current.
     pub(crate) config_writes: u64,
+    /// DEL-01-01: the App's projects and their trust, as the last trust reading found it configured.
+    pub(crate) project_trust: Option<Arc<crate::project_trust::ProjectTrust>>,
+    /// The last start, resume or fork Codex refused because a trusted project's own settings file could not be
+    /// loaded (`codex_level::project_settings_refusal`), and each conversation's.
+    pub(crate) settings_refusal: Option<Value>,
+    pub(crate) thread_settings_refusal: HashMap<String, Value>,
     /// A test's own budget for the trust reading, in place of the reading default.
     #[cfg(test)]
     pub(crate) trust_budget: Option<std::time::Duration>,
@@ -315,7 +321,12 @@ impl Host {
         let write_result = if written { "written" } else { "not-established" };
         let takes_effect = takes_effect_now(i, thread.as_deref());
         let mut row = json!({"method": method, "requestRef": request_ref, "levelId": bound.level.id, "fields": bound.fields, "chosen": bound.chosen, "writeResult": write_result, "at": at});
-        if let Some(trust) = &bound.trust { row["projectTrust"] = trust.status_for_write(written); }
+        if let Some(trust) = &bound.trust {
+            row["projectTrust"] = trust.status_for_write(written);
+            if trust.choice.is_some() {
+                if let Some(projects) = &i.level.project_trust { projects.note_sent(row["projectTrust"].clone()); }
+            }
+        }
         match &thread { Some(t) => { i.level.last_sent.insert(t.clone(), row); } None => { i.level.request_sent.insert(key.to_owned(), row); } }
         let Some(chosen) = bound.chosen.clone() else { return };
         if let Some(t) = &thread {
@@ -338,10 +349,25 @@ impl Host {
         let Some(e) = i.source_requests.get(key) else { return };
         let Some(bound) = e.request.level.clone() else { return };
         let request_ref = e.request.request_ref.clone();
-        if frame.get("error").is_some() {
+        if let Some(error) = frame.get("error") {
+            // DEL-01-01: a trusted entry sent, and Codex could not load the configuration: the project's own
+            // settings file stopped the start. Other refusals are left as they are.
+            if let Some(mut refusal) = bound.trust.as_ref().and_then(|trust| cl::project_settings_refusal(trust, error)) {
+                let thread = match &bound.target { Target::Conversation(t) | Target::ForkOf(t) => Some(t.clone()), Target::New => None };
+                refusal["method"] = json!(e.request.frame["method"]);
+                refusal["requestRef"] = json!(request_ref);
+                refusal["threadId"] = json!(thread);
+                refusal["at"] = json!(now_rfc3339());
+                if let Target::Conversation(t) = &bound.target { i.level.thread_settings_refusal.insert(t.clone(), refusal.clone()); }
+                i.level.settings_refusal = Some(refusal);
+            }
             i.level.request_sent.remove(key);
             i.level.sent_by_request.remove(key);
             return;
+        }
+        if bound.trust.is_some() {
+            i.level.settings_refusal = None;
+            if let Target::Conversation(t) = &bound.target { i.level.thread_settings_refusal.remove(t); }
         }
         let result = &frame["result"];
         let thread = match &bound.target {
@@ -672,6 +698,7 @@ impl Host {
         status["levelDefault"] = chosen_view(i.level.default_chosen.as_ref(), i.default_level, "default", session_only);
         status["levelStartRefusal"] = json!(i.level.start_refusal);
         status["levelSendRefusal"] = json!(i.level.last_refusal);
+        status["projectSettingsRefusal"] = json!(i.level.settings_refusal);
         status["levelLaunchRead"] = i.level.launch.clone();
         status["levelRecordMissing"] = if i.level.record_missing { json!(cl::RECORD_MISSING_SENTENCE) } else { Value::Null };
         // The level preselected in the ask: the App's default, one press away.
@@ -717,6 +744,7 @@ impl Host {
                     }
                 }
                 if let Some(trust) = project_trust { level["projectTrust"] = trust; }
+                if let Some(refusal) = i.level.thread_settings_refusal.get(&t) { level["projectSettingsRefusal"] = refusal.clone(); }
                 if let Some(cause) = i.level.refused.get(&t) { level["refused"] = cause.clone(); }
                 // This conversation's recorded level could not be used: the ask, with the App's default preselected.
                 if asked { level["ask"] = json!({"sentence": cl::RECORD_MISSING_SENTENCE, "preselected": i.level.app_default.0.map(|l| l.id.as_str())}); }
@@ -733,7 +761,28 @@ impl Host {
     /// whose user layers mark the root trusted gives "trusted"; anything else is untrusted, a failed or limited
     /// reading included. Holds no lock while it reads. None for a method that carries no trust entry, or when the
     /// folder is not known (the frame is then refused).
+    ///
+    /// DEL-01-01: the App's own choice for the project the folder is (`project_trust`) is read here too, just
+    /// after the settings, and joins the case table (`codex_level::TrustReading::row`). A folder that is not the
+    /// App's project carries no choice, and today's rule applies.
     pub(super) fn trust_reading(&self, method: &str, params: &Value, generation: Option<&Value>) -> Option<cl::TrustReading> {
+        let mut reading = self.trust_reading_settings(method, params, generation)?;
+        let projects = self.project_trust.lock().unwrap().clone();
+        if let Some(projects) = &projects { reading.choice = projects.choice_for(&reading.cwd); }
+        self.inner.0.lock().unwrap().level.project_trust = projects;
+        Some(reading)
+    }
+
+    /// DEL-01-01: every home made from this Host's App custody applies `projects` from its next start, resume or
+    /// fork.
+    pub(crate) fn configure_project_trust(&self, projects: Arc<crate::project_trust::ProjectTrust>) {
+        *self.project_trust.lock().unwrap() = Some(projects);
+    }
+    pub(crate) fn project_trust(&self) -> Option<Arc<crate::project_trust::ProjectTrust>> {
+        self.project_trust.lock().unwrap().clone()
+    }
+
+    fn trust_reading_settings(&self, method: &str, params: &Value, generation: Option<&Value>) -> Option<cl::TrustReading> {
         if !matches!(cl::Method::of(method)?, cl::Method::ThreadStart | cl::Method::ThreadResume | cl::Method::ThreadFork) { return None; }
         let (cwd, generation, epoch) = {
             let i = self.inner.0.lock().unwrap();
