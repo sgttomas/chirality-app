@@ -3544,3 +3544,10 @@ button:disabled {
 /* The folder heading here is not a control: it neither looks pressable nor reacts to the pointer. */
 div.woven-chat-section-heading--folder { cursor:default; }
 div.woven-chat-section-heading--folder:hover { background:transparent; }
+/* The entry row, two changes to 3.0.1's: the live dot sits inside the row (3.0.1's list cuts it off), and
+   "Needs answer" takes a line of its own under the entry so the entry's name keeps its width. */
+.woven-workspace { --v4-you:#b4541f; --v4-you-soft:#fbeee2; --v4-you-rule:#e9c3a4; }
+.woven-workspace .woven-navigator-session-dot { margin-left:0; }
+.woven-workspace .woven-navigator-session-row:has(> .button-muted) { flex-wrap:wrap; }
+.woven-workspace .woven-navigator-session-row:has(> .button-muted) > .woven-navigator-session { flex:1 1 100%; }
+.woven-workspace .woven-navigator-session-row > .button-muted { margin:0 0 6px 8px; padding:2px 10px; border-color:var(--v4-you-rule); background:var(--v4-you-soft); color:var(--v4-you); font-size:11.5px; font-weight:600; }
