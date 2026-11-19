@@ -37,7 +37,8 @@ import { preparedMessages, preparedMessageLimit, type PreparedMessage } from "./
 import { ConversationContext, ProjectLibraryContext, appProjectFolder, conversationFromKey, workflowSourceLimit } from "./WorkflowContext";
 import { WorkspaceDisclosure, WorkspaceConnectionStatus, revealWorkspaceTarget, revealWorkspaceLink, registerWorkspaceViews } from "./DailyWorkspace";
 import { ActivityStrip, WorkspaceShell, isRightPanelTab, turnPhase, type RightPanelTab, RIGHT_PANEL_TABS, type TabSelection } from "./WorkspaceShell";
-import { AccountRow, Navigator, folderName, navigatorEntries, navigatorProjects, type NavigatorEntry } from "./Navigator";
+import { Navigator, folderName, navigatorEntries, navigatorProjects, type NavigatorEntry } from "./Navigator";
+import { AccountRow, type AccountActions } from "./AccountControls";
 import { flushSync } from "react-dom";
 import { UnsentWork, useReportUnsent } from "./unsentWork";
 import { DesktopSetupPanel } from "./DesktopSetupPanel";
@@ -3088,6 +3089,12 @@ export function App() {
   // A reveal of one of the conversation's tools: its tab, then the target in it.
   const showToolsTarget = (target: string) => { showView("conversation-tools"); revealWorkspaceTarget(target, true); };
   const openSettings = () => revealWorkspaceTarget("workspace-tools", true);
+  // The account row's popover: the present commands under their present conditions, each failure said on the App line.
+  const accountActions: AccountActions = { openSettings, openConnection: () => revealWorkspaceTarget("workspace-connection", true),
+    checkAgain: async () => { const shown = currentHost.current; try { await readAccountStatus(shown?.generation, shown?.homeRouting?.activeModeHomeClass, () => true); } catch (error) { setMessage(`Check again: ${readingSentence(error) ?? String(error)}`); } },
+    startSignIn: async () => { try { await homeAction("oauth_start", { generation: currentHost.current?.generation, mode: "browser" }); } catch (error) { setMessage(`oauth_start: ${String(error)}`); } },
+    signOut: async () => { const shown = currentHost.current; try { await homeAction("logout_home", { generation: shown?.generation, modeHomeClass: shown?.homeRouting?.activeModeHomeClass }); } catch (error) { setMessage(`logout_home: ${String(error)}`); } } };
+  const accountRow = <AccountRow host={host} actions={accountActions}/>;
   const shownRow = selectedThread ? (host?.threads ?? []).find((t: Json) => t.threadId === selectedThread && JSON.stringify(t.generation) === JSON.stringify(host?.generation)) : null;
   const workspaceShown = firstRead === "read" && !setupRequired;
   // The centre's notices above the transcript.
@@ -3181,11 +3188,11 @@ export function App() {
         <WaitingOnYou readings={waitingReads} view={host?.nativeView} busy={homePending} onOpen={() => { void readFleetOnOpen(); }} openGroup={group => { void openRequests(group); }} go={goToWaiting}/>
         </div>}
         {firstRead === "read" && <WorkspaceShell hidden={setupRequired} rightTab={rightTab} onRightTab={selectTab} rightCollapsed={rightCollapsed} setRightCollapsed={collapseRight}
-          navigator={<Navigator projects={projects} selectedKey={threadKey} choose={conversationChooser.choose ? key => { navigated.current = true; conversationChooser.choose?.(key); } : null} answer={answerIn} newChat={newChat} openSettings={openSettings}/>}
+          navigator={<Navigator projects={projects} selectedKey={threadKey} choose={conversationChooser.choose ? key => { navigated.current = true; conversationChooser.choose?.(key); } : null} answer={answerIn} newChat={newChat} account={accountRow}/>}
           collapsedNavigator={openNavigator => <div className="woven-collapsed-strip" aria-label="Collapsed chat navigation">
             {projects.some(project => project.entries.some(entry => entry.needsAnswer)) ? <button type="button" aria-label="Needs answer" onClick={openNavigator}>!</button> : null}
             <button type="button" aria-label="New chat" disabled={!conversationChooser.choose} onClick={newChat}>＋</button>
-            <div className="woven-collapsed-settings"><AccountRow open={openSettings}/></div>
+            <div className="woven-collapsed-settings">{accountRow}</div>
           </div>}
           strip={<ActivityStrip phase={statusCurrent ? turnPhase(shownRow, !!shownRow && waitingThreads.has(shownRow.threadId)) : null}/>}
           centre={<div id="view-conversation" data-workspace-view="conversation" className="v4-centre" onFocus={enterConversation} onPointerDown={enterConversation}>

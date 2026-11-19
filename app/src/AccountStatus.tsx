@@ -122,7 +122,8 @@ export function signInCompletion(host: Json): string | null {
     && ((typeof identity === "string" && !!identity) || (typeof identity === "number" && Number.isSafeInteger(identity)))
     ? JSON.stringify([generation, source.observationRef, identity]) : null;
 }
-function accountSummary(host: Json): string {
+/** The account panel's sentence for the current reading: for a ChatGPT account, the account as Codex reports it. */
+export function accountSummary(host: Json): string {
   const reading = accountReading(host);
   return reading === "chatgpt-account" ? `Codex reports a ChatGPT account for this connection: ${reportedChatgptAccount(host?.accountObservation)}.` : ACCOUNT_PANEL_WORDS[reading];
 }

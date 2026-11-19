@@ -192,7 +192,7 @@ test('a sign-in completed in this process and confirmed by the read after it ope
   });
 });
 
-test('exactly one sign-in start outside Other sign-in options on each signed-out view; opening it offers another method', async () => {
+test('exactly one sign-in start outside Other sign-in options on each signed-out view; opening it offers another method; the account popover the person opens holds one more', async () => {
   await mountedApp(noAccount(), async ui => {
     const status = () => ui.container.querySelectorAll(e => e.getAttribute('aria-label') === 'Workspace connection status')[0];
     const account = () => ui.container.querySelectorAll(e => e.getAttribute('aria-label') === 'Account connection')[0];
@@ -212,8 +212,37 @@ test('exactly one sign-in start outside Other sign-in options on each signed-out
       }
       return found;
     };
+    // The account row's popover is a dialog the person opens. Closed, it is not in the document. Open, it holds one more
+    // start, counted separately the same way: every available control in it is invoked (reopening it where a control
+    // closed it), and the view is then restored.
+    const dialog = () => ui.container.querySelectorAll(e => e.getAttribute('role') === 'dialog' && e.getAttribute('aria-label') === 'Account and settings')[0];
+    const toggleRow = async () => { const row = elements(ui.container, 'button').find(b => b.getAttribute('class') === 'account-controls-row' && onScreen(b)); assert.ok(row, 'the account row'); await React.act(async () => props(row).onClick()); };
+    const popoverStarts = async () => {
+      assert.equal(dialog(), undefined, 'closed, the popover is not in the document');
+      const view = currentTab(ui.container);
+      await toggleRow();
+      assert.ok(dialog(), 'the person opened it');
+      assert.equal(status().contains(dialog()) || account().contains(dialog()), false, 'it is neither of the two surfaces');
+      assert.deepEqual(await starts(), [{mode:'browser', alternative:false, label:'Sign in with your ChatGPT account (through Codex)…'}], 'open, the two surfaces still hold one');
+      const found = [], count = elements(dialog(), 'button').length;
+      for (let i = 0; i < count; i++) {
+        if (!dialog()) await toggleRow();
+        const b = elements(dialog(), 'button')[i];
+        if (props(b)?.disabled) continue;
+        const before = ui.calls.length;
+        await React.act(async () => { await props(b).onClick(); });
+        for (const call of ui.calls.slice(before).filter(c => c.command === 'oauth_start')) found.push({mode:call.args.mode, label:b.textContent});
+      }
+      if (dialog()) await toggleRow();
+      if (currentTab(ui.container) !== view) await ui.navigate(view);
+      assert.equal(dialog(), undefined);
+      return found;
+    };
+    const ONE_MORE = [{mode:'browser', label:'Sign in with your ChatGPT account (through Codex)…'}];
     assert.equal(viewNow(ui), 'Settings & tools');
     assert.deepEqual(await starts(), [{mode:'browser', alternative:false, label:'Sign in with your ChatGPT account (through Codex)…'}]);
+    assert.deepEqual(await popoverStarts(), ONE_MORE, 'the popover holds exactly one start, the same command and mode');
+    assert.deepEqual(await starts(), [{mode:'browser', alternative:false, label:'Sign in with your ChatGPT account (through Codex)…'}], 'closed again, one');
     const beforeOpening = ui.calls.length;
     other().open = true;
     await React.act(async () => { props(other())?.onToggle?.({currentTarget:other()}); });
@@ -237,6 +266,8 @@ test('exactly one sign-in start outside Other sign-in options on each signed-out
     for (const view of ['History', 'Run a workflow', 'Make a workflow']) {
       await ui.navigate(view);
       assert.deepEqual(await starts(), [{mode:'browser', alternative:false, label:'Sign in with your ChatGPT account (through Codex)…'}], view);
+      assert.deepEqual(await popoverStarts(), ONE_MORE, `${view}: the popover`);
+      assert.deepEqual(await starts(), [{mode:'browser', alternative:false, label:'Sign in with your ChatGPT account (through Codex)…'}], `${view}: closed again`);
     }
   });
 });

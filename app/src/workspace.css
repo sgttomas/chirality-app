@@ -3637,3 +3637,14 @@ div.woven-chat-section-heading--folder:hover { background:transparent; }
 .v4-mode-choice label { display:block; margin:4px 0; }
 /* The person's own message in its bubble: its text as Codex recorded it, unformatted, with its line breaks. */
 .chat-user-text > .person-text { white-space:pre-wrap; overflow-wrap:anywhere; }
+/* The account popover (AccountControls.tsx): the state's one action is the primary button; the App controls are
+   menu rows, as 3.0.1 draws them, not boxed buttons. */
+.account-controls-popover .account-controls-group > strong { font-size:13px; color:var(--ink); }
+.account-controls-popover .account-controls-group > .setup-primary:not(:disabled) { background:var(--cta); color:var(--cta-ink); border-color:var(--cta); }
+.account-controls-popover .account-controls-group > button:not(.account-controls-menu-action) { justify-self:start; text-align:left; }
+.account-controls-popover .account-controls-group > .setup-primary { justify-self:stretch; }
+.account-controls-popover .account-controls-menu-action { margin:0 -8px; padding:6px 8px; border-color:transparent; border-radius:6px; color:var(--ink); font-weight:500; }
+.account-controls-popover .account-controls-menu-action:hover,
+.account-controls-popover .account-controls-menu-action:focus-visible { background:var(--accent-soft); }
+.account-controls-popover .account-controls-group:last-child { gap:2px; }
+.account-controls-popover:focus { outline:none; }

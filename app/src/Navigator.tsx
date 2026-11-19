@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { boundedTitle, choiceLabels, ChoiceTitle, CHOICE_TITLES_ATTRIBUTION } from "./AgentText";
 import { threadChoices } from "./presentation";
 
@@ -90,24 +91,16 @@ function ProjectSection({ project, selectedKey, disabled, choose, answer }: { pr
   </section>;
 }
 
-/** The account row's place at the foot of the navigator: here it opens Settings & tools. */
-export function AccountRow({ open }: { open: () => void }) {
-  return <div className="account-controls-root">
-    <button type="button" className="account-controls-row" aria-label="Settings & tools" onClick={open}>
-      <span className="account-controls-avatar" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8.5" r="3.5"/><path d="M4.5 20c.9-3.6 3.8-5.5 7.5-5.5s6.6 1.9 7.5 5.5"/></svg></span>
-      <span className="account-controls-identity"><strong>Settings &amp; tools</strong></span>
-    </button>
-  </div>;
-}
-
 /**
  * The left region: the brand, New chat, each project's conversations and the account row. It shows only what the
  * App can back. `choose` is the conversation view's own choice (null while that view takes no choice); `answer`
  * reveals a conversation's waiting requests as "Waiting on you" does.
  */
-export function Navigator({ projects, selectedKey, choose, answer, newChat, openSettings }: {
+export function Navigator({ projects, selectedKey, choose, answer, newChat, account }: {
   projects: readonly NavigatorProject[]; selectedKey: string; choose: ((key: string) => void) | null;
-  answer: (entry: NavigatorEntry) => void; newChat: () => void; openSettings: () => void;
+  answer: (entry: NavigatorEntry) => void; newChat: () => void;
+  /** The account row (AccountControls.tsx), drawn at the foot. */
+  account: ReactNode;
 }) {
   return <nav className="woven-navigator" aria-label="Workspace Navigator">
     <header className="woven-navigator-brand">Chirality</header>
@@ -118,6 +111,6 @@ export function Navigator({ projects, selectedKey, choose, answer, newChat, open
         {projects.map((project, i) => <ProjectSection key={project.folder ?? `project-${i}`} project={project} selectedKey={selectedKey} disabled={!choose} choose={key => choose?.(key)} answer={answer}/>)}
       </div>
     </div>
-    <footer className="woven-compatibility"><AccountRow open={openSettings}/></footer>
+    <footer className="woven-compatibility">{account}</footer>
   </nav>;
 }
