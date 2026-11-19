@@ -631,25 +631,25 @@
   "component": "ConversationPanel",
   "count": 2,
   "basis": "an App-owned literal vocabulary",
-  "reason": "Its target #ordinary-send-readiness holds sendReadiness, a choice of literal sentences or, with no conversation chosen, startNew.blocked followed by a literal: startNew is the App's StartSettings, whose blocked is App's startBlocked (App.tsx), a choice of literal sentences or rowChoiceNote, itself literal sentences. The guard does not follow a prop's field to its producer. It replaces the exception for the removed #start-conversation-blocked."
+  "reason": "Its target #ordinary-send-readiness holds sendReadiness, a choice of literal sentences, of literal sentences after startNew.blocked, or of a literal sentence around idWords(selected.threadId) (AgentText.tsx: the thread identifier as written only when it is a plain identifier, else the App's words for one that is not). startNew is the App's StartSettings, whose blocked is App's startBlocked (App.tsx), a choice of literal sentences or rowChoiceNote, itself literal sentences. The guard does not follow a prop's field to its producer. It replaces the exception for the removed #start-conversation-blocked."
  },
  {
   "file": "App.tsx",
-  "where": "<summary>",
+  "where": "<button>",
   "expr": "requestTitle(request)",
   "component": "ConversationPanel",
   "count": 1,
   "basis": "an App-owned literal vocabulary",
-  "reason": "requestTitle (RequestCards.tsx) returns only literal titles, one for each request method the App knows and one for any other. The guard does not follow an imported function's return."
+  "reason": "The control that folds an earlier request (ConversationPanel, class v4-request-earlier-toggle). requestTitle (RequestCards.tsx) returns only literal titles, one for each request method the App knows and one for any other. The guard does not follow an imported function's return."
  },
  {
   "file": "App.tsx",
-  "where": "<summary>",
-  "expr": "cardState(request)",
+  "where": "<button>",
+  "expr": "requestStateWords(request)",
   "component": "ConversationPanel",
   "count": 1,
   "basis": "an App-owned literal vocabulary",
-  "reason": "cardState (RequestCards.tsx) returns only literal sentences, one for each custody state and outcome the host reports. The guard does not follow an imported function's return."
+  "reason": "The same control. requestStateWords (RequestCards.tsx) returns only literal sentences, one for each register state and outcome the host reports, with nothing interpolated (for a request Codex resolved, \"Resolved by Codex before you answered\"); the supplier's cause stays on the card, in cardState's own line. The guard does not follow an imported function's return."
  },
  {
   "file": "App.tsx",

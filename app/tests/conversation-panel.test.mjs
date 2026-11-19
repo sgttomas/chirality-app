@@ -6,7 +6,7 @@ import {installIdleNativeWaiting} from './support/idle-native-waiting.mjs';
 import {continuationFixture} from './support/continuation-fixture.mjs';
 import {choiceList, choiceLists, chooseIn, chooser, chosenIn} from './support/choices.mjs';
 
-import { conversationView, chatInput, newChatButton, openSetting, sendButton, settingButton, startWithFirstMessage } from './support/conversation-view.mjs';
+import { conversationView, chatInput, inView, newChatButton, openSetting, sendButton, settingButton, startModelField, startWithFirstMessage } from './support/conversation-view.mjs';
 // The conversation section is mounted with react-dom/client on a minimal
 // in-memory document, so the test sees what React actually leaves mounted
 // when the person moves between conversations (native witness 2026-10-10 D-1:
@@ -81,10 +81,14 @@ async function ordinaryStartCase({initialThread = false, startGeneration = g, ou
     // The first message, sent to the conversation the start opened.
     if (command === 'conversation_send_text') return {result: {}};
     if (command !== 'thread_start') throw Error(`Unexpected native command: ${command}`);
-    if (outcome === 'refused') throw Error('Native start refused before send');
-    if (outcome === 'failed') throw Error('Native start result unknown; no automatic retry');
+    // A refusal the host makes before dispatch (runtime_session.rs check_start_source), with its role supply suffix.
+    if (outcome === 'refused') throw 'The selected Codex home changed since you chose it (a different or replaced source); nothing started. Read models again or choose again; role supply observation: {"state":"written"}';
+    // A rejection after dispatch (lib.rs start_conversation_inner): the start's effect is unknown.
+    if (outcome === 'failed') throw 'Native start remains "pending" (write "written"); no automatic retry';
     if (outcome === 'missing-id') return {startGeneration, result: {thread: {}}};
     if (outcome === 'missing-generation') return {result: {thread: {id: 'created'}}};
+    // The native start returns the generation it was dispatched with; a reply naming another is not a success.
+    if (outcome === 'other-generation') return {startGeneration: {appSession: 's', home: 'other-home', spawnCounter: 2}, result: {thread: {id: 'created'}}};
     const created = {...thread('created', 'HELP_HUMAN'), generation: startGeneration, model: args.model, modelProvider: args.modelProvider};
     snapshot = {...snapshot, generation: startGeneration, threads: [...snapshot.threads, created]};
     return {id: 42, startGeneration, result: {thread: {id: created.threadId}}, roleSupplyRecord: {state: 'recorded'}};
@@ -98,9 +102,14 @@ async function ordinaryStartCase({initialThread = false, startGeneration = g, ou
     await React.act(async () => {props(newChatButton(container)).onClick();});
     assert.equal(selectedKey(), '', 'New chat chooses no conversation');
     await chooseRoute(container);
-    await change(labelled(container, 'input', 'Model '), 'chosen-model');
     const draft = 'Unsent person text é / 家';
     await change(chatInput(container), draft);
+    // With no model chosen, the reason is in view under the message box, not only in the model panel.
+    const readiness = () => container.querySelectorAll(node => node.getAttribute('id') === 'ordinary-send-readiness')[0];
+    assert.equal(readiness().textContent, 'Not started — no model selected. Choose a model below. Your draft stays here.');
+    assert.ok(inView(readiness()) && readiness().getAttribute('class') !== 'visually-hidden', 'the reason is in view');
+    // The model is chosen in the settings line's Model panel, opened first.
+    await change(await startModelField(container, React.act), 'chosen-model');
     assert.equal(props(sendButton(container)).disabled, false, 'the first message can be sent');
     assert.ok(calls.every(call => call.command !== 'thread_start'), 'nothing is started before Send');
     await React.act(async () => {await props(sendButton(container)).onClick();});
@@ -123,18 +132,23 @@ async function ordinaryStartCase({initialThread = false, startGeneration = g, ou
       // another conversation. The next New chat has no model selected, and its only connection is shown in use
       // (DEL-01-05 REQ-004), not carried from this choice.
       await React.act(async () => {props(newChatButton(container)).onClick();});
-      assert.equal(props(labelled(container, 'input', 'Model ')).value, '', 'the next conversation has no model selected');
+      assert.equal(props(await startModelField(container, React.act)).value, '', 'the next conversation has no model selected');
       assert.equal(routeChosen(container), true, 'the next conversation shows the only connection in use');
       assert.equal(props(sendButton(container)).disabled, true, 'a second start needs a fresh explicit choice');
     } else {
       assert.deepEqual(sends, [], 'nothing is sent when the start did not open a conversation');
       assert.equal(selectedKey(), '', 'an unsuccessful start keeps the person in New chat');
       assert.equal(props(chatInput(container)).value, draft, 'the unsent message is kept');
-      assert.deepEqual([props(labelled(container,'input','Model ')).value, routeChosen(container)],
+      assert.deepEqual([props(await startModelField(container, React.act)).value, routeChosen(container)],
         ['chosen-model', true],'a refused, unknown or incomplete attempt keeps its explicit chooser for retry');
       assert.equal(props(sendButton(container)).disabled, false, 'an explicit retry is offered');
-      assert.match(container.textContent, outcome === 'refused' || outcome === 'failed' ? /The conversation was not started: .*Your draft stays here; nothing was sent\./ : /The App did not report the start's outcome\. Your draft stays here; nothing was sent\./);
-      if (outcome === 'refused' || outcome === 'failed') assert.ok(container.textContent.includes('thread_start: Error: Native start'));
+      const said = container.querySelectorAll(node => node.getAttribute('role') === 'alert' && /conversation (was not started|started)/.test(node.textContent))[0]?.textContent ?? '';
+      // A definite refusal says nothing started, with the host's reason boxed beside the App's words; anything else
+      // says only what is established.
+      if (outcome === 'refused') assert.match(said, /^The conversation was not started: Reported: The selected Codex home changed since you chose it .*Your draft stays here; nothing was sent\.$/);
+      else if (outcome === 'failed') assert.match(said, /^The App could not confirm that a new conversation started: Reported: Native start remains "pending" \(write "written"\); no automatic retry If it did start, it is listed on the left\. Your message was not sent; your draft stays here\.$/);
+      else assert.equal(said, 'The App could not confirm that a new conversation started. If it did start, it is listed on the left. Your message was not sent; your draft stays here.');
+      assert.doesNotMatch(container.textContent, outcome === 'refused' ? /could not confirm/ : /was not started/);
     }
   } finally {
     const renderedText = container.textContent;
@@ -147,12 +161,12 @@ async function ordinaryStartCase({initialThread = false, startGeneration = g, ou
 test('a new conversation starts with the person\'s first message: thread_start, then that message sent to it', async () => {
   await ordinaryStartCase({});
   await ordinaryStartCase({initialThread: true});
-  // The host's actual start generation can differ from the pre-click snapshot.
-  await ordinaryStartCase({initialThread: true, startGeneration: {appSession: 's', home: 'other-home', spawnCounter: 2}});
 });
 
-test('refused, failed and identity-incomplete Start preserve selection and composer', async () => {
-  for (const outcome of ['refused', 'failed', 'missing-id', 'missing-generation']) {
+test('refused, unknown, identity-incomplete and other-generation starts send nothing and preserve selection and composer', async () => {
+  // A reply naming a generation other than the one the start was issued for is not a success (the native start returns
+  // the generation it was dispatched with), so nothing is selected or sent.
+  for (const outcome of ['refused', 'failed', 'missing-id', 'missing-generation', 'other-generation']) {
     await ordinaryStartCase({outcome});
     await ordinaryStartCase({initialThread: true, outcome});
   }
@@ -199,9 +213,11 @@ async function withStartChooser(check, startReply, {homeReply,decisionReply}={})
     if(chosenIn(choiceLists(conversationView(container))[0])!=='')await React.act(async()=>{props(newChatButton(container)).onClick();});
     if(!props(chatInput(container)).value)await change(chatInput(container),'Next first message');
   };
-  // The model field and the route button exist only in the account home, and are New chat's.
-  const values=async()=>{await toNewChat();return {model:field('input','Model ')?props(field('input','Model ')).value:null,route:routeChosen(container)};};
-  const edit=async(patch)=>{await toNewChat();if(patch.route)await chooseRoute(container);if(patch.model!==undefined)await change(field('input','Model '),patch.model);};
+  // The model field and the route button exist only in the account home, and are New chat's: reached through the
+  // settings line's Model panel, opened first.
+  const modelField=async()=>{try{return await startModelField(container,React.act);}catch{return null;}};
+  const values=async()=>{await toNewChat();const model=await modelField();return {model:model?props(model).value:null,route:routeChosen(container)};};
+  const edit=async(patch)=>{await toNewChat();if(patch.route)await chooseRoute(container);if(patch.model!==undefined)await change(await modelField(),patch.model);};
   const press=async(text)=>{if(text==='Start thread'){await toNewChat();await React.act(async()=>{await props(sendButton(container)).onClick();});return;}
     await React.act(async()=>{await props(button(container,text)).onClick();});};
   try {
@@ -293,6 +309,9 @@ test('home choices during a pending Start neither reuse the old choice nor let i
     reply.resolve();await React.act(async()=>{await pending;});
     assert.deepEqual((await ui.values()),{model:null,route:false});assert.equal(props(ui.start()).disabled,true,'omitted legacy mode cannot dispatch');
     assert.equal(ui.calls.filter(c=>c.command==='thread_start').length,1);
+    // The start was confirmed in the account home's generation, but the home shown is another: nothing was sent.
+    assert.deepEqual(ui.calls.filter(c=>c.command==='conversation_send_text'),[],'the superseded first message was not sent');
+    assert.match(ui.container.textContent,/The conversation started, but the view changed before your message was sent\. Nothing was sent; your draft stays here\./);
     await ui.press('Start thread');assert.equal(ui.calls.filter(c=>c.command==='thread_start').length,1);
     await ui.press('Use account home');assert.deepEqual((await ui.values()),blankChoice,'returning does not restore an invalidated choice');
     await ui.edit(selectedChoice);await ui.press('Start thread');assert.deepEqual((await ui.values()),blankChoice);
@@ -310,6 +329,9 @@ test('an away-and-back home transition protects a newer same-valued choice from 
     reply.resolve();await React.act(async()=>{await pending;});
     assert.deepEqual((await ui.values()),selectedChoice);assert.equal(props(ui.start()).disabled,false);
     assert.equal(ui.calls.filter(c=>c.command==='thread_start').length,1);
+    // Away and back is the same full source: the start was confirmed in it and nothing else changed for the first
+    // message (no conversation chosen, the same draft), so it was sent once, to the started conversation.
+    assert.deepEqual(ui.calls.filter(c=>c.command==='conversation_send_text').map(c=>[c.args.generation,c.args.threadId]),[[g,'created-1']]);
   },async(args,index,admitted)=>{await reply.promise;return admitted(args,index);});
 });
 
@@ -341,21 +363,27 @@ test('a home transition invalidates prior-home edits but preserves newer target-
   });
 });
 
-test('a same-class actual generation update while Start is pending does not become another chooser edit',async()=>{
-  const reply=deferred();
+test('a same-class actual generation update while Start is pending does not become another chooser edit, and the first message is not sent to the superseded source',async()=>{
+  const reply=deferred(),held=deferred();
   await withStartChooser(async ui=>{
-    await ui.edit(selectedChoice);let pending;
-    await React.act(()=>{pending=props(ui.start()).onClick();});
+    await ui.edit(selectedChoice);
+    const draft=props(chatInput(ui.container)).value;
+    await React.act(async()=>{props(ui.start()).onClick();});
     const actual={appSession:'actual-session',home:'actual-account-home',spawnCounter:2};
     ui.homes.account.generation=actual;
     await ui.press('Check account status');
     assert.deepEqual((await ui.values()),selectedChoice,'a source observation is not another person choice');
-    reply.resolve();await React.act(async()=>{await pending;});
+    // The native start binds the generation it was dispatched with and returns that same one.
+    await React.act(async()=>{reply.resolve();await held.promise;});
+    await React.act(async()=>{});
     const conversation=conversationView(ui.container);
-    assert.equal(chosenIn(choiceLists(conversation)[0]),JSON.stringify([actual,'created-1']),'opens the actual returned H5, never the stale pre-click tuple');
-    assert.deepEqual((await ui.values()),blankChoice);
+    assert.equal(chosenIn(choiceLists(conversation)[0]),'','a conversation of the replaced source is not selected');
+    assert.deepEqual(ui.calls.filter(c=>c.command==='conversation_send_text'),[],'nothing was sent to the replaced source');
+    assert.match(ui.container.textContent,/The conversation started, but the view changed before your message was sent\. Nothing was sent; your draft stays here\./);
+    assert.equal(props(chatInput(ui.container)).value,draft,'the draft stays');
+    assert.deepEqual((await ui.values()),blankChoice,'the confirmed start consumed its choice');
     assert.equal(ui.calls.filter(c=>c.command==='thread_start').length,1);
-  },async(args,index,admitted)=>{await reply.promise;return admitted(args,index);});
+  },async(args)=>{await reply.promise;held.resolve();return {id:1,startGeneration:args.generation,result:{thread:{id:'created-1'}},roleSupplyRecord:{state:'not-confirmed'}};});
 });
 
 test('an admitted start consumes its chooser before an independent refresh failure',async()=>{
@@ -1028,7 +1056,10 @@ test('the App start display has its own role group and one shared model field an
     assert.equal(field('Configured Codex provider ').length, 0, 'the provider is never typed');
     assert.equal(elements(container, 'select').filter(element => element.parentNode.textContent.startsWith('Access entry ')).length, 0, 'there is no access-entry select');
     await chooseRoute(container);
-    await change(field('Model ')[0], 'chosen-model');
+    // The model field is reached as a person reaches it: the Model panel opened, then its advanced disclosure.
+    const modelField = await startModelField(container, React.act);
+    assert.equal(modelField, field('Model ')[0], 'the one model field is the one in the open Model panel');
+    await change(modelField, 'chosen-model');
     assert.deepEqual([props(field('Model ')[0]).value, routeChosen(container)], ['chosen-model', true]);
     assert.match(container.querySelectorAll(e => e.getAttribute('aria-label') === 'New conversation choice')[0].textContent, /chosen-model via openai \(chatgpt-account\)/);
   } finally {

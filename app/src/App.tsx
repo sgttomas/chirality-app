@@ -13,7 +13,7 @@ import { ConnectorRoutePanel, emptyRouteRead, routeReadTransition, type RouteRea
 // The interface reads host snapshots and asks the host to act. It holds no pipe
 // (HOSTING H2), writes no record and cannot capture an act: the native
 // confirmation is the host's (AAC §6.2 P-2). Views per DECISION_VIEW.md §4.
-import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode, type Ref } from "react";
+import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type Ref } from "react";
 import { createPortal } from "react-dom";
 import { appHome, CodexProcessControls, ConversationStops, historyHome, stopLabel, stopRequestsFor } from "./CodexControls";
 import { ContinueAsPanel, ModelIdField, RoleChoice, RoleHeader, RoleHistoryReader, SupplyStatus, type ContinueStartOutcome, type HandoffSendOutcome } from "./ConversationRoles";
@@ -25,7 +25,7 @@ import { NativeActivityView, activityModel, sameActivityGeneration, type NativeA
 import { ContinuationContext, historyPageBinding, StoredItemPage, StoredTurnPage, storedStopFor } from "./NativeHistory";
 import { ObserverAttachment } from "./ObserverAttachment";
 import { PlanModeControl } from "./PlanMode";
-import { NativeRequestCard, answerable, cardState, requestTitle, hostRequests, requestItem, requestPlace, requestThread, requestScopeKey, requestReplyGuarded, type RequestActivityLink, type RequestAnswer, type ReadRequestCustody, type RequestReplyObservation, type WaitingRequestGroup } from "./RequestCards";
+import { NativeRequestCard, answerable, requestStateWords, requestTitle, hostRequests, requestItem, requestPlace, requestThread, requestScopeKey, requestReplyGuarded, type RequestActivityLink, type RequestAnswer, type ReadRequestCustody, type RequestReplyObservation, type WaitingRequestGroup } from "./RequestCards";
 import { type RunAct } from "./RunOffers";
 import { RequestAnswerCompanion, type CompanionRow, type ReadCompanions } from "./RequestAnswerCompanion";
 import { RecoveryCustodyPanel } from "./RecoveryCustodyPanel";
@@ -37,13 +37,13 @@ import { preparedMessages, preparedMessageLimit, type PreparedMessage } from "./
 import { ConversationContext, ProjectLibraryContext, appProjectFolder, conversationFromKey, workflowSourceLimit } from "./WorkflowContext";
 import { WorkspaceDisclosure, WorkspaceConnectionStatus, revealWorkspaceTarget, revealWorkspaceLink, registerWorkspaceViews } from "./DailyWorkspace";
 import { ActivityStrip, WorkspaceShell, isRightPanelTab, turnPhase, type RightPanelTab, RIGHT_PANEL_TABS, type TabSelection } from "./WorkspaceShell";
-import { AccountRow, Navigator, folderName, navigatorEntries, navigatorProjects, type NavigatorEntry } from "./Navigator";
+import { AccountRow, Navigator, folderName, navigatorEntries, navigatorProjects, samePath, type NavigatorEntry } from "./Navigator";
 import { flushSync } from "react-dom";
 import { UnsentWork, useReportUnsent } from "./unsentWork";
 import { DesktopSetupPanel } from "./DesktopSetupPanel";
 // Every host command goes through hostReads' invoke, which marks when a command that may change the host settles.
 import { invoke, invokeTimedRead, useOrderedHost, shownBeforePress, POLL_MS } from "./hostReads";
-import { readingAfterWrite, readingSentence } from "./readingSentences";
+import { readingAfterWrite, readingRefusal, readingSentence } from "./readingSentences";
 import { REFRESH_FAILED, commandThenRefresh, observationLine, observationText, refreshAfterAction, withRefreshFailure } from "./statusRefresh";
 import { FirstUseSetup } from "./FirstUse";
 import { AccountStatus, DIDNT_SAY, accountReadError, accountReadRef, accountReading, reportedPlan, signInCompletion, type ReadAccountStatus } from "./AccountStatus";
@@ -142,13 +142,43 @@ type UnconfirmedSend = { id: number; request: OrdinaryTextRequest; reported: str
 // Ordinary text intentionally remains one global draft across conversations.
 const ordinaryConversationRef = (generation: Json, thread: string | undefined) => thread && generation
   ? JSON.stringify([generation.home, generation.appSession, generation.spawnCounter, thread]) : "";
+/** How close to the transcript's end, in pixels, still counts as at the end: within it, what arrives is followed. */
+export const TRANSCRIPT_NEAR_END_PX = 48;
+/** The accessible name of the host's reason for a start's outcome, shown beside the App's sentence. */
+const START_REASON_NAME = "What the host reported about the start, not the App's words";
 type PreparedComposerReveal = { sequence: number; item: PreparedMessage; isCurrent: () => boolean; finish: (shown: boolean) => void };
 
-/** What the start of a new conversation from the empty conversation came to: the conversation's key, or that it
- * failed (the host's message) or its outcome was not confirmed. Null when nothing was sent. */
-export type StartOutcome = { opened: string } | { failed: string } | { notConfirmed: true };
-/** The new conversation's own settings, which the App holds: its role and model, with their panels. */
-export type StartSettings = { role: string; model: string; blocked: string; rolePanel: ReactNode; modelPanel: ReactNode; notice?: ReactNode; start: () => Promise<StartOutcome | null> };
+/** What the start of a new conversation from the empty conversation came to: the conversation's key (a start
+ * confirmed in the generation it was issued for); a definite refusal, nothing started (`failed`, the host's message);
+ * or an outcome the App could not confirm (`notConfirmed`, with the host's message where it gave one). Null when
+ * nothing was sent. */
+export type StartOutcome = { opened: string } | { failed: string } | { notConfirmed: true; reason?: string };
+/** The new conversation's own settings, which the App holds: its role and model, with their panels. `binding`
+ * changes whenever the settings a start would send change (the chooser's edits, role, source and home): a Send
+ * captured before such a change starts nothing. */
+export type StartSettings = { role: string; model: string; blocked: string; rolePanel: ReactNode; modelPanel: ReactNode; notice?: ReactNode; binding?: string; start: () => Promise<StartOutcome | null> };
+
+// The host's refusals of a start that are made before anything is dispatched, so nothing started
+// (lib.rs start_conversation: start_source/check_start_source, runtime_session.rs:2803, 2806, 2933; access.rs:160,
+// 198 and runtime_session.rs:1742 claim_start, all before dispatch_invoked). Each is the App's own sentence, at the
+// start of the message the host returns; a start refused at a configuration reading is readingRefusal's. Every
+// other rejection, including one whose words resemble these elsewhere in the message, leaves the start's effect
+// unknown to the renderer.
+const START_REFUSED_BEFORE_DISPATCH = [
+  "The selected Codex home changed since you chose it (a different or replaced source); nothing started.",
+  "The selected Codex home is not running that source now (closed or not ready); nothing started",
+  "The start names no complete Codex home source (full generation required); nothing started",
+  "The access entry's origin contradicts this start's control; nothing started",
+  "thread start in progress",
+];
+/** Whether a rejected start is a definite refusal (nothing started), as the host's message establishes it. */
+export const startRefusedBeforeDispatch = (error: unknown): boolean => {
+  if (readingRefusal(error) !== null) return true;
+  const message = hostMessage(error);
+  // The sentence, then the end of the message or what the host appends after it (its next sentence, or "; role
+  // supply observation: …").
+  return START_REFUSED_BEFORE_DISPATCH.some(sentence => message.startsWith(sentence) && ["", ";", ".", " "].includes(message.charAt(sentence.length)));
+};
 
 export function ConversationPanel({ reportChooser, localRoute = null, focusComposer, startAct, composerOffer, host, threadKey, setThreadKey, answer, readRequest, replyObservations, runAct, trialRunAct, send, observeOrdinaryView, steer, submitAttachments, observeAttachmentView, interrupt, checkPlanMode, codexBusy, forkConversation, handoffSend, handoffRead, activityNavigationRef, activityLink, preparedReveal, toolsHost = null, showTools, before, attachments, actionOutcome, startNew }: { /** Receives the view's own choice of a conversation while the view takes a choice, else null. */
   reportChooser?: (choose: ((key: string) => void) | null) => void; localRoute?: LocalView | null; focusComposer?: number; startAct?: RunAct; composerOffer?: ComposerOffer | null; preparedReveal?: PreparedComposerReveal | null; activityNavigationRef?: Ref<NativeActivityHandle>; activityLink?: RequestActivityLink; forkConversation?: (generation: Json, sourceThread: string) => Promise<void>; handoffSend?: (id: string, text: string) => Promise<HandoffSendOutcome>; handoffRead?: (id: string) => Promise<HandoffSendOutcome>; codexBusy: boolean; host: Json; threadKey: string; setThreadKey: (key: string) => void; trialRunAct?: RunAct; answer: RequestAnswer; readRequest?: ReadRequestCustody; replyObservations?: Record<string, RequestReplyObservation>; runAct: RunAct; checkPlanMode: (generation: Json) => Promise<void>; submitAttachments: (generation: Json, thread: string, expected: string | null, text: string, owner: string, revision: number, refs: string[]) => Promise<Json>; observeAttachmentView?: (request: AttachmentRequest) => Promise<void>; send: (generation: Json, thread: string, text: string, mode?: "plan" | "default", model?: string, effort?: string) => Promise<Json>; observeOrdinaryView?: (request: OrdinaryTextRequest, isCurrent: () => boolean) => Promise<void>; steer: (generation: Json, thread: string, expected: string, text: string) => Promise<boolean | void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<boolean | void>;
@@ -239,23 +269,40 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
   const alreadyRequested = requestedFor(live);
   // The composer's Stop: the live turn chosen under Conversation tools, else the one live turn when there is exactly one.
   const stopTarget = live ?? (liveTurns.length === 1 ? liveTurns[0] : null);
-  // The mode the next send asks for (3.0.1's Chat or Plan): Plan sends plan mode while Codex offers it; Chat after a
-  // requested plan mode sends default mode to leave it; otherwise no mode is sent, as Send text sends none.
+  // The mode the next send asks for (3.0.1's Chat or Plan). As on main, a plain Send sends no mode: a mode is sent only
+  // when the person has chosen one on the settings line for this conversation and it differs from the last mode the
+  // host records as requested for it (chosen Plan, last not plan: "plan"; chosen Chat, last plan: "default"), and
+  // only while Codex offers plan mode. The word shown is the person's choice where they made one, else the last mode.
   const requestedMode = selected ? (host?.requestedModes ?? []).find((r: Json) => JSON.stringify(r.generation) === generationKey && r.threadId === selected.threadId) ?? null : null;
   const planOffered = host?.planMode?.state === "offered";
   const [modeChoice, setModeChoice] = useState<{ owner: string; mode: "chat" | "plan" } | null>(null);
-  const modeShown: "chat" | "plan" = modeChoice && modeChoice.owner === ordinaryOwner ? modeChoice.mode : requestedMode?.mode === "plan" ? "plan" : "chat";
-  const sendMode: "plan" | "default" | undefined = !planOffered ? undefined : modeShown === "plan" ? "plan" : requestedMode?.mode === "plan" ? "default" : undefined;
-  const [startOutcome, setStartOutcome] = useState<{ kind: "failed"; message: string } | { kind: "not-confirmed" } | null>(null);
+  const modeChosen: "chat" | "plan" | null = modeChoice && modeChoice.owner === ordinaryOwner ? modeChoice.mode : null;
+  const lastPlan = requestedMode?.mode === "plan";
+  const modeShown: "chat" | "plan" = modeChosen ?? (lastPlan ? "plan" : "chat");
+  const sendMode: "plan" | "default" | undefined = !planOffered ? undefined : modeChosen === "plan" && !lastPlan ? "plan" : modeChosen === "chat" && lastPlan ? "default" : undefined;
+  // What the last first-message press came to, when it did not send: a definite refusal (the host's reason), a start the
+  // App could not confirm (the host's reason, where given), or a start whose view changed before the send.
+  const [startOutcome, setStartOutcome] = useState<{ kind: "failed"; message: string } | { kind: "not-confirmed"; message?: string } | { kind: "view-changed" } | null>(null);
+  // The view as last rendered, read after an await: the source, the conversation chosen and the new conversation's settings.
+  const hostNow = useRef(host);
+  hostNow.current = host;
+  const threadKeyNow = useRef(threadKey);
+  threadKeyNow.current = threadKey;
+  const startBindingNow = useRef(startNew?.binding ?? "");
+  startBindingNow.current = startNew?.binding ?? "";
+  // A new chat is only "no conversation chosen". A chosen conversation whose row is missing is not one.
+  const newChat = !selected && threadKey === "";
   // The send intent this render shows: its conversation view, text edit, model
-  // choice and the unconfirmed attempts so far. A Send or plan/default control
+  // choice, the new conversation's settings and the unconfirmed attempts so far. A Send or plan/default control
   // acts only while all are still current, so a control captured before a
   // failed attempt or a newer choice never sends (even after an acknowledgement).
-  const sendBinding = { owner: ordinaryView.current.owner, epoch: ordinaryView.current.epoch, textRevision: textRevision.current, modelRevision: ordinaryModel.revision, attempts: unconfirmedSequence.current };
+  const sendBinding = { owner: ordinaryView.current.owner, epoch: ordinaryView.current.epoch, textRevision: textRevision.current, modelRevision: ordinaryModel.revision, attempts: unconfirmedSequence.current, start: startNew?.binding ?? "" };
   modelRevisionRef.current = ordinaryModel.revision;
   // The send itself, shared by Send, the plan/default controls and the empty conversation's first message: the
   // native command, then the held record of an unconfirmed send, then the view read. The caller has checked its binding.
-  const dispatchOrdinary = async (request: OrdinaryTextRequest, isCurrent: () => boolean, revision: number, choice: typeof ordinaryModel, owner: string) => {
+  // `firstSend`: the new conversation's first message, whose acknowledged send clears the pressed draft (by its
+  // revision) whether or not the new conversation has rendered as the one shown yet.
+  const dispatchOrdinary = async (request: OrdinaryTextRequest, isCurrent: () => boolean, revision: number, choice: typeof ordinaryModel, owner: string, firstSend = false) => {
     setOrdinaryOutcome(null);
     let outcome: OrdinaryTextOutcome;
     try {
@@ -266,8 +313,8 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
       if (nativeValue === undefined || nativeValue === null) throw new Error("The host did not report this send's outcome; it may or may not have been sent.");
       outcome = { request, result: { acknowledged: true, nativeValue } };
       if (choice.owner === owner && choice.value) modelSends.current.set(choice.owner, (modelSends.current.get(choice.owner) ?? 0) + 1);
+      if ((firstSend || isCurrent()) && textRevision.current === revision) setText(current => current === request.text ? "" : current);
       if (isCurrent()) {
-        if (textRevision.current === revision) setText(current => current === request.text ? "" : current);
         setOrdinaryModel(current => current.owner === choice.owner && current.revision === choice.revision
           ? { ...current, value: "", effort: "", effortModel: "", revision: current.revision + 1 } : current);
         setModelTyping(typing => typing === choice.owner ? null : typing);
@@ -281,10 +328,14 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
     try { await observeOrdinaryView?.(request, isCurrent); }
     catch (error) { setOrdinaryOutcome({ ...outcome, observationLimit: observationText(error) }); }
   };
+  // Whether this render's Send is still the one the view shows: the same conversation view, text edit, model choice,
+  // new conversation's settings and unconfirmed attempts.
+  const pressCurrent = () => ordinaryView.current.owner === sendBinding.owner && ordinaryView.current.epoch === sendBinding.epoch && ordinaryView.current.ready
+    && textRevision.current === sendBinding.textRevision && modelRevisionRef.current === sendBinding.modelRevision && unconfirmedSequence.current === sendBinding.attempts
+    && (!!selected || startBindingNow.current === sendBinding.start);
   const sendText = async (mode?: "plan" | "default") => {
     if (!selected || !text || busy || turnActionPending.current || !sourceReady) return;
-    if (ordinaryView.current.owner !== sendBinding.owner || ordinaryView.current.epoch !== sendBinding.epoch || !ordinaryView.current.ready
-      || textRevision.current !== sendBinding.textRevision || modelRevisionRef.current !== sendBinding.modelRevision || unconfirmedSequence.current !== sendBinding.attempts) {
+    if (!pressCurrent()) {
       setError("Not sent: that Send belonged to an earlier view of the conversation, text or model. Check them and press Send again."); return;
     }
     // Shared by Send text and the plan/default controls; a retained control can't bypass it.
@@ -299,25 +350,41 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
     finally { turnActionPending.current = false; setBusy(""); }
   };
   // The empty conversation's first message: the present start of a conversation with the settings chosen here,
-  // then the present send to the conversation it opened. A start that fails, or whose outcome is not confirmed,
-  // sends nothing and keeps the text.
+  // then the present send to the conversation it opened. Both are bound to the press: the start to the source, home,
+  // settings and text the press saw (a Send captured before any of them changed starts nothing); the send to a start
+  // confirmed in the generation it was issued for, and only while that source and home are still current, the view
+  // shows no conversation or the one the start opened, and the text is still the pressed draft. Otherwise nothing is
+  // sent and the text is kept.
   const startAndSend = async () => {
-    if (selected || !startNew || !text || busy || turnActionPending.current || !sourceReady || startNew.blocked) return;
-    const revision = textRevision.current, draft = text, mode = sendMode;
+    if (selected || threadKey !== "" || !startNew || !text || busy || turnActionPending.current || !sourceReady || startNew.blocked) return;
+    if (!pressCurrent() || threadKeyNow.current !== "") {
+      setError("Not started: that Send belonged to an earlier view, text or choice of settings for the new conversation. Check them and press Send again."); return;
+    }
+    const press = { generation: host?.generation, home: host?.homeRouting?.activeModeHomeClass ?? null, revision: textRevision.current, draft: text, mode: sendMode };
+    // What is current after the start returns, read from the view as last rendered.
+    const sourceCurrent = () => {
+      const now = hostNow.current;
+      return sameActivityGeneration(now?.generation, press.generation) && (now?.homeRouting?.activeModeHomeClass ?? null) === press.home && now?.state === "ready" && now?.generationClosed !== true;
+    };
     turnActionPending.current = true;
     setBusy("starting the new conversation"); setError(""); setStartOutcome(null);
     try {
       const outcome = await startNew.start();
       if (!outcome) return;
       if ("failed" in outcome) { setStartOutcome({ kind: "failed", message: outcome.failed }); return; }
-      if ("notConfirmed" in outcome) { setStartOutcome({ kind: "not-confirmed" }); return; }
+      if ("notConfirmed" in outcome) { setStartOutcome({ kind: "not-confirmed", message: outcome.reason }); return; }
       let opened: [Json, string];
       try { opened = JSON.parse(outcome.opened); } catch { setStartOutcome({ kind: "not-confirmed" }); return; }
-      const [generation, threadId] = opened;
+      const [generation, threadId] = Array.isArray(opened) ? opened : [null, ""];
+      // The native start binds the generation it was dispatched with and returns that same one: another is no success.
+      if (!sameActivityGeneration(generation, press.generation) || typeof threadId !== "string" || !threadId) { setStartOutcome({ kind: "not-confirmed" }); return; }
+      const shown = threadKeyNow.current;
+      if (!sourceCurrent() || (shown !== "" && shown !== outcome.opened) || textRevision.current !== press.revision) { setStartOutcome({ kind: "view-changed" }); return; }
       const owner = ordinaryConversationRef(generation, threadId);
-      const request: OrdinaryTextRequest = { generation: { ...generation }, threadId, text: draft, ...(mode ? { mode } : {}) };
-      setBusy(mode ? `sending in ${mode} mode` : "sending");
-      await dispatchOrdinary(request, () => ordinaryView.current.owner === owner && ordinaryView.current.ready, revision, { owner: "", value: "", effort: "", effortModel: "", revision: -1 }, owner);
+      const request: OrdinaryTextRequest = { generation: { ...generation }, threadId, text: press.draft, ...(press.mode ? { mode: press.mode } : {}) };
+      setBusy(press.mode ? `sending in ${press.mode} mode` : "sending");
+      await dispatchOrdinary(request, () => ordinaryView.current.ready && (ordinaryView.current.owner === owner || ordinaryView.current.owner === ""), press.revision,
+        { owner: "", value: "", effort: "", effortModel: "", revision: -1 }, owner, true);
     } finally { turnActionPending.current = false; setBusy(""); }
   };
   const steerText = async () => {
@@ -370,6 +437,14 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
   // NIR §4.1/§4.8: this conversation's request cards sit beside its activity, waiting ones first.
   const requests: Json[] = hostRequests(host).filter((request: Json) => selected && requestThread(request) === selected.threadId);
   const ordered = [...requests.filter(answerable), ...requests.filter((request: Json) => !answerable(request))];
+  // The turns a waiting request names: only those are marked "Waiting for you". A request that names no turn marks a
+  // turn only when the conversation has exactly one live turn (NativeActivityView).
+  const requestTurn = (request: Json): string | null => typeof request?.nativeParameters?.turnId === "string" && request.nativeParameters.turnId ? request.nativeParameters.turnId : null;
+  const waitingTurns = requests.filter(answerable).map(requestTurn).filter((turn): turn is string => turn !== null);
+  const waitingUnplaced = requests.some(request => answerable(request) && requestTurn(request) === null);
+  // An earlier request is folded behind the App's control; which ones the person opened, by request.
+  const [earlierOpen, setEarlierOpen] = useState<ReadonlySet<string>>(new Set());
+  const toggleEarlier = (scope: string) => setEarlierOpen(open => { const next = new Set(open); if (next.has(scope)) next.delete(scope); else next.add(scope); return next; });
   const offers: Json[] = (host?.workflowRoot?.offers ?? []).filter((offer: Json) => selected && offer?.message?.threadId === selected.threadId);
   const runs: Json[] = (host?.workflowRoot?.runs ?? []).filter((run: Json) => selected && run?.conversation === selected.threadId && run?.home === selected.generation?.home);
   const offerAct: RunAct = async (command, args) => { setOfferBusy(true); try { return await runAct(command, args); } finally { setOfferBusy(false); } };
@@ -472,17 +547,18 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
   // left the previous conversation's header mounted on every switch (witness
   // 2026-10-10 D-1). Each per-conversation child keys on its own prefix.
   const sendReadiness = !sourceReady ? "Connect to Codex before sending. Your draft stays here."
-    : !selected && startNew ? (busy ? "An operation is pending. New messages are paused until its result is received."
+    : newChat && startNew ? (busy ? "An operation is pending. New messages are paused until its result is received."
       : startNew.blocked ? `${startNew.blocked}${text ? " Your draft stays here." : ""}`
       : !text ? "Write a message to start a new conversation."
       : "Ready to start a new conversation and send it your text.")
+    : !selected && threadKey ? "The conversation chosen is not available now. Choose a conversation or press New chat. Your draft stays here."
     : !selected ? "Choose a current conversation, start a new one, or continue one from History. Your draft is not sent by choosing."
     : busy ? "An operation is pending. New messages are paused until its result is received."
     : unconfirmed.some(row => !row.acknowledged && row.request.threadId === selected.threadId) ? "An earlier message to this conversation wasn't confirmed and may have been sent. Read the conversation, then confirm below before sending again. Your text is kept."
     : !text ? "Write a message to send to the selected conversation."
     : `Ready to send text to conversation ${idWords(selected.threadId)}. Sending does not change its role or how it connects.`;
   // The readiness line is in view only when it says why nothing can be sent; otherwise it describes the field.
-  const sendBlocked = !sourceReady || (!selected && !startNew) || !!busy || (!!selected && unconfirmed.some(row => !row.acknowledged && row.request.threadId === selected.threadId)) || (!selected && !!startNew?.blocked);
+  const sendBlocked = !sourceReady || (!selected && (!newChat || !startNew)) || !!busy || (!!selected && unconfirmed.some(row => !row.acknowledged && row.request.threadId === selected.threadId)) || (newChat && !!startNew?.blocked);
   const interruptReadiness = !sourceReady ? "Interruption is unavailable because this Codex source is not ready."
     : !selected ? "Choose the conversation whose turn you want to interrupt."
     : ownBusy ? "Wait for the pending conversation operation before interrupting."
@@ -493,15 +569,19 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
   const attachmentsSelected = (host?.attachmentSelections?.selections ?? []).length > 0;
   const running = liveTurns.length > 0;
   const heldHere = !!selected && unconfirmed.some(row => !row.acknowledged && row.request.threadId === selected.threadId);
-  const sendDisabled = !sourceReady || !text || !!busy || (selected ? heldHere : !startNew || !!startNew.blocked);
+  const sendDisabled = !sourceReady || !text || !!busy || (selected ? heldHere : !newChat || !startNew || !!startNew.blocked);
   const updateDisabled = !sourceReady || !selected || !steeringTarget?.turnId || !text || !!busy;
   const stopDisabled = !sourceReady || !stopTarget || !!ownBusy || requestedFor(stopTarget);
-  const submit = () => { if (selected) void sendText(sendMode); else void startAndSend(); };
+  const submit = () => { if (selected) void sendText(sendMode); else if (newChat) void startAndSend(); };
   // The agent's label in the composer and the settings line: the conversation's role, where the App established it.
   const appRole = selected?.appRole;
   const roleWord = selected ? (appRole?.standing === "app-observed" ? wordOf(ROLE_SPEAKER, appRole?.role) ?? (appRole?.role ? "Role not established" : "No role") : "Role not established") : null;
   const speaker = selected && appRole?.standing === "app-observed" ? wordOf(ROLE_SPEAKER, appRole?.role) ?? "the agent" : "the agent";
   const folder = appProjectFolder(host);
+  // Where the selected conversation works: the App's project folder only where the row's folder is that folder (the
+  // navigator's rule, Navigator.tsx navigatorProjects); otherwise the folder Codex reports, as its text.
+  const rowFolder: string | null = typeof selected?.cwd === "string" && selected.cwd ? selected.cwd : null;
+  const inAppFolder = folder !== null && rowFolder !== null && samePath(folder, rowFolder);
   const level = levelInForce(host, selected?.threadId);
   // The settings line's panels: one open at a time; Escape or a press outside closes it.
   const [contextOpen, setContextOpen] = useState<"role" | "mode" | "level" | "model" | "effort" | null>(null);
@@ -518,9 +598,31 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
   useEffect(() => { setEffortShown(contextOpen === "effort"); }, [contextOpen]);
   const toggleContext = (which: NonNullable<typeof contextOpen>) => setContextOpen(current => current === which ? null : which);
   const openTools = (target: string) => { setContextOpen(null); showTools?.(target); };
-  const modelWord = selected ? (ordinaryModelValue ? (plainId(ordinaryModelValue) ?? "Model typed") : plainId(selected?.model) ?? "Model") : startNew?.model ? plainId(startNew.model) ?? "Model chosen" : "Choose a model";
+  const modelWord = selected ? (ordinaryModelValue ? (plainId(ordinaryModelValue) ?? "Model typed") : plainId(selected?.model) ?? "Model") : !newChat ? "Model" : startNew?.model ? plainId(startNew.model) ?? "Model chosen" : "Choose a model";
   const effortShownWord = ordinaryModel.owner === ordinaryOwner && ordinaryModel.effort ? plainId(ordinaryModel.effort) ?? "Effort chosen" : effortInForce ? plainId(effortInForce) ?? "Effort" : "Effort";
   const startRoleWord = startNew ? wordOf(ROLE_SPEAKER, startNew.role) ?? "No role" : "";
+  // The transcript follows the latest: a conversation opens at its end, and what arrives while the person is at or near
+  // the end is followed; once they have scrolled up it stays where they are, and "Latest" takes them to the end.
+  const transcriptNode = useRef<HTMLDivElement>(null);
+  const followLatest = useRef(true);
+  const [behindLatest, setBehindLatest] = useState(false);
+  const scrollable = (node: HTMLDivElement | null): node is HTMLDivElement => !!node && typeof node.scrollHeight === "number" && typeof node.clientHeight === "number";
+  const toLatest = () => {
+    const node = transcriptNode.current;
+    followLatest.current = true; setBehindLatest(false);
+    if (scrollable(node)) node.scrollTop = node.scrollHeight;
+  };
+  const readTranscriptEnd = () => {
+    const node = transcriptNode.current;
+    if (!scrollable(node)) return;
+    const atEnd = node.scrollHeight - node.scrollTop - node.clientHeight <= TRANSCRIPT_NEAR_END_PX;
+    followLatest.current = atEnd; setBehindLatest(!atEnd);
+  };
+  useLayoutEffect(() => { toLatest(); }, [threadKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  useLayoutEffect(() => {
+    const node = transcriptNode.current;
+    if (followLatest.current && scrollable(node) && node.scrollTop !== node.scrollHeight) node.scrollTop = node.scrollHeight;
+  });
 
   const tools = <section id="conversation-tools-content" className="v4-conversation-tools" aria-label="Conversation tools">
     <ConversationChoices legend="Current-generation conversation" group="current-conversation" disabled={!!ownBusy} chosen={threadKey} none="No conversation chosen"
@@ -586,28 +688,35 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
   return <div className="woven-primary-dialogue" data-primary-dialogue-mounted="true">
   <aside id="conversation" className="panel panel--chat chat-panel--woven" aria-label="Conversation">
     <div className="chat-conversation-stage">
-      <div className="panel-body chat-transcript">
+      <div className="panel-body chat-transcript" ref={transcriptNode} onScroll={readTranscriptEnd}>
         <div className="chat-transcript-content daily-workspace v4-in-chat">
           {before}
           {selected ? <NativeActivityView navigationRef={activityNavigationRef} key={`activity:${JSON.stringify([selected?.generation, selected?.threadId])}`} view={host?.nativeView} threadId={selected?.threadId} runs={runs} offers={offers}
-            trialTurns={workflowRoot?.trialTurns} trialChildren={workflowRoot?.trialChildren} delegation={selected?.delegation} appRole={selected?.appRole} waiting={requests.some(answerable)}
+            trialTurns={workflowRoot?.trialTurns} trialChildren={workflowRoot?.trialChildren} delegation={selected?.delegation} appRole={selected?.appRole} waiting={waitingUnplaced} waitingTurns={waitingTurns}
             stopLabelFor={(thread, turn) => stopLabel(host?.codexStops, thread, turn, host?.stopRequests, appHome(host?.homeRouting?.activeModeHomeClass))}
             offerControls={{ generation: host?.generation, ready: host?.state === "ready", busy: offerBusy, act: offerAct }} />
-            : threadKey ? <p className="panel-empty">Selected conversation is no longer available in this generation; choose a current conversation.</p>
+            : threadKey ? <p className="panel-empty">Selected conversation is no longer available in this generation; choose a current conversation or press New chat.</p>
             : !sourceReady ? <p className="panel-empty">Connect to Codex before sending. Your draft stays here. <a href="#workspace-connection">Open connection controls</a></p>
             : <>{startNew?.notice}<p className="panel-empty">Write your first message below. Sending starts a new conversation with the settings under it.</p></>}
           {selected && ordered.length > 0 && <section id="conversation-requests" className="permission-card-list" aria-label="Requests from Codex in this conversation" aria-live="polite">
-            {ordered.map((request: Json) => answerable(request) ? <Fragment key={JSON.stringify([request.generation, request.requestIdentity])}>
-              <NativeRequestCard activityLink={activityLink} request={request} view={host?.nativeView} answer={answer} readRequest={readRequest} place={requestPlace(request, host, appProjectFolder(host))} observation={replyObservations?.[requestScopeKey(request)]} />
-              <RequestAnswerCompanion request={request} read={readAnswerCompanions} refresh={replyObservations?.[requestScopeKey(request)]} />
-            </Fragment> : <details key={JSON.stringify([request.generation, request.requestIdentity])} className="v4-request-earlier"><summary>{requestTitle(request)} · {cardState(request)}</summary>
-              <NativeRequestCard activityLink={activityLink} request={request} view={host?.nativeView} answer={answer} readRequest={readRequest} place={requestPlace(request, host, appProjectFolder(host))} observation={replyObservations?.[requestScopeKey(request)]} />
-              <RequestAnswerCompanion request={request} read={readAnswerCompanions} refresh={replyObservations?.[requestScopeKey(request)]} />
-            </details>)}
+            {/* One mounted owner per request through its change of state: the same wrapper while it waits and after, so
+                its card and its answer companion keep what they hold when it is answered. An outstanding request is
+                never folded; an earlier one is folded behind the App's control, its body kept mounted and hidden. */}
+            {ordered.map((request: Json) => {
+              const scope = requestScopeKey(request), earlier = !answerable(request), open = !earlier || earlierOpen.has(scope);
+              return <div key={JSON.stringify([request.generation, request.requestIdentity])} className={earlier ? "v4-request-entry v4-request-earlier" : "v4-request-entry"}>
+                {earlier && <button type="button" className="v4-request-earlier-toggle" aria-expanded={open} onClick={() => toggleEarlier(scope)}>{requestTitle(request)} · {requestStateWords(request)}</button>}
+                <div className="v4-request-entry-body" hidden={!open}>
+                  <NativeRequestCard activityLink={activityLink} request={request} view={host?.nativeView} answer={answer} readRequest={readRequest} place={requestPlace(request, host, appProjectFolder(host))} observation={replyObservations?.[scope]} />
+                  <RequestAnswerCompanion request={request} read={readAnswerCompanions} refresh={replyObservations?.[scope]} />
+                </div>
+              </div>;
+            })}
           </section>}
           {!toolsHost && tools}
         </div>
       </div>
+      {behindLatest && <button type="button" className="v4-latest" onClick={toLatest}>Latest</button>}
     </div>
     <div className="chat-composer-dock daily-workspace v4-in-chat">
       {/* Kept mounted while closed, so the selection and its state stay as they are. */}
@@ -645,7 +754,10 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
         {ordinaryOutcome.observationLimit && <p role="alert">{observationLine(ordinaryOutcome.observationLimit, "Ordinary text view refresh unavailable for this original request: ")} The command outcome above is unchanged; no automatic resend.</p>}
         <details><summary>Original message destination and choices</summary><p>Original ordinary text turn · conversation {ordinaryOutcome.request.threadId} · Home {ordinaryOutcome.request.generation.home} · App session {ordinaryOutcome.request.generation.appSession} · spawn {ordinaryOutcome.request.generation.spawnCounter} · {ordinaryOutcome.request.mode ?? "no mode override"} · requested model {ordinaryOutcome.request.model ?? "no override"} · requested effort {ordinaryOutcome.request.effort ?? "no override"}.</p></details>
       </div>}
-      {startOutcome && <p role="alert">{startOutcome.kind === "failed" ? <>The conversation was not started: {startOutcome.message}</> : "The App did not report the start's outcome."} Your draft stays here; nothing was sent.</p>}
+      {startOutcome && <p role="alert">{startOutcome.kind === "failed"
+        ? <>The conversation was not started: <AgentText value={startOutcome.message} source="codex" label="Reported:" name={START_REASON_NAME} /> Your draft stays here; nothing was sent.</>
+        : startOutcome.kind === "view-changed" ? "The conversation started, but the view changed before your message was sent. Nothing was sent; your draft stays here."
+        : <>The App could not confirm that a new conversation started{startOutcome.message ? <>: <AgentText value={startOutcome.message} source="codex" label="Reported:" name={START_REASON_NAME} /></> : "."} If it did start, it is listed on the left. Your message was not sent; your draft stays here.</>}</p>}
       {attachmentOutcome && <div aria-label="Attachment submission outcome">
         <p>Original {attachmentOutcome.request.expectedTurnId === null ? "Send" : "Steer"} with ordered attachments · conversation {attachmentOutcome.request.threadId} · Home {attachmentOutcome.request.generation?.home}{attachmentOutcome.request.expectedTurnId !== null && ` · expected turn ${attachmentOutcome.request.expectedTurnId}`}.</p>
         {attachmentOutcome.result.acknowledged
@@ -659,6 +771,9 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
       </div>}
       {actionOutcome}
       {text && selected && textWrittenFor.current && textWrittenFor.current !== threadKey && <p role="note" aria-label="Where your text goes">Your unsent text was written while another conversation was shown. It is kept; if you send it now it goes to {conversationLabel(host, selected)}.</p>}
+      {text && newChat && textWrittenFor.current && <p role="note" aria-label="Where your text goes">Your unsent text was written while another conversation was shown. It is kept; if you send it now it starts a new conversation.</p>}
+      {attachmentsSelected && !attachOpen && <p className="v4-composer-status" aria-label="Selected attachments">Send sends your text without the selected attachments. To send them, open the attachments (⊕) and use “Send text and ordered attachments”.</p>}
+      {running && !stopTarget && <p className="v4-composer-status" aria-label="Which turn Stop stops">Several turns are running here. Choose the one to stop under Conversation tools, in “Interrupt a live turn”.</p>}
       {ownBusy && <p>{ownBusy}: waiting for protocol response; no automatic retry.</p>}
       {!ownBusy && codexBusy && <p>Stop or Restart Codex is in progress: sending text, steering and attachments is paused; interrupting a live turn stays available.</p>}
       {error && <p role="alert">{error} No automatic retry.</p>}
@@ -668,13 +783,14 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
     <form className="chat-input-row" onSubmit={event => { event.preventDefault(); submit(); }}>
       <div className="chat-composer-line">
         <textarea id="ordinary-composer-text" ref={composerField} rows={1} aria-label="Chat input" aria-describedby="ordinary-send-readiness" disabled={!!busy} value={text}
-          placeholder={running && steeringTarget ? "Add to the running turn…" : selected ? `Message ${speaker}…` : "Write your first message…"}
+          placeholder={running && steeringTarget ? "Add to the running turn…" : selected ? `Message ${speaker}…` : newChat ? "Write your first message…" : "Choose a conversation or press New chat…"}
           onChange={e => { textRevision.current += 1; textWrittenFor.current = threadKey; setText(e.target.value); }}
           onKeyDown={event => {
-            if (event.key !== "Enter" || event.shiftKey || event.nativeEvent?.isComposing) return;
+            // Enter sends and Shift+Enter breaks the line, as 3.0.1 does, only while no turn runs in the conversation shown.
+            // While one runs Enter breaks the line, as on main, and the person presses Send or Update.
+            if (event.key !== "Enter" || event.shiftKey || event.nativeEvent?.isComposing || running) return;
             event.preventDefault();
-            if (running && steeringTarget) { if (!updateDisabled) void steerText(); }
-            else if (!sendDisabled) submit();
+            if (!sendDisabled) submit();
           }} />
         <button type="button" aria-label="Attach files" title="Attach files" aria-expanded={attachOpen} onClick={() => setAttachOpen(open => !open)}>⊕</button>
         <button type="submit" aria-label={attachmentsSelected ? "Send text only" : "Send text"} aria-describedby="ordinary-send-readiness" disabled={sendDisabled}
@@ -684,11 +800,14 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
       </div>
       <p id="ordinary-send-readiness" role="status" aria-live="polite" className={sendBlocked ? "v4-composer-status" : "visually-hidden"}>{sendReadiness}</p>
     </form>
-    <div ref={contextLine} id={selected ? undefined : "workspace-start"} className="chat-context" role="group" aria-label="Chat context">
-      <span>{selected ? "Working in" : "Start in"}</span>
-      <span className="chat-folder-fixed">{folder !== null ? <><span aria-hidden="true">▱ </span>{folderName(folder)}</> : "project folder not established"}</span>
+    <div ref={contextLine} id={newChat ? "workspace-start" : undefined} className="chat-context" role="group" aria-label="Chat context">
+      <span>{newChat ? "Start in" : "Working in"}</span>
+      {selected && folder !== null && !inAppFolder
+        ? <span className="chat-folder-fixed">{rowFolder === null ? "folder not reported by Codex" : <>Codex reports another folder: <AgentText value={rowFolder} source="codex" label="Folder:" name="The folder Codex reports for this conversation, not the App's words" /></>}</span>
+        : <span className="chat-folder-fixed">{!selected && !newChat ? "no conversation available" : folder !== null ? <><span aria-hidden="true">▱ </span>{folderName(folder)}</> : "project folder not established"}</span>}
       <span aria-hidden="true">·</span>
       {selected ? <span className="v4-context-fixed">{roleWord}</span>
+        : !newChat ? <span className="v4-context-fixed">Choose a conversation or press New chat</span>
         : startNew && <span className="v4-level chat-mode-selector">
           <button type="button" aria-expanded={contextOpen === "role"} aria-label={`Role: ${startRoleWord}`} onClick={() => toggleContext("role")}>{startRoleWord}</button>
           <div className={`v4-level-pop${contextOpen === "role" ? " open" : ""}`} role="dialog" aria-label="Role" hidden={contextOpen !== "role"}><div className="daily-workspace v4-in-chat">{startNew.rolePanel}</div></div>
@@ -721,9 +840,9 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
             <p><label>Optional model identifier for next ordinary text turn <input {...EXACT_TEXT} disabled={!selected || !!busy} value={ordinaryModelValue}
               onChange={e => { setModelTyping(ordinaryOwner); setOrdinaryModel(current => ({ owner: ordinaryOwner, value: e.target.value, effort: "", effortModel: "", revision: current.revision + 1 })); }}
               onBlur={() => setModelTyping(null)} onKeyDown={e => { if (e.key === "Enter") setModelTyping(null); }} aria-describedby="ordinary-model-help" /></label></p>
-            <p id="ordinary-model-help">Applies to Send text and the plan/default text controls below. Empty keeps the existing native model choice. An explicit identifier overrides the model for this turn and subsequent native turns; clearing this field does not revert it. Attachment, steering and prepared-message sends do not use this field.</p>
+            <p id="ordinary-model-help">Applies to your next message, sent with Send in the mode chosen under Mode on this line, and to the plan and default sends under Conversation tools. Empty keeps the existing native model choice. An explicit identifier overrides the model for this turn and subsequent native turns; clearing this field does not revert it. Attachment, steering and prepared-message sends do not use this field.</p>
             {selected?.model != null && <p><small>Model Codex reported for this conversation: <AgentText value={selected.model} source="codex" label="Model:" name="The model as Codex reported it, not the App's words" /></small></p>}
-          </> : startNew?.modelPanel}
+          </> : newChat ? startNew?.modelPanel : <p>Choose a conversation or press New chat.</p>}
         </div></div>
       </span>
       {selected && <><span aria-hidden="true">·</span>
@@ -2253,7 +2372,7 @@ export function App() {
     : providerReading ? "Reading configured local providers…"
     : endpointBusy ? "A provider change is in progress."
     : !modelProvider.trim() ? "Choose how this conversation connects."
-    : !model.trim() ? "Choose a model."
+    : !model.trim() ? "Not started — no model selected. Choose a model below."
     : !entryCompatible ? "This choice does not belong to the connection in use. Choose how it connects again."
     : rowChoiceStale ? rowChoiceNote
     : "";
@@ -2261,8 +2380,10 @@ export function App() {
   const [roleTouched, setRoleTouched] = useState(false);
   const [threadKey, updateThreadKey] = useState<string>("");
   const threadChoiceRevision = useRef(0);
+  // The conversation chosen as last set, read after an await.
+  const threadKeyNow = useRef("");
   const activityNavigationRef = useRef<NativeActivityHandle>(null);
-  const setThreadKey = (key: string) => { threadChoiceRevision.current++; updateThreadKey(key); };
+  const setThreadKey = (key: string) => { threadChoiceRevision.current++; threadKeyNow.current = key; updateThreadKey(key); };
   // Views (WorkspaceShell): the Conversation view is always shown in the centre; the others are the right panel's
   // tabs, one selected at a time, all mounted. Showing a tab opens the right region if it is collapsed. An intent that
   // navigates sets its view in the same update as its own state, so the reveal that follows finds its target visible.
@@ -2581,9 +2702,13 @@ export function App() {
       // native receiver ignores it; a native follow-up will require it at admission.
       const response: Json = await invoke("thread_start", { model: submitted.model, modelProvider: submitted.modelProvider, entryId: submitted.entryId, entrySource: onlyAccessEntry(mode) ? "app-showed-only-entry" : "person",
         modeHomeClass: mode, generation: source.generation, role: role || null, preselected: !roleTouched && !!role && role === source?.roleSet?.defaultRole });
-      const opened = startedConversationKey(response);
+      // A start is confirmed only in the generation it was issued for: the native start binds the generation it was
+      // dispatched with and returns that same one, so a reply naming another is not a success.
+      const opened = startedConversationKey(response) !== null && sameActivityGeneration(response?.startGeneration, source.generation) ? startedConversationKey(response) : null;
       if (opened) {
-        setThreadKey(opened);
+        // The new conversation is shown only while no conversation is chosen and the source is still the one the
+        // start was issued for: a newer choice by the person is kept, never replaced.
+        if (threadKeyNow.current === "" && sameActivityGeneration(currentHost.current?.generation, source.generation)) setThreadKey(opened);
         // Consume only the submitted edit, before the independent refresh.
         // Even an edit away and back is a newer choice and must survive.
         if (editRevision.current === revision && chooserHome.current.epoch === epoch) reviseChoice(emptyConversationChoice);
@@ -2593,7 +2718,8 @@ export function App() {
       setMessage(`thread_start: ${JSON.stringify(response)}`);
     } catch (error) {
       setMessage(`thread_start: ${String(error)}`);
-      outcome = { failed: hostMessage(error) };
+      // A refusal the host makes before dispatch started nothing; any other rejection leaves the start's effect unknown.
+      outcome = startRefusedBeforeDispatch(error) ? { failed: hostMessage(error) } : { notConfirmed: true, reason: hostMessage(error) };
     } finally {
       startPendingRef.current = false;
       setStartPending(false);
@@ -3051,7 +3177,14 @@ export function App() {
     if (seen.moved || signInReading !== "chatgpt-account" || accountReadRef(host) === seen.before) return;
     seen.moved = true;
     if (holdsUnsent() || requestWaiting) return;
-    autoMove("conversation", "workspace-start");
+    // The empty new chat with its message box focused, as New chat shows it (the new conversation's settings line is
+    // drawn only there), without counting as the person's navigation.
+    if (!conversationChooser.choose) return;
+    autoMoving.current = true;
+    try { conversationChooser.choose(""); } finally { autoMoving.current = false; }
+    selectView("conversation");
+    conversationRevealSequence.current += 1;
+    setConversationReveal({ sequence: conversationRevealSequence.current, target: "ordinary-composer-text" });
     setSignedInNotice(true);
   }, [completion, host, signInReading, requestWaiting]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (signInReading !== "chatgpt-account") setSignedInNotice(false); }, [signInReading]);
@@ -3087,8 +3220,9 @@ export function App() {
     conversationRevealSequence.current += 1;
     setConversationReveal({ sequence: conversationRevealSequence.current, target: "ordinary-composer-text" });
   };
-  // A reveal of one of the conversation's tools: its tab, then the target in it.
-  const showToolsTarget = (target: string) => { showView("conversation-tools"); revealWorkspaceTarget(target, true); };
+  // A reveal of one of the conversation's tools: its tab selected and committed (selectView's synchronous form), then
+  // the target in it, so focus and scrolling land on a target that is shown.
+  const showToolsTarget = (target: string) => { navigated.current = true; selectView("conversation-tools", true); revealWorkspaceTarget(target, true); };
   const openSettings = () => revealWorkspaceTarget("workspace-tools", true);
   const shownRow = selectedThread ? (host?.threads ?? []).find((t: Json) => t.threadId === selectedThread && JSON.stringify(t.generation) === JSON.stringify(host?.generation)) : null;
   const workspaceShown = firstRead === "read" && !setupRequired;
@@ -3130,6 +3264,7 @@ export function App() {
   // The empty conversation's own settings: the present start's role and model choices, in compact form; the
   // conversation is started with its first message.
   const startNew: StartSettings = { role, model, blocked: startBlocked, start: startConversation,
+    binding: JSON.stringify([editRevision.current, chooserHome.current.epoch, model, modelProvider, entryId, role, roleTouched, host?.generation ?? null, host?.homeRouting?.activeModeHomeClass ?? null]),
     notice: signedInNotice ? <p role="status" aria-label="Signed in">You're signed in. Choose a model to start a conversation.</p> : undefined,
     rolePanel: <RoleChoice group="start-thread-role" roleSet={host?.roleSet} limits={host?.roleLimits} role={role} preselected={!roleTouched && !!role && role === host?.roleSet?.defaultRole} setRole={next => { expireEndpointPreview(); roleInitialized.current = true; setRoleTouched(true); setRole(next); }}/>,
     modelPanel: <div className="workspace-start-fields">

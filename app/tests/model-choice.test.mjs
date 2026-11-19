@@ -335,6 +335,8 @@ test('keyed oMLX: prepare, native key entry, local home Start and return to acco
     assert.deepEqual({model:start[0].args.model, modelProvider:start[0].args.modelProvider, entryId:start[0].args.entryId, modeHomeClass:start[0].args.modeHomeClass, generation:start[0].args.generation},
       {model:LOCAL.model, modelProvider:LOCAL.providerId, entryId:'local-provider-keyed', modeHomeClass:'local-provider', generation:lg});
     await ui.press('Use account home');
+    // The started conversation is chosen but not listed by the snapshot: the next conversation's choice is shown in New chat.
+    await React.act(async () => { props(newChatButton(ui.c)).onClick(); });
     assert.ok(button(ui.c, 'Use my ChatGPT account (built-in OpenAI)'), 'account route is available again beside the retained local home');
     assert.ok(button(ui.c, 'Use local oMLX home'));
     assert.equal(button(ui.c, 'Use api-key home'), undefined);

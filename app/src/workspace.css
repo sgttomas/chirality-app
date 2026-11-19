@@ -3602,7 +3602,6 @@ div.woven-chat-section-heading--folder:hover { background:transparent; }
 .v4-request-details { margin-top:8px; font-size:12.5px; color:var(--ink-soft); }
 .v4-question-option { display:flex; gap:8px; align-items:baseline; margin:6px 0; }
 .v4-question-selected { font-size:12.5px; color:var(--ink-soft); }
-.v4-request-earlier > summary { font-size:12.5px; color:var(--ink-soft); }
 /* The dock and the composer. */
 .shell--stone .chat-panel--woven > .chat-composer-dock { max-height:42vh; overflow:auto; }
 .chat-composer-dock.v4-in-chat > * { margin:8px 0 0; }
@@ -3642,3 +3641,20 @@ div.woven-chat-section-heading--folder:hover { background:transparent; }
 .v4-mode-choice label { display:block; margin:4px 0; }
 /* The person's own message in its bubble: its text as Codex recorded it, unformatted, with its line breaks. */
 .chat-user-text > .person-text { white-space:pre-wrap; overflow-wrap:anywhere; }
+/* v4 review repairs: the prose's own boundary, the speaker label the strongest text in a bubble (no prose heading or
+   bold larger or heavier), wrapping in list entries and table cells, a delegated agent's input, earlier requests,
+   and the transcript's "Latest". */
+.chat-panel--woven .chat-bubble .chat-speaker { font-size:13.5px; font-weight:700; }
+.chat-panel--woven .chat-bubble--assistant .agent-prose.chat-markdown { padding-left:12px; border-left:2px solid var(--rule); }
+.agent-prose strong { font-weight:600; }
+.agent-prose p.agent-prose-heading, .agent-prose p.agent-prose-heading--major { font-size:13.5px; }
+.agent-prose li, .agent-prose td { white-space:pre-wrap; overflow-wrap:anywhere; }
+.agent-prose table.agent-prose-table { max-width:100%; border-collapse:collapse; }
+.agent-prose table.agent-prose-table td { padding:2px 8px 2px 0; vertical-align:top; }
+.agent-prose p.agent-prose-code-info { margin:10px 0 -6px; font-size:11.5px; color:var(--ink-faint); overflow-wrap:anywhere; }
+.chat-panel--woven .chat-bubble--input { align-self:flex-end; width:auto; max-width:min(620px, 78%); padding:10px 14px 12px; border:1px dashed var(--rule-strong); border-radius:14px 14px 4px 14px; }
+.v4-request-earlier-toggle { padding:2px 0; border:0; background:transparent; color:var(--ink-soft); font-size:12.5px; text-align:left; cursor:pointer; }
+.v4-request-earlier-toggle::before { content:"▸ "; }
+.v4-request-earlier-toggle[aria-expanded=true]::before { content:"▾ "; }
+.chat-conversation-stage { position:relative; }
+.v4-latest { position:absolute; right:24px; bottom:10px; z-index:5; padding:3px 12px; border:1px solid var(--rule-strong); border-radius:999px; background:var(--surface); color:var(--ink); font-size:12px; box-shadow:0 2px 8px #0002; }
