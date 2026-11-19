@@ -18,6 +18,7 @@
 //! <store>/projects/<key>/acts/<writer-key>.jsonl
 //! <store>/projects/<key>/captures/        capture evidence (and `pending/`)
 //! <store>/projects/<key>/workflow/        WR WP-1 records
+//! <store>/projects/<key>/trust/switches.jsonl  the person's trust switches (DEL-01-01)
 //! ```
 //!
 //! `<key>` is the SHA-256 of the project identity, as §13.7 keys runs and
@@ -2847,6 +2848,52 @@ pub(crate) fn read_log_path(root: &Path) -> Result<PathBuf, String> {
         None => "the project has no records store identity yet (the App mints it when it opens the project; an agent's read does not); nothing recorded".into(),
     })?;
     Ok(dir.join(READ_LOG))
+}
+
+/// DEL-01-01 (`project_trust`): the person's trust switches for a project, in its store folder. One line per
+/// switch, appended by the store's own line appender and read by its one reading; written only by the person's
+/// switch, never by a default. It is the App's own setting, not §13.7 history, so it is written before an
+/// import too. It follows the project's identity: an adoption brings it to the folder, a new identity starts
+/// without it.
+pub(crate) const TRUST_SWITCHES: &str = "trust/switches.jsonl";
+
+/// The project folder's attachment as a trust switch needs it: its store folder, or why there is none. `Ok(None)`
+/// only when the folder has no identity at all (nothing can have been switched for it).
+fn trust_switch_dir(root: &Path) -> Result<Option<PathBuf>, String> {
+    let attachment = attach(root, false).map_err(|e| format!("records store unavailable: {e}"))?;
+    if let Some(refusal) = attachment.refusal {
+        return Err(refusal);
+    }
+    Ok(attachment.dir)
+}
+
+/// The project's trust switches, oldest first, read to the last complete line (a torn last line, an append that
+/// did not complete, is not read). `Ok(None)`: the folder has no identity in the store. `Err`: the store, the
+/// attachment or the file could not be read whole, so the latest switch is not known.
+pub(crate) fn trust_switches(root: &Path) -> Result<Option<Vec<Value>>, String> {
+    let Some(dir) = trust_switch_dir(root)? else { return Ok(None) };
+    let _admission = crate::records_retention::read_path(&dir)?;
+    let path = dir.join(TRUST_SWITCHES);
+    read_store_file(&path)?.require_whole(&path).map(Some)
+}
+
+/// Why the person cannot switch this project's trust now (no identity, an attachment the person must resolve, a
+/// closed or disposed project); None when a switch can be written.
+pub(crate) fn trust_switch_refusal(root: &Path) -> Option<String> {
+    match trust_switch_dir(root) {
+        Err(reason) => Some(reason),
+        Ok(None) => Some("the project has no identity in the records store".into()),
+        Ok(Some(dir)) => crate::records_retention::check_write(&dir).err(),
+    }
+}
+
+/// Appends one switch line (made by `project_trust`). Admitted through the project's admission control, so a
+/// closed or disposed project is refused; a file not read whole is refused and left as it is; a fragment left by
+/// an interrupted append is closed and named first (`lines`).
+pub(crate) fn append_trust_switch(root: &Path, line: &Value) -> Result<(), String> {
+    let dir = trust_switch_dir(root)?.ok_or("the project has no identity in the records store; nothing written")?;
+    let _admission = crate::records_retention::write_path(&dir)?;
+    append_line(&dir.join(TRUST_SWITCHES), line)
 }
 
 /// Where a project's connector route accounts are read now (DEL-07-02;

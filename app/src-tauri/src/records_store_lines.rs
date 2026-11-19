@@ -1,8 +1,9 @@
 //! One reading and one appender for the records store's own line files:
 //! `<store>/roots.jsonl` (the registry of project folders),
 //! `<store>/projects/<key>/imports.jsonl` (a project's legacy import
-//! account) and `<store>/legacy-imports.jsonl` (the store's witness of legacy
-//! imports).
+//! account), `<store>/legacy-imports.jsonl` (the store's witness of legacy
+//! imports) and `<store>/projects/<key>/trust/switches.jsonl` (the person's
+//! trust switches for a project).
 //!
 //! **The rule.** An append never changes the meaning of bytes already in the
 //! file. A crash can still leave a fragment; a fragment is never given meaning

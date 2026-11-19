@@ -84,6 +84,7 @@ fn child(folder: Folder, name: &str) -> Option<Folder> {
             "fleet" => Folder::Auxiliary("coordination.fleet.jsonl"),
             "role-supply" => Folder::Auxiliary("observations.jsonl"),
             "reads" => Folder::Auxiliary("records-reads.jsonl"),
+            "trust" => Folder::Auxiliary("switches.jsonl"),
             "package-imports" => Folder::Auxiliary("package-imports"),
             _ => return None,
         }),
