@@ -113,6 +113,100 @@ fn every_manifest_workflow_resolves_from_the_bundled_tree_and_no_other() {
         assert!(ProductionCatalog::bundled_run_admission(selection).is_err());
     }
 }
+// DEL-02-03, the listing aid: a kept verification answers only for the facts it verified, and only
+// once they are settled; a package that changes while it is verified is not kept.
+#[test]
+fn a_kept_verification_answers_only_for_the_same_settled_facts() {
+    use std::time::Duration;
+    use super::development_catalog::{listed_or_verified, listing_keeps, SETTLED};
+    let library = Library::new();
+    let catalog = ProductionCatalog::load().unwrap();
+    let root = library.0.join("listing-aid");
+    std::fs::create_dir(&root).unwrap();
+    std::fs::write(root.join("MANIFEST.json"), catalog.manifest()).unwrap();
+    let package = root.join(NESTED);
+    let source = catalog.select_source(NESTED);
+    source.snapshot().publish_new(&package).unwrap();
+    let verified = std::cell::Cell::new(0);
+    let listed = |margin: Duration| listed_or_verified(&package, margin, || {
+        verified.set(verified.get() + 1);
+        catalog.select_bundle_package(&root, NESTED).map(|_| serde_json::json!("read"))
+    });
+    let read = Ok(serde_json::json!("read"));
+    // With no margin asked: verified once, then answered from what was kept.
+    assert_eq!(listed(Duration::ZERO), (read.clone(), false));
+    assert_eq!(listed(Duration::ZERO), (read.clone(), true));
+    assert_eq!(verified.get(), 1);
+    assert!(listing_keeps(&package));
+    // With the margin the listing uses: files written a moment ago are not settled, so each
+    // listing verifies again, however many times it is asked.
+    assert_eq!(listed(SETTLED), (read.clone(), false));
+    assert_eq!(listed(SETTLED), (read.clone(), false));
+    assert_eq!(verified.get(), 3);
+    // A rewrite of the same size with its modification time put back is verified again, and refused.
+    let nested = source.snapshot().files().keys().find(|path| path.contains('/')).unwrap().clone();
+    let file = package.join(&nested);
+    let kept = std::fs::read(&file).unwrap();
+    let modified = std::fs::metadata(&file).unwrap().modified().unwrap();
+    assert_eq!(listed(Duration::ZERO), (read.clone(), true));
+    std::thread::sleep(Duration::from_millis(30));
+    let mut bytes = kept.clone();
+    bytes[0] ^= 1;
+    std::fs::write(&file, &bytes).unwrap();
+    std::fs::File::options().write(true).open(&file).unwrap().set_modified(modified).unwrap();
+    assert_eq!((std::fs::metadata(&file).unwrap().len(), std::fs::metadata(&file).unwrap().modified().unwrap()), (kept.len() as u64, modified));
+    let (refused, from_kept) = listed(Duration::ZERO);
+    assert!(refused.unwrap_err().contains("revision not verified") && !from_kept);
+    std::fs::write(&file, &kept).unwrap();
+    assert_eq!(listed(Duration::ZERO), (read.clone(), false));
+    assert_eq!(listed(Duration::ZERO), (read.clone(), true));
+    // A package that changes while it is being verified: this answer is the verification's, and
+    // nothing is kept from it, so the next listing verifies the changed package and refuses it.
+    // (The file is written again first, with its own bytes, so that this listing has to verify.)
+    std::thread::sleep(Duration::from_millis(30));
+    std::fs::write(&file, &kept).unwrap();
+    let during = listed_or_verified(&package, Duration::ZERO, || {
+        let result = catalog.select_bundle_package(&root, NESTED).map(|_| serde_json::json!("read"));
+        std::fs::write(&file, &bytes).unwrap();
+        std::fs::File::options().write(true).open(&file).unwrap().set_modified(modified).unwrap();
+        result
+    });
+    assert_eq!(during, (read.clone(), false));
+    assert!(!listing_keeps(&package), "nothing is kept from a verification the package changed under");
+    let (refused, from_kept) = listed(Duration::ZERO);
+    assert!(refused.is_err() && !from_kept);
+}
+// The settled rule alone: every modification and status-change time at least the margin older
+// than the start of the verification, and a path whose times cannot be placed never settled.
+#[test]
+fn facts_are_settled_only_when_every_time_is_older_than_the_margin() {
+    use super::development_catalog::{settled, FileFacts};
+    use std::time::{Duration, UNIX_EPOCH};
+    let began = UNIX_EPOCH + Duration::from_secs(1000);
+    let margin = Duration::from_secs(2);
+    let at = |seconds: u64, nanoseconds: u32| UNIX_EPOCH + Duration::new(seconds, nanoseconds);
+    let fact = |modified: Option<std::time::SystemTime>, changed: Option<(i64, i64)>| -> FileFacts {
+        (PathBuf::from("/p/f"), 0, 1, modified, changed.map(|(seconds, nanoseconds)| (1, 2, seconds, nanoseconds)))
+    };
+    let old = fact(Some(at(998, 0)), Some((998, 0)));
+    assert!(settled(&[old.clone()], began, margin), "exactly the margin older");
+    for (why, unsettled) in [
+        ("modified inside the margin", fact(Some(at(998, 1)), Some((990, 0)))),
+        ("status changed inside the margin", fact(Some(at(990, 0)), Some((998, 1)))),
+        ("status changed in the same second as the verification", fact(Some(at(990, 0)), Some((1000, 0)))),
+        ("status changed after the verification began", fact(Some(at(990, 0)), Some((1001, 0)))),
+        ("no modification time", fact(None, Some((990, 0)))),
+        ("a status-change time that cannot be placed", fact(Some(at(990, 0)), Some((-1, 0)))),
+    ] {
+        assert!(!settled(&[unsettled.clone()], began, margin), "{why}");
+        assert!(!settled(&[old.clone(), unsettled], began, margin), "{why}: one unsettled path is enough");
+    }
+    // Where the platform gives no status-change time, the modification time alone.
+    assert!(settled(&[fact(Some(at(998, 0)), None)], began, margin));
+    assert!(!settled(&[fact(Some(at(999, 0)), None)], began, margin));
+    // A margin reaching before the clock's own beginning settles nothing.
+    assert!(!settled(&[old], UNIX_EPOCH, Duration::MAX));
+}
 // A package the manifest names is admitted only with exactly its own files and
 // bytes: an added file, a changed byte in a subfolder, a missing file, and
 // another bundled workflow's bytes under its name are each refused.

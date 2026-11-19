@@ -1373,10 +1373,10 @@ fn the_entry_reading_and_the_check_agree_on_declared_against_undeclared() {
             // read as declared; never undeclared and never declared-empty.
             "declared" => {
                 assert!(matches!(status, "declared" | "not_established"), "{name}: {status}");
-                // A declared tool the App could not read as declared never yields a pass.
-                if status == "not_established" {
-                    assert_ne!(result, Check::Compatible, "{name}");
-                }
+                // With nothing established about the tools at hand, a workflow that declares tools
+                // is never passed: neither one whose tools all read as declared, nor one with a
+                // tool the App could not read as declared.
+                assert_eq!(result, Check::NotEstablished, "{name}");
             }
             "not_read" => {
                 assert_eq!(status, "not_established", "{name}");

@@ -349,37 +349,21 @@ impl ProductionCatalog {
     /// A kept verification answers only while the package folder itself and
     /// everything beneath it are what was verified, by [`FileFacts`]: kind,
     /// size, modification time and, where the platform gives them, identity
-    /// and status-change time. So a rewrite of the same size with its
-    /// modification time put back, a replaced file or folder, and a link in
-    /// place of the folder are each verified again, and a reading is never
-    /// given from bytes other than those last verified.
+    /// and status-change time. A result is kept only when those facts were
+    /// the same before and after its verification, and it answers only once
+    /// every modification and status-change time among them is at least
+    /// [`SETTLED`] older than the moment that verification began, so a later
+    /// write always carries a newer status-change time than the kept one,
+    /// also where the filesystem keeps times to the second. Until then every
+    /// listing verifies again. Not covered: a writer who sets the clock back,
+    /// or who can put a status-change time back. Selection, preparation and
+    /// sending read and hash the bytes whatever this says.
     pub fn listed_requirement_declaration(&self, root: &Path, name: &str) -> Result<serde_json::Value, String> {
-        type Listed = std::collections::HashMap<PathBuf, (Vec<FileFacts>, Result<serde_json::Value, String>)>;
-        static LISTED: std::sync::OnceLock<std::sync::Mutex<Listed>> = std::sync::OnceLock::new();
+        let package = root.join(name);
         let verify = || self.select_bundle_package(root, name).map(|package| {
             crate::workflow_declaration::requirement_declaration(&package.selection.snapshot().declaration())
         });
-        let package = root.join(name);
-        let mut facts = Vec::new();
-        // The package folder itself is part of what is compared; anything but a real folder there
-        // is never answered from a kept verification.
-        match std::fs::symlink_metadata(&package) {
-            Ok(meta) if meta.is_dir() => facts.push(facts_of(package.clone(), &meta)),
-            _ => return verify(),
-        }
-        if file_facts(&package, &mut facts).is_err() {
-            return verify();
-        }
-        facts.sort();
-        let mut listed = LISTED.get_or_init(Default::default).lock().unwrap_or_else(|e| e.into_inner());
-        match listed.get(&package) {
-            Some((seen, result)) if *seen == facts => result.clone(),
-            _ => {
-                let result = verify();
-                listed.insert(package, (facts, result.clone()));
-                result
-            }
-        }
+        listed_or_verified(&package, SETTLED, verify).0
     }
 
     /// WR LS-5 / TT-1 / TX-1: the closed bundled-run admission. Admits only a
@@ -456,12 +440,73 @@ impl ProductionCatalog {
         })
     }
 }
+/// How much older than the start of its verification every time among a
+/// package's facts must be before a kept verification answers for it.
+pub(super) const SETTLED: std::time::Duration = std::time::Duration::from_secs(2);
+type Listed = std::collections::HashMap<PathBuf, (Vec<FileFacts>, std::time::SystemTime, Result<serde_json::Value, String>)>;
+/// The package folder's own facts and those of everything beneath it, in
+/// order; `None` where the folder is anything but a real folder or cannot be
+/// walked, which is never answered from a kept verification.
+fn package_facts(package: &Path) -> Option<Vec<FileFacts>> {
+    let mut facts = Vec::new();
+    match std::fs::symlink_metadata(package) {
+        Ok(meta) if meta.is_dir() => facts.push(facts_of(package.to_owned(), &meta)),
+        _ => return None,
+    }
+    file_facts(package, &mut facts).ok()?;
+    facts.sort();
+    Some(facts)
+}
+/// Whether every modification and status-change time among `facts` is at
+/// least `margin` older than `began`. A path with no modification time, or a
+/// time the platform gives that cannot be placed, is never settled.
+pub(super) fn settled(facts: &[FileFacts], began: std::time::SystemTime, margin: std::time::Duration) -> bool {
+    let Some(limit) = began.checked_sub(margin) else { return false };
+    facts.iter().all(|(_, _, _, modified, identity)| {
+        let changed = match identity {
+            Some((_, _, seconds, nanoseconds)) => match (u64::try_from(*seconds), u32::try_from(*nanoseconds)) {
+                (Ok(seconds), Ok(nanoseconds)) => std::time::UNIX_EPOCH.checked_add(std::time::Duration::new(seconds, nanoseconds)),
+                _ => None,
+            },
+            // No status-change time on this platform: the modification time alone.
+            None => *modified,
+        };
+        matches!((modified, changed), (Some(modified), Some(changed)) if *modified <= limit && changed <= limit)
+    })
+}
+static LISTED: std::sync::OnceLock<std::sync::Mutex<Listed>> = std::sync::OnceLock::new();
+/// Tests only: whether a verification is kept for `package` at all.
+#[cfg(test)]
+pub(super) fn listing_keeps(package: &Path) -> bool {
+    LISTED.get_or_init(Default::default).lock().unwrap_or_else(|e| e.into_inner()).contains_key(package)
+}
+/// The listing aid's one decision: the kept result for `package` where its
+/// facts are those verified and settled by `margin`, and otherwise `verify`'s
+/// result, kept only if the facts are the same after verifying as before.
+/// The second value says whether the answer came from a kept verification.
+pub(super) fn listed_or_verified(package: &Path, margin: std::time::Duration, verify: impl FnOnce() -> Result<serde_json::Value, String>) -> (Result<serde_json::Value, String>, bool) {
+    let Some(facts) = package_facts(package) else { return (verify(), false) };
+    let mut listed = LISTED.get_or_init(Default::default).lock().unwrap_or_else(|e| e.into_inner());
+    if let Some((seen, began, result)) = listed.get(package) {
+        if *seen == facts && settled(seen, *began, margin) {
+            return (result.clone(), true);
+        }
+    }
+    let began = std::time::SystemTime::now();
+    let result = verify();
+    if package_facts(package).as_ref() == Some(&facts) {
+        listed.insert(package.to_owned(), (facts, began, result.clone()));
+    } else {
+        listed.remove(package);
+    }
+    (result, false)
+}
 /// Path, kind, size and modification time of one entry beneath a package.
 /// What the listing aid compares to take a package as unchanged since it was
 /// verified: a path's kind (file, folder, link or other), size, modification
 /// time and, on Unix, its device and inode and its status-change time, which a
 /// write or a change of its times moves and no caller can set.
-type FileFacts = (PathBuf, u8, u64, Option<std::time::SystemTime>, Option<(u64, u64, i64, i64)>);
+pub(super) type FileFacts = (PathBuf, u8, u64, Option<std::time::SystemTime>, Option<(u64, u64, i64, i64)>);
 fn facts_of(path: PathBuf, meta: &std::fs::Metadata) -> FileFacts {
     let kind = if meta.file_type().is_symlink() { 2 } else if meta.is_dir() { 1 } else if meta.is_file() { 0 } else { 3 };
     #[cfg(unix)]

@@ -575,6 +575,12 @@ mod requirement_declaration_tests {
             None => Err(case["error"].as_str().unwrap().to_owned()),
         }
     }
+    /// The declared part as the case's text gives it, read here as plain JSON and not by the reader under test.
+    fn authored(text: &str) -> Value {
+        let open = "```workflow-declaration\n";
+        let block = &text[text.find(open).unwrap() + open.len()..];
+        serde_json::from_str(&block[..block.find("\n```").unwrap()]).unwrap()
+    }
     /// The selection row's own serialization of the declared part (`runtime_session::selection_view`).
     fn row_declaration(read: &Result<Declaration, String>) -> Value {
         read.as_ref().map(|d| json!(d)).unwrap_or_else(|error| json!({"unavailable":error}))
@@ -596,6 +602,22 @@ mod requirement_declaration_tests {
             // cannot read as declared never passes for a recognized one because the table was rewritten.
             let tools: Vec<Value> = reading["declaration"]["elements"]["required_tools"].as_array().into_iter().flatten().map(|e| e["reading"].clone()).collect();
             assert_eq!(json!(tools), case["toolReadings"], "{name}");
+            // What the reading carries beyond its state, each against something written by hand and
+            // never by the writer below: what is found wrong with each tool, each tool's value as
+            // the workflow's own text gives it, and why an unread part was not read.
+            let elements = reading["declaration"]["elements"]["required_tools"].as_array().cloned().unwrap_or_default();
+            let findings: Vec<Value> = elements.iter().map(|e| e["findings"].clone()).collect();
+            assert_eq!(json!(findings), case["toolFindings"], "{name}");
+            if !elements.is_empty() {
+                let values: Vec<Value> = elements.iter().map(|e| e["value"].clone()).collect();
+                assert_eq!(json!(values), authored(case["text"].as_str().unwrap())["required_tools"], "{name}");
+            }
+            match (reading["reason"].as_str(), case["reasonStarts"].as_str()) {
+                (None, None) => assert_ne!(reading["state"], "not_read", "{name}"),
+                (Some(reason), Some(starts)) if case["reasonWhole"] == true => assert_eq!(reason, starts, "{name}"),
+                (Some(reason), Some(starts)) => assert!(reason.starts_with(starts) && reason.len() > starts.len(), "{name}: {reason}"),
+                (reason, starts) => panic!("{name}: reason {reason:?} against {starts:?}"),
+            }
             states.insert(reading["state"].as_str().unwrap().to_owned());
         }
         assert_eq!(states.into_iter().collect::<Vec<_>>(), ["declared", "declared_empty", "not_read", "undeclared"]);
