@@ -57,6 +57,8 @@ checks:
 - app/tests/support/presentation-guard-exceptions.json
 - app/tests/native-history.test.mjs
 - app/tests/conversation-panel.test.mjs
+- app/tests/conversation-view.test.mjs
+- app/tests/support/conversation-view.mjs
 - app/tests/plan-mode.test.mjs
 - app/tests/request-cards.test.mjs
 - app/tests/request-activity-navigation.test.mjs
