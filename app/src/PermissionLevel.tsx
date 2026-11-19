@@ -127,8 +127,8 @@ export function PermissionLevelSummary({ host, threadId, change }: { host: Json;
     {threadId && <div className="v4-level-sent" aria-label="What the App sent to Codex and what Codex reported">
       <p>Last level sent: {name(row?.level?.sent?.levelId)}. {row?.level?.sent?.writeResult === "written" ? "Written to Codex." : "Writing it to Codex is not established."} {wordOf(AGREEMENT, row?.level?.agreement) ?? "Agreement has not been reported."}</p>
       {typeof row?.level?.takesEffectSentence === "string" && <p>{row.level.takesEffectSentence}</p>}
-      {/* The trust lines are codex_level.rs's closed sentences; the values beside them are in the full panel. */}
-      {row?.level?.projectTrust ? list(row.level.projectTrust.lines).map((line, i) => <p key={i}>{line}</p>) : <p>Project trust has not been reported for a start, resume or fork.</p>}
+      {/* The full panel's own rendering: the trust lines say the project root is shown below, so it is. */}
+      <ProjectTrust trust={row?.level?.projectTrust}/>
     </div>}
     <LastingRules rules={host?.codexHomeRules} homeClass={host?.homeRouting?.activeModeHomeClass}/>
     <ul aria-label="Permission levels">{Object.keys(NAMES).map(id => <li key={id} aria-current={level?.id === id ? "true" : undefined}><b>{wordOf(NAMES, id)}</b></li>)}</ul>
