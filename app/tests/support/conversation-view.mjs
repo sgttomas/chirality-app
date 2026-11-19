@@ -56,3 +56,36 @@ export async function openSetting(container, act, name) {
   if (reactProps(control)['aria-expanded']) return;
   await act(async () => { reactProps(control).onClick(); });
 }
+/** Whether a node is in view: no ancestor of it is hidden (a closed panel, a folded entry), and none is a closed
+ * disclosure holding it outside its summary. */
+export const inView = node => {
+  for (let n = node, child = null; n; child = n, n = n.parentNode) {
+    if (reactProps(n)?.hidden || n.hasAttribute?.('hidden')) return false;
+    if (n.localName === 'details' && child && child.localName !== 'summary' && !(n.open ?? n.hasAttribute('open'))) return false;
+  }
+  return !!node;
+};
+/** The settings line's panel by its name ("Role", "Mode", "Access level", "Model", "Reasoning effort"). */
+export const settingPanel = (container, name) => settingsLine(container)?.querySelectorAll(node => node.getAttribute?.('role') === 'dialog' && node.getAttribute('aria-label') === name)[0];
+/**
+ * A control in a settings-line panel as a person reaches it: the panel opened by its button first, then the control
+ * found inside that panel, which must be in view. `match` picks the control among the panel's elements.
+ */
+export async function inSetting(container, act, name, match) {
+  await openSetting(container, act, name);
+  const panel = settingPanel(container, name);
+  if (!panel || !inView(panel)) throw Error(`the ${name} panel is not in view after its button was pressed`);
+  const found = panel.querySelectorAll(match)[0];
+  if (found && !inView(found)) throw Error(`the control found in the ${name} panel is not in view`);
+  return found;
+}
+/** The new conversation's typed model field, reached as a person reaches it: the settings line's Model panel opened,
+ * then its "Advanced: enter a model ID yourself" disclosure opened (its summary pressed), then the field, in view. */
+export async function startModelField(container, act) {
+  const advanced = await inSetting(container, act, 'Model', node => node.localName === 'details' && node.querySelectorAll(n => n.localName === 'summary')[0]?.textContent === 'Advanced: enter a model ID yourself');
+  if (!advanced) throw Error('no "Advanced: enter a model ID yourself" in the open Model panel');
+  if (!(advanced.open ?? advanced.hasAttribute('open'))) await act(async () => { advanced.open = true; });
+  const field = advanced.querySelectorAll(node => node.localName === 'input' && node.parentNode?.textContent?.startsWith('Model '))[0];
+  if (!field || !inView(field)) throw Error('the model field is not in view in the open Model panel');
+  return field;
+}

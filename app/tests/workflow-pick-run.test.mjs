@@ -52,7 +52,9 @@ function standIn({threads = [], selections = [], runs = [], projectLibraryAvaila
     if (command === 'native_confirmation_content') return [];
     if (command === 'read_available_models') return {state: 'observed', generation: args.generation, modeHomeClass: args.modeHomeClass, serverProvider: 'openai', serverProviderState: 'named', complete: true, limits: [], models: []};
     if (command === 'thread_start') {
-      if (fail.start === 'refused') throw Error('Native start refused before send');
+      // A refusal the host makes before anything is dispatched (App.tsx START_REFUSED_BEFORE_DISPATCH), and a rejection it does not class.
+      if (fail.start === 'refused') throw Error('thread start in progress');
+      if (fail.start === 'rejected') throw Error('Invented rejection the App does not class');
       if (fail.start === 'unknown') return {result: {thread: {}}};
       state.snapshot.threads = [...state.snapshot.threads, thread('created')];
       return {startGeneration: g, result: {thread: {id: 'created'}}};
@@ -195,9 +197,16 @@ test('a failure at each step keeps the text, says what happened, issues nothing 
   await mounted(standIn({fail: {start: 'refused'}}), async ui => {
     await ui.newChat(); await ui.pick(); await ui.write(TEXT); await ui.press();
     assert.deepEqual(ui.names(), ['thread_start']);
-    assert.match(ui.alert(), /Couldn't start the conversation: Native start refused before send\. Nothing was sent\./);
+    assert.match(ui.alert(), /Couldn't start the conversation: thread start in progress\. Nothing was sent\./);
     assert.equal(props(chatInput(ui.c)).value, TEXT);
     assert.ok(labelled(ui.c, 'Workflow for this message'), 'the pick is still shown');
+  });
+  // Step 1 rejected in words the App does not class as a refusal before dispatch: not confirmed, never "nothing started".
+  await mounted(standIn({fail: {start: 'rejected'}}), async ui => {
+    await ui.newChat(); await ui.pick(); await ui.write(TEXT); await ui.press();
+    assert.deepEqual(ui.names(), ['thread_start']);
+    assert.match(ui.alert(), /The App couldn't confirm the conversation started; it may exist\. The workflow wasn't sent\./);
+    assert.doesNotMatch(ui.alert(), /Couldn't start the conversation/);
   });
   // Step 1 not confirmed.
   await mounted(standIn({fail: {start: 'unknown'}}), async ui => {

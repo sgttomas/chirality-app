@@ -5,7 +5,8 @@ import {renderToStaticMarkup} from 'react-dom/server';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {loadSrc} from './support/load-src.mjs';
 import {agentPlain} from './support/agent-text.mjs';
-import {chatInput, sendButton, settingButton, settingsLine} from './support/conversation-view.mjs';
+import {chatInput, inSetting, inView, sendButton, settingButton, settingsLine} from './support/conversation-view.mjs';
+import {installIdleNativeWaiting} from './support/idle-native-waiting.mjs';
 
 // The conversation in the centre: the agent's prose, the turn's bubbles and folded activity, the composer in each turn
 // state, and the settings line. Invented fixtures in the host's shapes (native_items.rs, conversation_transport.rs,
@@ -239,13 +240,17 @@ test('the composer offers Send when no turn runs, and while one runs Update (onl
     assert.deepEqual(composerButtons(container).map(named), ['Attach files', 'Send text', 'Stop the running turn']);
     assert.equal(props(composerButtons(container)[2]).disabled, false, 'the one live turn can be stopped');
   });
-  // With a steering target: Update and Stop; Enter adds to the running turn.
+  // With a steering target: Update and Stop. While a turn runs Enter breaks the line (as on main); Update sends.
   await mounted(host({conversationTurns: [liveTurn('t1')], steeringTargets: [{generation: g, threadId: 'T', target: {generation: g, threadId: 'T', turnId: 't1'}}]}), async ({container, calls}) => {
     assert.deepEqual(composerButtons(container).map(named), ['Attach files', 'Send text', 'Update running turn', 'Stop the running turn']);
     assert.equal(props(chatInput(container)).placeholder, 'Add to the running turn…');
     await React.act(async () => props(chatInput(container)).onChange({target: {value: 'Also check tests'}}));
-    await React.act(async () => props(chatInput(container)).onKeyDown({key: 'Enter', shiftKey: false, nativeEvent: {}, preventDefault() {}}));
-    assert.deepEqual(calls.map(c => c[0]), ['steer'], 'Enter while a turn runs updates it');
+    let prevented = 0;
+    await React.act(async () => props(chatInput(container)).onKeyDown({key: 'Enter', shiftKey: false, nativeEvent: {}, preventDefault() { prevented++; }}));
+    assert.equal(prevented, 0, 'Enter while a turn runs is left to the field: it breaks the line');
+    assert.deepEqual(calls, [], 'Enter while a turn runs sends and steers nothing');
+    await React.act(async () => props(composerButtons(container).find(b => named(b) === 'Update running turn')).onClick());
+    assert.deepEqual(calls.map(c => c[0]), ['steer'], 'Update adds to the running turn');
     assert.equal(calls[0][3], 't1');
   });
   // Two live turns: Stop is not offered against a guess; the turn is chosen under Conversation tools.
@@ -272,10 +277,10 @@ test('the attach control opens the present attachment selection, which stays mou
 });
 
 test('the settings line shows the folder, role, mode, access level, model and effort; the level\'s name is in view and its reading sentence is in its panel', async () => {
-  await mounted(host(), async ({container}) => {
+  await mounted(host({threads: [{...host().threads[0], cwd: projectPath}]}), async ({container}) => {
     const line = settingsLine(container);
     assert.match(line.textContent, /^Working in▱ pump-skid·HELP_HUMAN·Chat/);
-    assert.equal(props(settingButton(container, 'Access level'))['aria-label'], 'Access level: Full access');
+    assert.equal(props(settingButton(container, 'Access level'))['aria-label'], 'Access level: Full access. Opens what it allows.', 'its name says what pressing it opens');
     assert.equal(settingButton(container, 'Access level').textContent, 'Full access', 'the level\'s name, and only it, is in view');
     assert.equal(settingButton(container, 'Model').textContent, 'reported-model');
     assert.equal(settingButton(container, 'Reasoning effort').textContent, 'high');
@@ -293,8 +298,478 @@ test('the settings line shows the folder, role, mode, access level, model and ef
   await mounted(host({currentAppProjectContext: null, attachmentSelections: null}), async ({container}) => {
     assert.match(settingsLine(container).textContent, /^Working inproject folder not established/);
   });
+  // One press from the name: what the level allows, where it comes from, that reading is not limited, what allowing a
+  // command means at a level that asks, and beside them what was sent and reported, the next-turn note, the project's
+  // trust as sent and the lasting rules. Each sentence is the host's (invented here), or the App's own table's.
+  const level = {chosen: {id: 'supervised', origin: 'chosen', dimensions: {writes: 'nowhere', network: 'off', asks: 'before-a-command-not-known-safe'},
+      originSentence: 'Invented origin sentence.', readingSentence: 'Invented sentence: reading is not limited at any level.', allowing: 'Invented sentence: what allowing a command means.'},
+    sent: {levelId: 'supervised', writeResult: 'written'}, agreement: 'agrees', takesEffectSentence: 'Invented sentence: a change takes effect from the next turn.',
+    projectTrust: {lines: ['Invented trust line: sent as trusted.'], projectRoot: '/invented/project'}};
+  await mounted(host({threads: [{...host().threads[0], level}], codexHomeRules: {appSentence: 'Invented lasting-rules sentence.', homes: []}}), async ({container}) => {
+    assert.equal(settingButton(container, 'Access level').textContent, 'Supervised', 'only the name is in view');
+    const panel = container.querySelectorAll(n => n.getAttribute('aria-label') === 'Access level' && n.getAttribute('role') === 'dialog')[0];
+    assert.equal(props(panel).hidden, true, 'nothing else is in view until it is pressed');
+    await React.act(async () => props(settingButton(container, 'Access level')).onClick());
+    assert.equal(props(panel).hidden, false);
+    const said = panel.textContent;
+    for (const words of ['Commands cannot write within the sandbox.', 'Network access is off within the sandbox.', 'Codex asks before a command it does not know to be safe.',
+      'Invented origin sentence.', 'Invented sentence: reading is not limited at any level.', 'Invented sentence: what allowing a command means.',
+      'Last level sent: Supervised. Written to Codex. Codex\'s report agrees with the level in force.', 'Invented sentence: a change takes effect from the next turn.',
+      'Invented trust line: sent as trusted.', 'Lasting rules in this Codex home', 'Invented lasting-rules sentence.'])
+      assert.ok(said.includes(words), words);
+    assert.ok(!said.includes('/invented/project'), 'supplied values stay in the full panel');
+    assert.ok(nodes(panel, 'button').some(b => b.textContent === 'Change permission level'), 'the full panel is one press further');
+  });
+  // In a new chat there is no conversation to report on: nothing is said of what was sent.
+  await mounted(host({threads: []}), async ({container}) => {
+    const panel = container.querySelectorAll(n => n.getAttribute('aria-label') === 'Access level' && n.getAttribute('role') === 'dialog')[0];
+    assert.doesNotMatch(panel.textContent, /Last level sent|Project trust/);
+  });
   // A level the App asks the person to choose says so beside its name.
   await mounted(host({threads: [{...host().threads[0], level: {ask: {sentence: 'Choose a level for this conversation.'}}}]}), async ({container}) => {
     assert.match(settingButton(container, 'Access level').textContent, / — choose to continue$/);
   });
+});
+
+// ---- The new chat's first message, bound to its press (ConversationPanel with a stubbed start and send) ----
+const deferredValue = () => { let resolve; const promise = new Promise(yes => { resolve = yes; }); return {promise, resolve}; };
+const g2 = {appSession: 's', home: 'h2', spawnCounter: 2};
+const startSettings = (over = {}) => ({role: 'HELP_HUMAN', model: 'chosen-model', blocked: '', rolePanel: null, modelPanel: null, binding: 'settings-1', ...over});
+async function newChatPanel(check, {h = host()} = {}) {
+  const container = document.createElement('div'); document.body.appendChild(container); const root = createRoot(container);
+  const starts = [], sends = [], chosen = [];
+  let current = {host: h, threadKey: '', startNew: startSettings()};
+  const draw = () => React.createElement(ConversationPanel, {host: current.host, threadKey: current.threadKey, setThreadKey: key => chosen.push(key), answer: noop, runAct: noop,
+    steer: noop, submitAttachments: noop, interrupt: noop, checkPlanMode: noop, codexBusy: false,
+    startNew: {...current.startNew, start: () => { const d = deferredValue(); starts.push(d); return d.promise; }},
+    // The ordinary send command: each call is recorded with its reply, which the test can await.
+    send: (...args) => { const reply = Promise.resolve({result: {}}); sends.push({args, reply}); return reply; }});
+  const render = async patch => { current = {...current, ...patch}; await React.act(async () => root.render(draw())); };
+  // Done when the press has run to its end: the composer is no longer busy (the start and any send settled).
+  const settled = async () => { for (let i = 0; i < 5 && props(chatInput(container)).disabled; i++) await React.act(async () => {}); assert.equal(props(chatInput(container)).disabled, false, 'the press has run to its end'); };
+  const type = async value => React.act(async () => props(chatInput(container)).onChange({target: {value}}));
+  const press = async (handler = props(sendButton(container)).onClick) => React.act(async () => { handler(); });
+  const answer = async (i, outcome) => { await React.act(async () => { starts[i].resolve(outcome); await starts[i].promise; }); await settled(); };
+  const alerts = () => container.querySelectorAll(n => n.getAttribute('role') === 'alert').map(n => n.textContent);
+  try { await render({}); await check({container, render, type, press, answer, settled, starts, sends, chosen, alerts}); }
+  finally { await React.act(() => root.unmount()); document.body.removeChild(container); }
+}
+const VIEW_CHANGED = 'The conversation started, but the view changed before your message was sent. Nothing was sent; your draft stays here.';
+const opened = (generation = g, id = 'new') => ({opened: JSON.stringify([generation, id])});
+
+test('the first message is sent only while the press is still current: start confirmed in its generation, then the same source, home, view and draft', async () => {
+  // Confirmed and nothing changed: the pressed draft is sent once to the started conversation, and cleared though the
+  // new conversation has not rendered as the one shown.
+  await newChatPanel(async ui => {
+    await ui.type('Hello'); await ui.press();
+    assert.equal(ui.starts.length, 1);
+    await ui.answer(0, opened());
+    assert.deepEqual(ui.sends.map(s => s.args), [[g, 'new', 'Hello', undefined, undefined]]);
+    await ui.sends[0].reply;
+    await ui.settled();
+    assert.equal(props(chatInput(ui.container)).value, '', 'the confirmed send cleared the pressed draft');
+  });
+  // While the start was pending the person chose another conversation: kept, and nothing sent.
+  await newChatPanel(async ui => {
+    await ui.type('Hello'); await ui.press();
+    await ui.render({threadKey: key('T')});
+    await ui.answer(0, opened());
+    assert.deepEqual(ui.sends, [], 'no send was dispatched');
+    assert.deepEqual(ui.chosen, [], 'the newer choice is not replaced');
+    assert.ok(ui.alerts().includes(VIEW_CHANGED));
+    assert.equal(props(chatInput(ui.container)).value, 'Hello');
+  });
+  // The source was replaced, or the home changed, while the start was pending: nothing sent.
+  for (const [what, patch] of [['generation', {host: {...host(), generation: g2, threads: []}}], ['home', {host: {...host(), homeRouting: {activeModeHomeClass: 'api-key'}}}]]) await newChatPanel(async ui => {
+    await ui.type('Hello'); await ui.press();
+    await ui.render(patch);
+    await ui.answer(0, opened());
+    assert.deepEqual(ui.sends, [], `${what}: no send was dispatched`);
+    assert.ok(ui.alerts().includes(VIEW_CHANGED), what);
+    assert.equal(props(chatInput(ui.container)).value, 'Hello');
+  });
+  // The text changed while the start was pending: the newer text is kept and nothing is sent.
+  await newChatPanel(async ui => {
+    await ui.type('Hello'); await ui.press();
+    await ui.type('Hello again');
+    await ui.answer(0, opened());
+    assert.deepEqual(ui.sends, []);
+    assert.ok(ui.alerts().includes(VIEW_CHANGED));
+    assert.equal(props(chatInput(ui.container)).value, 'Hello again');
+  });
+  // A reply naming another generation than the one the start was issued for is not a success.
+  await newChatPanel(async ui => {
+    await ui.type('Hello'); await ui.press();
+    await ui.answer(0, opened(g2));
+    assert.deepEqual(ui.sends, []);
+    assert.ok(ui.alerts().includes('The App could not confirm that a new conversation started. If it did start, it is listed on the left. Your message was not sent; your draft stays here.'));
+  });
+});
+
+test('a definite refusal says nothing started; any other rejection says only what is established; a retry is not held', async () => {
+  await newChatPanel(async ui => {
+    await ui.type('Hello'); await ui.press();
+    await ui.answer(0, {failed: 'refusal-words'});
+    assert.ok(ui.alerts().includes('The conversation was not started: Reported: refusal-words Your draft stays here; nothing was sent.'));
+    // The host's words are boxed beside the App's, never inside a control.
+    const alert = ui.container.querySelectorAll(n => n.getAttribute('role') === 'alert')[0];
+    const box = alert.querySelectorAll(n => n.getAttribute('aria-label') === "What the host reported about the start, not the App's words")[0];
+    assert.ok(box, 'the reason is in a box naming whose words they are');
+    for (let n = box; n && n !== alert; n = n.parentNode) assert.notEqual(n.localName, 'button');
+    await ui.press();
+    assert.equal(ui.starts.length, 2, 'a second start is the person\'s retry, not held');
+    await ui.answer(1, {notConfirmed: true, reason: 'unknown-words'});
+    assert.ok(ui.alerts().includes('The App could not confirm that a new conversation started: Reported: unknown-words If it did start, it is listed on the left. Your message was not sent; your draft stays here.'));
+    assert.deepEqual(ui.sends, []);
+  });
+});
+
+test('a Send captured before the draft or the new conversation\'s settings changed starts nothing', async () => {
+  await newChatPanel(async ui => {
+    await ui.type('Hello');
+    const stale = props(sendButton(ui.container)).onClick;
+    await ui.type('Hello, edited');
+    await ui.press(stale);
+    assert.equal(ui.starts.length, 0, 'the text changed after the press was captured');
+    assert.ok(ui.alerts().some(a => a.startsWith('Not started: that Send belonged to an earlier view, text or choice of settings for the new conversation.')));
+  });
+  await newChatPanel(async ui => {
+    await ui.type('Hello');
+    const stale = props(sendButton(ui.container)).onClick;
+    await ui.render({startNew: startSettings({model: 'another-model', binding: 'settings-2'})});
+    await ui.press(stale);
+    assert.equal(ui.starts.length, 0, 'the start settings changed after the press was captured');
+    await ui.press();
+    assert.equal(ui.starts.length, 1, 'a fresh press starts');
+  });
+});
+
+test('a new chat is only "no conversation chosen": a chosen conversation that is missing offers no Send, and text from another conversation is said to start a new one', async () => {
+  await newChatPanel(async ui => {
+    await ui.render({threadKey: key('gone')});
+    await ui.type('Hello');
+    assert.equal(props(sendButton(ui.container)).disabled, true);
+    const line = ui.container.querySelectorAll(n => n.getAttribute('id') === 'ordinary-send-readiness')[0];
+    assert.equal(line.textContent, 'The conversation chosen is not available now. Choose a conversation or press New chat. Your draft stays here.');
+    assert.ok(inView(line) && line.getAttribute('class') === 'v4-composer-status');
+    await React.act(async () => props(chatInput(ui.container)).onKeyDown({key: 'Enter', shiftKey: false, nativeEvent: {}, preventDefault() {}}));
+    assert.equal(ui.starts.length, 0, 'nothing is started for a missing conversation');
+    assert.equal(settingsLine(ui.container).getAttribute('id'), null, 'the new conversation\'s settings line is not shown');
+  });
+  await newChatPanel(async ui => {
+    await ui.render({threadKey: key('T')});
+    await ui.type('Written for T');
+    await ui.render({threadKey: ''});
+    const note = ui.container.querySelectorAll(n => n.getAttribute('aria-label') === 'Where your text goes')[0];
+    assert.equal(note?.textContent, 'Your unsent text was written while another conversation was shown. It is kept; if you send it now it starts a new conversation.');
+  });
+});
+
+// ---- The composer sends only what main sent ----
+const planHost = (last, over = {}) => host({planMode: {state: 'offered'}, requestedModes: last ? [{generation: g, threadId: 'T', mode: last, standing: 'requested'}] : [], ...over});
+test('a mode is sent only when the person chose one on the settings line and it differs from the last mode requested', async () => {
+  for (const [last, choice, sent, word] of [[null, null, undefined, 'Chat'], [null, 'plan', 'plan', 'Plan'], ['plan', 'plan', undefined, 'Plan'], ['plan', 'chat', 'default', 'Chat'], ['plan', null, undefined, 'Plan'], [null, 'chat', undefined, 'Chat'], ['default', 'plan', 'plan', 'Plan']]) {
+    await mounted(planHost(last), async ({container, calls}) => {
+      if (choice) {
+        const radio = await inSetting(container, React.act, 'Mode', n => n.localName === 'input' && n.parentNode.textContent.startsWith(choice === 'plan' ? ' Plan' : ' Chat'));
+        assert.ok(radio, `the ${choice} choice is in the open Mode panel`);
+        await React.act(async () => props(radio).onChange({target: {checked: true}}));
+      }
+      assert.equal(settingButton(container, 'Mode').textContent, word, `last ${last}, chosen ${choice}: the word shown`);
+      await React.act(async () => props(chatInput(container)).onChange({target: {value: 'Hello'}}));
+      await React.act(async () => { props(sendButton(container)).onClick(); });
+      assert.deepEqual(calls.map(c => [c[0], c[4]]), [['send', sent]], `last ${last}, chosen ${choice}: the mode sent`);
+    });
+  }
+});
+
+test('Enter sends and Shift+Enter breaks the line only while no turn runs; Stop targets the chosen or the only live turn', async () => {
+  await mounted(host(), async ({container, calls}) => {
+    await React.act(async () => props(chatInput(container)).onChange({target: {value: 'Hello'}}));
+    let prevented = 0;
+    await React.act(async () => props(chatInput(container)).onKeyDown({key: 'Enter', shiftKey: true, nativeEvent: {}, preventDefault() { prevented++; }}));
+    assert.deepEqual([prevented, calls.length], [0, 0], 'Shift+Enter breaks the line');
+    await React.act(async () => props(chatInput(container)).onKeyDown({key: 'Enter', shiftKey: false, nativeEvent: {}, preventDefault() { prevented++; }}));
+    assert.deepEqual([prevented, calls.map(c => c[0])], [1, ['send']], 'Enter sends');
+  });
+  // Two live turns and none chosen: Stop is unavailable and says, in view, to choose one; chosen, it stops that one.
+  await mounted(host({conversationTurns: [liveTurn('t1'), liveTurn('t2')]}), async ({container, calls}) => {
+    const stop = () => composerButtons(container).find(b => named(b) === 'Stop the running turn');
+    assert.equal(props(stop()).disabled, true);
+    const note = container.querySelectorAll(n => n.getAttribute('aria-label') === 'Which turn Stop stops')[0];
+    assert.equal(note?.textContent, 'Several turns are running here. Choose the one to stop under Conversation tools, in “Interrupt a live turn”.');
+    assert.ok(inView(note));
+    const select = nodes(container, 'select').find(n => n.parentNode.textContent.startsWith('Observed live turn'));
+    await React.act(async () => props(select).onChange({target: {value: 't2'}}));
+    assert.equal(props(stop()).disabled, false);
+    await React.act(async () => { props(stop()).onClick(); });
+    assert.deepEqual(calls.map(c => [c[0], c[3]]), [['interrupt', 't2']]);
+  });
+  await mounted(host({conversationTurns: [liveTurn('t1')]}), async ({container, calls}) => {
+    await React.act(async () => { props(composerButtons(container).find(b => named(b) === 'Stop the running turn')).onClick(); });
+    assert.deepEqual(calls.map(c => [c[0], c[3]]), [['interrupt', 't1']], 'the one live turn');
+  });
+});
+
+test('with attachments selected and their panel closed, the composer says Send sends the text without them', async () => {
+  await mounted(host({attachmentSelections: {...host().attachmentSelections, selections: [{selection: {selectionRef: 'sel-1'}}]}}), async ({container}) => {
+    const note = () => container.querySelectorAll(n => n.getAttribute('aria-label') === 'Selected attachments')[0];
+    assert.equal(note()?.textContent, 'Send sends your text without the selected attachments. To send them, open the attachments (⊕) and use “Send text and ordered attachments”.');
+    assert.ok(inView(note()));
+    await React.act(async () => props(composerButtons(container).find(b => named(b) === 'Attach files')).onClick());
+    assert.equal(note(), undefined, 'with the panel open, its own controls say it');
+  });
+});
+
+// ---- Landing and reading ----
+test('"Working in" names the App\'s folder only where the conversation\'s row reports that folder', async () => {
+  await mounted(host({threads: [{...host().threads[0], cwd: '/somewhere/else'}]}), async ({container}) => {
+    const line = settingsLine(container);
+    assert.match(agentPlain(line.textContent), /^Working inCodex reports another folder: Folder: \/somewhere\/else·/);
+    const box = line.querySelectorAll(n => n.getAttribute('aria-label') === "The folder Codex reports for this conversation, not the App's words")[0];
+    assert.ok(box, 'the reported folder is marked as Codex\'s text');
+    for (let n = box; n && n !== line; n = n.parentNode) assert.notEqual(n.localName, 'button', 'outside any control');
+    assert.doesNotMatch(line.textContent, /pump-skid/);
+  });
+  await mounted(host(), async ({container}) => {
+    assert.match(settingsLine(container).textContent, /^Working infolder not reported by Codex·/);
+  });
+  await mounted(host({threads: [{...host().threads[0], cwd: `${projectPath}/`}]}), async ({container}) => {
+    assert.match(settingsLine(container).textContent, /^Working in▱ pump-skid·/, 'the same folder with a trailing separator, as the navigator reads it');
+  });
+});
+
+test('the model help says where the mode is chosen', async () => {
+  await mounted(host(), async ({container}) => {
+    const help = await inSetting(container, React.act, 'Model', n => n.getAttribute('id') === 'ordinary-model-help');
+    assert.match(help.textContent, /^Applies to your next message, sent with Send in the mode chosen under Mode on this line, and to the plan and default sends under Conversation tools\./);
+    assert.doesNotMatch(help.textContent, /controls below/);
+  });
+});
+
+test('"Waiting for you" marks only the turn a waiting request names, or the one live turn when the request names none', () => {
+  const two = {...view('inProgress'), items: [...items, row('turn-2', 7, {id: 'a3', type: 'agentMessage', text: 'Second'})],
+    turns: [{id: 'turn-1', status: 'inProgress', startedAt: 1, items: []}, {id: 'turn-2', status: 'inProgress', startedAt: 2, items: []}], turnRecords: [{threadId: 'T', turnId: 'turn-1'}, {threadId: 'T', turnId: 'turn-2'}]};
+  const marked = html => [...html.matchAll(/aria-label="Conversation turn (\d)"[\s\S]*?<\/section>/g)].filter(m => m[0].includes('Waiting for you')).map(m => m[1]);
+  assert.deepEqual(marked(transcript(two, {waitingTurns: ['turn-2']})), ['2'], 'only the turn the request names');
+  assert.deepEqual(marked(transcript(two, {waiting: true})), [], 'a request naming no turn marks none of two live turns');
+  assert.deepEqual(marked(transcript(view('inProgress'), {waiting: true})), ['1'], 'a request naming no turn marks the one live turn');
+});
+
+test('the transcript follows the latest while the person is at or near its end, and stays where they scrolled to', async () => {
+  const more = n => host({nativeView: {...view('completed'), generation: g, home: 'h', items: Array.from({length: n}, (_, i) => row('turn-1', i, {id: `a${i}`, type: 'agentMessage', text: `Message ${i}`}))}});
+  await mounted(more(2), async ({container}) => {
+    const node = container.querySelectorAll(n => (n.getAttribute('class') ?? '').startsWith('panel-body chat-transcript'))[0];
+    let height = 1000;
+    Object.defineProperty(node, 'scrollHeight', {configurable: true, get: () => height});
+    Object.defineProperty(node, 'clientHeight', {configurable: true, get: () => 200});
+    const latest = () => nodes(container, 'button').some(b => b.textContent === 'Latest');
+    // Scrolled to the very top: the person is behind, and "Latest" is offered.
+    node.scrollTop = 0; await React.act(async () => props(node).onScroll());
+    assert.equal(latest(), true);
+    node.scrollTop = 790; await React.act(async () => props(node).onScroll());
+    assert.equal(latest(), false, 'within 48 pixels of the end counts as at the end');
+    height = 1600;
+    await React.act(async () => props(chatInput(container)).onChange({target: {value: 'a re-render'}}));
+    assert.equal(node.scrollTop, 1600, 'what arrived is followed');
+    // Scrolled up: what arrives does not move the view, and "Latest" takes the person to the end.
+    node.scrollTop = 100; await React.act(async () => props(node).onScroll());
+    assert.equal(latest(), true, '"Latest" is offered');
+    height = 2400;
+    await React.act(async () => props(chatInput(container)).onChange({target: {value: 'another re-render'}}));
+    assert.equal(node.scrollTop, 100, 'the view stays where the person scrolled to');
+    await React.act(async () => { props(nodes(container, 'button').find(b => b.textContent === 'Latest')).onClick(); });
+    assert.equal(node.scrollTop, 2400);
+    assert.equal(latest(), false);
+  });
+});
+
+// ---- Requests: one mounted owner through the change of state, who asks in view, a closed summary ----
+const outstandingRequest = {recordKind: 'server-request-entry', requestIdentity: 7, generation: g, method: 'item/commandExecution/requestApproval', classification: 'known-answerable', originClass: 'a14',
+  nativeParameters: {threadId: 'T', turnId: 'turn-1', itemId: 'c1', command: 'ls', availableDecisions: ['accept', 'decline']}, state: 'outstanding', replyWriteResult: 'not-attempted', acknowledgmentObservation: {status: 'not-observed'}};
+test('a request keeps one mounted card through its change of state: never foldable while it waits, folded after behind the App\'s words', async () => {
+  const withRequest = request => host({serverRequests: [request], nativeView: {...view('inProgress'), generation: g, home: 'h'}});
+  const container = document.createElement('div'); document.body.appendChild(container); const root = createRoot(container);
+  const draw = h => React.createElement(ConversationPanel, {host: h, threadKey: key('T'), setThreadKey: () => {}, answer: noop, runAct: noop, send: noop, steer: noop, submitAttachments: noop, interrupt: noop, checkPlanMode: noop, codexBusy: false});
+  try {
+    await React.act(async () => root.render(draw(withRequest(outstandingRequest))));
+    const entry = () => container.querySelectorAll(n => (n.getAttribute('class') ?? '').startsWith('v4-request-entry'))[0];
+    const card = () => entry().querySelectorAll(n => n.localName === 'article' && (n.getAttribute('class') ?? '').includes('request-card'))[0];
+    const toggle = () => entry().querySelectorAll(n => n.localName === 'button' && (n.getAttribute('class') ?? '') === 'v4-request-earlier-toggle')[0];
+    const [entryBefore, cardBefore] = [entry(), card()];
+    assert.equal(toggle(), undefined, 'a waiting request is never folded');
+    assert.ok(inView(card()));
+    // Who asks is in view with the question and its answers, not behind "Request details".
+    const asker = card().querySelectorAll(n => n.getAttribute('class') === 'request-asker')[0];
+    assert.equal(asker.textContent, 'Asked by the conversation’s own agent.');
+    assert.ok(inView(asker));
+    for (let n = asker; n !== card(); n = n.parentNode) assert.notEqual(n.localName, 'details');
+    // Answered, then resolved by Codex with a supplied cause: the same wrapper and card, folded behind the App's words.
+    await React.act(async () => root.render(draw(withRequest({...outstandingRequest, state: 'resolved-by-supplier', supplierResolution: {cause: 'supplier-cause-words'}}))));
+    assert.equal(entry(), entryBefore, 'the same wrapper element: nothing remounted');
+    assert.equal(card(), cardBefore, 'the same card element');
+    assert.equal(toggle().textContent, 'Tool permission: run a command · Resolved by Codex before you answered', 'the control holds only the App\'s words');
+    assert.equal(props(toggle())['aria-expanded'], false);
+    assert.equal(inView(card()), false, 'folded: kept mounted and hidden');
+    await React.act(async () => { props(toggle()).onClick(); });
+    assert.ok(inView(card()));
+    assert.match(card().textContent, /supplier-cause-words|cause: supplier-cause-words/, 'the cause stays on the card');
+  } finally { await React.act(() => root.unmount()); document.body.removeChild(container); }
+});
+test('the earlier-request summary is a closed App sentence for every state: nothing supplied reaches it', () => {
+  const {requestStateWords, cardState} = loadSrc('RequestCards');
+  const SUPPLIED = 'SUPPLIED-CAUSE';
+  for (const state of ['received', 'errored', 'outstanding', 'settling', 'reply-outcome-unknown', 'answered', 'declined', 'settle-write-failed', 'resolved-by-supplier', 'ended-unanswered', 'future-state', undefined]) {
+    const request = {...outstandingRequest, state, supplierResolution: {cause: SUPPLIED}, settlement: {origin: {class: SUPPLIED, ruleName: SUPPLIED}}, endContext: SUPPLIED};
+    assert.doesNotMatch(requestStateWords(request), new RegExp(SUPPLIED), String(state));
+  }
+  assert.equal(cardState({state: 'resolved-by-supplier', supplierResolution: {cause: 'plain-cause'}}), 'Resolved by Codex before you answered (cause: plain-cause)', 'the card keeps the checked cause');
+});
+
+// ---- Only the person's own message is drawn as theirs ----
+test('the person\'s bubble holds only their own message\'s text; a delegated agent\'s input and non-text input stay marked', () => {
+  const input = [{type: 'text', text: 'Please look', text_elements: []}, {type: 'localImage', path: '/invented/shot.png'}];
+  const asked = {...view('completed'), items: [row('turn-1', 0, {id: 'u1', type: 'userMessage', content: input}), row('turn-1', 1, {id: 'a1', type: 'agentMessage', text: 'Done'})]};
+  const own = renderToStaticMarkup(React.createElement(NativeActivityView, {view: asked, threadId: 'T'}));
+  assert.match(own, /<article class="chat-bubble chat-bubble--operator" data-role="operator" aria-label="Your message"><p class="chat-speaker">You<\/p>/);
+  const person = own.match(/<div role="group" aria-label="[^"]*" class="agent-prose person-text">([^]*?)<\/div>/)[1];
+  assert.equal(person, 'Please look', 'the person\'s text group holds their text only');
+  assert.match(agentPlain(own), /⟦A local image reference, as Codex recorded it:\n\{\n  &quot;type&quot;: &quot;localImage&quot;,\n  &quot;path&quot;: &quot;\/invented\/shot\.png&quot;\n\}⟧/, 'the image reference is a marked box labelled by what it is');
+  // The conversation shown is one the view holds as a delegated agent's (a descendant of another).
+  const delegated = renderToStaticMarkup(React.createElement(NativeActivityView, {view: {...asked, descendants: [{threadId: 'T', parentThreadId: 'P', parentSource: 'collabAgentToolCall.senderThreadId'}]}, threadId: 'T'}));
+  assert.doesNotMatch(delegated, /person-text|aria-label="Your message"|<p class="chat-speaker">You<\/p>/, 'nothing is drawn as the person\'s');
+  assert.match(delegated, /<article class="chat-bubble chat-bubble--input" data-role="input" aria-label="Input to this agent"><p class="chat-speaker">Input to this agent<\/p>/);
+  assert.match(agentPlain(delegated), /⟦Input to this agent:\nPlease look⟧/);
+  assert.match(delegated, /aria-label="Input Codex recorded for this delegated agent, not the App&#x27;s words and not your message, 1 line"/);
+  assert.match(agentPlain(delegated), /⟦A local image reference, as Codex recorded it:/);
+});
+test('a descendant\'s input, opened from the conversation, is that agent\'s input, not the person\'s', async () => {
+  const v = {...view('completed'), items: [...items, row('turn-c', 0, {id: 'cu', type: 'userMessage', content: [{type: 'text', text: 'Delegated task'}]}, {threadId: 'C'})],
+    turns: [...view('completed').turns, {id: 'turn-c', status: 'completed', startedAt: 5, items: []}], turnRecords: [{threadId: 'T', turnId: 'turn-1'}, {threadId: 'C', turnId: 'turn-c'}],
+    descendants: [{threadId: 'C', parentThreadId: 'T', parentSource: 'collabAgentToolCall.senderThreadId'}]};
+  const container = document.createElement('div'); document.body.appendChild(container); const root = createRoot(container);
+  try {
+    await React.act(async () => root.render(React.createElement(NativeActivityView, {view: v, threadId: 'T'})));
+    await React.act(async () => props(nodes(container, 'select')[0]).onChange({target: {value: 'C'}}));
+    const bubbles = container.querySelectorAll(n => n.localName === 'article');
+    assert.deepEqual(bubbles.map(b => b.getAttribute('aria-label')), ['Input to this agent', 'Agent reply']);
+    assert.equal(container.querySelectorAll(n => (n.getAttribute('class') ?? '').includes('person-text')).length, 0);
+  } finally { await React.act(() => root.unmount()); document.body.removeChild(container); }
+});
+
+// ---- A reveal of a Conversation tools target lands on a shown target ----
+test('"Change permission level" from the settings line selects the Conversation tools tab before it reveals the level, so the focus lands on a shown target', async () => {
+  const container = document.createElement('div'); document.body.appendChild(container); const root = createRoot(container);
+  const previousGetById = document.getElementById;
+  document.getElementById = id => container.querySelectorAll(n => n.getAttribute('id') === id)[0] ?? null;
+  const proto = Object.getPrototypeOf(document.createElement('div'));
+  const focused = [];
+  proto.focus = function () { focused.push({id: this.getAttribute('id'), shown: inView(this)}); };
+  const snapshot = host();
+  const idle = installIdleNativeWaiting(async command => {
+    if (command === 'host_status') return snapshot;
+    if (command === 'decision_view') return {rows: []};
+    if (command === 'native_confirmation_content') return [];
+    throw Error(`Unexpected ${command}`);
+  });
+  try {
+    const {App} = loadSrc('App');
+    await React.act(async () => root.render(React.createElement(App)));
+    const change = await inSetting(container, React.act, 'Access level', n => n.localName === 'button' && n.textContent === 'Change permission level');
+    assert.ok(change);
+    await React.act(async () => { props(change).onClick(); });
+    const level = focused.filter(f => f.id === 'conversation-level');
+    assert.equal(level.length, 1, 'the level is focused once');
+    assert.equal(level[0].shown, true, 'it is not hidden when it is focused');
+    const tab = nodes(container, 'button').find(b => b.getAttribute('role') === 'tab' && b.getAttribute('aria-selected') === 'true');
+    assert.equal(tab?.textContent, 'Conversation tools');
+  } finally {
+    delete proto.focus; document.getElementById = previousGetById;
+    const text = container.textContent; await React.act(() => root.unmount()); document.body.removeChild(container); idle.restore(text);
+  }
+});
+
+// ---- The prose renderer: bounded, lossless, HTML literal ----
+const {PROSE_MAX_DEPTH, PROSE_MAX_INLINE_LINE, PROSE_MAX_CHARS} = loadSrc('AgentText');
+// The page's visible text, with each mark read back as the character it stands for.
+const visible = raw => raw.replace(/<span class="agent-text-mark"[^>]*>‹U\+([0-9A-F]+)›<\/span>/g, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
+  .replace(/<span class="agent-text-mark"[^>]*>→<\/span>/g, '\t').replace(/<br\/>/g, '\n').replace(/<[^>]+>/g, '')
+  .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#x27;/g, "'").replace(/&amp;/g, '&');
+const timed = value => { const t = performance.now(); const raw = prose(value); return {raw, ms: performance.now() - t}; };
+test('the prose renderer is bounded: deep quotations and a long line of unclosed emphasis render quickly, nothing lost', () => {
+  const deep = '>'.repeat(6000) + ' deep';
+  const quoted = timed(deep);
+  assert.ok(quoted.ms < 500, `6,000 quotation markers in ${quoted.ms} ms`);
+  assert.equal((quoted.raw.match(/<blockquote>/g) ?? []).length, PROSE_MAX_DEPTH, 'nested to the bound, no deeper');
+  assert.ok(visible(quoted.raw).includes('>'.repeat(6000 - PROSE_MAX_DEPTH) + ' deep'), 'beyond the bound the line is literal text');
+  const emphasis = '*a'.repeat(6000);
+  const line = timed(emphasis);
+  assert.ok(line.ms < 500, `12,000 characters of unclosed emphasis in ${line.ms} ms`);
+  assert.ok(emphasis.length > PROSE_MAX_INLINE_LINE && visible(line.raw).includes(emphasis), 'every character is there, as written');
+  assert.doesNotMatch(line.raw, /<em>|<strong>/);
+  // A message beyond the size bound is drawn whole in the marked form, as tool output is.
+  const large = 'word '.repeat(PROSE_MAX_CHARS / 5 + 1);
+  const big = prose(large);
+  assert.match(big, /^<div role="group" aria-label="Text the agent wrote, not the App&#x27;s words, 1 line" class="agent-text agent-text-block"/);
+  assert.doesNotMatch(big, /agent-prose/);
+});
+
+test('the prose renderer keeps what malformed syntax would swallow: invisible lines, cell edges, long rows and fence information', () => {
+  const ZWJ = '‍', LRI = '⁦', WJ = '⁠';
+  const marks = raw => [...raw.matchAll(/<span class="agent-text-mark"[^>]*>‹U\+([0-9A-F]+)›<\/span>/g)].map(m => m[1]);
+  // A line holding only invisible or format characters is a line of text, not a blank line.
+  const invisible = prose(`First\n${ZWSP}${WJ}\nSecond`);
+  assert.deepEqual(marks(invisible), ['200B', '2060']);
+  assert.match(invisible, /^<div[^>]*><p>First<br\/><span[^>]*>‹U\+200B›<\/span><span[^>]*>‹U\+2060›<\/span><br\/>Second<\/p><\/div>$/);
+  // Cells keep invisible and direction characters at their edges; a row longer than the header keeps every cell.
+  const table = prose(`| ${ZWSP}a${RLO} | b |\n|---|---|\n| c | d | ${ZWJ}e${LRI} |`);
+  assert.deepEqual(marks(table), ['200B', '202E', '200D', '2066']);
+  assert.match(visible(table), /e/);
+  assert.equal((table.match(/<td>/g) ?? []).length, 6, 'two rows of three cells: the header widened to the longest row');
+  // A fence's information string is shown as text, whatever it holds; a plain language name too.
+  const fence = prose(`\`\`\`js onclick="x" ${RLO}\ncode\n\`\`\``);
+  assert.match(fence, /<p class="agent-prose-code-info">js onclick=&quot;x&quot; <span[^>]*>‹U\+202E›<\/span><\/p><pre class="agent-prose-code"><code>code<\/code><\/pre>/);
+  assert.match(prose('```python\nx = 1\n```'), /<p class="agent-prose-code-info">python<\/p>/);
+  for (const raw of [invisible, table, fence]) assertProseOnly(raw, 'kept characters');
+});
+
+test('the prose renderer draws what looks like an HTML tag as its source text: nothing inside it is formatted', () => {
+  const raw = prose('<span title="**Allow**">x</span> and **bold**');
+  assert.ok(raw.includes('&lt;span title=&quot;**Allow**&quot;&gt;x&lt;/span&gt;'), 'the tag as written, its emphasis markers kept');
+  assert.equal((raw.match(/<strong>/g) ?? []).length, 1, 'only the emphasis outside the tag is formatted');
+  assert.ok(prose('<!-- **x** -->').includes('&lt;!-- **x** --&gt;'));
+  assertProseOnly(raw, 'html literal');
+});
+
+// A seeded generator, so a failure is reproducible.
+const seeded = seed => () => { seed |= 0; seed = seed + 0x6d2b79f5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+const ALPHABET = ['*', '**', '_', '`', '```', '~~~', '#', '## ', '>', '> ', '-', '- ', '+ ', '1. ', '2) ', '|', '|---|', '[', ']', '(', ')', '![', '\\', '<', '>', '<span title="', '">', '</b>', '<!--', '-->', '<a href=x>', '<https://e.invalid>', ':', '=', '---', '"', "'",
+  ' ', '  ', '\t', '\n', '\n\n', '\r\n', 'a', 'b', 'x', 'é', '家', '🙂', '‮', '⁦', '​', '‍', '﻿', ' ', '\u0085', '͏'];
+// What the renderer may consume as syntax: the markers of what it draws, spaces, tabs and line ends (ASCII
+// punctuation, digits, space, tab, CR, LF). Every other character of the input must be drawn, in order.
+const SYNTAX = /[\x20-\x2f\x3a-\x40\x5b-\x60\x7b-\x7e0-9\t\r\n]/;
+test('property: on generated Markdown, HTML, line breaks and invisible characters, the output holds only the renderer\'s elements and every non-syntax character in order', () => {
+  const random = seeded(20261119);
+  for (let n = 0; n < 300; n++) {
+    let input = '';
+    const length = 1 + Math.floor(random() * 60);
+    for (let i = 0; i < length; i++) input += ALPHABET[Math.floor(random() * ALPHABET.length)];
+    const raw = prose(input);
+    assertProseOnly(raw, JSON.stringify(input));
+    const shown = [...visible(raw)], wanted = [...input].filter(c => !SYNTAX.test(c));
+    let at = 0;
+    for (const c of shown) if (at < wanted.length && c === wanted[at]) at++;
+    assert.equal(at, wanted.length, `${JSON.stringify(input)}: missing ${JSON.stringify(wanted.slice(at).join(''))} from ${JSON.stringify(visible(raw))}`);
+  }
+});
+
+test('the speaker\'s label is the strongest text in a bubble: no prose heading or bold is larger or heavier', async () => {
+  const {readFileSync} = await import('node:fs');
+  const css = readFileSync(new URL('../src/workspace.css', import.meta.url), 'utf8');
+  const tail = css.slice(css.lastIndexOf('/* v4 review repairs'));
+  assert.match(tail, /\.chat-panel--woven \.chat-bubble \.chat-speaker \{ font-size:13\.5px; font-weight:700; \}/);
+  assert.match(tail, /\.agent-prose strong \{ font-weight:600; \}/);
+  assert.match(tail, /\.agent-prose p\.agent-prose-heading, \.agent-prose p\.agent-prose-heading--major \{ font-size:13\.5px; \}/);
+  assert.match(tail, /\.chat-bubble--assistant \.agent-prose\.chat-markdown \{ padding-left:12px; border-left:2px solid var\(--rule\); \}/, 'the prose has a visible boundary of its own');
+  assert.match(tail, /\.agent-prose li, \.agent-prose td \{ white-space:pre-wrap; overflow-wrap:anywhere; \}/, 'list entries and cells wrap as a paragraph does');
 });

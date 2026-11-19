@@ -216,6 +216,8 @@ supplier direction as though it were unanswered.
   V4-AUT-06). Each start, resume and fork also sends the project-root trust
   entry described in DEL-01-05's account-home term: trusted only when the
   account home's settings mark that root trusted, otherwise untrusted. The
+  App also enables Codex's Default-mode question feature in each
+  conversation home it offers. The
   dedicated local home uses the App-owned
   configuration specified by DEL-01-05, with analytics and plugin traffic
   off. Every session setting the App applies is listed for the person with

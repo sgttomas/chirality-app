@@ -14,7 +14,7 @@
     "abort": "Don't allow; the agent waits for your next message"
   },
   "questionChoices": {
-    "question-answers": "Send current question answers…",
-    "question-decline": "Decline to answer"
+    "question-answers": "Send answers",
+    "question-decline": "Decline to answer; the agent continues without one"
   }
 }
