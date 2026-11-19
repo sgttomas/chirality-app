@@ -912,9 +912,7 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
       {actionOutcome}
       {text && selected && textWrittenFor.current && textWrittenFor.current !== threadKey && <p role="note" aria-label="Where your text goes">Your unsent text was written while another conversation was shown. It is kept; if you send it now it goes to {conversationLabel(host, selected)}.</p>}
       {text && newChat && textWrittenFor.current && <p role="note" aria-label="Where your text goes">Your unsent text was written while another conversation was shown. It is kept; if you send it now it starts a new conversation.</p>}
-      {attachmentsSelected && !attachOpen && <p className="v4-composer-status" aria-label="Selected attachments">{newChat
-        ? "Send starts the conversation with your text and without the selected attachments. They can be sent once the conversation has started, from the attachments (⊕)."
-        : "Send sends your text without the selected attachments. To send them, open the attachments (⊕) and use “Send text and ordered attachments”."}</p>}
+      {attachmentsSelected && !attachOpen && <p className="v4-composer-status" aria-label="Selected attachments">Send sends your text without the selected attachments. To send them, open the attachments (⊕) and use “Send text and ordered attachments”.</p>}
       {running && !stopTarget && <p className="v4-composer-status" aria-label="Which turn Stop stops">Several turns are running here. Choose the one to stop under Conversation tools, in “Interrupt a live turn”.</p>}
       {pickDropped && !pick && <p role="status">The workflow you picked was removed: Codex or the workflow source changed. Pick it again under Workflows.</p>}
       {pickOutcome && (pickOutcome.kind === "alert" ? <div className="v4-step-outcome"><p role="alert">{pickOutcome.words}</p><StepDetails line={stepLine} /></div> : <p role="status">{pickOutcome.words}</p>)}

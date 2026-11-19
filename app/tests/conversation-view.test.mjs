@@ -354,10 +354,7 @@ test('the settings line shows the folder, role, mode, access level, model and ef
       'Last level sent: Supervised. Written to Codex. Codex\'s report agrees with the level in force.', 'Invented sentence: a change takes effect from the next turn.',
       'Invented trust line: sent as trusted.', 'Lasting rules in this Codex home', 'Invented lasting-rules sentence.'])
       assert.ok(said.includes(words), words);
-    // The trust lines say the project root is shown below, so it is, as the full panel draws it: marked as supplied.
-    const trust = panel.querySelectorAll(n => n.getAttribute('aria-label') === 'Project trust requested and sent to Codex')[0];
-    assert.ok(!!trust && trust.textContent.includes('/invented/project'), 'the root the trust lines refer to is in the panel');
-    assert.ok(trust.querySelectorAll(n => n.getAttribute('role') === 'group').some(box => box.textContent.includes('/invented/project')), 'and it is marked as text the App did not write');
+    assert.ok(!said.includes('/invented/project'), 'supplied values stay in the full panel');
     assert.ok(nodes(panel, 'button').some(b => b.textContent === 'Change permission level'), 'the full panel is one press further');
   });
   // In a new chat there is no conversation to report on: nothing is said of what was sent.
