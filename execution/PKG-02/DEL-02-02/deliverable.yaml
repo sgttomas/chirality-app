@@ -157,6 +157,7 @@ code_paths:
 # stylesheet, which holds v3.0.1's interface rules and then the App's own. Shared with DEL-01-04.
 - app/src/WorkspaceShell.tsx
 - app/src/Navigator.tsx
+- app/src/AccountControls.tsx
 - app/src/workspace.css
 # Development tooling for looking at the views without running the App: a stand-in host that
 # answers from one constructed state. Not in the product build and not evidence for a criterion.

@@ -3141,7 +3141,7 @@ export function App() {
   const startNew: StartSettings = { role, model, blocked: startBlocked, start: startConversation,
     // The empty conversation invites a first message only where one could start: not while Codex is not ready (the
     // line above says so), and not where Codex reports no account.
-    empty: host?.state !== "ready" || host?.generationClosed ? null : signInReading === "no-account" ? "You're not signed in. Sign in with your ChatGPT account, then write your first message here." : undefined,
+    empty: host?.state !== "ready" || host?.generationClosed ? null : signInReading === "no-account" ? "Sign in with your ChatGPT account, then write your first message here." : undefined,
     notice: signedInNotice ? <p role="status" aria-label="Signed in">You're signed in. Choose a model to start a conversation.</p> : undefined,
     rolePanel: <RoleChoice group="start-thread-role" roleSet={host?.roleSet} limits={host?.roleLimits} role={role} preselected={!roleTouched && !!role && role === host?.roleSet?.defaultRole} setRole={next => { expireEndpointPreview(); roleInitialized.current = true; setRoleTouched(true); setRole(next); }}/>,
     modelPanel: <div className="workspace-start-fields">

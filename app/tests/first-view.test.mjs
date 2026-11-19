@@ -438,13 +438,13 @@ test('not signed in, the line stays and the empty conversation says to sign in, 
     const centre = byId(ui.container, 'conversation');
     assert.equal(ui.container.querySelectorAll(e => e.getAttribute('aria-label') === 'Workspace connection status').length, 1);
     assert.match(centre.textContent, /Codex is running\. You're not signed in\./);
-    assert.match(centre.textContent, /You're not signed in\. Sign in with your ChatGPT account, then write your first message here\./);
+    assert.match(centre.textContent, /Sign in with your ChatGPT account, then write your first message here\./);
     assert.doesNotMatch(centre.textContent, /Write your first message below/);
   });
   await mountedApp(failed(), async ui => {
     const centre = byId(ui.container, 'conversation');
     assert.match(centre.textContent, /It didn't say whether you're signed in\./);
-    assert.doesNotMatch(centre.textContent, /You're not signed in/, 'an unanswered read is never taken for signed out');
+    assert.doesNotMatch(centre.textContent, /You're not signed in|Sign in with your ChatGPT account, then write/, 'an unanswered read is never taken for signed out');
     assert.match(centre.textContent, /Write your first message below/);
   });
 });
