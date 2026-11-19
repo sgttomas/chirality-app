@@ -75,3 +75,5 @@ export const availableModels = (args = {}) => ({ state: "observed", generation: 
   serverProvider: "openai", serverProviderState: "named", modeHomeClass: args.modeHomeClass ?? "account" });
 /** The right panel's Workflows tab (WorkspaceShell.tsx RIGHT_PANEL_TABS). */
 export const chooseWorkflowsTab = doc => doc.getElementById("right-tab-workflows");
+/** The right panel's Run tab (WorkspaceShell.tsx RIGHT_PANEL_TABS, id current-run). */
+export const chooseRunTab = doc => doc.getElementById("right-tab-current-run");
