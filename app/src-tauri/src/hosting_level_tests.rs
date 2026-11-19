@@ -1844,7 +1844,7 @@ fn a_trusted_projects_settings_file_that_stops_a_start_reaches_the_status_and_ot
     let at = said["at"].as_str().unwrap().to_owned();
     assert!(crate::after_run_end::instant(&at).is_some(), "dated with when its request was sent: {at}");
     assert_eq!(said["lines"], json!([format!("{}{at}{}", cl::PROJECT_SETTINGS_AT_BEFORE, cl::PROJECT_SETTINGS_AT_AFTER)]));
-    assert_eq!((said["method"].as_str(), said["files"].clone()), (Some("thread/start"), json!([{"path": file.to_string_lossy(), "where": cl::IN_PROJECT_FOLDER}])));
+    assert_eq!((said["method"].as_str(), said["files"].clone()), (Some("thread/start"), json!([{"path": file.to_string_lossy(), "where": cl::IN_PROJECT_FOLDER, "whereWords": cl::IN_PROJECT_FOLDER_WORDS}])));
     assert_eq!(said["codexReason"], json!({"text": parse["message"], "standing": cl::NOT_THE_APPS_TEXT}));
     refused(&host, &wire, "thread/resume", json!({"code": -32600, "message": "failed to load configuration: `invented` is no longer supported; remove it from config.toml"}));
     let row = thread_row(&host, "thread");

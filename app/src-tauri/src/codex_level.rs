@@ -579,6 +579,9 @@ pub const PROJECT_SETTINGS_COMMAND_ERROR: &str = "Codex could not load its setti
 /// Where a listed settings file lies: in the conversation's own folder, or in a repository folder above it.
 pub const IN_PROJECT_FOLDER: &str = "project-folder";
 pub const IN_FOLDER_ABOVE: &str = "repository-folder-above";
+/// The App's words for each, beside it (`whereWords`).
+pub const IN_PROJECT_FOLDER_WORDS: &str = "In this project's folder";
+pub const IN_FOLDER_ABOVE_WORDS: &str = "In a repository folder above this project";
 
 /// The App's account of a refused start, resume or fork that carried a trusted entry when Codex says it could not
 /// load the configuration; None for any other reply. `error` is the reply's `error` member. The App names no file
@@ -592,7 +595,10 @@ pub fn project_settings_refusal(trust: &TrustReading, error: &Value) -> Option<V
     let root = trust.binding.root.clone().unwrap_or_else(|| trust.root.clone());
     let folder = trust.binding.resolved.clone().unwrap_or_else(|| trust.cwd.clone());
     let files: Vec<Value> = project_settings_files(&root, &folder).into_iter()
-        .map(|(path, own)| json!({"path": path.to_string_lossy(), "where": if own { IN_PROJECT_FOLDER } else { IN_FOLDER_ABOVE }})).collect();
+        .map(|(path, own)| {
+            let (place, words) = if own { (IN_PROJECT_FOLDER, IN_PROJECT_FOLDER_WORDS) } else { (IN_FOLDER_ABOVE, IN_FOLDER_ABOVE_WORDS) };
+            json!({"path": path.to_string_lossy(), "where": place, "whereWords": words})
+        }).collect();
     Some(json!({"filesHeading": PROJECT_SETTINGS_FILES, "files": files, "filesStanding": "Folders are supplied text.",
         "codexReasonLabel": PROJECT_SETTINGS_REASON, "codexReason": {"text": message, "standing": NOT_THE_APPS_TEXT}, "remedy": PROJECT_SETTINGS_REMEDY,
         "projectRoot": trust.root.to_string_lossy()}))

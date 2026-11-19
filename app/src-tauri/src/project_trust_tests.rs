@@ -752,6 +752,39 @@ fn a_new_identity_whose_off_line_cannot_be_written_says_the_identity_was_made_an
 }
 
 #[test]
+fn a_new_identity_whose_off_line_cannot_be_written_for_a_project_opened_from_the_environment_says_there_is_no_choice() {
+    let project = folder("trust-new-identity-fails-environment-");
+    records_store::attach(&project, true).unwrap();
+    let trust = ProjectTrust::for_launch(Some(&project), "explicit Root native environment path inputs");
+    let old = ids(&project).1;
+    let (line, not_set_off) = trust.new_identity_off_line(&project).unwrap();
+    assert_eq!(format!("{not_set_off}<reason>"), "The new identity was made, but Chirality could not record its trust as off. Chirality makes no trust choice for this project now, so the Codex settings Chirality uses decide. You can switch trust off in Settings. <reason>");
+    records_store::interrupt_append_after_for_test(2, Some(records_store::AppendStop::BeforeWrite));
+    let refused = records_store::new_identity_with_trust_off(&project, Some((&line, not_set_off))).unwrap_err();
+    records_store::interrupt_append_for_test(None);
+    assert!(refused.starts_with(NEW_IDENTITY_NOT_SET_OFF_ENVIRONMENT) && refused.len() > NEW_IDENTITY_NOT_SET_OFF_ENVIRONMENT.len(), "the agreed text, then the reason: {refused}");
+    assert_ne!(ids(&project).1, old, "the new identity was made");
+    assert!(!switches(&project).exists(), "its off line was not written");
+    assert_eq!(choice(&trust), AppTrust::NoChoice, "so the App makes no choice");
+    std::fs::remove_dir_all(project).unwrap();
+}
+
+#[test]
+fn the_settings_sentence_is_given_where_the_choice_is_on_or_none_and_not_where_the_entry_is_already_untrusted() {
+    let (project, trust) = set_up("trust-settings-sentence-");
+    let said = |trust: &ProjectTrust| (trust.view()["choice"].as_str().map(str::to_owned), trust.view()["settingsCanOverride"].as_str().map(str::to_owned));
+    let sentence = Some(CHOICE_SETTINGS_CAN_OVERRIDE.to_owned());
+    assert_eq!(said(&trust), (Some("on".into()), sentence.clone()));
+    let environment = folder("trust-settings-sentence-environment-");
+    assert_eq!(said(&ProjectTrust::for_launch(Some(&environment), "explicit Root native environment path inputs")), (Some("none".into()), sentence));
+    trust.switch_off_launched().unwrap();
+    assert_eq!(said(&trust), (Some("off".into()), None));
+    append(&project, "{\"damaged\n");
+    assert_eq!(said(&trust), (Some("not-read".into()), None));
+    for p in [project, environment] { std::fs::remove_dir_all(p).unwrap(); }
+}
+
+#[test]
 fn a_folder_that_no_longer_resolves_to_the_folder_admitted_gets_no_choice_applied() {
     let base = folder("trust-repointed-");
     let (first, second) = (base.join("first"), base.join("second"));
@@ -768,6 +801,7 @@ fn a_folder_that_no_longer_resolves_to_the_folder_admitted_gets_no_choice_applie
     assert_eq!(trust.choice_for(&alias), Some(AppTrust::FolderChanged));
     let view = trust.view();
     assert_eq!((view["choice"].as_str(), view["sentence"].as_str(), view["canSwitch"].clone()), (Some("folder-changed"), Some(CHOICE_FOLDER_CHANGED), json!(false)));
+    assert!(view["settingsCanOverride"].is_null(), "its own sentence says the entry is untrusted");
     assert!(trust.preview_on(&alias.to_string_lossy()).is_err());
     let mut reading = cl::TrustReading::not_read(alias.clone(), cl::TRUST_READ_FAILED, None);
     reading.case = cl::TrustCase::Trusted { key: alias.to_string_lossy().into_owned() };

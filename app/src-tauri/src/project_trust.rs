@@ -61,9 +61,9 @@ pub const SWITCH_ON_POINTER: &str = "What trust turns on for this project is sho
 pub const NEW_IDENTITY_TRUST_LINE: &str = "Giving this folder a new identity also sets the project's trust off under it, until you switch it on. If Chirality cannot record that, it says so.";
 /// The new-identity act's error where the identity was made and its off line could not be written, before the
 /// reason: for a project set up in the App (its trust is then on by its setup), and for a project opened from the
-/// environment (it then has no choice; not among the agreed sentences, the earlier text kept).
+/// environment (it then has no choice).
 pub const NEW_IDENTITY_NOT_SET_OFF: &str = "The new identity was made, but Chirality could not record its trust as off, so Chirality's trust is on for this project now. You can switch it off in Settings. ";
-pub const NEW_IDENTITY_NOT_SET_OFF_ENVIRONMENT: &str = "the new identity was made, and its trust could not be set off: ";
+pub const NEW_IDENTITY_NOT_SET_OFF_ENVIRONMENT: &str = "The new identity was made, but Chirality could not record its trust as off. Chirality makes no trust choice for this project now, so the Codex settings Chirality uses decide. You can switch trust off in Settings. ";
 /// The refusal when what the person reviewed changed while the confirmation was open.
 pub const CHANGED_WHILE_OPEN: &str = "The project or its trust changed while the confirmation was open; nothing written; review it again";
 /// The schema word of a switch line, and the reason the new-identity act's off line carries. A line is exactly
@@ -512,7 +512,9 @@ impl ProjectTrust {
             "project": project.folder.to_string_lossy(), "projectStanding": "The folder is supplied text.", "known": project.known.word(),
             "choice": choice.word(), "why": why, "sentence": sentence, "switchedAt": at,
             "detail": detail.map(|text| json!({"text": text, "standing": cl::NOT_THE_APPS_TEXT})),
-            "settingsCanOverride": if on { json!(CHOICE_SETTINGS_CAN_OVERRIDE) } else { Value::Null },
+            // Wherever the settings can still make the entry untrusted: the choice on, or no choice. Off, not read and
+            // folder-changed say in their own sentences that the entry is untrusted.
+            "settingsCanOverride": if on || choice == AppTrust::NoChoice { json!(CHOICE_SETTINGS_CAN_OVERRIDE) } else { Value::Null },
             "passedOver": if read.passed_over { json!(CHOICE_PASSED_OVER) } else { Value::Null },
             "lastSent": self.last_sent.lock().unwrap_or_else(|p| p.into_inner()).clone(),
             "effects": if on { effects_for(&project.folder) } else { Value::Null },

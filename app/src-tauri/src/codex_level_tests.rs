@@ -342,7 +342,7 @@ fn a_trusted_projects_settings_file_that_stops_a_start_is_one_dated_message_with
     project_settings_dated(&mut said, "2026-11-19T06:00:00.000Z");
     assert_eq!(said["lines"], json!([format!("{PROJECT_SETTINGS_AT_BEFORE}2026-11-19T06:00:00.000Z{PROJECT_SETTINGS_AT_AFTER}")]));
     assert_eq!(said["at"], "2026-11-19T06:00:00.000Z");
-    assert_eq!((said["filesHeading"].as_str(), said["files"].clone()), (Some(PROJECT_SETTINGS_FILES), json!([{"path": file.to_string_lossy(), "where": IN_PROJECT_FOLDER}])));
+    assert_eq!((said["filesHeading"].as_str(), said["files"].clone()), (Some(PROJECT_SETTINGS_FILES), json!([{"path": file.to_string_lossy(), "where": IN_PROJECT_FOLDER, "whereWords": IN_PROJECT_FOLDER_WORDS}])));
     assert_eq!((said["codexReasonLabel"].as_str(), said["codexReason"].clone()), (Some(PROJECT_SETTINGS_REASON), json!({"text": parse["message"], "standing": NOT_THE_APPS_TEXT})));
     assert_eq!(said["remedy"], PROJECT_SETTINGS_REMEDY);
     for gone in ["attributed", "fileSentence", "filesAboveProject"] { assert_eq!(said.get(gone), None, "{gone}"); }
@@ -353,8 +353,8 @@ fn a_trusted_projects_settings_file_that_stops_a_start_is_one_dated_message_with
     below.choice = Some(on());
     let unsupported = json!({"code": -32600, "message": "failed to load configuration: `invented_key` is no longer supported; remove it from config.toml"});
     let said = project_settings_refusal(&below, &unsupported).unwrap();
-    assert_eq!(said["files"], json!([{"path": project.join(".codex/config.toml").to_string_lossy(), "where": IN_FOLDER_ABOVE},
-        {"path": cwd.join(".codex/config.toml").to_string_lossy(), "where": IN_PROJECT_FOLDER}]));
+    assert_eq!(said["files"], json!([{"path": project.join(".codex/config.toml").to_string_lossy(), "where": IN_FOLDER_ABOVE, "whereWords": IN_FOLDER_ABOVE_WORDS},
+        {"path": cwd.join(".codex/config.toml").to_string_lossy(), "where": IN_PROJECT_FOLDER, "whereWords": IN_PROJECT_FOLDER_WORDS}]));
     // Not this case: an untrusted entry's refusal, another code, another beginning.
     let mut untrusted = r.clone();
     untrusted.choice = Some(off());
@@ -424,7 +424,7 @@ fn the_settings_files_are_listed_by_name_from_the_bound_root_down_to_the_folder_
     assert_eq!((r.binding.root.clone(), r.binding.resolved.clone()), (Some(root.clone()), Some(cwd.clone())));
     let error = json!({"code": -32600, "message": "failed to load configuration: invented"});
     let (above, own) = (root.join(".codex").join("config.toml"), cwd.join(".codex").join("config.toml"));
-    let listed = json!([{"path": above.to_string_lossy(), "where": IN_FOLDER_ABOVE}, {"path": own.to_string_lossy(), "where": IN_PROJECT_FOLDER}]);
+    let listed = json!([{"path": above.to_string_lossy(), "where": IN_FOLDER_ABOVE, "whereWords": IN_FOLDER_ABOVE_WORDS}, {"path": own.to_string_lossy(), "where": IN_PROJECT_FOLDER, "whereWords": IN_PROJECT_FOLDER_WORDS}]);
     assert_eq!(project_settings_refusal(&r, &error).unwrap()["files"], listed);
     // The folder named through a link: Codex finds the root from the folder as given (the link's own folders hold
     // no .git), so the bound root is that folder as resolved, and its file alone is listed.
@@ -434,7 +434,7 @@ fn the_settings_files_are_listed_by_name_from_the_bound_root_down_to_the_folder_
     linked.case = TrustCase::Unmarked;
     linked.choice = Some(on());
     assert_eq!((linked.binding.root.clone(), linked.binding.resolved.clone()), (Some(cwd.clone()), Some(cwd.clone())));
-    assert_eq!(project_settings_refusal(&linked, &error).unwrap()["files"], json!([{"path": own.to_string_lossy(), "where": IN_PROJECT_FOLDER}]));
+    assert_eq!(project_settings_refusal(&linked, &error).unwrap()["files"], json!([{"path": own.to_string_lossy(), "where": IN_PROJECT_FOLDER, "whereWords": IN_PROJECT_FOLDER_WORDS}]));
     // By name alone: a .codex at the root that is a link elsewhere is listed by its name, and nothing it points to.
     let outside = base.join("outside");
     std::fs::create_dir_all(&outside).unwrap();
@@ -445,5 +445,7 @@ fn the_settings_files_are_listed_by_name_from_the_bound_root_down_to_the_folder_
     // A folder outside the root: the root's file alone.
     assert_eq!(project_settings_files(&root, &outside), vec![(above.clone(), false)]);
     assert_eq!(project_settings_files(&root, &root), vec![(above, true)]);
+    // The App's words beside each place.
+    assert_eq!((IN_PROJECT_FOLDER_WORDS, IN_FOLDER_ABOVE_WORDS), ("In this project's folder", "In a repository folder above this project"));
     std::fs::remove_dir_all(base).unwrap();
 }
