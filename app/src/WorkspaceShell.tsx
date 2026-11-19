@@ -5,6 +5,7 @@ type Json = any;
 /** The right panel's tabs: the App's views other than the conversation, in this order. */
 export const RIGHT_PANEL_TABS = [
   { id: "run", label: "Run a workflow" },
+  { id: "workflows", label: "Workflows" },
   { id: "make", label: "Make a workflow" },
   { id: "history", label: "History" },
   { id: "settings", label: "Settings & tools" },

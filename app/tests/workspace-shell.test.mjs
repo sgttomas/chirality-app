@@ -173,12 +173,12 @@ test('mounted: the status strip speaks only for the conversation chosen in the c
   });
 });
 
-test('mounted: the right panel\'s four tabs show the App\'s other views, all mounted; a reveal selects the tab that holds its target', async () => {
+test('mounted: the right panel\'s five tabs show the App\'s other views, all mounted; a reveal selects the tab that holds its target', async () => {
   await mountApp(baseHost(), async ({c, calls}) => {
-    assert.deepEqual(tabs(c).map(t => t.textContent), ['Run a workflow', 'Make a workflow', 'History', 'Settings & tools']);
+    assert.deepEqual(tabs(c).map(t => t.textContent), ['Run a workflow', 'Workflows', 'Make a workflow', 'History', 'Settings & tools']);
     assert.deepEqual(RIGHT_PANEL_TABS.map(t => t.label), tabs(c).map(t => t.textContent));
     assert.equal(selectedTab(c), 'Run a workflow', 'at launch, with nothing to move for');
-    const views = {'Run a workflow':'view-run', 'Make a workflow':'view-make', 'History':'view-history', 'Settings & tools':'workspace-tools'};
+    const views = {'Run a workflow':'view-run', 'Workflows':'view-library', 'Make a workflow':'view-make', 'History':'view-history', 'Settings & tools':'workspace-tools'};
     for (const tab of tabs(c)) {
       await React.act(async () => props(tab).onClick());
       assert.equal(selectedTab(c), tab.textContent);
