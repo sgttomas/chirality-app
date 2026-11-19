@@ -49,6 +49,7 @@ async function mounted(check,{render=()=>React.createElement(App),initial='api-k
     if(command==='decision_view')return {rows:[]};
     if(command==='native_confirmation_content'||command==='request_answer_companions')return [];
     if(command==='host_observe')return {sourceUnavailable:true,frames:[]};
+    if(command==='navigator_read')return {readAt:'2026-11-19T09:00:00.000Z',projects:[],unassigned:[],conversations:[],registryLimits:[],unplacedRequests:[]};
     if(command==='plugin:event|listen'){assert.equal(args.event,'chirality-native-waiting');assert.deepEqual(args.target,{kind:'AnyLabel',label:'main'});if(listenerFailure)throw Error('Synthetic listener failure');if(listenerWait)await listenerWait.promise;return args.handler;}
     if(command==='plugin:event|unlisten')return;
     if(command==='checkpoint_native_waiting_ui'){
@@ -98,6 +99,8 @@ async function mounted(check,{render=()=>React.createElement(App),initial='api-k
       unmount:async()=>{await React.act(()=>root.unmount());},
     });
     const allowed=['host_status','decision_view','native_confirmation_content','request_answer_companions','host_observe','plugin:event|listen','plugin:event|unlisten','claim_native_waiting_intent','finish_native_waiting_intent','checkpoint_native_waiting_ui','open_waiting_requests',
+      // The navigator's read, which the App makes by itself at mount and on a timer.
+      'navigator_read',
       // The empty new conversation shown with Codex ready: the App's own model-list read (a catalogue read).
       'read_available_models'];
     assert.deepEqual(calls.filter(c=>!allowed.includes(c.command)),[],'no native response, workflow, resume, start or send command');

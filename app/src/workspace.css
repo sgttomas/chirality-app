@@ -3563,7 +3563,30 @@ div.woven-chat-section-heading--folder:hover { background:transparent; }
 .woven-workspace .woven-navigator-session-row:has(> .navigator-entry-title) { flex-wrap:wrap; }
 .woven-workspace .woven-navigator-session-row:has(> .navigator-entry-title) > .woven-navigator-session { flex:1 1 100%; }
 .woven-navigator-session-row > .navigator-entry-title { flex:1 1 100%; min-width:0; padding:0 8px 6px; font-size:11px; color:var(--ink-soft); }
-.woven-navigator-sections > .conversation-choices-attribution { margin:0; padding:0 8px; color:var(--ink-faint); font-size:11px; }
+/* v4: the navigator from the host's read (Navigator.tsx). The App's state words are drawn only in its mark: a small
+   bordered pill in the body face, which a title, plain text on one line, cannot take. A title's line breaks and control
+   characters are tinted marks; "Untitled chat", the App's words, is set in italic. */
+.v4-nav-mark { display:inline-block; padding:0 7px; border:1px solid var(--rule-strong); border-radius:999px; background:var(--surface); color:var(--ink-soft); font:600 10.5px/1.5 var(--font-body); font-style:normal; letter-spacing:.02em; white-space:nowrap; }
+.v4-nav-mark--you { border-color:var(--v4-you-rule); background:var(--v4-you-soft); color:var(--v4-you); }
+.woven-workspace .woven-navigator-session-row:has(> .v4-nav-mark) { flex-wrap:wrap; }
+.woven-workspace .woven-navigator-session-row:has(> .v4-nav-mark) > .woven-navigator-session { flex:1 1 100%; }
+.woven-navigator-session-row > button.v4-nav-mark { margin:0 0 6px 8px; padding:1px 10px; font-size:11.5px; cursor:pointer; }
+.woven-navigator-session-row > button.v4-nav-mark:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
+.v4-nav-title > span { white-space:pre; }
+.v4-nav-title > .v4-nav-title-mark { color:var(--accent); background:var(--accent-soft); border-radius:2px; padding:0 1px; }
+.v4-nav-untitled { font-style:italic; color:var(--ink-faint); }
+.woven-navigator-session-folder.v4-nav-run { display:block; }
+.v4-nav-run .v4-nav-mark { padding:0 6px; font-size:10px; vertical-align:1px; }
+.woven-workspace .woven-navigator-session.v4-nav-unavailable:disabled { opacity:.62; cursor:default; }
+.woven-navigator-session-row + .woven-navigator-session-notice, .woven-chat-section > .woven-navigator-session-notice { padding-left:8px; }
+.woven-chat-section-heading--folder > .v4-nav-heading-end { display:inline-flex; align-items:center; gap:6px; flex:none; }
+.v4-nav-fold { min-width:20px; border:0; border-radius:4px; background:transparent; padding:0 4px; color:var(--ink-faint); font-size:11px; line-height:1.4; cursor:pointer; }
+.v4-nav-fold:hover, .v4-nav-fold:focus-visible { color:var(--ink); outline:2px solid var(--accent); outline-offset:1px; }
+.v4-nav-limits { margin:0 8px 4px; font-size:11px; color:var(--ink-faint); }
+.v4-nav-limits > summary { cursor:pointer; width:fit-content; }
+.v4-nav-limits > p { margin:4px 0 0; overflow-wrap:anywhere; }
+.woven-navigator-sessions > .woven-folder-notice { margin:0 0 4px; }
+.woven-navigator-sessions > .woven-navigator-session-notice, .woven-navigator-sessions > .panel-empty, .woven-navigator-sessions > .panel-error { padding-left:8px; }
 
 /* v4: the conversation in the centre (3.0.1's chat panel). The panel fills the centre; the App's own panels inside it
    (notices, the fold's contents, request cards, the dock, the settings panels) keep the workspace's look. */

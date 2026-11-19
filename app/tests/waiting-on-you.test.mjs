@@ -262,7 +262,7 @@ async function mountApp(check, {host = hostView, fleetPacket = fleet, decisionVi
     Object.assign(globalThis, {setInterval:previous.setInterval, clearInterval:previous.clearInterval}); document.getElementById = previous.getElementById;
   }
 }
-const {App} = loadSrc('App');
+const {App, NAVIGATOR_READ_MS} = loadSrc('App');
 const place = c => c.querySelectorAll(n => n.getAttribute('aria-label') === 'Waiting on you')[0];
 const shownIn = (el, c) => { for (let n = el; n && n !== c; n = n.parentNode) if (props(n)?.hidden) return false; return true; };
 
@@ -298,8 +298,8 @@ test('the decision packages and the returns are read on a timer, the returns als
     assert.match(nodes(place(c), 'summary')[0].textContent, /^Waiting on you: 8 observed now \(5 requests from Codex\); status incomplete$/, 'two requests, the arrival, three in another home and two decisions; returns not read yet, so no definite count');
     const reads = () => calls.filter(call => ['read_fleet_records', 'decision_view'].includes(call.command)).map(call => call.command);
     let before = reads().length;
-    const sourceTimers = [...timers.values()].filter(({ms}) => ms > 1000);
-    assert.equal(sourceTimers.length, 1, 'one timer of its own, apart from the status poll');
+    const sourceTimers = [...timers.values()].filter(({ms}) => ms > 1000 && ms !== NAVIGATOR_READ_MS);
+    assert.equal(sourceTimers.length, 1, 'one timer of its own, apart from the status poll and the navigator\'s read');
     await run(ms => ms > 1000);
     for (let i = 0; i < 8; i++) await React.act(async () => { await Promise.resolve(); });
     assert.deepEqual(reads().slice(before), ['decision_view', 'read_fleet_records'], 'the timer reads the decision packages through the command their panel calls, and the return queue through the timed-read route (hostReads.ts)');

@@ -3,7 +3,12 @@ import assert from 'node:assert/strict';
 // The actual App always mounts its native waiting reader. Existing action
 // fixtures have no pending menu selection: model only that exact read-only
 // transport, keeping their original action dispatcher and assertions intact.
-export function installIdleNativeWaiting(invoke) {
+// The navigator's read (navigator_read) is the other read the App issues by itself at mount and on a timer: a fixture
+// that does not answer it is given a read with nothing in it, unless it passes its own answer (a value, or a function
+// of the call's number) as `navigatorRead`.
+export const EMPTY_NAVIGATOR_READ = {readAt:'2026-11-19T09:00:00.000Z', projects:[], unassigned:[], conversations:[], registryLimits:[], unplacedRequests:[]};
+export function installIdleNativeWaiting(invoke, {navigatorRead = EMPTY_NAVIGATOR_READ} = {}) {
+  let navigatorReads = 0;
   const previous = window.__TAURI_INTERNALS__;
   const previousEvents = window.__TAURI_EVENT_PLUGIN_INTERNALS__;
   const callbacks = new Map(), listeners = new Map(), detached = new Set();
@@ -63,6 +68,10 @@ export function installIdleNativeWaiting(invoke) {
         listeners.delete(args.eventId);
         calls.push({command, args});
         return null;
+      }
+      if (command === 'navigator_read') {
+        navigatorReads += 1;
+        return structuredClone(typeof navigatorRead === 'function' ? await navigatorRead(navigatorReads) : navigatorRead);
       }
       // In particular, finish/open/send/resume/answer are not idle transport.
       // Every other command goes through the fixture's original strict peer.

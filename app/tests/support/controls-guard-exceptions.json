@@ -591,20 +591,11 @@
  {
   "file": "Navigator.tsx",
   "where": "<button>",
-  "expr": "entry.title",
+  "expr": "part.text",
   "component": "EntryRow",
-  "count": 1,
-  "basis": "a validated identifier",
-  "reason": "entry.title is choiceLabels(threadChoices(rows, conversationKey))[i] (Navigator.tsx:32-34), the same words the conversation view's chooser names each conversation by: the App's words with the conversation's identifier, shortened by shortIds only where plainId accepts it as a plain identifier, else its place in the list (AgentText.tsx, choiceLabels and shortIds); no supplied title enters it. The guard does not follow a field of a returned object."
- },
- {
-  "file": "Navigator.tsx",
-  "where": "@aria-label",
-  "expr": "`Needs answer: ${entry.title}`",
-  "component": "EntryRow",
-  "count": 1,
-  "basis": "a validated identifier",
-  "reason": "A literal and entry.title, which is choiceLabels(...)[i] (Navigator.tsx:32-34): the App's words with a plain identifier validated by plainId, or its place in the list. The guard does not follow a field of a returned object."
+  "count": 2,
+  "basis": "the adopted conversation title form",
+  "reason": "part.text is a piece of agentTextParts(titleOf(e)) in EntryRow (Navigator.tsx): the conversation's title as Codex supplies it, drawn as the navigator entry's visible label, the one place supplied text is a control's label, by App Agent 0's decision under the owner's direction of 19 November 2026, recorded in DEL-01-04 REQ-002 and AC-002 (the navigator's entries only). One occurrence draws the title's own characters; the other draws the App's marks for its line breaks, tabs and control, format and direction characters (agentTextParts: ⏎, →, ‹U+XXXX›). The App's state words stand before the title in the button's accessible name (namePrefix, ending \"Title: \") and are drawn only in the App's mark (.v4-nav-mark), never in the title's type. The guard does not know this form."
  },
  {
   "file": "WorkspaceShell.tsx",
