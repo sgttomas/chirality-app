@@ -1585,6 +1585,43 @@ class QuestionInAnOrdinaryConversation(unittest.TestCase):
             self.assertEqual([r for r in client.server_requests if r['thread'] == child], [])
             self.assertIn('can only be used by the root thread', run.stub.outputs.get('call_childask', ''))
 
+    def test_what_a_catalogue_model_is_told_about_the_tool_with_and_without_the_feature(self):
+        """For a model with a catalogue entry the request to the provider carries no `tools`, so what the model is
+        told is read from the whole request. Each start is the other's control."""
+        seen = {}
+        for name, flags in (('with', [QUESTION_FLAG]), ('without', [])):
+            with L.Run(SCRATCH, BINARY) as run:
+                client = run.start(flags=flags)
+                client.question_policy = 'hold'
+                thread = client.start_thread(model=CATALOGUE_MODEL)['thread']['id']
+                bodies = []
+
+                def script(body, outputs, stub, bodies=bodies):
+                    bodies.append(json.dumps(body))
+                    if 'call_told' in outputs:
+                        return [L.message('Asked.', 'msg_told')]
+                    return [{'type': 'function_call', 'name': 'request_user_input', 'call_id': 'call_told',
+                             'id': 'fc_told', 'arguments': json.dumps({'questions': [INVENTED_QUESTION]})}]
+                run.stub.scripts['told'] = script
+                turn = client.result('turn/start', {'threadId': thread, 'input': [
+                    {'type': 'text', 'text': 'LEVEL[told] go'}]})['turn']['id']
+                if name == 'with':
+                    self.assertTrue(client.wait(lambda: questions_raised(client, 'call_told'), 30))
+                    client.answer_question(questions_raised(client, 'call_told')[0], {'q1': ['Yes']})
+                self.assertEqual(self.completed(client, thread, turn), 'completed')
+                seen[name] = (bodies[0], len(questions_raised(client)), run.stub.outputs.get('call_told', ''))
+        told, raised, output = seen['with']
+        self.assertEqual(raised, 1)
+        self.assertEqual(json.loads(output), {'answers': {'q1': {'answers': ['Yes']}}})
+        self.assertIn('This tool is only available in Default or Plan mode', told)
+        # The supplier's own words to this model about asking in an ordinary conversation.
+        self.assertIn('only for optional questions where the answer would materially improve', told)
+        self.assertIn('continue with best judgment instead of asking again', told)
+        told, raised, output = seen['without']
+        self.assertEqual(raised, 0)
+        self.assertIn('unavailable in Default mode', output)
+        self.assertNotIn('This tool is only available in Default or Plan mode', told)
+
 
 CATALOGUE_MODEL = 'gpt-6.1-sol'  # a model whose entry in the pinned Codex's bundled catalogue lists the tool below
 ASYNC_QUESTION = {'title': 'Invented question, asked without waiting?', 'options': ['Invented yes', 'Invented no']}
@@ -1599,17 +1636,21 @@ class QuestionThatDoesNotWait(unittest.TestCase):
             client = run.start()
             thread = client.start_thread(model=CATALOGUE_MODEL)['thread']['id']
 
+            # The call is made whether or not the request lists the tool: for a catalogue model the request to
+            # the provider carries no `tools` (seen below), so the listing cannot be read from it.
             def script(body, outputs, stub):
                 if 'call_nowait' in outputs:
                     return [L.message('Carried on.', 'msg_nowait')]
-                if 'request_user_input_async' not in L.tool_names(body):
-                    stub.not_offered.add('call_nowait')
-                    return [L.message('The tool was not offered.', 'msg_not_offered')]
                 return [{'type': 'function_call', 'name': 'request_user_input_async', 'call_id': 'call_nowait',
                          'id': 'fc_nowait', 'arguments': json.dumps({'questions': [ASYNC_QUESTION]})}]
             run.stub.scripts['nowait'] = script
             turn, done = client.turn(thread, 'LEVEL[nowait] go')
-            self.assertNotIn('call_nowait', run.stub.not_offered, 'inconclusive: the tool was not offered')
+            request = next(r for r in run.stub.requests if r['key'] == 'nowait')
+            output = run.stub.outputs.get('call_nowait')
+            self.assertNotIn('tools', request['body_keys'])
+            if output != '{"accepted":true}':
+                self.fail('inconclusive: the call was answered %r; the request held %r and listed %r'
+                          % (output, request['body_keys'], request['tools']))
             self.assertIn('call_nowait', run.stub.issued)
             self.assertEqual(done['turn']['status'], 'completed')  # with no answer from anyone
             self.assertEqual(json.loads(run.stub.outputs['call_nowait']), {'accepted': True})
@@ -1630,13 +1671,23 @@ class QuestionThatDoesNotWait(unittest.TestCase):
                     if i.get('type') == 'agentMessage' and i.get('questions')]
             self.assertEqual([i['questions'] for i in kept], [[ASYNC_QUESTION]])
 
-    def test_a_model_the_catalogue_does_not_list_it_for_is_not_offered_it(self):
+    def test_on_a_model_the_catalogue_does_not_list_it_for_the_same_call_is_unsupported(self):
+        """The control: the fixture's invented model has no catalogue entry."""
         with L.Run(SCRATCH, BINARY) as run:
             client = run.start()
             thread = client.start_thread()['thread']['id']
-            run.stub.scripts['plainmodel'] = lambda body, outputs, stub: [L.message('Done.', 'msg_plainmodel')]
-            _, done = client.turn(thread, 'LEVEL[plainmodel] go')
+
+            def script(body, outputs, stub):
+                if 'call_plainmodel' in outputs:
+                    return [L.message('Done.', 'msg_plainmodel')]
+                return [{'type': 'function_call', 'name': 'request_user_input_async', 'call_id': 'call_plainmodel',
+                         'id': 'fc_plainmodel', 'arguments': json.dumps({'questions': [ASYNC_QUESTION]})}]
+            run.stub.scripts['plainmodel'] = script
+            turn, done = client.turn(thread, 'LEVEL[plainmodel] go')
             self.assertEqual(done['turn']['status'], 'completed')
+            self.assertIn('call_plainmodel', run.stub.issued)
+            self.assertTrue(run.stub.outputs.get('call_plainmodel', '').startswith('unsupported call'))
+            self.assertEqual([i for i in client.items(thread, turn, 'agentMessage') if i.get('questions')], [])
             tools = next(r['tools'] for r in run.stub.requests if r['key'] == 'plainmodel')
             self.assertIn('request_user_input', tools)
             self.assertNotIn('request_user_input_async', tools)
