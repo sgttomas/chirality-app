@@ -2007,6 +2007,49 @@ fn a_frame_in_a_project_folder_that_now_names_another_folder_is_untrusted_and_sa
     std::fs::remove_dir_all(&base).unwrap();
 }
 
+// ---- Second repair: the revision and the new identity on every route (B) ----
+
+#[test]
+fn a_frame_waiting_at_the_writer_is_not_written_after_an_earlier_decisive_switch_line_was_replaced() {
+    let line = |trust: &str, store: &str, id: &str| format!("{}\n", json!({"format": crate::project_trust::SWITCH_FORMAT, "at": "2026-11-19T05:00:00.000Z", "trust": trust, "storeId": store, "projectId": id}));
+    for replace in [false, true] {
+        let (base, project, _, _) = git_project(&format!("app-trust-revision-held-{replace}"));
+        let attached = crate::records_store::attach(&project, true).unwrap();
+        let (store, id) = (crate::records_store::opened_existing().unwrap().1, attached.project.unwrap());
+        let file = attached.dir.unwrap().join(crate::records_store::TRUST_SWITCHES);
+        std::fs::create_dir_all(file.parent().unwrap()).unwrap();
+        // On here, then an on made in another store (passed over): the frame is built trusted.
+        let passed_over = line("on", "another-store", &id);
+        std::fs::write(&file, format!("{}{passed_over}", line("on", &store, &id))).unwrap();
+        let written = held_frame(&base, &project, true, |_, _| {
+            // The decisive line becomes an off; the count and the last line stay.
+            if replace { std::fs::write(&file, format!("{}{passed_over}", line("off", &store, &id))).unwrap(); }
+        });
+        if replace { assert_eq!(written, None, "a frame built before the replacement is not written"); }
+        else { assert_eq!(written.unwrap().as_object().unwrap().values().next().unwrap(), &json!({"trust_level": "trusted"}), "the control"); }
+        std::fs::remove_dir_all(&base).unwrap();
+    }
+}
+
+#[test]
+fn an_environment_project_switched_on_then_given_a_new_identity_is_sent_untrusted_over_a_trusted_mark() {
+    let (base, project, _, _) = git_project("app-trust-environment-new-identity");
+    crate::records_store::attach(&project, true).unwrap();
+    let (host, trust) = app_project_host(&base, &project, ENVIRONMENT);
+    let token = trust.preview_on_launched().unwrap()["token"].as_str().unwrap().to_owned();
+    trust.confirm_on(&token, |_, _, _| Ok(true)).unwrap();
+    let line = trust.new_identity_off_line(&project).expect("every held project");
+    crate::records_store::new_identity_with_trust_off(&project, Some(&line)).unwrap();
+    let k = key(&project);
+    let wire = Responder::attach(&host, move |_| layers_with(json!({k.clone(): {"trust_level": "trusted"}})));
+    send(&host, "thread/start", json!({"cwd": project})).unwrap();
+    let (_, frame) = wire.next_sent();
+    assert_eq!(frame["params"]["config"]["projects"], json!({key(&project): {"trust_level": "untrusted"}}), "the off wins over the mark");
+    assert_eq!(trust.view()["why"], "new-identity");
+    wire.close(&host);
+    std::fs::remove_dir_all(&base).unwrap();
+}
+
 // ---- Repair after the independent review: the settings-file message (E) ----
 
 const UNSUPPORTED: &str = "failed to load configuration: `invented_key` is no longer supported; remove it from config.toml";

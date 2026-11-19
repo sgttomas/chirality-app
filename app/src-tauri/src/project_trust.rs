@@ -314,7 +314,7 @@ impl ProjectTrust {
             Ok(Some(switches)) => switches,
         };
         let identity = Some((switches.store_id.clone(), switches.project_id.clone()));
-        let revision = revision(json!([switches.store_id, switches.project_id, switches.lines.len(), switches.lines.last()]));
+        let revision = revision(json!([switches.store_id, switches.project_id, switches.lines]));
         let valid = match valid_switches(&switches.lines) {
             Err(detail) => return ChoiceRead { choice: AppTrust::NotRead { detail: Some(detail) }, revision, identity, passed_over: false },
             Ok(valid) => valid,
@@ -419,10 +419,10 @@ impl ProjectTrust {
         Ok(json!({"state": if on {"switched-on"} else {"switched-off"}, "at": line["at"], "takesEffect": TAKES_EFFECT, "running": RUNNING_UNCHANGED, "view": self.view()}))
     }
     /// For the new-identity act on `root`: the off line it writes under the new identity, where the App holds the
-    /// project and its trust would otherwise be on by default (DEL-01-01); None otherwise.
+    /// project, however it was opened (DEL-01-01); None otherwise.
     pub(crate) fn new_identity_off_line(&self, root: &Path) -> Option<impl Fn(&str, &str) -> Value> {
         let physical = std::fs::canonicalize(root).ok()?;
-        let held = self.projects.lock().unwrap_or_else(|p| p.into_inner()).iter().any(|p| p.physical == physical && p.known == Known::SetUpInApp);
+        let held = self.projects.lock().unwrap_or_else(|p| p.into_inner()).iter().any(|p| p.physical == physical);
         held.then_some(|store: &str, project: &str| switch_line(false, store, project, Some(NEW_IDENTITY_REASON)))
     }
 
@@ -467,9 +467,9 @@ impl ProjectTrust {
             "cannotSwitch": refusal.as_ref().map(|_| CANNOT_SWITCH),
             "cannotSwitchDetail": refusal.map(|text| json!({"text": text, "standing": cl::NOT_THE_APPS_TEXT})),
             "takesEffect": TAKES_EFFECT, "running": RUNNING_UNCHANGED,
-            // Beside the records store's "Give this folder a new identity", for a project whose trust is on by its
-            // setup: the act writes one off line under the new identity.
-            "newIdentity": if project.known == Known::SetUpInApp { json!(NEW_IDENTITY_TRUST_LINE) } else { Value::Null },
+            // Beside the records store's "Give this folder a new identity", for every held project: the act writes
+            // one off line under the new identity.
+            "newIdentity": NEW_IDENTITY_TRUST_LINE,
         })
     }
 }

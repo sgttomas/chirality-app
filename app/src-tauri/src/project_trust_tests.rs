@@ -669,11 +669,65 @@ fn the_new_identity_act_writes_off_under_the_new_identity_for_a_project_on_by_se
     // Switched on again by the confirmed act.
     confirmed_on(&trust);
     assert!(matches!(choice(&trust), AppTrust::OnBySwitch { .. }));
-    // An environment-route project has no default on: no line.
+    // An environment-route project the App holds gets the line too (point 5 of the second repair); a folder the
+    // App does not hold gets none.
     let opened = ProjectTrust::for_launch(Some(&project), "explicit Root native environment path inputs");
-    assert!(opened.new_identity_off_line(&project).is_none());
-    assert!(opened.view()["newIdentity"].is_null());
+    assert!(opened.new_identity_off_line(&project).is_some());
+    assert_eq!(opened.view()["newIdentity"], NEW_IDENTITY_TRUST_LINE);
     assert_eq!(trust.view()["newIdentity"], NEW_IDENTITY_TRUST_LINE);
+    let other = folder("trust-new-identity-other-");
+    assert!(trust.new_identity_off_line(&other).is_none());
+    for p in [project, other] { std::fs::remove_dir_all(p).unwrap(); }
+}
+
+// ---- Second repair: the revision, the new identity on every route, its failure (B) ----
+
+#[test]
+fn the_revision_covers_every_line_so_an_earlier_decisive_line_replaced_under_the_same_last_line_and_count_changes_it() {
+    let (project, trust) = set_up("trust-revision-all-");
+    let known = trust.launched().unwrap();
+    let (store, id) = ids(&project);
+    let line = |trust: &str, store: &str, id: &str| format!("{}\n", json!({"format": SWITCH_FORMAT, "at": "2026-11-19T05:00:00.000Z", "trust": trust, "storeId": store, "projectId": id}));
+    let file = switches(&project);
+    std::fs::create_dir_all(file.parent().unwrap()).unwrap();
+    // The last line, an on made in another store, is passed over: the line before it decides.
+    let passed_over = line("on", "another-store", &id);
+    std::fs::write(&file, format!("{}{passed_over}", line("off", &store, &id))).unwrap();
+    let off = ProjectTrust::read_choice(&known, None);
+    assert!(matches!(off.choice, AppTrust::OffBySwitch { .. }) && off.passed_over);
+    // The earlier, decisive line replaced by another valid line; the count and the last line are the same.
+    std::fs::write(&file, format!("{}{passed_over}", line("on", &store, &id))).unwrap();
+    let on = ProjectTrust::read_choice(&known, None);
+    assert!(matches!(on.choice, AppTrust::OnBySwitch { .. }));
+    assert_ne!(on.revision, off.revision, "the revision covers every line");
+    // A confirmation open across the same replacement writes nothing.
+    std::fs::write(&file, format!("{}{passed_over}", line("off", &store, &id))).unwrap();
+    let token = trust.preview_on_launched().unwrap()["token"].as_str().unwrap().to_owned();
+    let refused = trust.confirm_on(&token, |_, _, _| {
+        std::fs::write(&file, format!("{}{passed_over}", line("on", &store, &id))).unwrap();
+        Ok(true)
+    }).unwrap_err();
+    assert_eq!(refused, CHANGED_WHILE_OPEN);
+    assert_eq!(lines(&project).len(), 2, "nothing written");
+    std::fs::remove_dir_all(project).unwrap();
+}
+
+#[test]
+fn a_new_identity_whose_off_line_cannot_be_written_says_the_identity_was_made_and_its_trust_is_on() {
+    let (project, trust) = set_up("trust-new-identity-fails-");
+    let old = ids(&project).1;
+    let line = trust.new_identity_off_line(&project).unwrap();
+    // The act's store line writes complete (the old identity's release, the new one's roots line); the off line,
+    // the next, is stopped before it is put in place.
+    records_store::interrupt_append_after_for_test(2, Some(records_store::AppendStop::BeforeWrite));
+    let refused = records_store::new_identity_with_trust_off(&project, Some(&line)).unwrap_err();
+    records_store::interrupt_append_for_test(None);
+    assert!(refused.starts_with(records_store::TRUST_NOT_SET_OFF), "{refused}");
+    // The identity was made: the folder is attached to a new identity, with no switch line under it.
+    let now = ids(&project).1;
+    assert_ne!(now, old, "the new identity was made");
+    assert!(!switches(&project).exists(), "its off line was not written");
+    assert_eq!(choice(&trust), AppTrust::OnBySetup, "so the App's trust is on by its setup");
     std::fs::remove_dir_all(project).unwrap();
 }
 

@@ -2927,12 +2927,19 @@ pub(crate) fn trust_switch_refusal(root: &Path) -> Option<String> {
 /// control, so a closed or disposed project is refused; a file not read whole, or holding a line the App does not
 /// write, is refused and left as it is; a fragment left by an interrupted append is closed and named first
 /// (`lines`).
+///
+/// Serialised across processes in the store's lock order (as an import takes them): the store lock, so the identity
+/// checked is the one written under, then the project's write admission, then its writer lock, held across the
+/// validation and the append.
 pub(crate) fn append_trust_switch(root: &Path, line: &Value, valid: impl Fn(&[Value]) -> Result<(), String>) -> Result<(), String> {
+    let (store, _) = opened().map_err(|e| format!("records store unavailable: {e}; nothing written"))?;
+    let _store = store_lock(&store)?;
     let (dir, store_id, project_id) = trust_switch_place(root)?.ok_or("the project has no identity in the records store; nothing written")?;
     if line["storeId"] != store_id.as_str() || line["projectId"] != project_id.as_str() {
         return Err("the project's identity in the records store changed; nothing written".into());
     }
     let _admission = crate::records_retention::write_path(&dir)?;
+    let _writers = writer_lock(&dir, false)?;
     valid(&read_trust_file(&dir)?).map_err(|e| format!("{e}; nothing written"))?;
     append_line(&dir.join(TRUST_SWITCHES), line)
 }
@@ -3388,9 +3395,11 @@ pub fn adopt(root: &Path) -> Result<Value, String> {
 pub fn new_identity(root: &Path) -> Result<Value, String> {
     new_identity_with_trust_off(root, None)
 }
-/// [`new_identity`], and, where `trust_off` is given (a project whose trust would otherwise be on by default;
-/// DEL-01-01), one trust switch line it makes for the new store and project identities, written in the new
-/// identity's folder as soon as the identity is registered. The caller holds the App's trust switches across the
+/// The new-identity act's error when the identity was made and its off line could not be written; the reason follows.
+pub(crate) const TRUST_NOT_SET_OFF: &str = "the new identity was made, and its trust could not be set off: ";
+/// [`new_identity`], and, where `trust_off` is given (a project the App holds; DEL-01-01), one trust switch line it
+/// makes for the new store and project identities, written in the new identity's folder as soon as the identity is
+/// registered. The caller holds the App's trust switches across the
 /// act (`ProjectTrust::hold_switches`), so no frame is written on the new identity's default meanwhile.
 pub fn new_identity_with_trust_off(root: &Path, trust_off: Option<&dyn Fn(&str, &str) -> Value>) -> Result<Value, String> {
     let (store, store_id) = created()?;
@@ -3417,11 +3426,15 @@ pub fn new_identity_with_trust_off(root: &Path, trust_off: Option<&dyn Fn(&str, 
     crate::storage::ensure_directory(&canonical.join(".chirality"))?;
     crate::storage::replace_json(&canonical.join(PROJECT_LINK), &link_value(&project, &store_id))?;
     register(&store, &project, &at, "minted")?;
+    // After registration: the store writes the link first and its records after, and its recovery registers a
+    // link's identity it does not know yet, so no earlier point keeps every reader from the new identity until its
+    // off line exists. Either step failing after registration is said as the identity made with its trust not set
+    // off (`TRUST_NOT_SET_OFF`).
     if let Some(line) = trust_off {
         // Attached as any reader attaches it, then the one line, through the project's write admission.
-        attach(&canonical, false)?;
-        append_line(&project_dir(&store, &project).join(TRUST_SWITCHES), &line(&store_id, &project))
-            .map_err(|e| format!("the new identity was made, and its trust could not be set off: {e}"))?;
+        attach(&canonical, false)
+            .and_then(|_| append_line(&project_dir(&store, &project).join(TRUST_SWITCHES), &line(&store_id, &project)))
+            .map_err(|e| format!("{TRUST_NOT_SET_OFF}{e}"))?;
     }
     Ok(json!({"state":"new identity","projectId":project,"root":at,"limit":"records of the identity this folder had stay with that identity","trustOff":trust_off.is_some()}))
 }

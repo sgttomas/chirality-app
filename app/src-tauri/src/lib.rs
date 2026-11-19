@@ -1117,8 +1117,8 @@ fn records_store_identity(state: State<'_, AppState>, action: String) -> Result<
     }
     match action.as_str() {
         "adopt" => records_store::adopt(project),
-        // DEL-01-01: trust is not carried to a new identity. Where the project's trust would otherwise be on by
-        // default, the act writes one off line under the new identity as soon as it is registered; the switches
+        // DEL-01-01: trust is not carried to a new identity. For every project the App holds, the act writes one
+        // off line under the new identity as soon as it is registered; the switches
         // are held across the act, so no switch or frame lands between (`ProjectTrust::hold_switches`).
         "new-identity" => {
             let _switches = state.project_trust.hold_switches();
