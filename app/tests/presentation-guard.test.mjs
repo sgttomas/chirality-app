@@ -1,4 +1,4 @@
-// The presentation boundary on the four covered views (RequestCards, NativeActivity, NativeHistory, RunOffers): the
+// The presentation boundary on the five covered views (RequestCards, NativeActivity, NativeHistory, RunOffers, AskedQuestionCard): the
 // aim is that every value from Codex, an agent or a record reaches the page only through an approved presentation
 // (AgentText, SuppliedId, Word, Num, Flag, or the functions plainId, idWords, wordOf, numberWords, isoSeconds,
 // clockWords), and that a control or heading holds only the App's words. Two kinds of evidence: the guard's verdict on
@@ -19,8 +19,8 @@ import {continuationFixture} from './support/continuation-fixture.mjs';
 const SRC = new URL('../src/', import.meta.url);
 const exceptions = JSON.parse(readFileSync(new URL('./support/presentation-guard-exceptions.json', import.meta.url), 'utf8'));
 
-test('presentation guard: every drawn expression on the four covered views takes an approved form, and each listed exception gives its reason', () => {
-  assert.deepEqual([...GUARDED_VIEWS].sort(), ['NativeActivity.tsx', 'NativeHistory.tsx', 'RequestCards.tsx', 'RunOffers.tsx']);
+test('presentation guard: every drawn expression on the five covered views takes an approved form, and each listed exception gives its reason', () => {
+  assert.deepEqual([...GUARDED_VIEWS].sort(), ['AskedQuestionCard.tsx', 'NativeActivity.tsx', 'NativeHistory.tsx', 'RequestCards.tsx', 'RunOffers.tsx']);
   assert.deepEqual(guardFailures(SRC, exceptions), []);
   assert.deepEqual(wordTableFailures(SRC), [], 'the vocabulary module holds only tables of literal words');
   assert.deepEqual(exceptionShapeFailures(exceptions), [], 'the file opens with the exception rule; each entry names its basis, component, count and evidence');
@@ -278,6 +278,7 @@ const {NativeActivityView, RunStartMarker, RunEndMarker, RunLabel, StopLabel} = 
 const {StoredTurnPage, StoredItemPage, historyPageBinding, ContinuationContext} = loadSrc('NativeHistory');
 const {RunOffer} = loadSrc('RunOffers');
 const {AgentText} = loadSrc('AgentText');
+const {AskedQuestionCard} = loadSrc('AskedQuestionCard');
 const g = {appSession: 's', home: 'h', spawnCounter: 1};
 const descendant = {threadId: 'C', parentThreadId: 'T', parentSource: 'collabAgentToolCall.senderThreadId', statusSource: 'collabAgentToolCall.agentsStates', lastObservedStatus: {status: 'running', message: 'child-status-message'},
   guidance: 'child-guidance', observationEnded: false, nativeThread: {id: 'C', agentRole: 'child-role', agentNickname: 'child-nickname'}};
@@ -364,6 +365,12 @@ const historyHost = () => {
 const continuation = () => ({host: {state: 'ready', generation: g, continuationContexts: [continuationFixture({generation: g, items: historyItems})]},
   thread: {nativeResumeObserved: true, resumeRequestRef: 'req:resume', generation: g, threadId: 'stored'}});
 const noop = async () => {};
+// The agent's question that does not wait: an agent message carrying questions, and the card drawn at it.
+const askedEntry = {threadId: 'T', turnId: 'turn-a', itemId: 'call-a', questions: [{title: 'asked-title', options: ['asked-option-one', 'asked-option-two']}, {title: 'asked-free-title', options: null}]};
+const askedSurface = (name, standing, expect) => ({name, data: {entry: askedEntry, standing, unavailable: null},
+  draw: d => React.createElement(AskedQuestionCard, {entry: d.entry, standing: d.standing, send: async () => ({sent: true}), pending: false, unavailable: d.unavailable}), expect, interact: true});
+const askedItem = {threadId: 'T', turnId: 'turn-a', native: {id: 'call-a', type: 'agentMessage', text: 'asked-message-text', delivery: 'async', questions: askedEntry.questions},
+  displayState: 'completed', standing: 'live-observed', observationEnded: false, observedOrder: 1};
 
 const SURFACES = [
   requestSurface('command card', COMMAND, requestView([commandRow]), ['cmd-text', '/cmd-folder', 'cmd-reason', 'cmd-kind', 'rule-word', 'net-host', 'amend-word', 'future-decision']),
@@ -397,6 +404,12 @@ const SURFACES = [
     'Workflow finished: project:finished-flow', 'project:proposed-flow', 'compat-statement', 'compat-finding', 'role-in-force', 'declared-role', 'requirement-name', 'requirement-purpose', 'requirement-reason',
     'requirement-fallback', 'basis-surface', 'basis-pin', 'basis-catalog', 'basis-environment', 'evaluated-at-time', 'inventory-kind', 'inventory-source', 'publication-limit', 'r14-words', '/offer-library',
     'End pump-skid and start load-check', 'project:unknown-flow', 'resolution-notice-words']},
+  askedSurface('asked question, waiting', 'waiting', ['asked-title', 'asked-option-one', 'asked-option-two', 'asked-free-title']),
+  askedSurface('asked question, not read', 'not-read', ['asked-title', 'asked-option-one', 'asked-free-title']),
+  askedSurface('asked question, followed', 'followed', ['asked-title', 'asked-option-two', 'A message from you follows this question.']),
+  askedSurface('asked question, superseded', 'superseded', ['asked-title', 'asked-option-one', 'a later question']),
+  {name: 'asked question in activity', data: {view: {generation: g, home: 'h', items: [askedItem], descendants: [], askedQuestions: {read: ['T'], waiting: [{threadId: 'T', turnId: 'turn-a', itemId: 'call-a', questions: askedEntry.questions}]}}},
+    draw: d => React.createElement(NativeActivityView, {view: d.view, threadId: 'T'}), expect: ['asked-message-text', 'asked-title', 'asked-option-one', 'asked-free-title'], interact: true},
   {name: 'run offer, plain start', data: {offer: {message: {threadId: 'T', turnId: 'turn-1', itemId: 'm'}, finished: null,
     proposal: {proposed: 'project:Unsafe Flow', resolution: {workflow: {...offerWorkflow, name: 'Unsafe Flow', origin: 'bundled', revision: 'not-hex'}, standing: 'registered — selectable in this App session', notice: null},
       runInForce: null, compatibility: {occasionLabel: 'occasion-label', limit: 'compat-limit', advisory: true}, context: {}}}},

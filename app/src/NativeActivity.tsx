@@ -1,6 +1,7 @@
 import { Component, useEffect, useImperativeHandle, useRef, useState, type ReactNode, type Ref } from "react";
 import { AgentText, type AgentTextSource, plainId, SuppliedId, Word, Num, Flag, wordOf, numberWords } from "./AgentText";
 import { RunOffer, type RunAct } from "./RunOffers";
+import { AskedQuestionMount } from "./AskedQuestionCard";
 import { AGENT_STATUS, AGENT_TOOL, CHANGE_KIND, CHILD_STATUS, COMMAND_SOURCE, ITEM_KIND, ITEM_STATUS, MESSAGE_PHASE, REASONING_EFFORT, STEP_STATUS, SUBAGENT_ACTIVITY, TURN_STATUS } from "./nativeWords";
 type Json = any;
 
@@ -263,7 +264,7 @@ function ItemBody({ row, plans, runStart = false }: { row: Json; plans: Json[]; 
       return <div><b>User message</b> (text Codex recorded as input; not an act)<Unfinished row={row} /><UserMessage content={n.content} fold={runStart} /></div>;
     case "agentMessage":
       return <div><b>Agent</b>{n.phase ? <> · <Word value={n.phase} words={MESSAGE_PHASE} /></> : ""}<Unfinished row={row} />
-        <AgentText block value={streamed(row) ?? text(n.text)} /></div>;
+        <AgentText block value={streamed(row) ?? text(n.text)} /><AskedQuestionMount row={row} /></div>;
     case "reasoning": {
       const summary: Json[] = Array.isArray(row.summaryPreview) && row.displayState !== "completed" ? row.summaryPreview : list(n.summary);
       return <details><summary>Reasoning summary{row.displayState === "completed" ? "" : " (not finished; its state is shown inside)"}</summary><Unfinished row={row} />{summary.length === 0 ? <i> (none supplied{row.displayState === "completed" ? "" : " so far"})</i> : <AgentText block value={summary.map(text).join("\n\n")} />}</details>;

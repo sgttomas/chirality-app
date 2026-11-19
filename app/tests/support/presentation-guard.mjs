@@ -635,7 +635,7 @@ export function findings(name, text, mode = 'page') {
 }
 
 /** The views on which every supplied value takes an approved presentation. */
-export const GUARDED_VIEWS = new Set(['RequestCards.tsx', 'NativeActivity.tsx', 'NativeHistory.tsx', 'RunOffers.tsx']);
+export const GUARDED_VIEWS = new Set(['RequestCards.tsx', 'NativeActivity.tsx', 'NativeHistory.tsx', 'RunOffers.tsx', 'AskedQuestionCard.tsx']);
 
 /** One view's failures, given its source: each finding neither App-made nor listed, each forbidden write (never
  * listable), each listed exception whose count of matching findings differs from its count, and the listed keys it

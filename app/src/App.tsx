@@ -30,6 +30,7 @@ import { RecoveryCustodyPanel } from "./RecoveryCustodyPanel";
 import { CompareResult, initialDraftsState, LastCleanTrialLine, WorkflowDraftsView, type DraftsState } from "./WorkflowDrafts";
 import { LibraryEntries } from "./LibraryEntries";
 import { WorkflowRegistrationReview } from "./WorkflowRegistrationReview";
+import { AskedQuestionContext, type AskedSendResult, type AskedUnavailable } from "./AskedQuestionCard";
 import { BringBackComposer, CleanTrialPanel, DelegatedTrialComposer, composersFor, conversationKey, findConversation, hostMessage, prefillKept } from "./TrialComposer";
 import { preparedMessages, preparedMessageLimit, type PreparedMessage } from "./preparedMessages";
 import { ConversationContext, ProjectLibraryContext, appProjectFolder, conversationFromKey, workflowSourceLimit } from "./WorkflowContext";
@@ -250,6 +251,42 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
     catch (error) { setOrdinaryOutcome({ ...outcome, observationLimit: observationText(error) }); }
     finally { turnActionPending.current = false; setBusy(""); }
   };
+  // The answer to the agent's question that does not wait: the person's ordinary
+  // next message in the conversation the card belongs to, sent through the same
+  // send command as Send text, under the same rules: one pending operation, the
+  // conversation shown and current, no unconfirmed earlier send to it. The text
+  // is the card's, composed from the person's answers; no model, effort or mode
+  // choice of the message box goes with it. A failure is held as Send text's is.
+  const askedUnavailable: AskedUnavailable | null = !sourceReady ? "not-connected" : busy ? "busy" : selected && heldSend(selected.threadId) ? "unconfirmed" : null;
+  const sendAsked = async (threadId: string, answer: string): Promise<AskedSendResult> => {
+    if (!sourceReady) return { sent: false, unavailable: "not-connected" };
+    if (busy || turnActionPending.current) return { sent: false, unavailable: "busy" };
+    if (!selected || selected.threadId !== threadId || !ordinaryView.current.ready) return { sent: false, unavailable: "other-conversation" };
+    if (heldSend(threadId)) return { sent: false, unavailable: "unconfirmed" };
+    if (!answer) return { sent: false, unavailable: "nothing-to-send" };
+    const request: OrdinaryTextRequest = { generation: { ...selected.generation }, threadId, text: answer };
+    const view = ordinaryView.current;
+    const isCurrent = () => ordinaryView.current.owner === view.owner && ordinaryView.current.epoch === view.epoch && ordinaryView.current.ready;
+    turnActionPending.current = true;
+    setBusy("sending your answers"); setError(""); setOrdinaryOutcome(null);
+    let outcome: OrdinaryTextOutcome, result: AskedSendResult;
+    try {
+      const nativeValue = await send(request.generation, request.threadId, request.text);
+      if (nativeValue === undefined || nativeValue === null) throw new Error("The host did not report this send's outcome; it may or may not have been sent.");
+      outcome = { request, result: { acknowledged: true, nativeValue } };
+      result = { sent: true };
+    } catch (nativeError) {
+      outcome = { request, result: { acknowledged: false, nativeError } };
+      const reported = nativeError instanceof Error ? nativeError.message : String(nativeError);
+      setUnconfirmed(rows => [...rows, { id: ++unconfirmedSequence.current, request: structuredClone(request), reported, acknowledged: false }]);
+      result = { sent: false, reported };
+    }
+    setOrdinaryOutcome(outcome);
+    try { await observeOrdinaryView?.(request, isCurrent); }
+    catch (error) { setOrdinaryOutcome({ ...outcome, observationLimit: observationText(error) }); }
+    finally { turnActionPending.current = false; setBusy(""); }
+    return result;
+  };
   const steerText = async () => {
     if (!sourceReady || !selected || !steeringTarget || !text || busy || turnActionPending.current) return;
     const view = ordinaryView.current, revision = textRevision.current;
@@ -460,10 +497,12 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
         : item.kind === "delegated" ? <DelegatedTrialComposer pending={item.pending} conversations={currentThreads} busy={!!busy} ready={host?.state === "ready" && host?.generationClosed !== true} act={trialAct} />
         : <BringBackComposer pending={item.pending} conversations={currentThreads} busy={!!busy} ready={host?.state === "ready" && host?.generationClosed !== true} act={trialAct} />}
     </div>)}
+    <AskedQuestionContext.Provider value={{ view: host?.nativeView, send: sendAsked, pending: !!busy, unavailable: askedUnavailable }}>
     <NativeActivityView navigationRef={activityNavigationRef} key={`activity:${JSON.stringify([selected?.generation, selected?.threadId])}`} view={host?.nativeView} threadId={selected?.threadId} runs={runs} offers={offers}
       trialTurns={workflowRoot?.trialTurns} trialChildren={workflowRoot?.trialChildren} delegation={selected?.delegation}
       stopLabelFor={(thread, turn) => stopLabel(host?.codexStops, thread, turn, host?.stopRequests, appHome(host?.homeRouting?.activeModeHomeClass))}
       offerControls={{ generation: host?.generation, ready: host?.state === "ready", busy: offerBusy, act: offerAct }} />
+    </AskedQuestionContext.Provider>
     {selected && <div id="conversation-requests" aria-label="Requests from Codex in this conversation">
       <h3>Requests from Codex in this conversation ({numberWords(requests.filter(answerable).length)} waiting)</h3>
       {ordered.length === 0 && <p>No requests from Codex in this conversation.</p>}
