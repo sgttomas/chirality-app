@@ -140,6 +140,15 @@ code_paths:
 # and asserts what its sandbox and approval settings do at the pin.
 - app/supplier_checks/level/**
 checks:
+# Project trust (REQ-012): the choice, its file, the acts and the words; the case table and the settings-file
+# notice through start, resume and fork (the trust cases of hosting_level_tests.rs); the case table, the mark
+# reading and the notice's attribution (codex_level_tests.rs); setup's review and confirmation of a project it
+# names (desktop_setup_confirmation.rs and desktop_startup.rs, each holding its tests).
+- app/src-tauri/src/project_trust_tests.rs
+- app/src-tauri/src/hosting_level_tests.rs
+- app/src-tauri/src/codex_level_tests.rs
+- app/src-tauri/src/desktop_setup_confirmation.rs
+- app/src-tauri/src/desktop_startup.rs
 - app/supplier_checks/level/test_level_stub.py
 # Live: runs where the pinned binary is present (the full suite's product job); skipped otherwise.
 - app/supplier_checks/level/test_level_live.py
