@@ -33,21 +33,26 @@ credentials from an existing home.
    If setup fails or is cancelled, your entered choices stay available. Read
    the message, correct the cause and review again explicitly.
 
-**Project trust.** A project you choose here is sent to Codex as trusted, so
-that Codex loads the project's own instructions (`AGENTS.md`) and its own Codex
-settings (the `.codex` folder in the project). The review states in full what
-that turns on, and the native confirmation carries the same text or names it:
-MCP servers that the project's settings name are started on this Mac when a
-conversation starts, outside the sandbox; the project's shell environment
-applies to every command the agent runs, and a start-up file of the project's
-own runs inside each command, under the same access level as that command; the
-project's rules can let commands run outside the sandbox without asking you;
-and if Codex cannot load the project's settings file, no new conversation
-starts in the project until the file is fixed or trust is switched off. Read a
-project's `AGENTS.md` and `.codex` folder before you set up a project you did
-not write. Trust can be switched off for a project, and on again with a
-confirmation; a change applies from the next conversation you start, continue
-or fork. The release limitations give the limits (LIM-037).
+**Project trust.** Setting a project up here switches Chirality's trust on for
+it. Chirality then marks the project as trusted when it starts, continues or
+forks a conversation in it, unless your own Codex settings mark the project
+untrusted or cannot be read, and Codex loads the project's own instructions
+(its `AGENTS.md` files) and its own Codex settings and rules (in the project's
+`.codex` folder). The review states in full what that turns on, and the native
+confirmation carries the same text or names it. With them, the project's own
+files can: start MCP server programs on this Mac when a conversation starts,
+outside the sandbox, and have Codex connect to MCP servers at addresses they
+name; set the shell environment of every command the agent runs, and through it
+have a start-up file of the project's own run inside each command, under the
+same access level as that command; let commands run outside the sandbox without
+asking you, through the project's rules, which Chirality cannot switch off
+while the project is trusted; and stop new conversations from starting in the
+project, where Codex cannot load the project's settings file, until the file is
+fixed or trust is switched off. Read a project's `AGENTS.md` files and `.codex`
+folder before you set up a project you did not write. You can switch trust off
+for a project in Chirality while the project is open, and on again with a
+confirmation; a change applies to conversations you start, continue or fork
+after it. The release limitations give the limits (LIM-038).
 
 **Setup details and source status** contains the current launch, resource and
 supplier details. Problems that prevent setup remain visible above the form.
