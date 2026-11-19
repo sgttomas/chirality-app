@@ -155,7 +155,8 @@ export type PickRunOutcome =
   | { state: "nothing" }
   /** Stopped after the workflow was chosen, to show what it needs before anything is sent; Start run goes on from step 5. */
   | { state: "review"; opened?: string }
-  | { state: "stopped"; words: string; opened?: string };
+  /** `startUnknown`: the conversation's start was not confirmed, so one may exist; the composer starts no other until the person says. */
+  | { state: "stopped"; words: string; opened?: string; startUnknown?: boolean };
 
 /** The step words shown while the press runs. */
 export const PICK_STEPS = { start: "Starting the conversation…", choose: "Choosing the workflow…", prepare: "Preparing the run…", send: "Starting the run…" } as const;
@@ -198,7 +199,7 @@ export async function runPickedWorkflow(run: PickRun): Promise<PickRunOutcome> {
     if ("failed" in outcome) return stop(`Couldn't start the conversation: ${reasonWords(outcome.failed)}. ${NOTHING_SENT}`);
     let key: Json = null;
     if ("opened" in outcome) { try { key = JSON.parse(outcome.opened); } catch { key = null; } }
-    if (!Array.isArray(key) || typeof key[1] !== "string") return stop("The App couldn't confirm the conversation started; it may exist. The workflow wasn't sent.");
+    if (!Array.isArray(key) || typeof key[1] !== "string") return { state: "stopped", words: "The App couldn't confirm the conversation started; it may exist. The workflow wasn't sent.", startUnknown: true };
     opened = (outcome as { opened: string }).opened;
     thread = key[1];
     // Step 2: the new conversation's row, which the selection's context names.

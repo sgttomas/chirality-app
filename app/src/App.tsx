@@ -381,8 +381,16 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
   // confirmed in the generation it was issued for, and only while that source and home are still current, the view
   // shows no conversation or the one the start opened, and the text is still the pressed draft. Otherwise nothing is
   // sent and the text is kept.
+  // A start whose outcome is unknown may have made a conversation. Until the person chooses a conversation, says
+  // to start another, or the Codex process changes, the new chat starts nothing more: a second press must not
+  // quietly make a second conversation.
+  const [startDoubt, setStartDoubt] = useState<string | null>(null);
+  const holdStart = (generation: Json) => setStartDoubt(generation ? JSON.stringify(generation) : null);
+  const startHeld = !selected && threadKey === "" && !!startDoubt && !!host?.generation && startDoubt === JSON.stringify(host.generation);
+  const chosenThread = selected?.threadId ?? "";
+  useEffect(() => { if (chosenThread) setStartDoubt(null); }, [chosenThread]);
   const startAndSend = async () => {
-    if (selected || threadKey !== "" || !startNew || !text || busy || turnActionPending.current || !sourceReady || startNew.blocked) return;
+    if (selected || threadKey !== "" || !startNew || !text || busy || turnActionPending.current || !sourceReady || startNew.blocked || startHeld) return;
     if (!pressCurrent() || threadKeyNow.current !== "") {
       setError("Not started: that Send belonged to an earlier view, text or choice of settings for the new conversation. Check them and press Send again."); return;
     }
@@ -398,12 +406,12 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
       const outcome = await startNew.start();
       if (!outcome) return;
       if ("failed" in outcome) { setStartOutcome({ kind: "failed", message: outcome.failed }); return; }
-      if ("notConfirmed" in outcome) { setStartOutcome({ kind: "not-confirmed", message: outcome.reason }); return; }
+      if ("notConfirmed" in outcome) { holdStart(press.generation); setStartOutcome({ kind: "not-confirmed", message: outcome.reason }); return; }
       let opened: [Json, string];
-      try { opened = JSON.parse(outcome.opened); } catch { setStartOutcome({ kind: "not-confirmed" }); return; }
+      try { opened = JSON.parse(outcome.opened); } catch { holdStart(press.generation); setStartOutcome({ kind: "not-confirmed" }); return; }
       const [generation, threadId] = Array.isArray(opened) ? opened : [null, ""];
       // The native start binds the generation it was dispatched with and returns that same one: another is no success.
-      if (!sameActivityGeneration(generation, press.generation) || typeof threadId !== "string" || !threadId) { setStartOutcome({ kind: "not-confirmed" }); return; }
+      if (!sameActivityGeneration(generation, press.generation) || typeof threadId !== "string" || !threadId) { holdStart(press.generation); setStartOutcome({ kind: "not-confirmed" }); return; }
       const shown = threadKeyNow.current;
       if (!sourceCurrent() || (shown !== "" && shown !== outcome.opened) || textRevision.current !== press.revision) { setStartOutcome({ kind: "view-changed" }); return; }
       const owner = ordinaryConversationRef(generation, threadId);
@@ -600,7 +608,7 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
     : pickStop ? pickStop
     : projectMissing ? <>A run needs a project folder. <a href="#desktop-setup">Choose one in Desktop setup</a>; it applies the next time you open the App.</>
     : !selected && !newChat ? "The conversation chosen is not available now. Choose a conversation or press New chat. Your draft stays here."
-    : !selected ? (startNew?.blocked ? `${startNew.blocked}${text ? " Your draft stays here." : ""}` : !text ? "Say what the workflow should work on." : "Ready to start a new conversation and run the workflow.")
+    : !selected ? (startNew?.blocked ? `${startNew.blocked}${text ? " Your draft stays here." : ""}` : startHeld ? "A conversation may already have started. Choose it on the left, or say to start another. Your draft stays here." : !text ? "Say what the workflow should work on." : "Ready to start a new conversation and run the workflow.")
     : heldHereNow ? "An earlier message to this conversation wasn't confirmed and may have been sent. Read the conversation, then confirm below before sending again. Your text is kept."
     : pickRuns?.inProgress ? "A workflow run is still open in this conversation. End it under Run a workflow before starting another."
     : pickHeld ? (pickRuns?.latest ? "Read the conversation: the last start's outcome is unknown and it may have run."
@@ -608,10 +616,10 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
     : !text ? "Say what the workflow should work on."
     : "Ready to start the run in this conversation.";
   const pickReady = !!pick && sourceReady && !busy && pickCurrent && !pickStop && !projectMissing && !!text
-    && (selected ? !heldHereNow && !pickRuns?.inProgress && !pickHeld : newChat && !!startNew && !startNew.blocked);
+    && (selected ? !heldHereNow && !pickRuns?.inProgress && !pickHeld : newChat && !!startNew && !startNew.blocked && !startHeld);
   const startPickedRun = async () => {
     if (!pick || !pickReady || turnActionPending.current) return;
-    const picked = pick, draft = text, revision = textRevision.current, owner = selected ? threadKey : "";
+    const picked = pick, draft = text, revision = textRevision.current, owner = selected ? threadKey : "", pressedIn = host?.generation;
     turnActionPending.current = true;
     setError(""); setStartOutcome(null); setPickOutcome(null);
     let outcome: PickRunOutcome;
@@ -626,11 +634,12 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
       if (textRevision.current === revision) setText(current => current === draft ? "" : current);
       clearPick?.(picked);
     } else if (outcome.state === "review") setPickOutcome({ owner: outcome.opened ?? owner, kind: "status", words: "Read what it needs, then press Start run. Nothing has been sent." });
-    else if (outcome.state === "stopped") setPickOutcome({ owner: outcome.opened ?? owner, kind: "alert", words: outcome.words });
+    else if (outcome.state === "stopped") { if (outcome.startUnknown) holdStart(pressedIn); setPickOutcome({ owner: outcome.opened ?? owner, kind: "alert", words: outcome.words }); }
   };
   const sendReadiness = !sourceReady ? "Connect to Codex before sending. Your draft stays here."
     : newChat && startNew ? (busy ? "An operation is pending. New messages are paused until its result is received."
       : startNew.blocked ? `${startNew.blocked}${text ? " Your draft stays here." : ""}`
+      : startHeld ? "A conversation may already have started. Choose it on the left, or say to start another. Your draft stays here."
       : !text ? "Write a message to start a new conversation."
       : "Ready to start a new conversation and send it your text.")
     : !selected && threadKey ? "The conversation chosen is not available now. Choose a conversation or press New chat. Your draft stays here."
@@ -651,7 +660,7 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
   const attachmentsSelected = (host?.attachmentSelections?.selections ?? []).length > 0;
   const running = liveTurns.length > 0;
   const heldHere = !!selected && unconfirmed.some(row => !row.acknowledged && row.request.threadId === selected.threadId);
-  const sendDisabled = pick ? !pickReady : !sourceReady || !text || !!busy || (selected ? heldHere : !newChat || !startNew || !!startNew.blocked);
+  const sendDisabled = pick ? !pickReady : !sourceReady || !text || !!busy || (selected ? heldHere : !newChat || !startNew || !!startNew.blocked || startHeld);
   const updateDisabled = !sourceReady || !selected || !steeringTarget?.turnId || !text || !!busy;
   const stopDisabled = !sourceReady || !stopTarget || !!ownBusy || requestedFor(stopTarget);
   const submit = () => { if (pick) void startPickedRun(); else if (selected) void sendText(sendMode); else if (newChat) void startAndSend(); };
@@ -840,6 +849,7 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
         {ordinaryOutcome.observationLimit && <p role="alert">{observationLine(ordinaryOutcome.observationLimit, "Ordinary text view refresh unavailable for this original request: ")} The command outcome above is unchanged; no automatic resend.</p>}
         <details><summary>Original message destination and choices</summary><p>Original ordinary text turn · conversation {ordinaryOutcome.request.threadId} · Home {ordinaryOutcome.request.generation.home} · App session {ordinaryOutcome.request.generation.appSession} · spawn {ordinaryOutcome.request.generation.spawnCounter} · {ordinaryOutcome.request.mode ?? "no mode override"} · requested model {ordinaryOutcome.request.model ?? "no override"} · requested effort {ordinaryOutcome.request.effort ?? "no override"}.</p></details>
       </div>}
+      {startHeld && <p role="note" aria-label="Starting is paused">Starting is paused so a second conversation isn't made by mistake. Choose it on the left if it is there, or <button type="button" className="button-muted" disabled={!!busy} onClick={() => setStartDoubt(null)}>Start another conversation</button></p>}
       {startOutcome && <p role="alert">{startOutcome.kind === "failed"
         ? <>The conversation was not started: <AgentText value={startOutcome.message} source="codex" label="Reported:" name={START_REASON_NAME} /> Your draft stays here; nothing was sent.</>
         : startOutcome.kind === "view-changed" ? "The conversation started, but the view changed before your message was sent. Nothing was sent; your draft stays here."

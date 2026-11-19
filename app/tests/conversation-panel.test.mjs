@@ -6,7 +6,7 @@ import {installIdleNativeWaiting} from './support/idle-native-waiting.mjs';
 import {continuationFixture} from './support/continuation-fixture.mjs';
 import {choiceList, choiceLists, chooseIn, chooser, chosenIn} from './support/choices.mjs';
 
-import { conversationView, chatInput, inView, newChatButton, openSetting, sendButton, settingButton, startModelField, startWithFirstMessage } from './support/conversation-view.mjs';
+import { conversationView, chatInput, inView, newChatButton, openSetting, sendButton, settingButton, startAnotherAfterPause, startModelField, startPause, startWithFirstMessage } from './support/conversation-view.mjs';
 // The conversation section is mounted with react-dom/client on a minimal
 // in-memory document, so the test sees what React actually leaves mounted
 // when the person moves between conversations (native witness 2026-10-10 D-1:
@@ -141,6 +141,16 @@ async function ordinaryStartCase({initialThread = false, startGeneration = g, ou
       assert.equal(props(chatInput(container)).value, draft, 'the unsent message is kept');
       assert.deepEqual([props(await startModelField(container, React.act)).value, routeChosen(container)],
         ['chosen-model', true],'a refused, unknown or incomplete attempt keeps its explicit chooser for retry');
+      // A definite refusal started nothing, so a retry is offered at once. After any other outcome a conversation may
+      // exist: another start waits until the person says to start another, and a press meanwhile starts nothing.
+      if (outcome === 'refused') assert.ok(!startPause(container), 'a definite refusal pauses nothing');
+      else {
+        assert.ok(!!startPause(container), 'an unconfirmed start pauses another');
+        assert.equal(props(sendButton(container)).disabled, true, 'no second start until the person says so');
+        assert.ok(await startAnotherAfterPause(container, React.act));
+        assert.ok(!startPause(container), 'the pause ends when the person says so');
+        assert.equal(calls.filter(call => call.command === 'thread_start').length, 1, 'saying so starts nothing by itself');
+      }
       assert.equal(props(sendButton(container)).disabled, false, 'an explicit retry is offered');
       const said = container.querySelectorAll(node => node.getAttribute('role') === 'alert' && /conversation (was not started|started)/.test(node.textContent))[0]?.textContent ?? '';
       // A definite refusal says nothing started, with the host's reason boxed beside the App's words; anything else
@@ -260,7 +270,10 @@ test('refused, unknown and incomplete ordinary starts retain a usable choice for
   for(const outcome of ['refused','unknown','missing-id','missing-generation','partial-generation','extra-generation-field','empty-generation-home','zero-generation','fractional-generation','error-envelope']) {
     await withStartChooser(async ui=>{
       await ui.edit(selectedChoice);await ui.press('Start thread');
-      assert.deepEqual((await ui.values()),selectedChoice,outcome);assert.equal(props(ui.start()).disabled,false,outcome);
+      assert.deepEqual((await ui.values()),selectedChoice,outcome);
+      // Every one of these leaves the start's effect unknown to the App, so another start waits for the person's word.
+      assert.ok(!!startPause(ui.container),`${outcome}: another start is paused`);assert.equal(props(ui.start()).disabled,true,outcome);
+      assert.ok(await startAnotherAfterPause(ui.container,React.act));assert.equal(props(ui.start()).disabled,false,outcome);
       assert.equal(ui.calls.filter(c=>c.command==='thread_start').length,1,'no automatic retry');
       await ui.press('Start thread');assert.deepEqual((await ui.values()),blankChoice,`${outcome}: explicit retry can succeed`);
       assert.equal(ui.calls.filter(c=>c.command==='thread_start').length,2);

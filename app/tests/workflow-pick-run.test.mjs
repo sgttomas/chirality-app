@@ -251,6 +251,20 @@ test('a failure at each step keeps the text, says what happened, issues nothing 
     assert.deepEqual(ui.names(), ['thread_start']);
     assert.match(ui.alert(), /The App couldn't confirm the conversation started; it may exist\. The workflow wasn't sent\./);
     assert.equal(props(chatInput(ui.c)).value, TEXT);
+    // One may exist, so another start waits for the person: Start run is not offered, the pause is said, and the
+    // rejected case above is held the same way.
+    const paused = () => labelled(ui.c, 'Starting is paused');
+    assert.ok(!!paused(), 'the pause is said');
+    assert.ok(props(ui.send()).disabled === true, 'Start run is not offered while the start is in doubt');
+    assert.match(ui.composer().textContent, /A conversation may already have started\. Choose it on the left, or say to start another\./);
+    await React.act(async () => { await props(ui.send()).onClick({preventDefault() {}}); });
+    assert.deepEqual(ui.names(), ['thread_start'], 'a press while paused starts nothing');
+    // The person says to start another: the pause ends, and only then does a press start one.
+    await React.act(async () => props(buttonIn(paused(), 'Start another conversation')).onClick());
+    assert.ok(!paused(), 'the pause is gone once the person says so');
+    assert.ok(props(ui.send()).disabled !== true, 'Start run is offered again');
+    assert.equal(props(chatInput(ui.c)).value, TEXT);
+    assert.ok(labelled(ui.c, 'Workflow for this message'), 'the pick is kept');
   });
   // Step 3 refused: the conversation exists and is shown; the next press chooses again, in it.
   const host = standIn({fail: {select: 'Native history context is busy; refresh the workflow choice'}});

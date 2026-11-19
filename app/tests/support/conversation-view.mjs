@@ -45,6 +45,15 @@ export async function startWithFirstMessage(container, act, { text = 'First mess
   await act(async () => { reactProps(send).onClick(); });
   return true;
 }
+/** The note shown while another start waits for the person, after a start the App could not confirm. */
+export const startPause = container => container.querySelectorAll(node => node.getAttribute?.('aria-label') === 'Starting is paused')[0];
+/** The person says to start another conversation after an unconfirmed start; false when no pause is shown. */
+export async function startAnotherAfterPause(container, act) {
+  const say = startPause(container)?.querySelectorAll(node => node.localName === 'button' && node.textContent === 'Start another conversation')[0];
+  if (!say) return false;
+  await act(async () => { reactProps(say).onClick(); });
+  return true;
+}
 /** The settings line under the composer ("Chat context"). */
 export const settingsLine = container => container.querySelectorAll(node => node.getAttribute?.('aria-label') === 'Chat context')[0];
 /** A settings-line button by the start of its accessible name: "Role", "Mode", "Access level", "Model", "Reasoning effort". */
