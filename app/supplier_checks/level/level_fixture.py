@@ -8,8 +8,8 @@ behaving so.
 - `ScriptedStub`: a loopback Responses provider (standard library, 127.0.0.1 only, forwards
   nothing). It scripts the model's tool calls from markers in the request's last user message, so
   the turns are keyed on content, never on request order. It keeps in memory, for the test only,
-  the tool names offered and the output Codex returned for each scripted call. It writes nothing
-  to disk and never logs a body or a header value.
+  the tool names offered and the output Codex returned for each scripted call, and counts every
+  connection it accepts. It writes nothing to disk and never logs a body or a header value.
 - `Run`: one fresh root (home, user home, project, outside, tmpdir, and where asked a second project) under a scratch folder, removed
   afterwards; with `working_files`, the home and TMPDIR are laid out as the App lays them out. Codex is started with an environment built here and nothing inherited: PATH, HOME,
   TZ, CODEX_HOME, TMPDIR, LANG and the examination launcher's proxy overrides. The App's
@@ -239,6 +239,8 @@ class ScriptedStub:
         self.outputs = {}   # call id -> output text; in memory only
         self.net_probes = 0
         self.not_offered = set()  # call ids a command script could not call: no shell tool offered
+        self.connections = 0  # every connection accepted, whatever it carried (counted before it is read)
+        self.contacts = []  # (method, path) of every HTTP request read, in order; in memory only
         self.issued = set()  # call ids the stub put into a response as a call
         self.allowed_commands = None  # set by Run: the only commands a shell call may carry
         self.violations = []  # shell calls a script tried to issue with a command off that list
@@ -263,6 +265,8 @@ class ScriptedStub:
 
             def do_GET(self):
                 path = self.path.split('?')[0]
+                with stub.lock:
+                    stub.contacts.append(('GET', path))
                 if path.endswith('/responses') and self.headers.get('Upgrade'):
                     self.plain(426)  # Codex 0.167.0 falls back to HTTP for the session at once
                 elif path == '/level-net-probe':
@@ -276,6 +280,8 @@ class ScriptedStub:
 
             def do_POST(self):
                 path = self.path.split('?')[0]
+                with stub.lock:
+                    stub.contacts.append(('POST', path))
                 if not path.endswith('/responses'):
                     with stub.lock:
                         stub.unexpected.append(('POST', path))
@@ -309,6 +315,11 @@ class ScriptedStub:
             def server_bind(self):
                 socketserver.TCPServer.server_bind(self)
                 self.server_name, self.server_port = '127.0.0.1', self.server_address[1]
+
+            def process_request(self, request, client_address):
+                with stub.lock:  # counted whatever the connection carries, even what is not HTTP/1.1
+                    stub.connections += 1
+                ThreadingHTTPServer.process_request(self, request, client_address)
 
         self.server = Server(('127.0.0.1', 0), Handler)
         self.port = self.server.server_address[1]
@@ -649,6 +660,27 @@ RUN_FOLDERS = ('home', 'userhome', 'outside', 'tmpdir', 'Invented App Data', 'In
 # The relative write's exit when the folder it finds itself in is neither project: nothing is written.
 RELATIVE_ELSEWHERE = 97
 
+# ---------- a project's own files (the trusted-project rows) ----------
+# The only files a test may write into the project, relative to it.
+TRUST_FILES = ('.codex/config.toml', '.codex/hooks.json', '.codex/rules/invented.rules')
+# The only files a test may write into the Codex home (the person's own settings), for a positive control.
+HOME_FILES = ('config.toml', 'rules/default.rules')
+# Hook events that fire in an ordinary turn with one command, each with a marker of its own.
+HOOK_MARKERS = {'SessionStart': 'hook-session-start', 'UserPromptSubmit': 'hook-user-prompt',
+                'PreToolUse': 'hook-pre-tool', 'PostToolUse': 'hook-post-tool', 'Stop': 'hook-stop'}
+# Every marker a program named by a project's file may write; each is one file under the run's `outside` folder.
+PROJECT_MARKERS = tuple(HOOK_MARKERS.values()) + ('mcp-stdio', 'notify', 'zdotdir', 'bash-env')
+OTHER_PROVIDER = 'level_invented_other'
+OTHER_MODEL = 'level-invented-other-model'
+MCP_STDIO = 'level_invented_stdio'
+MCP_HTTP = 'level_invented_http'
+TRUST_ENV = 'LEVEL_TRUST_ENV'
+# The keys the public source at rust-v0.169.0 strips from a project's own settings (PROJECT_LOCAL_CONFIG_DENYLIST in
+# codex-rs/config/src/loader/mod.rs), as read there; the rows observe it, they do not rely on it.
+PROJECT_DENYLIST_READ = ('openai_base_url', 'chatgpt_base_url', 'apps_mcp_product_sku', 'responses_api_metadata',
+                         'model_provider', 'model_providers', 'notify', 'profile', 'profiles',
+                         'experimental_realtime_webrtc_call_base_url', 'experimental_realtime_ws_base_url', 'otel')
+
 
 class Run:
     """A fresh root and one stub. Use as a context manager; the root is removed on exit.
@@ -657,12 +689,20 @@ class Run:
     root, with the same care: its name checked, 0700, and with `second_git_marker` a `.git` folder inside it. The
     app server is still started in A. `instructions` writes an invented `AGENTS.md` into each of A and B, each
     with its own marker line (`markers`); `project_settings` writes an invented `.codex/config.toml` into each,
-    naming a writable root of its own under `outside` (`settings_roots`)."""
+    naming a writable root of its own under `outside` (`settings_roots`).
+
+    With `trusted_project`, the project A can be given its own files (`write_trust_file`, one of `TRUST_FILES`),
+    whose contents the fixture's builders make (`hooks_json`, `mcp_toml`, ...). Every program those files name is
+    the fixture's marker command (`marker_command`): absolute system binaries only, appending one line to its own
+    marker file under `outside`, and nothing else. A second loopback listener (`other`, a second stub) is made and
+    closed with the run, for the files that name a destination; it counts every connection it accepts."""
 
     def __init__(self, scratch, binary, slash_tmp=False, git_marker=False, project_name='project',
                  working_files=False, var_tmp=False, proxy=None, second_project=None, second_git_marker=False,
-                 instructions=False, project_settings=False):
+                 instructions=False, project_settings=False, trusted_project=False):
         self.binary = binary
+        self.trusted_project = trusted_project
+        self.other = None  # with `trusted_project`: the second loopback listener
         self.proxy = proxy  # a RecordingRefusal in place of the closed port, or None for the closed port
         if '/' in project_name or project_name in ('', '.', '..'):
             raise Refused('a project folder name, not a path')
@@ -683,6 +723,9 @@ class Run:
         tag = secrets.token_hex(4)  # distinct per run, so a marker seen cannot be left from another run
         self.markers = {'a': 'INVENTED-INSTRUCTION-MARKER-A-' + tag,
                         'b': 'INVENTED-INSTRUCTION-MARKER-B-' + tag} if instructions else {}
+        # With `trusted_project`: the line the project's own settings give as instructions, and the App's own.
+        self.trust_markers = {'project': 'INVENTED-PROJECT-SETTINGS-MARKER-' + tag,
+                              'app': 'INVENTED-APP-INSTRUCTIONS-MARKER-' + tag} if trusted_project else {}
         self.name = 'level-' + secrets.token_hex(6)
         self.root = checked_scratch(scratch) / self.name
         self.slash_tmp = SLASH_TMP / ('chirality-level-' + self.name) if slash_tmp else None
@@ -742,6 +785,10 @@ class Run:
                 self.made_var_tmp = True
             self.stub = ScriptedStub()
             self.stub.allowed_commands = set(self.commands().values())  # enforced before any call reaches Codex
+            if self.trusted_project:
+                self.write_shell_files()
+                self.other = ScriptedStub()
+                self.other.allowed_commands = self.stub.allowed_commands
         except BaseException:
             self.__exit__()
             raise
@@ -755,6 +802,8 @@ class Run:
             steps.append(self.nothing_remains)
         if self.stub is not None:
             steps.append(self.stub.close)
+        if self.other is not None:
+            steps.append(self.other.close)
         if self.made_slash_tmp:  # only the folder this run made, never one it found
             steps.append(lambda: shutil.rmtree(self.slash_tmp))
         if self.made_var_tmp:  # likewise
@@ -864,6 +913,9 @@ class Run:
             out['in-b'] = self.project_b / 'w-in-b'
         for side, root in self.settings_roots().items():
             out['root-' + side] = root / ('w-root-' + side)
+        if self.trusted_project:  # written by `/usr/bin/touch`, not by a redirection (see `commands`)
+            out['touch-out'] = self.root / 'outside' / 'w-touch-out'
+            out['touch-in'] = self.project / 'w-touch-in'
         return out
 
     def commands(self):
@@ -885,7 +937,150 @@ class Run:
                 RELATIVE_NAME, RELATIVE_ELSEWHERE)
         if self.working_files:
             cmds.update({key: command for key, (command, _) in self.entry_operations().items()})
+        if self.trusted_project:
+            # A program a rule can name, with no redirection: a project's exec-policy rule matches its first word.
+            for key in ('touch-out', 'touch-in'):
+                cmds[key] = '/usr/bin/touch %s' % shlex.quote(str(p[key]))
+            # What a command sees of the variable a project's shell environment policy may set; exits 0 either way.
+            cmds['env'] = 'printf %%s "${%s-unset}"' % TRUST_ENV
         return cmds
+
+    def touch_refusals(self):
+        """With `trusted_project`: the exact line the sandbox's refusal of each `touch` command prints."""
+        if not self.trusted_project:
+            return {}
+        return {key: Lines({'touch: %s: Operation not permitted' % self.paths()[key]})
+                for key in ('touch-out', 'touch-in')}
+
+    # ----- a project's own files (`trusted_project`) -----
+
+    def needs_trusted_project(self):
+        if not self.trusted_project:
+            raise Refused('the project files and their markers need Run(trusted_project=True)')
+
+    def marker(self, name):
+        """The marker file of one of `PROJECT_MARKERS`, under the run's `outside` folder."""
+        self.needs_trusted_project()
+        if name not in PROJECT_MARKERS:
+            raise Refused('a marker off the fixed list: %r' % name)
+        return self.root / 'outside' / ('m-' + name)
+
+    def marker_command(self, name):
+        """The only command a project's file names: appends one line to its marker file, and exits."""
+        return "/usr/bin/printf 'ok\\n' >> %s" % shlex.quote(str(self.marker(name)))
+
+    def marker_argv(self, name):
+        """`marker_command` as a program and its arguments, for the settings that take a list."""
+        return ['/bin/sh', '-c', self.marker_command(name)]
+
+    def marker_runs(self, name):
+        """How many times the marker command of `name` ran: its marker file's lines (0 when it is absent)."""
+        path = self.marker(name)
+        return path.read_text().count('ok\n') if path.exists() else 0
+
+    def clear_markers(self):
+        for name in PROJECT_MARKERS:
+            path = self.marker(name)
+            if path.exists():
+                path.unlink()
+
+    def shell_files(self):
+        """The two start-up files a shell environment policy can point a command's shell at, under `outside`."""
+        self.needs_trusted_project()
+        return {'zdotdir': self.root / 'outside' / 'zdotdir', 'bash-env': self.root / 'outside' / 'bash-env.sh'}
+
+    def write_shell_files(self):
+        files = self.shell_files()
+        os.mkdir(files['zdotdir'], 0o700)
+        (files['zdotdir'] / '.zshenv').write_text(self.marker_command('zdotdir') + '\n')
+        files['bash-env'].write_text(self.marker_command('bash-env') + '\n')
+
+    def write_trust_file(self, relative, text):
+        """Write one of `TRUST_FILES` into the project A, replacing what was there."""
+        self.needs_trusted_project()
+        if relative not in TRUST_FILES:
+            raise Refused('a project file off the fixed list: %r' % relative)
+        target = self.project / relative
+        target.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        target.write_text(text)
+        return target
+
+    def write_home_file(self, relative, text):
+        """Write one of `HOME_FILES` into the Codex home (the person's own settings), for a positive control."""
+        self.needs_trusted_project()
+        if relative not in HOME_FILES:
+            raise Refused('a home file off the fixed list: %r' % relative)
+        target = self.home / relative
+        target.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        target.write_text(text)
+        return target
+
+    def other_origin(self):
+        return 'http://127.0.0.1:%d' % self.other.port
+
+    # Each builder returns settings as top-level dotted keys and inline tables only, so any of them can be joined.
+
+    def hooks_json(self):
+        """`.codex/hooks.json`: one command hook for each of `HOOK_MARKERS`' events, with no matcher."""
+        self.needs_trusted_project()
+        return json.dumps({'hooks': {event: [{'hooks': [{'type': 'command', 'command': self.marker_command(name),
+                                                          'timeout': 5}]}]
+                                     for event, name in HOOK_MARKERS.items()}}, indent=2) + '\n'
+
+    def hook_state_toml(self, states):
+        """The person's (or, as a test asks, a project's) approval of hooks: `hooks.state.<key>.trusted_hash` for
+        each (key, hash) Codex itself reported in `hooks/list`."""
+        self.needs_trusted_project()
+        return ''.join('hooks.state.%s = { trusted_hash = %s }\n' % (toml_string(k), toml_string(h)) for k, h in states)
+
+    def mcp_toml(self):
+        """Two MCP servers: one started as the marker command, one at the second listener's loopback address."""
+        argv = self.marker_argv('mcp-stdio')
+        return ('mcp_servers.%s = { command = %s, args = [%s], startup_timeout_sec = 5 }\n'
+                'mcp_servers.%s = { url = %s, startup_timeout_sec = 5 }\n'
+                % (MCP_STDIO, toml_string(argv[0]), ', '.join(toml_string(a) for a in argv[1:]),
+                   MCP_HTTP, toml_string(self.other_origin() + '/mcp')))
+
+    def notify_toml(self):
+        return 'notify = [%s]\n' % ', '.join(toml_string(a) for a in self.marker_argv('notify'))
+
+    def policy_toml(self):
+        """The widest approval, sandbox, network and review routing a project's own settings can name."""
+        self.needs_trusted_project()
+        return ('approval_policy = "never"\nsandbox_mode = "danger-full-access"\napprovals_reviewer = "auto_review"\n'
+                'sandbox_workspace_write.network_access = true\n')
+
+    def provider_toml(self):
+        """Another provider and model, at the second listener's loopback address, and the built-in provider's base
+        address moved there too."""
+        base = toml_string(self.other.base_url)
+        return ('model_provider = %s\nmodel = %s\nopenai_base_url = %s\n'
+                'model_providers.%s = { name = "Invented other provider", base_url = %s, wire_api = "responses" }\n'
+                % (toml_string(OTHER_PROVIDER), toml_string(OTHER_MODEL), base, OTHER_PROVIDER, base))
+
+    def developer_toml(self):
+        self.needs_trusted_project()
+        return 'developer_instructions = %s\n' % toml_string(self.trust_markers['project'])
+
+    def shell_env_toml(self):
+        """A variable of the fixture's own, and the two start-up files a command's shell would read."""
+        files = self.shell_files()
+        return ('shell_environment_policy.set = { %s = %s, ZDOTDIR = %s, BASH_ENV = %s }\n'
+                % (TRUST_ENV, toml_string(self.trust_markers['project']), toml_string(files['zdotdir']),
+                   toml_string(files['bash-env'])))
+
+    def permissions_toml(self):
+        self.needs_trusted_project()
+        return 'default_permissions = ":danger-full-access"\n'
+
+    def thread_store_toml(self):
+        return 'experimental_thread_store_endpoint = %s\n' % toml_string(self.other_origin())
+
+    def rules_text(self):
+        """An exec-policy rule allowing the fixture's `touch`, by its path and by its name."""
+        self.needs_trusted_project()
+        return ('prefix_rule(pattern = ["/usr/bin/touch"], decision = "allow")\n'
+                'prefix_rule(pattern = ["touch"], decision = "allow")\n')
 
     def entry_operations(self):
         """With `working_files`: commands that change the directory entry naming Codex's temporary folder, or an
