@@ -48,7 +48,7 @@ import { REFRESH_FAILED, commandThenRefresh, observationLine, observationText, r
 import { FirstUseSetup } from "./FirstUse";
 import { AccountStatus, DIDNT_SAY, accountReadError, accountReadRef, accountReading, reportedPlan, signInCompletion, type ReadAccountStatus } from "./AccountStatus";
 import { RunWorkflowGuide, registeredRevisionAnchor, runEvidenceAnchor } from "./RunJourney";
-import { PermissionLevel, PermissionLevelActions, PermissionLevelAsk, PermissionLevelSummary, levelInForce, levelOwner } from "./PermissionLevel";
+import { LevelChoiceShare, PermissionLevel, PermissionLevelActions, PermissionLevelAsk, PermissionLevelSummary, levelInForce, levelOwner } from "./PermissionLevel";
 import { MakeWorkflowGuide } from "./MakeJourney";
 import { acknowledgeBringBackDoubt, beginBringBack, bringBackRefusal, doubtDestination, endBringBack, noteBringBackDoubt, resetBringBackDoubts, sendKey, useBringBackDoubts, type BringBackDoubt } from "./bringBackDoubts";
 import { AccessRouteChoice, AvailableModels, ENTRY_SOURCE_WORDS, MODEL_ID_PAUSE_MS, OfferedEffortChoice, SHOWN_ROUTE, entrySourceReading, modelMatch, onlyAccessEntry, validModelPacket } from "./ModelChoice";
@@ -582,7 +582,9 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
   // navigator's rule, Navigator.tsx navigatorProjects); otherwise the folder Codex reports, as its text.
   const rowFolder: string | null = typeof selected?.cwd === "string" && selected.cwd ? selected.cwd : null;
   const inAppFolder = folder !== null && rowFolder !== null && samePath(folder, rowFolder);
-  const level = levelInForce(host, selected?.threadId);
+  // A conversation chosen whose row is missing is not an empty selection: nothing of the default is shown as its level.
+  const levelMissing = !selected && threadKey !== "";
+  const level = levelInForce(host, selected?.threadId, levelMissing);
   // The settings line's panels: one open at a time; Escape or a press outside closes it.
   const [contextOpen, setContextOpen] = useState<"role" | "mode" | "level" | "model" | "effort" | null>(null);
   const [attachOpen, setAttachOpen] = useState(false);
@@ -627,7 +629,7 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
   const tools = <section id="conversation-tools-content" className="v4-conversation-tools" aria-label="Conversation tools">
     <ConversationChoices legend="Current-generation conversation" group="current-conversation" disabled={!!ownBusy} chosen={threadKey} none="No conversation chosen"
       value={threadChoices(currentThreads, (thread: Json) => JSON.stringify([thread.generation, thread.threadId]))} onChoose={chooseConversation} />
-    <div id="conversation-level"><PermissionLevel host={host} threadId={selected?.threadId}/></div>
+    <div id="conversation-level"><PermissionLevel host={host} threadId={selected?.threadId} missing={levelMissing}/></div>
     {selected && <details className="conversation-identity"><summary>Exact conversation ID</summary><code>{selected.threadId}</code></details>}
     {selected && <details className="conversation-options"><summary>Role and continuation options</summary><RoleHeader key={`role-header:${JSON.stringify([selected.generation, selected.threadId])}`} thread={selected} limits={host?.roleLimits} busy={!!busy || forkBusy} ready={host?.state === "ready"} trialConversation={trialConversation} trialsStartedHere={trialsStartedHere}
       readSupplyHistory={() => invoke("role_supply_history", { generation: selected.generation, thread: selected.threadId })}
@@ -685,7 +687,7 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
     <details><summary>Observed native turns, steering and interrupt request state</summary><RecordedData value={{ turns: host?.conversationTurns, steeringTargets: host?.steeringTargets, steeringRequests: (host?.clientRequests ?? []).filter((request: Json) => request.method === "turn/steer"), interrupts: host?.turnInterruptRequests, protocolEvidence: host?.modelTurnEvidence }} /></details>
   </section>;
 
-  return <div className="woven-primary-dialogue" data-primary-dialogue-mounted="true">
+  return <LevelChoiceShare><div className="woven-primary-dialogue" data-primary-dialogue-mounted="true">
   <aside id="conversation" className="panel panel--chat chat-panel--woven" aria-label="Conversation">
     <div className="chat-conversation-stage">
       <div className="panel-body chat-transcript" ref={transcriptNode} onScroll={readTranscriptEnd}>
@@ -778,7 +780,7 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
       {!ownBusy && codexBusy && <p>Stop or Restart Codex is in progress: sending text, steering and attachments is paused; interrupting a live turn stays available.</p>}
       {error && <p role="alert">{error} No automatic retry.</p>}
       {/* Where the App asks the person to choose a level, the ask is in view here, its default preselected. */}
-      <PermissionLevelAsk host={host} threadId={selected?.threadId}/>
+      <PermissionLevelAsk host={host} threadId={selected?.threadId} missing={levelMissing}/>
     </div>
     <form className="chat-input-row" onSubmit={event => { event.preventDefault(); submit(); }}>
       <div className="chat-composer-line">
@@ -829,7 +831,7 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
       <span className="v4-level chat-mode-selector">
         <button type="button" aria-expanded={contextOpen === "level"} aria-label={`Access level: ${level.name}. Opens what it allows.`} onClick={() => toggleContext("level")}>{level.ask ? `${level.name} — choose to continue` : level.name}</button>
         <div className={`v4-level-pop${contextOpen === "level" ? " open" : ""}`} role="dialog" aria-label="Access level" hidden={contextOpen !== "level"}><div className="daily-workspace v4-in-chat">
-          <PermissionLevelSummary host={host} threadId={selected?.threadId} change={() => openTools("conversation-level")} />
+          <PermissionLevelSummary host={host} threadId={selected?.threadId} missing={levelMissing} change={() => openTools("conversation-level")} />
         </div></div>
       </span>
       <span aria-hidden="true">·</span>
@@ -860,7 +862,7 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
     </div>
   </aside>
   {toolsHost && createPortal(tools, toolsHost)}
-  </div>;
+  </div></LevelChoiceShare>;
 }
 
 type ContinueNavigation = { isCurrent: () => boolean; observe: () => Promise<Json> };
@@ -3285,7 +3287,7 @@ export function App() {
       <p aria-label="New conversation choice">{!model.trim() || !modelProvider.trim() ? "not started — no model selected" : entryCompatible ? `New conversation choice: ${model} via ${modelProvider} (${entryId})` : "Choose how this conversation connects."}</p>
       <a href="#workspace-connection">Set up access or start Codex</a>
     </div> };
-  return (<UnsentWork.Provider value={reportUnsent}><PermissionLevelActions.Provider value={{ host, change: changePermissionLevel, unavailable: homePending, stale: shownBeforePress(hostReads), readFailed: !!hostReads.failure }}>
+  return (<UnsentWork.Provider value={reportUnsent}><PermissionLevelActions.Provider value={{ host, change: changePermissionLevel, unavailable: homePending, stale: shownBeforePress(hostReads), readFailed: !!hostReads.failure }}><LevelChoiceShare>
       <main className={`shell${workspaceShown ? " shell--workspace" : ""} shell--stone`} onClick={event => {
         // "Start a new conversation" links lead to the empty conversation (New chat); every other known target is revealed.
         const link = (event.target as HTMLElement | null)?.closest?.("a[href='#workspace-start']");
@@ -3456,5 +3458,5 @@ export function App() {
           </WorkspaceDisclosure>
         </section>
         </div>}/>}
-      </main></PermissionLevelActions.Provider></UnsentWork.Provider>);
+      </main></LevelChoiceShare></PermissionLevelActions.Provider></UnsentWork.Provider>);
 }

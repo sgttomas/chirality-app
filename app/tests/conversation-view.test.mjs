@@ -314,10 +314,13 @@ test('the settings line shows the folder, role, mode, access level, model and ef
     const said = panel.textContent;
     for (const words of ['Commands cannot write within the sandbox.', 'Network access is off within the sandbox.', 'Codex asks before a command it does not know to be safe.',
       'Invented origin sentence.', 'Invented sentence: reading is not limited at any level.', 'Invented sentence: what allowing a command means.',
-      'Last level sent: Supervised. Written to Codex. Codex\'s report agrees with the level in force.', 'Invented sentence: a change takes effect from the next turn.',
+      'Last level sent: Supervised. Written to Codex.', 'Codex\'s report agrees with the level in force.', 'Invented sentence: a change takes effect from the next turn.',
       'Invented trust line: sent as trusted.', 'Lasting rules in this Codex home', 'Invented lasting-rules sentence.'])
       assert.ok(said.includes(words), words);
-    assert.ok(!said.includes('/invented/project'), 'supplied values stay in the full panel');
+    // The project root the trust lines refer to is in the same panel, marked as text the App did not write.
+    assert.ok(said.includes('/invented/project'), 'the project root of the trust lines is shown with them');
+    // The lasting rules are in view in the panel, behind no further disclosure.
+    assert.ok(nodes(panel, 'details').length === 0, 'nothing in the one-press panel needs a further press');
     assert.ok(nodes(panel, 'button').some(b => b.textContent === 'Change permission level'), 'the full panel is one press further');
   });
   // In a new chat there is no conversation to report on: nothing is said of what was sent.
