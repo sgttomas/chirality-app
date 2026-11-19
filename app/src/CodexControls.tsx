@@ -1,3 +1,6 @@
+import { AgentText, SuppliedId, Word } from "./AgentText";
+import { TURN_STATUS } from "./nativeWords";
+
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 // Start, Stop and Restart Codex (DEL-01-04 §5.2; DEL-01-02 C-12, DEF-5a).
@@ -102,5 +105,134 @@ export function CodexProcessControls({ host, busy, act }: { host: Json; busy: bo
     <p>Stopping Codex is your operational choice, not a recorded act. {text(stops?.records)}</p>
     {latest && <StopOutcome outcome={latest} />}
     <StopRequests requests={host?.stopRequests} />
+  </div>;
+}
+
+// Stop requests where the person reads the conversation (DEL-01-02 REQ-005,
+// AC-006). The stop-request view supplies each row, including the host's
+// assessment of whether its source App session ended. A view says no more than
+// a record establishes:
+// - a stop request is associated only in the home bound to the History source
+//   it is shown with; where that home is not known, nothing is associated;
+// - a turn's end is said only as Codex reported it in the record; the App's
+//   label is shown as the App's label, with its reading, and is never read as
+//   a cause, an order of events or a Codex status;
+// - a request with consistent state and write fields and no reported final
+//   keeps its usual reading when the write is unconfirmed;
+// - an interrupt request answers no Codex request, and an absent record is not
+//   evidence that nothing was interrupted.
+
+/** The App's stop labels (stop_records.rs label), as the App's words. */
+const STOP_LABELS: Record<string, string> = {
+  "interrupted by the person": "interrupted by the person",
+  "completed (stop requested)": "completed (stop requested)",
+  "failed (stop requested)": "failed (stop requested)",
+  "outcome unknown (stop requested)": "outcome unknown (stop requested)",
+  "interrupted by quit": "interrupted by quit",
+  "completed (quit requested)": "completed (quit requested)",
+  "failed (quit requested)": "failed (quit requested)",
+  "interrupted by quit (final status not observed)": "interrupted by quit (final status not observed)",
+  "interrupted by Stop Codex": "interrupted by Stop Codex",
+  "completed (Stop Codex requested)": "completed (Stop Codex requested)",
+  "failed (Stop Codex requested)": "failed (Stop Codex requested)",
+  "interrupted by Stop Codex (final status not observed)": "interrupted by Stop Codex (final status not observed)",
+};
+const RECORDED = { label: "The stop's label, as recorded; the App does not vouch for its words", reading: "The stop request's reading, as recorded; the App does not vouch for its words",
+  persistence: "Where the stop is recorded, as recorded; the App does not vouch for its words", requested: "Requested time as recorded" } as const;
+const TURN_ID = "Turn identity as Codex reported it, not the App's words";
+
+/** A final turn status as Codex reported it in a stop record, or null. */
+export const reportedFinal = (value: unknown): "completed" | "interrupted" | "failed" | null =>
+  value === "completed" || value === "interrupted" || value === "failed" ? value : null;
+
+/** The App-owned home of an ACCESS home class for the stored views (the host's
+ *  stop_records::home_class). The live view keeps appHome above. */
+const storedHome = (cls: unknown): string | undefined => (cls === "account" ? "H-acct" : cls === "api-key" ? "H-key" : cls === "local-provider" ? "H-omlx" : undefined);
+
+const sameGeneration = (a: Json, b: Json) => !!a && !!b && typeof a.appSession === "string" && a.appSession === b.appSession
+  && typeof a.home === "string" && a.home === b.home && Number.isSafeInteger(a.spawnCounter) && a.spawnCounter === b.spawnCounter;
+
+/** The App-owned home (H-acct, H-key, H-omlx) of one Codex generation: the
+ *  home routing entry holding exactly that generation. Undefined unless
+ *  exactly one entry does: an unknown home is never a wildcard. */
+export function homeOfGeneration(host: Json, generation: Json): string | undefined {
+  const holding = list(host?.homeRouting?.entries).filter((entry: Json) => sameGeneration(entry?.generation, generation));
+  return holding.length === 1 ? storedHome(holding[0]?.modeHomeClass) : undefined;
+}
+
+/** The App-owned home of a History source: only where its home and its
+ *  generation's home agree (as the stored page requires), then the home of
+ *  that generation. */
+export function historyHome(host: Json, history: Json): string | undefined {
+  return typeof history?.home === "string" && history.home === history?.generation?.home ? homeOfGeneration(host, history.generation) : undefined;
+}
+
+/** The stop record for a stored turn, matched in its owning App-owned home on
+ *  both paths: the newest stop-request record of that home, else the newest
+ *  Stop Codex outcome of this App process that stopped Codex in that home and
+ *  names the turn. No home, no match. */
+export function storedStopLabel(stops: Json, threadId: string | null | undefined, turnId: string | null | undefined, requests: Json, home: string | undefined): Json | null {
+  if (!home || !threadId || !turnId) return null;
+  const recorded = list(requests?.records).filter((r: Json) => r?.threadId === threadId && r?.turnId === turnId && r?.home === home);
+  if (recorded.length) return recorded[recorded.length - 1];
+  const outcomes = list(stops?.outcomes).filter((o: Json) => o?.state === "stopped" && storedHome(o?.modeHomeClass) === home);
+  for (let i = outcomes.length - 1; i >= 0; i--) {
+    const turn = list(outcomes[i]?.turns).find((t: Json) => t?.threadId === threadId && t?.turnId === turnId && typeof t?.label === "string");
+    if (turn) return turn;
+  }
+  return null;
+}
+
+/** The recorded stop requests for one conversation in its App-owned home, in
+ *  request order. No home, none. */
+export function stopRequestsFor(requests: Json, threadId: string | null | undefined, home: string | undefined): Json[] {
+  if (!threadId || !home) return [];
+  return list(requests?.records).filter((r: Json) => r?.threadId === threadId && r?.home === home);
+}
+
+/** A row that may carry the added Continue offer: a labelled stop-request
+ *  record, with a completed write, of an earlier App session whose end is
+ *  established. */
+export const continueEligible = (r: Json) => !!r?.stopRequestId && typeof r?.label === "string" && Object.hasOwn(STOP_LABELS, r.label) &&r.earlierSession === true && r.send === "sent";
+
+/** What one stop-request row establishes of its turn's end, in the App's words. */
+function RowOutcome({ row }: { row: Json }) {
+  if (typeof row?.label !== "string") return <>Stop request, no outcome label.</>;
+  const reported = reportedFinal(row.codexReported);
+  const kind = row.cause === "quit" ? "The App recorded a quit stop request for this turn." : row.cause === "codex-stop" ? "The App recorded a request to interrupt this turn for Stop or Restart Codex."
+    : row.cause === "person-interrupt" ? "The App recorded an interrupt request for this turn." : "The App recorded a stop request for this turn.";
+  return <>{row.cause === "quit" && reported === "interrupted" ? <>The App recorded a quit stop request for this turn. Codex reported it interrupted.</>
+    : !reported ? <>{kind} The App's stop record has no reported final status for this turn.</>
+    : <>Codex reported the turn <Word value={reported} words={TURN_STATUS} label="Recorded:" name="A turn status as recorded; the App does not vouch for its words" />.</>}
+    {" "}App label: <b><Word value={row.label} words={STOP_LABELS} label="Recorded:" name={RECORDED.label} /></b>{row.labelDerived ? " (derived; not written)" : ""}.</>;
+}
+
+/** The box's words for a request's recorded cause; the record establishes a
+ *  person-directed interrupt, not whose. */
+const BOX_CAUSE: Record<string, string> = { "person-interrupt": "person-directed interrupt", "codex-stop": "Stop or Restart Codex", quit: "quitting the App" };
+const boxCause = (cause: unknown) => typeof cause === "string" && Object.hasOwn(BOX_CAUSE, cause) ? BOX_CAUSE[cause] : "Request reason not recognised";
+
+const BOUNDS = "An interrupted turn is not a workflow run's end. An interrupt request does not answer a Codex request. Nothing here says what became of agents the conversation delegated work to.";
+const ABSENCE = "The App's reading of stop records has limits. See Recorded stop requests under Codex process. A turn with no record here is not shown to have run to its end.";
+
+/** On one conversation: the stop requests its records name, each with what
+ *  its record establishes, and, where a row qualifies, an offer to continue
+ *  it by the existing Continue (thread resume, admitted only on a matching
+ *  resume response). `records` are this conversation's in its own home. */
+export function ConversationStops({ records, limited, onContinue, canContinue }: { records: Json[]; limited?: boolean; onContinue?: () => void; canContinue?: boolean }) {
+  const rows = list(records);
+  if (!rows.length) return null;
+  const offer = onContinue && rows.some(continueEligible);
+  return <div role="note" aria-label="Stop requests recorded for this conversation" style={{ border: "1px solid #bbb", padding: 8, margin: "8px 0" }}>
+    <p>Stop requests the App recorded for this conversation, each with what its record establishes:</p>
+    <ul>{rows.map((r: Json) => <li key={text(r.stopRequestId)}>
+      Turn <SuppliedId value={r.turnId} label="Turn:" name={TURN_ID} />{" "}
+      <small>({boxCause(r.cause)}, requested <AgentText value={text(r.requestedAt)} source="record" label="Requested:" name={RECORDED.requested} />{r.earlierSession ? ", earlier App session" : ""})</small>: <RowOutcome row={r} />{" "}
+      <AgentText value={text(r.reading)} source="codex" label="Reading:" name={RECORDED.reading} />{" "}
+      <small>Record: <AgentText value={text(r.persistence)} source="codex" label="Record:" name={RECORDED.persistence} />.</small>
+    </li>)}</ul>
+    <p><small>Read turns asks Codex for a page of stored turns. {BOUNDS}</small></p>
+    {limited && <p><small>{ABSENCE}</small></p>}
+    {offer && <p><button disabled={!canContinue} onClick={onContinue}>Continue this conversation</button> <small>Continue asks Codex to reopen this conversation. It opens after a matching resume is confirmed. Continue sends no conversation message.</small></p>}
   </div>;
 }

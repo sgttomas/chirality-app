@@ -1,4 +1,5 @@
 import { NativeItemCard } from "./NativeActivity";
+import { continueEligible, homeOfGeneration, reportedFinal, storedStopLabel } from "./CodexControls";
 import { AgentText, SuppliedId, Word, Num, isoSeconds } from "./AgentText";
 import { ITEM_KIND, ITEMS_VIEW, TURN_STATUS } from "./nativeWords";
 import { useEffect, useRef, useState } from "react";
@@ -88,7 +89,57 @@ function NativeTime({ value }: { value: Json }) {
   return time !== null ? <>{time}</> : <AgentText value={value} source="codex" label="Codex sent:" name="A value Codex sent where a time was expected, not the App's words" />;
 }
 
-export function StoredTurnPage({ binding, canRead, readItems }: { binding: HistoryPageBinding; canRead: boolean; readItems: (turnId: string) => void }) {
+/** The App's stop record for a turn of a stored conversation (REC SR, read
+ *  back from the App ledger after a relaunch, or this process's Stop Codex
+ *  outcome), matched in the App-owned home that holds the page's generation.
+ *  Where that home is not known, no record is associated. */
+export const storedStopFor = (host: Json, threadId: Json, generation: Json) => {
+  const home = homeOfGeneration(host, generation);
+  return (turnId: string): Json | null =>
+    typeof threadId === "string" ? storedStopLabel(host?.codexStops, threadId, turnId, host?.stopRequests, home) : null;
+};
+
+/** The App's stop labels (stop_records.rs label), as the App's words. */
+const STOP_LABEL = {
+  "interrupted by the person": "interrupted by the person",
+  "completed (stop requested)": "completed (stop requested)",
+  "failed (stop requested)": "failed (stop requested)",
+  "outcome unknown (stop requested)": "outcome unknown (stop requested)",
+  "interrupted by quit": "interrupted by quit",
+  "completed (quit requested)": "completed (quit requested)",
+  "failed (quit requested)": "failed (quit requested)",
+  "interrupted by quit (final status not observed)": "interrupted by quit (final status not observed)",
+  "interrupted by Stop Codex": "interrupted by Stop Codex",
+  "completed (Stop Codex requested)": "completed (Stop Codex requested)",
+  "failed (Stop Codex requested)": "failed (Stop Codex requested)",
+  "interrupted by Stop Codex (final status not observed)": "interrupted by Stop Codex (final status not observed)",
+} as const;
+const STOP_WORDS = { label: "The stop's label, as recorded; the App does not vouch for its words", reading: "The stop request's reading, as recorded; the App does not vouch for its words",
+  persistence: "Where the stop is recorded, as recorded; the App does not vouch for its words", status: "A turn status as recorded; the App does not vouch for its words" } as const;
+
+/** A stored turn's stop record beside Codex's status. The App's label is
+ *  shown as the App's label and takes no part in any comparison: only the
+ *  Codex final status the record carries is compared with the one Codex's
+ *  history reports. No cause and no order of events is said. */
+function StoredStop({ stop, status }: { stop: Json; status: Json }) {
+  const reported = reportedFinal(stop?.codexReported);
+  const label = stop?.label ? <>App label: <b><Word value={stop.label} words={STOP_LABEL} label="Recorded:" name={STOP_WORDS.label} /></b>{stop.labelDerived ? " (derived; not written)" : ""}.</> : null;
+  if (!stop?.stopRequestId) {
+    return <p role="note">{label}{" "}{reported ? <>The Stop or Restart Codex outcome records that Codex reported the turn <Word value={reported} words={TURN_STATUS} label="Recorded:" name={STOP_WORDS.status} />.</> : stop?.codexReported == null ? "The App observed no turn end during the Stop or Restart Codex wait." : "The Stop or Restart Codex outcome carries no reported final status for this turn."}</p>;
+  }
+  const native = reportedFinal(status);
+  return <>
+    <p role="note">{!stop.label ? "Stop request: " : stop.cause === "quit" && reported === "interrupted" ? "The App recorded a quit stop request for this turn. Codex reported it interrupted. "
+      : reported ? <>Codex reported the turn <Word value={reported} words={TURN_STATUS} label="Recorded:" name={STOP_WORDS.status} />. </> : null}
+      {label}{label ? " " : ""}<AgentText value={text(stop.reading)} source="codex" label="Reading:" name={STOP_WORDS.reading} />{stop.earlierSession ? " From an earlier App session." : ""}{" "}
+      <small>Record: <AgentText value={text(stop.persistence)} source="codex" label="Record:" name={STOP_WORDS.persistence} />.</small></p>
+    {!reported && <p role="note">The App's stop record has no reported final status for this turn.</p>}
+    {reported && native && reported !== native && <p role="note">Codex's history reports this turn as <Word value={native} words={TURN_STATUS} />. The App's stop record carries a different Codex report, <Word value={reported} words={TURN_STATUS} label="Recorded:" name={STOP_WORDS.status} />.</p>}
+  </>;
+}
+
+export function StoredTurnPage({ binding, canRead, readItems, stopFor, onContinue, canContinue }: { binding: HistoryPageBinding; canRead: boolean; readItems: (turnId: string) => void;
+  stopFor?: (turnId: string) => Json | null; onContinue?: () => void; canContinue?: boolean }) {
   return <div aria-label="Stored native turn page">
     <HistoryPageSource binding={binding} />
     {binding.accepted && binding.page.data.length === 0 && <p>Native returned an empty turn page. This does not establish that the conversation has no other turns.</p>}
@@ -97,8 +148,11 @@ export function StoredTurnPage({ binding, canRead, readItems }: { binding: Histo
       const items = list(turn?.items);
       const user = items.find(item => item?.type === "userMessage");
       const response = [...items].reverse().find(item => item?.type === "agentMessage" || item?.type === "plan");
+      const stop = valid && stopFor ? stopFor(turn.id) : null;
       return <article key={index} style={{ borderTop: "1px solid #ccc", paddingTop: 8 }}>
         <p><b>Turn <SuppliedId value={turn?.id} label="Turn:" name="Turn identity as Codex reported it, not the App's words" /></b> · native status <Word value={turn?.status} words={TURN_STATUS} name="A turn status Codex sent that the App does not recognise, not the App's words" />{turn?.status === "inProgress" && " (in progress at the read; current outcome unknown)"}{turn?.status === "interrupted" && " (cause not established by this page)"}</p>
+        {stop && <StoredStop stop={stop} status={turn?.status} />}
+        {stop && continueEligible(stop) && onContinue && <p><button disabled={!canContinue} onClick={onContinue}>Continue this conversation</button> <small>Continue asks Codex to reopen this conversation. It opens after a matching resume is confirmed. Continue sends no conversation message.</small></p>}
         <div><small>Items view: {turn?.itemsView === undefined ? "full (native default)" : turn.itemsView === null ? "null (as supplied)" : <Word value={turn.itemsView} words={ITEMS_VIEW} />} · {Array.isArray(turn?.items) ? `${items.length} embedded items` : "items malformed or not reported"}. {turn?.itemsView === "notLoaded" ? "Items have not been loaded in this summary." : turn?.itemsView === "summary" ? "Summary items can omit substantive activity; read the item page." : "Embedded items are not rendered as the selected item page."}</small></div>
         {turn?.startedAt !== undefined && <div><small>Native start: <NativeTime value={turn.startedAt} /></small></div>}
         {turn?.completedAt !== undefined && <div><small>Native end: <NativeTime value={turn.completedAt} /></small></div>}
@@ -218,7 +272,7 @@ export function ContinuationContext({ host, thread }: { host: Json; thread: Json
       {context.error != null && <p role="alert">Prior-work read: <AgentText value={text(context.error)} source="codex" label="Reported:" name="What the prior-work read reported, not the App's words" /></p>}
       {context.state === "unavailable" && <button disabled={!canRead} onClick={() => { void action("retry"); }}>Retry prior-work read</button>}
       <h4>Prior turn summaries</h4>{paging("turns", turns)}
-      <StoredTurnPage binding={turns} canRead={canRead} readItems={turnId => { void action("items", null, "desc", turnId); }} />
+      <StoredTurnPage binding={turns} canRead={canRead} readItems={turnId => { void action("items", null, "desc", turnId); }} stopFor={storedStopFor(host, context.threadId, context.generation)} />
       <h4>Prior messages and work</h4>{paging("items", items)}
       <StoredItemPage binding={items} />
     </>}
