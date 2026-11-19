@@ -597,11 +597,14 @@ const IN_PROGRESS = new Set(["in-progress", "waiting-on-request"]);
 function TurnActivity({ turn, folded, messages, live, plans, ownRuns, turnIds, offersFor }: { turn: ActivityTurn; folded: Json[]; messages: Json[]; live: boolean; plans: Json[]; ownRuns: Json[]; turnIds: string[]; offersFor: (row: Json) => ReactNode }) {
   const count = folded.length;
   const latest = live ? [...folded].reverse().find(row => IN_PROGRESS.has(row?.displayState)) : undefined;
+  // Each agent message's phase as Codex sent it; the bubbles do not draw it (AgentMessage).
+  const phased = messages.filter(row => row?.native?.type === "agentMessage" && row.native.phase !== undefined && row.native.phase !== null);
   return <details className={live ? "turn-activity turn-activity--live" : "turn-activity"}>
     <summary><span className="turn-activity-summary">{!live ? "Turn details" : latest?.displayState === "waiting-on-request" ? "Waiting on a request" : (latest ? wordOf(ITEM_IN_PROGRESS, latest.native?.type) : null) ?? "Working"}
       {count > 0 && ` · ${numberWords(count)} ${count === 1 ? "action" : "actions"}`}</span></summary>
     <div className="v4-turn-activity-body">
-      <details><summary>Turn source and timing</summary><small>Turn <SuppliedId value={turn.turnId} label="Turn:" name="Turn identity as Codex reported it, not the App's words" /> · {turn.native ? <>native status <Word value={turn.native.status} words={TURN_STATUS} name="A turn status Codex sent that the App does not recognise, not the App's words" /></> : "turn status not observed"}{turn.native?.durationMs != null && <> · <Num value={turn.native.durationMs} /> ms</>}</small></details>
+      <details><summary>Turn source and timing</summary><small>Turn <SuppliedId value={turn.turnId} label="Turn:" name="Turn identity as Codex reported it, not the App's words" /> · {turn.native ? <>native status <Word value={turn.native.status} words={TURN_STATUS} name="A turn status Codex sent that the App does not recognise, not the App's words" /></> : "turn status not observed"}{turn.native?.durationMs != null && <> · <Num value={turn.native.durationMs} /> ms</>}</small>
+        {phased.length > 0 && <p className="v4-turn-phases"><small>The agent's messages by phase, in order: {phased.map((row, i) => <span key={i}>{i ? ", " : ""}<Word value={row.native.phase} words={MESSAGE_PHASE} name="A message phase Codex sent that the App does not recognise, not the App's words" /></span>)}.</small></p>}</details>
       {folded.map((row, i) => <NativeItemCard key={text(row.native?.id) || `row-${i}`} row={row} plans={plans} runStart={ownRuns.some((run: Json) => run.turn === row.turnId)} after={offersFor(row)}>
         {!UNLABELLED.has(text(row.native?.type)) && <RunLabel run={runInForce(ownRuns, turnIds, text(turn.turnId))} />}
       </NativeItemCard>)}
@@ -618,11 +621,14 @@ function YourMessage({ row, runStart, voice }: { row: Json; runStart: boolean; v
     <Unfinished row={row} /><UserMessage content={row.native?.content} fold={runStart} voice={voice} />
   </div></RowBoundary>;
 }
-/** One message of the agent: its prose, formatted; a message that is not complete says so. */
+/** One message of the agent: its prose, formatted; a message that is not complete says so. Its phase is not drawn in
+ * the bubble ("commentary" and "final answer" tell the person nothing they act on; the turn's details list each
+ * message's phase), except a partial answer, which is marked so that it never reads as the whole answer. A message
+ * that is not complete keeps its state line whatever its phase, so an unfinished answer never reads as final. */
 function AgentMessage({ row, after }: { row: Json; after: ReactNode }) {
   const n = row.native ?? {};
   return <RowBoundary value={row.native} row={row} label="native item"><div className="v4-agent-message" id={itemAnchorId(row.threadId, row.turnId, n.id)}>
-    {n.phase ? <p className="v4-message-phase"><small><Word value={n.phase} words={MESSAGE_PHASE} /></small></p> : null}
+    {n.phase === "partial_answer" ? <p className="v4-message-phase"><small><Word value={n.phase} words={MESSAGE_PHASE} /></small></p> : null}
     <Unfinished row={row} />
     <AgentProse value={streamed(row) ?? text(n.text)} />
   </div>{after}</RowBoundary>;

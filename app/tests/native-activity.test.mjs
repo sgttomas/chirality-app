@@ -68,10 +68,34 @@ test('messages are readable, escaped and never presented as acts',()=>{
   // The person's message under "You": its text as Codex recorded it, named as that, unformatted, with no control in it.
   const yours=html.match(/<article class="chat-bubble chat-bubble--operator" data-role="operator" aria-label="Your message"><p class="chat-speaker">You<\/p>[\s\S]*?<\/article>/)?.[0]??'';
   assert.match(yours,/<div class="chat-user-text" id="[^"]+">⟦Text Codex recorded as your message, not the App&#x27;s words: Please &lt;b&gt;list&lt;\/b&gt; files⟧<\/div>/);assert.doesNotMatch(yours,/<button|<a |<input|<select|<textarea/);
-  // The agent's message under the agent's label, with the phase Codex gave it.
-  assert.match(html,/<p class="chat-speaker">Agent<\/p><div class="v4-agent-message" id="[^"]+"><p class="v4-message-phase"><small>final answer<\/small><\/p>/);assert.ok(html.includes('Thinking about listing'));
+  // The agent's message under the agent's label; its phase is in the turn's details, not in the bubble.
+  assert.match(html,/<p class="chat-speaker">Agent<\/p><div class="v4-agent-message" id="[^"]+">⟦Text the agent wrote, not the App&#x27;s words: <p>Second answer<\/p>⟧<\/div>/);assert.ok(html.includes('Thinking about listing'));
+  assert.match(html,/<p class="v4-turn-phases"><small>The agent&#x27;s messages by phase, in order: <span>final answer<\/span>\.<\/small><\/p>/,'the phase stays in the turn\'s details');
   assert.ok(html.includes('Goal (⟦Source: thread/goal/updated⟧): ⟦Codex sent: Ship the slice⟧'));
   assert.ok(html.includes('Turn error: ⟦Codex sent: interrupted by request⟧'));
+});
+
+test('an answer that is not finished never reads as the final one: no phase label in the bubble, its state said; a partial answer is marked',()=>{
+  const turn={id:'turn-9',status:'inProgress',startedAt:900,items:[]};
+  const base={supplierStanding:'s',limits:[],revisions:[],descendants:[],goals:{},checklistGaps:[],turns:[turn],turnRecords:[{threadId:'T',turnId:'turn-9'}]};
+  const bubble=html=>html.match(/<article class="chat-bubble chat-bubble--assistant[^>]*>[\s\S]*?<\/article>/)?.[0]??'';
+  // Streaming: a final-answer message that is still in progress says it is in progress, and nowhere says "final answer" in view.
+  const streaming=render({...base,items:[row('turn-9',0,{id:'f',type:'agentMessage',text:'',phase:'final_answer'},{displayState:'in-progress',preview:'The report so f'})]});
+  const shown=bubble(streaming).replace(/<details[\s\S]*?<\/details>/g,'');
+  assert.ok(!shown.includes('final answer'),'no "final answer" label in the bubble');
+  assert.match(shown,/<b>in progress<\/b>/,'its state is said');
+  assert.ok(shown.includes('The report so f'));
+  // Interrupted: the message's state and the turn's end are both said.
+  const stopped=render({...base,turns:[{...turn,status:'interrupted'}],items:[row('turn-9',0,{id:'f',type:'agentMessage',text:'',phase:'final_answer'},{displayState:'interrupted',preview:'Half'})]});
+  assert.ok(!bubble(stopped).replace(/<details[\s\S]*?<\/details>/g,'').includes('final answer'));
+  assert.match(bubble(stopped),/<b>interrupted<\/b>/);assert.match(bubble(stopped),/Turn interrupted/);
+  // A completed partial answer is marked, so it is not read as the whole answer.
+  const partial=render({...base,turns:[{...turn,status:'completed'}],items:[row('turn-9',0,{id:'p',type:'agentMessage',text:'Part one.',phase:'partial_answer'})]});
+  assert.match(bubble(partial),/<div class="v4-agent-message" id="[^"]+"><p class="v4-message-phase"><small>partial answer<\/small><\/p>/);
+  // Commentary and a completed final answer carry no label in view.
+  const done=render({...base,turns:[{...turn,status:'completed'}],items:[row('turn-9',0,{id:'c',type:'agentMessage',text:'Looking.',phase:'commentary'}),row('turn-9',1,{id:'a',type:'agentMessage',text:'Done.',phase:'final_answer'})]});
+  assert.ok(!bubble(done).includes('v4-message-phase'));
+  assert.match(done,/The agent&#x27;s messages by phase, in order: <span>commentary<\/span><span>, <span>final answer<\/span><\/span>\.|The agent&#x27;s messages by phase, in order: <span>commentary<\/span><span>, final answer<\/span>\./,'both phases in the turn\'s details');
 });
 
 test('tool rows keep native status beside the display reading and invent no outcome',()=>{
