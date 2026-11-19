@@ -665,10 +665,16 @@ export function waitingGroups(entries: WaitingEntry[]): { group: WaitingGroup; e
 export const waitingTotal = (entries: WaitingEntry[]) => entries.reduce((sum, entry) => sum + entry.count, 0);
 /** How many of them are requests from Codex, in every home: a part of the same count, never a second one. */
 export const waitingRequestCount = (entries: WaitingEntry[]) => waitingTotal(entries.filter(entry => entry.source === "supplier-request" || entry.source === "waiting-overview"));
+/** Every source read whole and nothing waiting: the one state in which the line says only that nothing is waiting. */
+export const nothingWaiting = (observed: WaitingEntry[], complete: boolean) => complete && waitingTotal(observed) === 0;
+/** The words of the quiet line, and its accessible name, which says what the control is and that it opens the list. */
+export const NOTHING_WAITING = "Nothing is waiting";
+export const NOTHING_WAITING_NAME = "Waiting on you: nothing is waiting. Opens the list.";
 /** The one line. With every source read whole, the definite count of what is waiting and how many of
- * those are requests from Codex. Otherwise only what is observed now, and that the status is incomplete:
- * a failed source's last successful reading is never counted. */
+ * those are requests from Codex, or, when that count is none, that nothing is waiting. Otherwise only what is
+ * observed now, and that the status is incomplete: a failed source's last successful reading is never counted. */
 export function waitingLine(observed: WaitingEntry[], complete: boolean): string {
+  if (nothingWaiting(observed, complete)) return NOTHING_WAITING;
   const requests = waitingRequestCount(observed);
   const part = requests > 0 ? ` (${numberWords(requests) ?? "?"} request${requests === 1 ? "" : "s"} from Codex)` : "";
   const total = numberWords(waitingTotal(observed)) ?? "?";
@@ -823,7 +829,7 @@ function RequestsOverview({ reading, view, busy, open }: { reading: SourceReadin
   return <p className="waiting-requests-withheld">The overview of requests from Codex by home is not shown: {reading?.note ? reading.note.charAt(0).toLowerCase() + reading.note.slice(1) : "requests from Codex have not been read."}</p>;
 }
 
-/** The place: one line, "Waiting on you: N", that opens to the list. It shows the readings it is given and
+/** The place: one line, "Waiting on you: N" (or "Nothing is waiting"), that opens to the list. It shows the readings it is given and
  * keeps nothing from an earlier render. */
 export function WaitingOnYou({ readings, view, busy = false, openGroup, go, onOpen }: {
   readings: SourceReading[]; view?: Json; busy?: boolean; openGroup: (group: WaitingRequestGroup) => void; go: (entry: WaitingEntry) => void;
@@ -831,9 +837,12 @@ export function WaitingOnYou({ readings, view, busy = false, openGroup, go, onOp
   onOpen?: () => void;
 }) {
   const { observed, complete, coverage, lastReads, lastStatus } = waitingView(readings);
-  return <section className="waiting-on-you" aria-label="Waiting on you">
+  // Quiet when every source is read whole and nothing waits: the line says only that, in faint type, and is still the
+  // control that opens the list; its accessible name says what it is.
+  const quiet = nothingWaiting(observed, complete);
+  return <section className={quiet ? "waiting-on-you waiting-on-you--quiet" : "waiting-on-you"} aria-label="Waiting on you">
     <details id="waiting-on-you" onToggle={event => { if ((event.currentTarget as HTMLDetailsElement).open) onOpen?.(); }}>
-      <summary><span role="status" aria-live="polite">{waitingLine(observed, complete)}</span></summary>
+      <summary aria-label={quiet ? NOTHING_WAITING_NAME : undefined}><span role="status" aria-live="polite">{waitingLine(observed, complete)}</span></summary>
       <div className="waiting-on-you-list">
         {complete ? observed.length === 0 && <p>Nothing recorded is waiting on you.</p>
           : <p>{observed.length === 0 ? "Nothing is observed waiting on you now, but the status is incomplete:" : "The status is incomplete:"}</p>}

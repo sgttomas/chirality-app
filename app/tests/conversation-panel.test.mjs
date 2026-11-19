@@ -106,7 +106,7 @@ async function ordinaryStartCase({initialThread = false, startGeneration = g, ou
     await change(chatInput(container), draft);
     // With no model chosen, the reason is in view under the message box, not only in the model panel.
     const readiness = () => container.querySelectorAll(node => node.getAttribute('id') === 'ordinary-send-readiness')[0];
-    assert.equal(readiness().textContent, 'Not started — no model selected. Choose a model below. Your draft stays here.');
+    assert.equal(readiness().textContent, 'Not started — no model selected. Your draft stays here.');
     assert.ok(inView(readiness()) && readiness().getAttribute('class') !== 'visually-hidden', 'the reason is in view');
     // The model is chosen in the settings line's Model panel, opened first.
     await change(await startModelField(container, React.act), 'chosen-model');

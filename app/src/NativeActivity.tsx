@@ -597,11 +597,14 @@ const IN_PROGRESS = new Set(["in-progress", "waiting-on-request"]);
 function TurnActivity({ turn, folded, messages, live, plans, ownRuns, turnIds, offersFor }: { turn: ActivityTurn; folded: Json[]; messages: Json[]; live: boolean; plans: Json[]; ownRuns: Json[]; turnIds: string[]; offersFor: (row: Json) => ReactNode }) {
   const count = folded.length;
   const latest = live ? [...folded].reverse().find(row => IN_PROGRESS.has(row?.displayState)) : undefined;
+  // Each agent message's phase as Codex sent it; the bubbles do not draw it (AgentMessage).
+  const phased = messages.filter(row => row?.native?.type === "agentMessage" && row.native.phase !== undefined && row.native.phase !== null);
   return <details className={live ? "turn-activity turn-activity--live" : "turn-activity"}>
     <summary><span className="turn-activity-summary">{!live ? "Turn details" : latest?.displayState === "waiting-on-request" ? "Waiting on a request" : (latest ? wordOf(ITEM_IN_PROGRESS, latest.native?.type) : null) ?? "Working"}
       {count > 0 && ` · ${numberWords(count)} ${count === 1 ? "action" : "actions"}`}</span></summary>
     <div className="v4-turn-activity-body">
-      <details><summary>Turn source and timing</summary><small>Turn <SuppliedId value={turn.turnId} label="Turn:" name="Turn identity as Codex reported it, not the App's words" /> · {turn.native ? <>native status <Word value={turn.native.status} words={TURN_STATUS} name="A turn status Codex sent that the App does not recognise, not the App's words" /></> : "turn status not observed"}{turn.native?.durationMs != null && <> · <Num value={turn.native.durationMs} /> ms</>}</small></details>
+      <details><summary>Turn source and timing</summary><small>Turn <SuppliedId value={turn.turnId} label="Turn:" name="Turn identity as Codex reported it, not the App's words" /> · {turn.native ? <>native status <Word value={turn.native.status} words={TURN_STATUS} name="A turn status Codex sent that the App does not recognise, not the App's words" /></> : "turn status not observed"}{turn.native?.durationMs != null && <> · <Num value={turn.native.durationMs} /> ms</>}</small>
+        {phased.length > 0 && <p className="v4-turn-phases"><small>The agent's messages by phase, in order: {phased.map((row, i) => <span key={i}>{i ? ", " : ""}<Word value={row.native.phase} words={MESSAGE_PHASE} name="A message phase Codex sent that the App does not recognise, not the App's words" /></span>)}.</small></p>}</details>
       {folded.map((row, i) => <NativeItemCard key={text(row.native?.id) || `row-${i}`} row={row} plans={plans} runStart={ownRuns.some((run: Json) => run.turn === row.turnId)} after={offersFor(row)}>
         {!UNLABELLED.has(text(row.native?.type)) && <RunLabel run={runInForce(ownRuns, turnIds, text(turn.turnId))} />}
       </NativeItemCard>)}
@@ -618,11 +621,14 @@ function YourMessage({ row, runStart, voice }: { row: Json; runStart: boolean; v
     <Unfinished row={row} /><UserMessage content={row.native?.content} fold={runStart} voice={voice} />
   </div></RowBoundary>;
 }
-/** One message of the agent: its prose, formatted; a message that is not complete says so. */
+/** One message of the agent: its prose, formatted; a message that is not complete says so. Its phase is not drawn in
+ * the bubble ("commentary" and "final answer" tell the person nothing they act on; the turn's details list each
+ * message's phase), except a partial answer, which is marked so that it never reads as the whole answer. A message
+ * that is not complete keeps its state line whatever its phase, so an unfinished answer never reads as final. */
 function AgentMessage({ row, after }: { row: Json; after: ReactNode }) {
   const n = row.native ?? {};
   return <RowBoundary value={row.native} row={row} label="native item"><div className="v4-agent-message" id={itemAnchorId(row.threadId, row.turnId, n.id)}>
-    {n.phase ? <p className="v4-message-phase"><small><Word value={n.phase} words={MESSAGE_PHASE} /></small></p> : null}
+    {n.phase === "partial_answer" ? <p className="v4-message-phase"><small><Word value={n.phase} words={MESSAGE_PHASE} /></small></p> : null}
     <Unfinished row={row} />
     <AgentProse value={streamed(row) ?? text(n.text)} />
   </div>{after}</RowBoundary>;
@@ -637,6 +643,18 @@ function TurnEnd({ turn, observationEnded, stop, live }: { turn: ActivityTurn; o
     {turn.native?.error?.message && <p role="alert">Turn error: <AgentText value={text(turn.native.error.message)} source="codex" /></p>}
     <TurnErrors errors={turn.errors} unreadable={turn.unreadableErrors} turn={turn.native} />
   </>;
+}
+
+/** The activity's own account of itself, which the conversation's tools carry so the centre holds only the
+ * conversation: that nothing is observed for the conversation, where nothing is, and where the activity is read from
+ * and its limits. */
+export function ActivitySource({ view, threadId }: { view: Json; threadId: string }) {
+  const empty = activityModel(view, threadId).turns.length === 0;
+  return <section className="v4-activity-source" aria-label="Activity">
+    <h3>Activity</h3>
+    {empty && <p>No activity observed for this conversation in the current Codex generation.</p>}
+    <details className="v4-transcript-source"><summary>Activity source and limits</summary><p>This view shows what the App received live in this generation and what it has read from Codex history; earlier generations' observations remain under the native JSON in Host diagnostics.</p><p>Codex types {view?.typesPin ? <SuppliedId value={view.typesPin} label="Types:" name="The pinned Codex types, as recorded; the App does not vouch for its words" /> : "not reported"} · supplier standing {view?.supplierStanding === undefined || view?.supplierStanding === null ? "not established" : <AgentText value={text(view.supplierStanding)} source="codex" label="Standing:" name="The supplier's standing, as recorded; the App does not vouch for its words" />}.</p>{list(view?.limits).length > 0 && <AgentText block value={list(view?.limits).map(text).join("\n")} source="codex" label="Limits:" name="The activity view's limits, as recorded; the App does not vouch for its words" />}</details>
+  </section>;
 }
 
 export function NativeActivityView({ view, threadId, offers, offerControls, runs, stopLabelFor, trialTurns, trialChildren, delegation, navigationRef, appRole, waiting = false, waitingTurns = [] }: { view: Json; threadId: string | null | undefined; offers?: Json[]; offerControls?: OfferControls; runs?: Json[]; stopLabelFor?: (threadId: string, turnId: string) => Json | null; trialTurns?: Json[]; trialChildren?: Json[]; delegation?: Json; navigationRef?: Ref<NativeActivityHandle>;
@@ -719,7 +737,6 @@ export function NativeActivityView({ view, threadId, offers, offerControls, runs
     {model.checklistGaps.map((gap, i) => <p key={i}>Checklist for turn <SuppliedId value={gap.turnId} label="Turn:" name="Turn identity as Codex reported it, not the App's words" />: <AgentText value={text(gap.reason)} source="codex" label="Reason:" name="Why the checklist is missing, as recorded; the App does not vouch for its words" /></p>)}
     {unplaced.length > 0 && <div><small>Workflow runs in this conversation whose position this view cannot show:</small>
       {unplaced.map((run: Json) => <div key={text(run.reference)}>{!shownTurns.has(run.turn) && <RunStartMarker run={run} />}{run.lifecycle?.end && !shownTurns.has(run.endedAfterTurn) && <RunEndMarker run={run} />}</div>)}</div>}
-    {model.turns.length === 0 && <p className="panel-empty">No activity observed for this conversation in the current Codex generation.</p>}
     {model.turns.map((turn, index) => {
       const live = turnLive(turn, observationEnded);
       const { segments, folded, atTurn, messages } = turnSegments(turn.items);
@@ -759,6 +776,5 @@ export function NativeActivityView({ view, threadId, offers, offerControls, runs
     })}
     <DelegationLine delegation={target === threadId ? delegation : null} descendants={model.children.length} />
     {model.children.length > 0 && <section className="v4-descendants" aria-label="Descendants"><h4>Descendants</h4><p>A completed turn here says nothing about these descendants.</p><ul>{model.children.map((c: Json, i: number) => <li key={text(c?.threadId) || `child-${i}`}><RowBoundary value={c} label="descendant"><Child child={c} trialLabel={childLabel(c?.threadId)} /></RowBoundary></li>)}</ul></section>}
-    <details className="v4-transcript-source"><summary>Activity source and limits</summary><p>This view shows what the App received live in this generation and what it has read from Codex history; earlier generations' observations remain under the native JSON in Host diagnostics.</p><p>Codex types {view?.typesPin ? <SuppliedId value={view.typesPin} label="Types:" name="The pinned Codex types, as recorded; the App does not vouch for its words" /> : "not reported"} · supplier standing {view?.supplierStanding === undefined || view?.supplierStanding === null ? "not established" : <AgentText value={text(view.supplierStanding)} source="codex" label="Standing:" name="The supplier's standing, as recorded; the App does not vouch for its words" />}.</p>{list(view?.limits).length > 0 && <AgentText block value={list(view?.limits).map(text).join("\n")} source="codex" label="Limits:" name="The activity view's limits, as recorded; the App does not vouch for its words" />}</details>
   </div>;
 }

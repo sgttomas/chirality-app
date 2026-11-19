@@ -253,7 +253,8 @@ async function conversationWriter(operation, commandFails, check) {
     if (operation !== 'plan' && operation !== 'interrupt') await change(nodes(panel(), 'textarea')[0], 'invented r4 text');
     if (operation === 'interrupt') await change(labelled(panel(), 'select', 'Observed live turn '), 'live-a');
     await tap({send:'Send text', plan:'Check plan mode availability', attach:'Send text and ordered attachments', steer:'Steer current live turn', interrupt:'Interrupt selected live turn'}[operation]);
-    assert.ok(c.textContent.includes(READING_GATE), 'the reading sentence stays');
+    // The refused start's own sentence stays beside the message box until a new send replaces it with that send's outcome.
+    if (operation !== 'send') assert.ok(c.textContent.includes(READING_GATE), 'the reading sentence stays');
     assert.doesNotMatch(c.textContent, new RegExp(conversationCanary), 'the raw status-read diagnostic appears nowhere');
     assert.equal(calls.filter(command => command === commands[operation]).length, 1, 'sent once: no automatic retry');
     await check(c);
@@ -290,7 +291,13 @@ for (const commandFails of [false, true]) {
     await conversationWriter(operation, commandFails, c => {
       const shown = region(c, 'Original conversation action outcome').textContent;
       assert.match(shown, new RegExp(`Original ${operation === 'steer' ? 'steering' : 'interrupt'} request · conversation thread-a · Home r4-home`), 'attributed to its own request');
-      if (commandFails) assert.ok(shown.includes(`Original native request failed: invented ${operation} refusal`), 'its own failure stays');
+      if (commandFails) {
+        // Said once in the App's sentence; the host's words stay with the request, behind Details, marked.
+        assert.ok(shown.includes(operation === 'steer' ? 'The update to the running turn failed. No automatic retry.' : 'The request to interrupt the turn failed. No automatic retry.'), 'its own failure stays');
+        const details = region(c, 'Original conversation action outcome').querySelectorAll(n => n.localName === 'details')[0];
+        assert.equal(details.querySelectorAll(n => n.localName === 'summary')[0].textContent, 'Details');
+        assert.ok(details.textContent.includes(`invented ${operation} refusal`), 'the host\'s words are kept');
+      }
       else assert.match(shown, operation === 'steer' ? /Native steering acknowledgment received/ : /Native interrupt acknowledgment received/);
       assert.equal(once(shown, REFRESH_FAILED), 1);
     });

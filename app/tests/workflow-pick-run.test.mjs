@@ -175,6 +175,22 @@ test('picking a workflow lands in the message box; removing the pick moves nothi
   } finally { proto.focus = previous.focus; proto.scrollIntoView = previous.scroll; }
 });
 
+test('the chip shows the workflow\'s name and its source; the revision digest is whole under its Details', async () => {
+  await mounted(standIn({threads: ['T1']}), async ui => {
+    await ui.choose('T1'); await ui.pick();
+    const chip = ui.composer().querySelectorAll(n => n.localName === 'li' && n.getAttribute('class') === 'method-chip')[0];
+    assert.ok(chip, 'the chip is drawn');
+    const small = chip.querySelectorAll(n => n.localName === 'small')[0];
+    assert.equal(chip.querySelectorAll(n => n.localName === 'span')[0].textContent, 'Plan the work', 'the workflow\'s name as the library gives it');
+    assert.equal(small.textContent, 'Chirality Library 9.9.9', 'its source');
+    assert.ok(!small.textContent.includes('·') && !/revision|0123456789/.test(small.textContent), `name and source only: ${small.textContent}`);
+    assert.ok(!chip.querySelectorAll(n => n.localName === 'code')[0], 'no digest on the chip');
+    const details = ui.composer().querySelectorAll(n => n.localName === 'details' && n.getAttribute('class') === 'v4-pick-details')[0];
+    assert.ok(details && !props(details).open, 'Details is closed');
+    assert.ok(details.querySelectorAll(n => n.localName === 'code' && n.textContent === 'plan-work-revision-0123456789abcdef')[0], 'the digest, whole, under Details');
+  });
+});
+
 test('a new chat: the first press starts the conversation and chooses the included workflow, then stops to show its tools; the second prepares and sends it once', async () => {
   await mounted(standIn(), async ui => {
     await ui.newChat();
@@ -316,6 +332,33 @@ test('a failure at each step keeps the text, says what happened, issues nothing 
     assert.deepEqual(ui.issued().filter(call => call.command === 'workflow_send_run').map(call => call.args.runRef), ['run:workflow:1', 'run:workflow:1'], 'the same prepared run, not prepared again');
     assert.equal(ui.names().filter(name => name === 'workflow_prepare_run').length, 1);
     assert.equal(props(chatInput(ui.c)).value, '', 'started: the text is cleared');
+  });
+});
+
+test('a failed step is said once in view, in the App\'s sentence; the host\'s line is one action away, whole and marked', async () => {
+  const reply = 'No explicit App project (CHIRALITY_WORKSPACE): WR recording unavailable, so the workflow run is not prepared or sent; no fallback store';
+  const prep = standIn({threads: ['T1'], fail: {prepare: reply}});
+  await mounted(prep, async ui => {
+    await ui.choose('T1'); await ui.pick(); await ui.write(TEXT);
+    await ui.press(); await ui.press();
+    const said = ui.c.querySelectorAll(n => n.getAttribute?.('class') === 'v4-step-outcome')[0];
+    assert.ok(said, 'the App\'s sentence beside the message box');
+    assert.ok(ui.composer().parentNode.contains(said));
+    const alert = said.querySelectorAll(n => n.getAttribute?.('role') === 'alert')[0];
+    assert.match(alert.textContent, /^The run wasn't prepared: /);
+    const details = said.querySelectorAll(n => n.localName === 'details')[0];
+    assert.ok(details && !props(details).open, 'closed');
+    assert.equal(details.querySelectorAll(n => n.localName === 'summary')[0].textContent, 'Details');
+    const marked = details.querySelectorAll(n => (n.getAttribute?.('aria-label') ?? '').startsWith('The latest response, which may carry text the App received'))[0];
+    assert.ok(marked, 'marked as text the App did not write');
+    assert.ok(marked.textContent.includes(`workflow_prepare_run: Error: ${reply}`), 'nothing the host said is dropped');
+    // Nothing above the conversation says it again: no command-prefixed block, and the command's name once in the page.
+    assert.ok(!ui.c.querySelectorAll(n => n.getAttribute?.('aria-label') === 'Latest App response')[0], 'no response block above the conversation');
+    assert.equal(ui.c.textContent.split('workflow_prepare_run:').length - 1, 1);
+    // A new press clears it; the next failure's line replaces it.
+    prep.fail = {};
+    await ui.press();
+    assert.ok(!ui.c.querySelectorAll(n => n.getAttribute?.('class') === 'v4-step-outcome')[0], 'a press that starts the run leaves no failure behind');
   });
 });
 

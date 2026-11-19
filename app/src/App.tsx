@@ -21,7 +21,7 @@ import { EXACT_TEXT } from "./exactText";
 import { ArrivalRecord, CompatibilityAdvisory, HistoryReferenceNotice, RunBringBack, RunPanel, SelectedWorkflow, hasUnsavedHistoryReference, isRecordedRun, runBringBackDefault, type OpenArrivalFileAct } from "./RunPanel";
 import { chatWorkflow, workflowArguments, workflowContext } from "./workflowSelection";
 import { FileActPanel, type FileActPanelHandle } from "./FileActPanel";
-import { NativeActivityView, activityModel, sameActivityGeneration, type NativeActivityHandle } from "./NativeActivity";
+import { ActivitySource, NativeActivityView, activityModel, sameActivityGeneration, type NativeActivityHandle } from "./NativeActivity";
 import { ContinuationContext, historyPageBinding, StoredItemPage, StoredTurnPage, storedStopFor } from "./NativeHistory";
 import { ObserverAttachment } from "./ObserverAttachment";
 import { PlanModeControl } from "./PlanMode";
@@ -160,7 +160,9 @@ export type StartOutcome = { opened: string } | { failed: string } | { notConfir
 /** The new conversation's own settings, which the App holds: its role and model, with their panels. `binding`
  * changes whenever the settings a start would send change (the chooser's edits, role, source and home): a Send
  * captured before such a change starts nothing. */
-export type StartSettings = { role: string; model: string; blocked: string; rolePanel: ReactNode; modelPanel: ReactNode; notice?: ReactNode; binding?: string; /** Codex reports no account: the empty conversation says to sign in, and invites no first message. */ noAccount?: boolean; start: () => Promise<StartOutcome | null> };
+export type StartSettings = { role: string; model: string; blocked: string; rolePanel: ReactNode; modelPanel: ReactNode; notice?: ReactNode; binding?: string; /** Codex reports no account: the empty conversation says to sign in, and invites no first message. */ noAccount?: boolean;
+  /** Starts the conversation; with `report`, the host's result line goes to it instead of the App's response line (RunAct). */
+  start: (report?: (line: string) => void) => Promise<StartOutcome | null> };
 
 // The host's refusals of a start that are made before anything is dispatched, so nothing started
 // (lib.rs start_conversation: start_source/check_start_source, runtime_session.rs:2803, 2806, 2933; access.rs:160,
@@ -195,6 +197,14 @@ function SettingsTop({ host, account, threadId, openConnection, openLevel }: { h
     <div><dt>Model and effort</dt><dd><span>Chosen for each conversation, on the line under the message box.</span></dd></div>
   </dl>;
 }
+/** How the host's line for a step is marked: the App's response line's own label and name (ActionFeedback). */
+const STEP_LINE = { label: "Response:", name: "The latest response, which may carry text the App received, not only the App's words" } as const;
+/** The host's line for a step whose own App sentence is in view: one action away, whole and marked. */
+function StepDetails({ line }: { line: string | null }) {
+  if (!line) return null;
+  return <details className="v4-step-details"><summary>Details</summary><AgentText block value={line} source="record" label={STEP_LINE.label} name={STEP_LINE.name} /></details>;
+}
+
 export function ConversationPanel({ reportChooser, localRoute = null, focusComposer, startAct, composerOffer, host, threadKey, setThreadKey, answer, readRequest, replyObservations, runAct, trialRunAct, send, observeOrdinaryView, steer, submitAttachments, observeAttachmentView, interrupt, checkPlanMode, codexBusy, forkConversation, handoffSend, handoffRead, activityNavigationRef, activityLink, preparedReveal, toolsHost = null, showTools, before, attachments, actionOutcome, startNew, pick = null, setPick, clearPick, pickDropped = false, showWorkflows, onRunStarted, readStatus }: { /** Receives the view's own choice of a conversation while the view takes a choice, else null. */
   reportChooser?: (choose: ((key: string) => void) | null) => void; localRoute?: LocalView | null; focusComposer?: number; startAct?: RunAct; composerOffer?: ComposerOffer | null; preparedReveal?: PreparedComposerReveal | null; activityNavigationRef?: Ref<NativeActivityHandle>; activityLink?: RequestActivityLink; forkConversation?: (generation: Json, sourceThread: string) => Promise<void>; handoffSend?: (id: string, text: string) => Promise<HandoffSendOutcome>; handoffRead?: (id: string) => Promise<HandoffSendOutcome>; codexBusy: boolean; host: Json; threadKey: string; setThreadKey: (key: string) => void; trialRunAct?: RunAct; answer: RequestAnswer; readRequest?: ReadRequestCustody; replyObservations?: Record<string, RequestReplyObservation>; runAct: RunAct; checkPlanMode: (generation: Json) => Promise<void>; submitAttachments: (generation: Json, thread: string, expected: string | null, text: string, owner: string, revision: number, refs: string[]) => Promise<Json>; observeAttachmentView?: (request: AttachmentRequest) => Promise<void>; send: (generation: Json, thread: string, text: string, mode?: "plan" | "default", model?: string, effort?: string) => Promise<Json>; observeOrdinaryView?: (request: OrdinaryTextRequest, isCurrent: () => boolean) => Promise<void>; steer: (generation: Json, thread: string, expected: string, text: string) => Promise<boolean | void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<boolean | void>;
   /** The right panel's "Conversation tools" element, where the conversation's other tools are drawn; without it they are drawn after the transcript. */
@@ -416,9 +426,9 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
       return sameActivityGeneration(now?.generation, press.generation) && (now?.homeRouting?.activeModeHomeClass ?? null) === press.home && now?.state === "ready" && now?.generationClosed !== true;
     };
     turnActionPending.current = true;
-    setBusy("starting the new conversation"); setError(""); setStartOutcome(null);
+    setBusy("starting the new conversation"); setError(""); setStartOutcome(null); setStepLine(null);
     try {
-      const outcome = await startNew.start();
+      const outcome = await startNew.start(setStepLine);
       if (!outcome) return;
       if ("failed" in outcome) { setStartOutcome({ kind: "failed", message: outcome.failed }); return; }
       if ("notConfirmed" in outcome) { holdStart(press.generation); setStartOutcome({ kind: "not-confirmed", message: outcome.reason }); return; }
@@ -598,6 +608,9 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
   // ---- A picked workflow: Send is "Start run", which runs the Run guide's steps in order (WorkflowPick.tsx) ----
   // The last press's outcome, for the conversation it concerns ("" for a new chat that was not started).
   const [pickOutcomeHeld, setPickOutcome] = useState<{ owner: string; kind: "alert" | "status"; words: string } | null>(null);
+  // The host's line for the last press of Start run or of the first message's Send: shown only with that press's own
+  // App sentence beside the message box, behind its Details, so a failed step is said once in view.
+  const [stepLine, setStepLine] = useState<string | null>(null);
   const pickOutcome = pickOutcomeHeld && pickOutcomeHeld.owner === (selected ? threadKey : "") ? pickOutcomeHeld : null;
   // The guide's acknowledgement of a start whose outcome is unknown names those runs; a later one starts unacknowledged.
   const [checkedRun, setCheckedRun] = useState<string | null>(null);
@@ -636,12 +649,12 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
     if (!pick || !pickReady || turnActionPending.current) return;
     const picked = pick, draft = text, revision = textRevision.current, owner = selected ? threadKey : "", pressedIn = host?.generation;
     turnActionPending.current = true;
-    setError(""); setStartOutcome(null); setPickOutcome(null);
+    setError(""); setStartOutcome(null); setPickOutcome(null); setStepLine(null);
     let outcome: PickRunOutcome;
     try {
       outcome = await runPickedWorkflow({ pick: picked, text: draft, thread: selected?.threadId ?? null, host,
-        start: () => startNew ? startNew.start() : Promise.resolve(null),
-        act: (command, args) => (startAct ?? runAct)(command, args),
+        start: () => startNew ? startNew.start(setStepLine) : Promise.resolve(null),
+        act: (command, args) => (startAct ?? runAct)(command, args, setStepLine),
         read: () => readStatus ? readStatus() : Promise.reject(Error("The App can't read its state here.")),
         step: words => setBusy(words), prepared: pickPrepared.current, attempted: pickAttempted.current, acknowledged: checkedRun });
     } finally { turnActionPending.current = false; setBusy(""); }
@@ -742,6 +755,9 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
       continueAs={role => { void roleAct("asking for a handoff summary", "continue_as_begin", { generation: selected.generation, threadId: selected.threadId, role }); }}
       forkUnavailable={host?.homeRouting?.activeModeHomeClass === LOCAL_MODE && !LOCAL_FORK_AVAILABLE ? LOCAL_FORK_UNAVAILABLE : undefined}
       fork={() => { void forkSelected(); }} /></details>}
+    {/* The activity's own account (whether anything is observed, its source and limits): here, one action away, so the
+        centre holds only the conversation. */}
+    {selected && <ActivitySource view={host?.nativeView} threadId={selected.threadId} />}
     {selected && <ContinuationContext key={`prior-work:${JSON.stringify([selected.generation, selected.threadId, selected.resumeRequestRef])}`} host={host} thread={selected} />}
     {handoffs.map((handoff: Json) => <ContinueAsPanel key={handoff.id} handoff={handoff} entries={startEntries(host)} homeClass={host?.homeRouting?.activeModeHomeClass ?? null} generation={host?.generation ?? null} busy={!!busy} ready={host?.state === "ready"} local={localRoute}
       start={(choice, source) => startContinueAs({ ...choice, entrySource: "person", modeHomeClass: source.modeHomeClass, generation: source.generation, role: handoff.targetRole ?? null, preselected: false, continueAs: handoff.id })}
@@ -867,10 +883,11 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
         <details><summary>Original message destination and choices</summary><p>Original ordinary text turn · conversation {ordinaryOutcome.request.threadId} · Home {ordinaryOutcome.request.generation.home} · App session {ordinaryOutcome.request.generation.appSession} · spawn {ordinaryOutcome.request.generation.spawnCounter} · {ordinaryOutcome.request.mode ?? "no mode override"} · requested model {ordinaryOutcome.request.model ?? "no override"} · requested effort {ordinaryOutcome.request.effort ?? "no override"}.</p></details>
       </div>}
       {startHeld && <p role="note" aria-label="Starting is paused">Starting is paused so a second conversation isn't made by mistake. Choose it on the left if it is there, or <button type="button" className="button-muted" disabled={!!busy} onClick={() => setStartDoubt(null)}>Start another conversation</button></p>}
-      {startOutcome && <p role="alert">{startOutcome.kind === "failed"
+      {startOutcome && <div className="v4-step-outcome"><p role="alert">{startOutcome.kind === "failed"
         ? <>The conversation was not started: <AgentText value={startOutcome.message} source="codex" label="Reported:" name={START_REASON_NAME} /> Your draft stays here; nothing was sent.</>
         : startOutcome.kind === "view-changed" ? "The conversation started, but the view changed before your message was sent. Nothing was sent; your draft stays here."
-        : <>The App could not confirm that a new conversation started{startOutcome.message ? <>: <AgentText value={startOutcome.message} source="codex" label="Reported:" name={START_REASON_NAME} /></> : "."} If it did start, it is listed on the left. Your message was not sent; your draft stays here.</>}</p>}
+        : <>The App could not confirm that a new conversation started{startOutcome.message ? <>: <AgentText value={startOutcome.message} source="codex" label="Reported:" name={START_REASON_NAME} /></> : "."} If it did start, it is listed on the left. Your message was not sent; your draft stays here.</>}</p>
+        <StepDetails line={stepLine} /></div>}
       {attachmentOutcome && <div aria-label="Attachment submission outcome">
         <p>Original {attachmentOutcome.request.expectedTurnId === null ? "Send" : "Steer"} with ordered attachments · conversation {attachmentOutcome.request.threadId} · Home {attachmentOutcome.request.generation?.home}{attachmentOutcome.request.expectedTurnId !== null && ` · expected turn ${attachmentOutcome.request.expectedTurnId}`}.</p>
         {attachmentOutcome.result.acknowledged
@@ -888,7 +905,7 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
       {attachmentsSelected && !attachOpen && <p className="v4-composer-status" aria-label="Selected attachments">Send sends your text without the selected attachments. To send them, open the attachments (⊕) and use “Send text and ordered attachments”.</p>}
       {running && !stopTarget && <p className="v4-composer-status" aria-label="Which turn Stop stops">Several turns are running here. Choose the one to stop under Conversation tools, in “Interrupt a live turn”.</p>}
       {pickDropped && !pick && <p role="status">The workflow you picked was removed: Codex or the workflow source changed. Pick it again under Workflows.</p>}
-      {pickOutcome && (pickOutcome.kind === "alert" ? <p role="alert">{pickOutcome.words}</p> : <p role="status">{pickOutcome.words}</p>)}
+      {pickOutcome && (pickOutcome.kind === "alert" ? <div className="v4-step-outcome"><p role="alert">{pickOutcome.words}</p><StepDetails line={stepLine} /></div> : <p role="status">{pickOutcome.words}</p>)}
       {pick && pickRuns?.unresolvedStart && <p><label><input type="checkbox" checked={checkedRun === pickRuns.holdKey} disabled={!!busy} onChange={event => setCheckedRun(event.target.checked ? pickRuns.holdKey : null)}/> I read the conversation and want to prepare a new run anyway</label>{" "}
         <small>The earlier start may have run; a new run sends the workflow again.</small></p>}
       {ownBusy && !Object.values(PICK_STEPS).includes(ownBusy as never) && <p>{ownBusy}: waiting for protocol response; no automatic retry.</p>}
@@ -921,7 +938,8 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
       <p id="ordinary-send-readiness" role="status" aria-live="polite" className={(pick ? !pickReady && (!!text || projectMissing || !!pickStop || !pickCurrent) : sendBlocked) ? "v4-composer-status" : "visually-hidden"}>{pick ? pickReadiness : sendReadiness}</p>
     </form>
     <div ref={contextLine} id={newChat ? "workspace-start" : undefined} className="chat-context" role="group" aria-label="Chat context">
-      <span>{newChat ? "Start in" : "Working in"}</span>
+      {/* Heard, not shown: the folder's words stay in what a screen reader reads, so the line keeps to fewer rows. */}
+      <span className="visually-hidden">{newChat ? "Start in " : "Working in "}</span>
       {selected && folder !== null && !inAppFolder
         ? <span className="chat-folder-fixed">{rowFolder === null ? "folder not reported by Codex" : <>Codex reports another folder: <AgentText value={rowFolder} source="codex" label="Folder:" name="The folder Codex reports for this conversation, not the App's words" /></>}</span>
         : <span className="chat-folder-fixed">{!selected && !newChat ? "no conversation available" : folder !== null ? <><span aria-hidden="true">▱ </span>{folderName(folder)}</> : "project folder not established"}</span>}
@@ -2512,7 +2530,7 @@ export function App() {
     : providerReading ? "Reading configured local providers…"
     : endpointBusy ? "A provider change is in progress."
     : !modelProvider.trim() ? "Choose how this conversation connects."
-    : !model.trim() ? "Not started — no model selected. Choose a model below."
+    : !model.trim() ? "Not started — no model selected."
     : !entryCompatible ? "This choice does not belong to the connection in use. Choose how it connects again."
     : rowChoiceStale ? rowChoiceNote
     : "";
@@ -2844,6 +2862,12 @@ export function App() {
     return () => clearInterval(t);
   }, []);
 
+  // A step's host line: on the App's response line, except a failed step's whose caller says it beside the message box
+  // in its own sentence (`report`): that line goes there, behind Details, and the response line is cleared, so the
+  // failure is said once in view. A refresh that fails afterwards then shows the fixed line alone.
+  const stepSaid = (report?: (line: string) => void) => (line: string, failed: boolean) => {
+    if (report && failed) { report(line); setMessage(""); } else setMessage(line);
+  };
   const act = async (cmd: string, args?: Record<string, unknown>) => {
     try {
       const r: Json = await invoke(cmd, args);
@@ -2862,7 +2886,8 @@ export function App() {
       && sameActivityGeneration(source?.generation, route.generation);
   };
   // Resolves to the start's outcome (StartOutcome), or null when nothing was sent.
-  const startConversation = async (): Promise<StartOutcome | null> => {
+  const startConversation = async (report?: (line: string) => void): Promise<StartOutcome | null> => {
+    const said = stepSaid(report);
     const source = currentHost.current;
     const mode = source?.homeRouting?.activeModeHomeClass;
     const submitted = shownChoice(choiceRef.current);
@@ -2896,9 +2921,9 @@ export function App() {
         setSignedInNotice(false);
         outcome = { opened };
       } else outcome = { notConfirmed: true };
-      setMessage(`thread_start: ${JSON.stringify(response)}`);
+      said(`thread_start: ${JSON.stringify(response)}`, !opened);
     } catch (error) {
-      setMessage(`thread_start: ${String(error)}`);
+      said(`thread_start: ${String(error)}`, true);
       // A refusal the host makes before dispatch started nothing; any other rejection leaves the start's effect unknown.
       outcome = startRefusedBeforeDispatch(error) ? { failed: hostMessage(error) } : { notConfirmed: true, reason: hostMessage(error) };
     } finally {
@@ -3177,22 +3202,24 @@ export function App() {
     });
     return outcome;
   };
-  const runAct: RunAct = async (command, args) => {
+  const runAct: RunAct = async (command, args, report) => {
+    const said = stepSaid(report);
     try {
       const result = await invoke(command, args);
-      setMessage(`${command}: ${JSON.stringify(result)}`);
+      said(`${command}: ${JSON.stringify(result)}`, false);
       return result;
-    } catch (e) { setMessage(`${command}: ${String(e)}`); }
+    } catch (e) { said(`${command}: ${String(e)}`, true); }
     finally { await refreshAfterAction(refresh, () => setMessage(withRefreshFailure)); }
   };
   // As runAct, but a host error rejects with the host's message, for a start
   // whose own panel reports the outcome (Continue as).
-  const startRunAct: RunAct = async (command, args) => {
+  const startRunAct: RunAct = async (command, args, report) => {
+    const said = stepSaid(report);
     try {
       const result = await invoke(command, args);
-      setMessage(`${command}: ${result === undefined ? "The host did not report an outcome." : JSON.stringify(result)}`);
+      said(`${command}: ${result === undefined ? "The host did not report an outcome." : JSON.stringify(result)}`, false);
       return result;
-    } catch (e) { setMessage(`${command}: ${String(e)}`); throw e; }
+    } catch (e) { said(`${command}: ${String(e)}`, true); throw e; }
     finally { await refreshAfterAction(refresh, () => setMessage(withRefreshFailure)); }
   };
   // A bring-back send the host could not confirm withdraws its pre-fill, so its
@@ -3472,13 +3499,16 @@ export function App() {
       requested target {JSON.stringify(trialObservation.relation.target)}): {String(trialObservation.limit).replace(/\.$/, "")}. The original command outcome is unchanged.
     </p>}</div>
   </>;
+  // A refused update or interrupt is said once, in the App's sentence; what the host replied stays behind Details with
+  // the request it answers, marked as text the App did not write.
+  const actionFailed = conversationOutcome?.native === "failed";
   const actionOutcome = conversationOutcome && <div aria-label="Original conversation action outcome">
     <p role="status">{conversationOutcome.native === "pending" ? "Waiting for the original native response."
-      : conversationOutcome.native === "failed" ? `Original native request failed: ${conversationOutcome.error}`
+      : actionFailed ? (conversationOutcome.command === "conversation_steer_text" ? "The update to the running turn failed." : "The request to interrupt the turn failed.")
       : conversationOutcome.command === "conversation_steer_text" ? "Native steering acknowledgment received; turn replacement and completion remain determined by native events."
       : "Native interrupt acknowledgment received; turn end and rollback are not established by this acknowledgment."} No automatic retry.</p>
     {conversationOutcome.observationLimit && <p role="status">{observationLine(conversationOutcome.observationLimit, "")} The original command outcome is unchanged.</p>}
-    <details><summary>Original request</summary><p>Original {conversationOutcome.command === "conversation_steer_text" ? "steering" : "interrupt"} request · conversation {conversationOutcome.args.threadId} · Home {conversationOutcome.args.generation?.home} · App session {conversationOutcome.args.generation?.appSession} · spawn {conversationOutcome.args.generation?.spawnCounter} · turn {conversationOutcome.args.expectedTurnId ?? conversationOutcome.args.turnId}.</p></details>
+    <details><summary>{actionFailed ? "Details" : "Original request"}</summary>{actionFailed && <AgentText block value={`${conversationOutcome.command}: ${conversationOutcome.error ?? ""}`} source="record" label={STEP_LINE.label} name={STEP_LINE.name} />}<p>Original {conversationOutcome.command === "conversation_steer_text" ? "steering" : "interrupt"} request · conversation {conversationOutcome.args.threadId} · Home {conversationOutcome.args.generation?.home} · App session {conversationOutcome.args.generation?.appSession} · spawn {conversationOutcome.args.generation?.spawnCounter} · turn {conversationOutcome.args.expectedTurnId ?? conversationOutcome.args.turnId}.</p></details>
   </div>;
   const attachmentPanel = <div id="workspace-attachments"><AttachmentSelectionPanel data={host?.attachmentSelections} act={async (command, args) => {
     await commandThenRefresh(() => invoke(command, args), async () => { applyHost(await readHost(invoke<Json>("host_status"))); }, () => setMessage(withRefreshFailure));

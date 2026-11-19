@@ -197,7 +197,7 @@ test('Start says why it is unavailable until a model is chosen; the only connect
   const shownWhy=()=>line()?.getAttribute('class')==='visually-hidden'?undefined:line()?.textContent;
   await change(chatInput(c),'First message');
   // In view, under the message box, while no model is chosen: not only inside the model panel.
-  assert.equal(props(sendButton(c)).disabled,true);assert.match(shownWhy(),/^Not started — no model selected\. Choose a model below\. Your draft stays here\.$/);
+  assert.equal(props(sendButton(c)).disabled,true);assert.match(shownWhy(),/^Not started — no model selected\. Your draft stays here\.$/);
   assert.ok(inView(line()),'the reason is in view');
   // The connection and the model are in the settings line's Model panel: opened first, then read there, in view.
   const inUse=await inSetting(c,React.act,'Model',node=>node.getAttribute?.('aria-label')==='Connection in use');

@@ -17,7 +17,10 @@ type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 // the host's fixed vocabularies are the App's words only for a value the App
 // recognises. A button carries only the App's words.
 
-export type RunAct = (command: string, args: Record<string, unknown>) => Promise<unknown>;
+/** A host command run for the person. Its result line (the command's name and what the host returned or refused with) is
+ * shown on the App's response line, or, where `report` is given, handed to it instead: a step whose own App sentence
+ * is said beside the message box keeps the host's line one action away there (ConversationPanel, StepDetails). */
+export type RunAct = (command: string, args: Record<string, unknown>, report?: (line: string) => void) => Promise<unknown>;
 const list = (value: Json): Json[] => (Array.isArray(value) ? value : []);
 const box = { border: "1px dashed #777", padding: "4px 8px", margin: "4px 0 8px 16px" };
 

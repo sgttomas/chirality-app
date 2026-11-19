@@ -190,7 +190,7 @@ test('the connection in use is for new conversations only: an existing conversat
   }, {...snapshotFor(), threads:[existing]});
 });
 
-test('a long already-safe App response keeps its distinct tail in optional details; a start error stays direct', async () => {
+test('a long already-safe App response keeps its distinct tail in optional details; a start error stays direct, said once', async () => {
   const response = {acknowledged:false, error:'Explicit negative acknowledgment.', notice:'Invented safe App response '.repeat(40), tail:'distinct-response-tail-6921'};
   let refuse = false;
   await mounted(async command => {
@@ -205,20 +205,29 @@ test('a long already-safe App response keeps its distinct tail in optional detai
     assert.equal(ui.issued().filter(c => c.command === 'read_available_models').at(-1).args.atPersonPress, true);
     await ui.press('Use model model-b');
     await ui.press('Start thread');
-    const feedback = region(ui.c, 'Latest App response');
+    // A start the reply does not confirm is said in the start's own sentence beside the message box; the reply, whole
+    // and marked, is behind its closed Details, and nothing of it is said again above the conversation.
+    assert.ok(!region(ui.c, 'Latest App response'), 'said once');
+    const feedback = ui.c.querySelectorAll(node => node.getAttribute('class') === 'v4-step-outcome')[0];
     const details = nodes(feedback, 'details')[0];
     assert.ok(details); assert.equal(!!props(details).open, false);
     const expected = `thread_start: ${JSON.stringify(response)}`;
     assert.ok(expected.length > 600);
     assert.equal(agentBlockText(agentBlocks(details)[0]), expected);
+    assert.ok(agentBlockText(agentBlocks(details)[0]).includes('distinct-response-tail-6921'), 'its distinct tail is kept');
     assert.doesNotMatch(nodes(feedback, 'p')[0].textContent, /success|completed|accepted/i);
-    assert.ok(nodes(feedback, 'p').some(node => node.textContent === 'acknowledged: false'));
-    assert.ok(nodes(feedback, 'p').some(node => node.textContent === 'error: Explicit negative acknowledgment.'));
+    assert.match(nodes(feedback, 'p')[0].textContent, /^The App could not confirm that a new conversation started\./);
     // The negative acknowledgement left that start unconfirmed, so the person says to start another first.
     assert.ok(await startAnotherAfterPause(ui.c, React.act));
+    // A refusal is said once, directly, in the start's own sentence beside the message box; the host's line, whole and
+    // marked, is behind its Details, and the App's response line holds nothing of it.
     refuse = true; await ui.press('Start thread');
-    assert.equal(nodes(feedback, 'details').length, 0);
-    assert.match(nodes(feedback, 'p')[0].textContent, /Explicit fixture refusal; nothing admitted\./);
+    assert.ok(!region(ui.c, 'Latest App response'), 'not said a second time above the conversation');
+    const said = ui.c.querySelectorAll(node => node.getAttribute('class') === 'v4-step-outcome')[0];
+    assert.match(nodes(said, 'p')[0].textContent, /^The App could not confirm that a new conversation started: Reported: Explicit fixture refusal; nothing admitted\./);
+    const hostLine = nodes(said, 'details')[0];
+    assert.equal(!!props(hostLine).open, false);
+    assert.equal(agentBlockText(agentBlocks(hostLine)[0]), 'thread_start: Error: Explicit fixture refusal; nothing admitted.');
     assert.equal(ui.issued().filter(call => call.command === 'thread_start').length, 2, 'one dispatch per press, no retry');
   });
 });

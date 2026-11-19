@@ -10,7 +10,7 @@ import {agentPlain,agentBoxNames} from './support/agent-text.mjs';
 const url=new URL('../src/NativeActivity.tsx',import.meta.url);
 const compiled=ts.transpileModule(readFileSync(url,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}});
 const exports={};new Function('require','exports',compiled.outputText)(localRequire(createRequire(url)),exports);
-const {NativeActivityView,RowBoundary,activityModel,displayStateText,resultNotSupplied}=exports;
+const {ActivitySource,NativeActivityView,RowBoundary,activityModel,displayStateText,resultNotSupplied}=exports;
 
 // Invented rows in the host snapshot shape (native_items.rs), native items per the pinned 0.160.0 ThreadItem.
 const row=(turnId,observedOrder,native,extra={})=>({threadId:'T',turnId,native,displayState:'completed',standing:'live-observed',observationEnded:false,observedOrder,...extra});
@@ -68,10 +68,34 @@ test('messages are readable, escaped and never presented as acts',()=>{
   // The person's message under "You": its text as Codex recorded it, named as that, unformatted, with no control in it.
   const yours=html.match(/<article class="chat-bubble chat-bubble--operator" data-role="operator" aria-label="Your message"><p class="chat-speaker">You<\/p>[\s\S]*?<\/article>/)?.[0]??'';
   assert.match(yours,/<div class="chat-user-text" id="[^"]+">⟦Text Codex recorded as your message, not the App&#x27;s words: Please &lt;b&gt;list&lt;\/b&gt; files⟧<\/div>/);assert.doesNotMatch(yours,/<button|<a |<input|<select|<textarea/);
-  // The agent's message under the agent's label, with the phase Codex gave it.
-  assert.match(html,/<p class="chat-speaker">Agent<\/p><div class="v4-agent-message" id="[^"]+"><p class="v4-message-phase"><small>final answer<\/small><\/p>/);assert.ok(html.includes('Thinking about listing'));
+  // The agent's message under the agent's label; its phase is in the turn's details, not in the bubble.
+  assert.match(html,/<p class="chat-speaker">Agent<\/p><div class="v4-agent-message" id="[^"]+">⟦Text the agent wrote, not the App&#x27;s words: <p>Second answer<\/p>⟧<\/div>/);assert.ok(html.includes('Thinking about listing'));
+  assert.match(html,/<p class="v4-turn-phases"><small>The agent&#x27;s messages by phase, in order: <span>final answer<\/span>\.<\/small><\/p>/,'the phase stays in the turn\'s details');
   assert.ok(html.includes('Goal (⟦Source: thread/goal/updated⟧): ⟦Codex sent: Ship the slice⟧'));
   assert.ok(html.includes('Turn error: ⟦Codex sent: interrupted by request⟧'));
+});
+
+test('an answer that is not finished never reads as the final one: no phase label in the bubble, its state said; a partial answer is marked',()=>{
+  const turn={id:'turn-9',status:'inProgress',startedAt:900,items:[]};
+  const base={supplierStanding:'s',limits:[],revisions:[],descendants:[],goals:{},checklistGaps:[],turns:[turn],turnRecords:[{threadId:'T',turnId:'turn-9'}]};
+  const bubble=html=>html.match(/<article class="chat-bubble chat-bubble--assistant[^>]*>[\s\S]*?<\/article>/)?.[0]??'';
+  // Streaming: a final-answer message that is still in progress says it is in progress, and nowhere says "final answer" in view.
+  const streaming=render({...base,items:[row('turn-9',0,{id:'f',type:'agentMessage',text:'',phase:'final_answer'},{displayState:'in-progress',preview:'The report so f'})]});
+  const shown=bubble(streaming).replace(/<details[\s\S]*?<\/details>/g,'');
+  assert.ok(!shown.includes('final answer'),'no "final answer" label in the bubble');
+  assert.match(shown,/<b>in progress<\/b>/,'its state is said');
+  assert.ok(shown.includes('The report so f'));
+  // Interrupted: the message's state and the turn's end are both said.
+  const stopped=render({...base,turns:[{...turn,status:'interrupted'}],items:[row('turn-9',0,{id:'f',type:'agentMessage',text:'',phase:'final_answer'},{displayState:'interrupted',preview:'Half'})]});
+  assert.ok(!bubble(stopped).replace(/<details[\s\S]*?<\/details>/g,'').includes('final answer'));
+  assert.match(bubble(stopped),/<b>interrupted<\/b>/);assert.match(bubble(stopped),/Turn interrupted/);
+  // A completed partial answer is marked, so it is not read as the whole answer.
+  const partial=render({...base,turns:[{...turn,status:'completed'}],items:[row('turn-9',0,{id:'p',type:'agentMessage',text:'Part one.',phase:'partial_answer'})]});
+  assert.match(bubble(partial),/<div class="v4-agent-message" id="[^"]+"><p class="v4-message-phase"><small>partial answer<\/small><\/p>/);
+  // Commentary and a completed final answer carry no label in view.
+  const done=render({...base,turns:[{...turn,status:'completed'}],items:[row('turn-9',0,{id:'c',type:'agentMessage',text:'Looking.',phase:'commentary'}),row('turn-9',1,{id:'a',type:'agentMessage',text:'Done.',phase:'final_answer'})]});
+  assert.ok(!bubble(done).includes('v4-message-phase'));
+  assert.match(done,/The agent&#x27;s messages by phase, in order: <span>commentary<\/span><span>, <span>final answer<\/span><\/span>\.|The agent&#x27;s messages by phase, in order: <span>commentary<\/span><span>, final answer<\/span>\./,'both phases in the turn\'s details');
 });
 
 test('tool rows keep native status beside the display reading and invent no outcome',()=>{
@@ -143,10 +167,25 @@ test('the delegation view follows the host’s NPTD §7.1 reading, and arrived d
   assert.doesNotMatch(withReading(empty,undefined),/Delegation availab|Delegation not available|<h4>Descendants/,'no reading: nothing claimed');
 });
 
-test('empty and unselected states stay explicit',()=>{
+const source=(v,threadId='T')=>agentPlain(renderToStaticMarkup(React.createElement(ActivitySource,{view:v,threadId})));
+test('empty and unselected states stay explicit: the empty sentence is said with the activity\'s source, not in the transcript',()=>{
   assert.ok(render(view(),null).includes('Select a conversation'));
-  assert.ok(render({items:[],turns:[],revisions:[],descendants:[],goals:{},checklistGaps:[]},'T').includes('No activity observed'));
-  assert.ok(render(null,'T').includes('No activity observed'));
+  const empty={items:[],turns:[],revisions:[],descendants:[],goals:{},checklistGaps:[]};
+  for(const v of [empty,null]){
+    assert.ok(!render(v,'T').includes('No activity observed'),'the transcript of an empty conversation holds nothing of the App\'s');
+    assert.ok(source(v).includes('<p>No activity observed for this conversation in the current Codex generation.</p>'));
+  }
+  assert.ok(!source(view()).includes('No activity observed'),'said only where nothing is observed');
+});
+
+test('the activity\'s source and limits are stated whole, under a plain heading, with what Codex supplied marked',()=>{
+  const html=source(view());
+  assert.match(html,/^<section class="v4-activity-source" aria-label="Activity"><h3>Activity<\/h3><details class="v4-transcript-source"><summary>Activity source and limits<\/summary>/);
+  assert.ok(html.includes('This view shows what the App received live in this generation and what it has read from Codex history; earlier generations&#x27; observations remain under the native JSON in Host diagnostics.'));
+  assert.ok(html.includes('Codex types <code>0.160.0</code> · supplier standing ⟦Standing: unverified-development⟧.'));
+  assert.match(html,/⟦Limits:[^⟧]*Tool success is not checking, acceptance or reliance\.[^⟧]*Parent completion says nothing about children\.[^⟧]*⟧/,'the limits, whole and marked as text the App did not write');
+  assert.ok(source({...view(),typesPin:null,supplierStanding:null,limits:[]}).includes('Codex types not reported · supplier standing not established.'));
+  assert.ok(!renderRaw().includes('Activity source and limits'),'not in the transcript');
 });
 
 test('an unfinished message, reasoning or compaction never reads as finished',()=>{
@@ -192,8 +231,8 @@ test('a plan read from Codex history shows no revision number',()=>{
   const v=view();v.revisions[0].standing='recovered-from-supplier';v.items=v.items.map(r=>r.native.id==='turn-2-plan'?{...r,standing:'recovered-from-supplier'}:r);
   const html=render(v);
   assert.match(html,/Plan<\/b><div>.*· read from Codex history/);assert.ok(!html.includes('in this conversation'));
-  // The view's own account of its sources (Activity source and limits) names Codex history too; the row's label is once.
-  assert.equal(html.replace(/<details class="v4-transcript-source">[\s\S]*?<\/details>/,'').match(/read from Codex history/g).length,1,'the history label appears once');
+  // The view's own account of its sources (Activity source and limits) is in the conversation's tools; the row's label is once.
+  assert.equal(html.match(/read from Codex history/g).length,1,'the history label appears once');
   v.items=v.items.map(r=>r.native.id==='turn-2-plan'?{...r,standing:'live-observed'}:r);
   assert.match(render(v),/Plan<\/b> · revision read from Codex history/,'a recovered revision on a live row still says so');
   v.revisions[0].standing='something-else';assert.match(render(v),/Plan<\/b><div>/,'an unrecognised standing shows no ordinal');
@@ -232,7 +271,7 @@ test('off-schema collections and nested values render as text instead of throwin
   assert.ok(html.includes('[⟦Codex sent: {&quot;st&quot;:2}⟧] ⟦Step: {&quot;s&quot;:1}⟧'));
   assert.ok(html.includes('C · last observed Codex status ⟦Codex sent: {&quot;deep&quot;:&quot;status&quot;}⟧'));
   assert.ok(html.includes('D · last observed Codex status running'));assert.ok(html.includes('E · last observed Codex status not reported'));
-  assert.ok(render({items:{},turns:'x',turnRecords:5,revisions:{},descendants:'d',checklistGaps:{}},'T').includes('No activity observed'));
+  assert.ok(source({items:{},turns:'x',turnRecords:5,revisions:{},descendants:'d',checklistGaps:{}}).includes('No activity observed'));
   const latest=view();latest.revisions=[{kind:'checklist',revisionId:'l',threadId:'T',turnId:'turn-1',ordinal:1,content:{explanation:{e:1},steps:'not an array'}}];
   const latestHtml=render(latest);assert.ok(latestHtml.includes('revision 1 of 1'));assert.ok(latestHtml.includes('<ol></ol>'));assert.ok(latestHtml.includes('{&quot;e&quot;:1}'));
   for(const odd of ['__proto__','toString',{x:1}]) assert.equal(typeof displayStateText({displayState:odd}),'string');

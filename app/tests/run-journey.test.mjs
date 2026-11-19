@@ -521,7 +521,9 @@ test('a refused press is said in plain words only where nothing was done; the ch
   const chip = await mountChip({host:host(), data:first, pick:pickOf(first)});
   try {
     assert.doesNotMatch(chip.c.textContent, /can't be checked/, 'an included workflow has no library revisions to follow');
-    assert.match(region(chip.c, 'Workflow picked').textContent, /^coordinated-knowledge-work.*Chirality Library 9\.9\.9 · 3730d84debb5…/, 'source and revision of an included workflow');
+    assert.match(region(chip.c, 'Workflow picked').textContent, /^coordinated-knowledge-work.*Chirality Library 9\.9\.9/, 'the source of an included workflow');
+    assert.doesNotMatch(region(chip.c, 'Workflow picked').textContent, /3730d84debb5/, 'its digest is not on the chip; Details holds it');
+    assert.match(chip.c.textContent, /3730d84debb5/, 'and is still shown, in Details');
     assert.ok(region(chip.c, 'Text of coordinated-knowledge-work'), 'its text can be read from the chip');
     const roleLine = () => region(chip.c, "Role and the workflow's listed roles");
     assert.ok(roleLine() === undefined, 'no roles listed, no role line');

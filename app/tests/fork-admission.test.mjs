@@ -186,6 +186,17 @@ const {REFRESH_FAILED}=loadSrc('statusRefresh');
 for(const [label,reason,shown] of [['the gate sentence',READING_GATE,READING_GATE],['an ordinary refusal','refused-not-sent: invented fork refusal','Fork outcome is not confirmed: refused-not-sent: invented fork refusal']])test(`a Fork refused (${label}) then a failed refresh: its message, then the fixed line`,async()=>{
  await mounted({admit:false,refreshFails:true,fork:async()=>{throw reason;}},async ui=>{await ui.press('Fork (same role)');assert.ok(ui.c.textContent.includes(`${shown} ${REFRESH_FAILED}`),ui.c.textContent.slice(-600));assert.doesNotMatch(ui.c.textContent,/controlled observer refresh unavailable/);ui.recover();});
 });
+// A refused Start is said once, in its own sentence beside the message box, with the host's line behind its Details;
+// the failed refresh adds the fixed line once on the App's response line, never the raw diagnostic.
 for(const [label,reason] of [['the withdrawn sentence',READING_WITHDRAWN],['an ordinary refusal','refused-not-sent: invented start refusal']])test(`a Start refused (${label}) then a failed refresh: its message, then the fixed line`,async()=>{
- await mounted({refreshFails:true,start:async()=>{throw reason;}},async ui=>{await ui.press('Start thread');assert.ok(ui.c.textContent.includes(`thread_start: ${reason} ${REFRESH_FAILED}`),ui.c.textContent.slice(-600));assert.doesNotMatch(ui.c.textContent,/controlled observer refresh unavailable/);ui.recover();});
+ await mounted({refreshFails:true,start:async()=>{throw reason;}},async ui=>{await ui.press('Start thread');
+  const said=ui.c.querySelectorAll(n=>n.getAttribute?.('class')==='v4-step-outcome')[0];
+  assert.ok(said,'the start\'s own sentence');assert.match(said.textContent,/^The (conversation was not started|App could not confirm that a new conversation started): /,said.textContent);
+  const details=said.querySelectorAll(n=>n.localName==='details')[0];assert.ok(details&&!details.open,'the host\'s line is one action away');
+  assert.ok(details.textContent.includes(`thread_start: ${reason}`),'nothing the host said is dropped');
+  assert.equal(ui.c.textContent.split(`thread_start: ${reason}`).length-1,1,'the command-prefixed line once');
+  const line=ui.c.querySelectorAll(n=>n.getAttribute?.('aria-label')==='Latest App response')[0];
+  assert.ok(line&&line.textContent.split(REFRESH_FAILED).length-1===1,'the fixed line once, alone on the App\'s response line');
+  assert.ok(!line.textContent.includes(reason),'the start is not said a second time');
+  assert.doesNotMatch(ui.c.textContent,/controlled observer refresh unavailable/);ui.recover();});
 });
