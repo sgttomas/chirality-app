@@ -97,17 +97,15 @@ export type RequestReplyObservation = {
   command: { kind: "pending" | "written" | "dismissed" } | { kind: "rejected"; reason: string } | { kind: "unconfirmed"; writeResult: string };
   custody: RequestCustodyObservation;
 };
-/** Which of two buttons that can send the same native answer the person pressed
- * (a question's "send answers" and "decline" both may send `{answers:{}}`). Only
- * this closed App vocabulary is forwarded, so the host's confirmation can name
- * the button; the answer itself is unchanged. Other kinds send no choice. */
+/** The closed choice identifies which question button was pressed so the host can check it against the answer. */
 export type RequestPresentationChoice = "question-answers" | "question-decline";
 export type RequestAnswer = (request: Json, answer: Json, presentationChoice?: RequestPresentationChoice) => Promise<RequestReplyObservation | void>;
 export type ReadRequestCustody = (request: Json) => Promise<RequestCustodyObservation>;
 
-function replyObservationWords(observation: RequestReplyObservation): string {
+function replyObservationWords(observation: RequestReplyObservation, question = false): string {
   switch (observation.command.kind) {
-    case "pending": return "Answer command in progress; waiting for native confirmation or a reply write result.";
+    // A question's answers are sent with no native confirmation (DEL-01-04 REQ-001: conversation input).
+    case "pending": return question ? "Answer being sent; waiting for a reply write result." : "Answer command in progress; waiting for native confirmation or a reply write result.";
     case "written": return "The reply was written locally. Codex receipt or action is not confirmed by that write.";
     case "dismissed": return "Native confirmation dismissed; no reply write was attempted.";
     case "rejected": return "The native answer command reported an error (shown below). A complete local reply write is not established by this error alone.";
@@ -158,8 +156,8 @@ export const DECISION_WORDS = {
   "abort": "Don't allow; the agent waits for your next message"
 } as const;
 export const QUESTION_CHOICE_WORDS = {
-  "question-answers": "Send current question answers…",
-  "question-decline": "Decline to answer"
+  "question-answers": "Send answers",
+  "question-decline": "Decline to answer; the agent continues without one"
 } as const;
 // END GENERATED REQUEST ANSWER WORDS
 export function decisionWords(decision: Json): string {
@@ -465,7 +463,9 @@ function Subject({ request, item, place }: { request: Json; item: Json; place?: 
         })}</div>;
     }
     case QUESTION:
-      return p.isBlocking === false ? <div>Not blocking the turn: the agent continues while this waits.</div> : null;
+      // Codex marks an ordinary conversation's question `isBlocking: false`; at the pin the turn waits
+      // for the answer all the same (supplier_checks/level), so the card says nothing of it.
+      return null;
     case ELICITATION:
       return <div>
         {text(p.message ?? p.description) !== "" && <div>Message: <AgentText value={text(p.message ?? p.description)} label="Sent with the request:" name={ELICITATION_TEXT} /></div>}
@@ -493,16 +493,23 @@ export function requestItem(request: Json, view: Json): Json {
   return (Array.isArray(view?.items) ? view.items : []).find((row: Json) => row?.threadId === p.threadId && row?.turnId === p.turnId && row?.native?.id === p.itemId) ?? null;
 }
 
-/** The answers to send: each chosen option's label as offered, and each free answer as typed. */
-export function questionAnswers(questions: Json, chosen: Record<string, number>, drafts: Record<string, string>): Record<string, { answers: string[] }> {
+/** Where a question's selection or draft is kept in the card's state. A question's id is the agent's text and
+ * may be any string Codex accepts, `__proto__` and `constructor` included, which a plain object would answer from
+ * its prototype or lose; under this prefix no id meets one of those names. */
+const slot = (id: string): string => "q:" + id;
+/** The answers to send: each chosen option's label as offered, and each free answer as typed. Each is set as an
+ * own entry under its question's id, whatever that id is, so that none is lost from what is sent. */
+export function questionAnswers(questions: Json, chosen: Record<string, number | undefined>, drafts: Record<string, string | undefined>): Record<string, { answers: string[] }> {
   const out: Record<string, { answers: string[] }> = {};
+  const put = (id: string, answers: string[]) => Object.defineProperty(out, id, { value: { answers }, enumerable: true, writable: true, configurable: true });
   for (const q of Array.isArray(questions) ? questions : []) {
     const id = q?.id;
     if (typeof id !== "string") continue;
-    const at = chosen[id];
+    const at = chosen[slot(id)];
+    const draft = drafts[slot(id)];
     const option = at !== undefined && Array.isArray(q.options) ? q.options[at] : undefined;
-    if (option && typeof option.label === "string") out[id] = { answers: [option.label] };
-    else if (Object.prototype.hasOwnProperty.call(drafts, id)) out[id] = { answers: [drafts[id]] };
+    if (option && typeof option.label === "string") put(id, [option.label]);
+    else if (draft !== undefined) put(id, [draft]);
   }
   return out;
 }
@@ -606,7 +613,7 @@ export function NativeRequestCard({ request, view, answer, readRequest, observat
     <p><b>{unreconciled ? reply?.command.kind === "pending" ? "Answer command in progress" : "Current request state unavailable or not reconciled" : cardState(request)}</b>{unreconciled && <>. Last observed: {cardState(request)}</>}</p>
     {request?.settlement?.origin?.class === "app-rule" && <p><small>App rule: <SuppliedId value={request.settlement.origin.ruleName} label="Rule:" name="The App rule's name as recorded" /></small></p>}
     {reply && <section aria-label="Native reply observation">
-      <p>{replyObservationWords(reply)}</p>
+      <p>{replyObservationWords(reply, method === QUESTION)}</p>
       {reply.command.kind === "rejected" && <p><AgentText value={text(reply.command.reason)} source="codex" label="Reported:" name="What the native answer command reported, not the App's words" /></p>}
       {reply.command.kind === "unconfirmed" && <p>Write result: <SuppliedId value={reply.command.writeResult} label="Write result:" name="The reply write result as recorded" /></p>}
       {!reply.custody.available && reply.command.kind !== "pending" && <p role="alert">Request state unavailable: {reply.custody.reason ? <AgentText value={text(reply.custody.reason)} source="codex" label="Reported:" name="Why the request state could not be read, as reported; it may not be the App's words" /> : "the original request custody could not be read"}</p>}
@@ -636,13 +643,14 @@ export function NativeRequestCard({ request, view, answer, readRequest, observat
           {text(q.header) !== "" && <p>Heading: <AgentText value={text(q.header)} /></p>}
           <p>Question: {text(q.question) === "" ? "no wording reported" : <AgentText value={text(q.question)} />}</p>
           {/* The option's label is the agent's: the button carries the App's words and the label stands beside it. */}
-          {(q.options ?? []).map((o: Json, i: number) => <div key={i}><button disabled={busy} onClick={() => { setChosen(c => ({ ...c, [q.id]: i })); setDrafts(d => { const next = { ...d }; delete next[q.id]; return next; }); }}>Choose option {i + 1}</button>
+          {(q.options ?? []).map((o: Json, i: number) => <div key={i}><button disabled={busy} onClick={() => { setChosen(c => ({ ...c, [slot(q.id)]: i })); setDrafts(d => { const next = { ...d }; delete next[slot(q.id)]; return next; }); }}>Choose option {i + 1}</button>
             {" "}<AgentText value={text(o.label)} label={`Option ${i + 1}:`} />{text(o.description) !== "" && <> <AgentText value={text(o.description)} label="Its description:" /></>}</div>)}
-          {q.isOther && <label>Your own answer <input autoComplete="off" type={q.isSecret ? "password" : "text"} value={drafts[q.id] ?? ""} onChange={e => { const typed = e.target.value; setChosen(c => { const next = { ...c }; delete next[q.id]; return next; }); setDrafts(d => ({ ...d, [q.id]: typed })); }} /></label>}
-          <button disabled={busy} onClick={() => { setChosen(c => { const next = { ...c }; delete next[q.id]; return next; }); setDrafts(d => { const next = { ...d }; delete next[q.id]; return next; }); }}>Leave unanswered</button>
-          <p>Selected: {chosen[q.id] !== undefined ? q.isSecret ? "[masked]" : <SelectedOption options={q.options} index={chosen[q.id]} /> : drafts[q.id] !== undefined ? q.isSecret ? "[masked]" : "your own answer, in the field above" : "—"}</p>
+          {q.isOther && <label>Your own answer <input autoComplete="off" type={q.isSecret ? "password" : "text"} value={drafts[slot(q.id)] ?? ""} onChange={e => { const typed = e.target.value; setChosen(c => { const next = { ...c }; delete next[slot(q.id)]; return next; }); setDrafts(d => ({ ...d, [slot(q.id)]: typed })); }} /></label>}
+          <button disabled={busy} onClick={() => { setChosen(c => { const next = { ...c }; delete next[slot(q.id)]; return next; }); setDrafts(d => { const next = { ...d }; delete next[slot(q.id)]; return next; }); }}>Leave unanswered</button>
+          <p>Selected: {chosen[slot(q.id)] !== undefined ? q.isSecret ? "[masked]" : <SelectedOption options={q.options} index={chosen[slot(q.id)]} /> : drafts[slot(q.id)] !== undefined ? q.isSecret ? "[masked]" : "your own answer, in the field above" : "—"}</p>
         </div>)}
-        <button disabled={busy} onClick={() => send({ answers: questionAnswers(p.questions, chosen, drafts) }, "question-answers")}>{wordOf(QUESTION_CHOICE_WORDS, "question-answers")}</button>
+        {/* With nothing entered the answers would be empty, which Codex reads as a decline: only the decline button sends that. */}
+        <button disabled={busy || Object.keys(questionAnswers(p.questions, chosen, drafts)).length === 0} onClick={() => send({ answers: questionAnswers(p.questions, chosen, drafts) }, "question-answers")}>{wordOf(QUESTION_CHOICE_WORDS, "question-answers")}</button>
         <p>Unanswered questions are omitted; entered empty answers are preserved.</p>
         <button disabled={busy} onClick={() => send({ answers: {} }, "question-decline")}>{wordOf(QUESTION_CHOICE_WORDS, "question-decline")}</button>
       </>}
@@ -654,7 +662,7 @@ export function NativeRequestCard({ request, view, answer, readRequest, observat
         <button disabled={busy} onClick={() => send({ action: "decline", content: null, _meta: null })}>Decline <code>decline</code></button>
         <button disabled={busy} onClick={() => send({ action: "cancel", content: null, _meta: null })}>Cancel <code>cancel</code></button>
       </>}
-      <p>Sending opens a native confirmation. Closing this card leaves the request waiting; the App never answers it by itself.</p>
+      <p>{method === QUESTION ? "Both buttons submit directly from this card." : "Sending opens a native confirmation."} Closing this card leaves the request waiting; the App never answers it by itself.</p>
     </div>}
     {error && <ErrorLine kind={error.kind} reported={error.reported} />}
     <p><small>Register: state <SuppliedId value={request.state} label="State:" name={REGISTER} /> · reply <SuppliedId value={request.replyWriteResult} label="Reply:" name={REGISTER} /> · Codex confirmation <SuppliedId value={request.acknowledgmentObservation?.status ?? "not-observed"} label="Confirmation:" name={REGISTER} />{request.settlement && <> · settled by <AgentText value={text(request.settlement.origin)} source="codex" label="Origin:" name={REGISTER} /> as <SuppliedId value={request.settlement.kind} label="Kind:" name={REGISTER} /></>}</small></p>
