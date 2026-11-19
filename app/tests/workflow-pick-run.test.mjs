@@ -129,6 +129,8 @@ async function mounted(host, check) {
     },
     write: async text => React.act(async () => props(chatInput(c)).onChange({target: {value: text}})),
     press: async () => { const send = sendButton(c); assert.equal(!!props(send).disabled, false, 'Start run is offered'); await React.act(async () => { await props(send).onClick({preventDefault() {}}); }); },
+    /** Lets a press that reads again after a short wait (a run row given in part) finish. */
+    settle: async (ms = 1300) => React.act(async () => { await new Promise(resolve => setTimeout(resolve, ms)); }),
     alert: () => c.querySelectorAll(n => n.getAttribute?.('role') === 'alert').map(n => n.textContent).join('\n'),
     newChat: async () => {
       await React.act(async () => props(newChatButton(c)).onClick());
@@ -720,6 +722,23 @@ test('a preparation is reused only for what it was prepared for: another pick in
   });
 });
 
+test('a send whose first readings catch the run held by the host is read again: the run that opened is started, and no doubt is said', async () => {
+  // The host's own observation of a run just opened holds it for a moment; the status gives the row only in part then.
+  const host = standIn({threads: ['T1']});
+  let hidden = null, partial = 0;
+  host.before = command => { if (command === 'workflow_send_run') hidden = 'run:workflow:1'; };
+  host.view = read => { if (hidden && partial < 2) { partial += 1; read.workflowRoot.runs = read.workflowRoot.runs.map(r => r.reference === hidden ? partialRow(r.reference) : r); } };
+  await mounted(host, async ui => {
+    await ui.choose('T1'); await ui.pick(); await ui.write(TEXT);
+    await ui.press(); await ui.press(); await ui.settle(800);
+    assert.deepEqual(ui.names(), ['workflow_select_production_bundle', 'workflow_prepare_run', 'workflow_send_run']);
+    assert.equal(partial, 2, 'two readings gave the row in part');
+    assert.doesNotMatch(ui.alert(), /Start not confirmed|Nothing was sent|wasn't started/);
+    assert.equal(props(chatInput(ui.c)).value, '', 'the text went with the run');
+    assert.ok(!labelled(ui.c, 'Workflow for this message'), 'and the pick is used');
+  });
+});
+
 test('a send the host shows only in part is not confirmed: never "Nothing was sent", held until the person acknowledges, never sent again', async () => {
   const host = standIn({threads: ['T1']});
   let hidden = null, gone = false;
@@ -727,7 +746,7 @@ test('a send the host shows only in part is not confirmed: never "Nothing was se
   host.view = read => { read.workflowRoot.runs = read.workflowRoot.runs.filter(r => !(gone && r.reference === hidden)).map(r => r.reference === hidden ? partialRow(r.reference) : r); };
   await mounted(host, async ui => {
     await ui.choose('T1'); await ui.pick(); await ui.write(TEXT);
-    await ui.press(); await ui.press();
+    await ui.press(); await ui.press(); await ui.settle();
     assert.deepEqual(ui.names(), ['workflow_select_production_bundle', 'workflow_prepare_run', 'workflow_send_run']);
     assert.match(ui.alert(), /Start not confirmed — outcome unknown\. The App could not confirm whether Codex received the starting message\. It may have run\. The App will not resend it\./);
     assert.doesNotMatch(ui.alert(), /Nothing was sent|wasn't started/);

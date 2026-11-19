@@ -313,3 +313,45 @@ test('a conversation with a workflow chosen and no run of it says exactly that, 
   const earlier = await mount({data:data({selections:chosen('resolve-spacing'), runs:[open({generation:g2})]}), host:host()});
   try { assert.equal(region(earlier.c, 'Workflow chosen, not started'), undefined); assert.match(earlier.c.textContent, new RegExp(`^${NO_RUN}`)); } finally { await earlier.close(); }
 });
+
+// ---- A run the host gives only in part for one reading (hostReads.ts useRunsAsLastRead) ----
+// While another of its operations holds a run, the host's status gives it as {reference, state: "original run operation
+// pending", preparationOrder} (runtime_session.rs, the workflow view's run rows). The Run tab, the strip and the run
+// markers look for a conversation's run by its conversation, which that row does not carry.
+const {useRunsAsLastRead} = loadSrc('hostReads');
+const {guideResultWords} = loadSrc('RunJourney');
+const pendingRow = reference => ({reference, state:'original run operation pending', preparationOrder:0});
+
+test('a run row the host gives only in part is shown as it was last read whole; one never read whole stays as given; one no longer listed is forgotten', async () => {
+  const document = globalThis.document;
+  const c = document.createElement('div'); document.body.appendChild(c); const root = createRoot(c);
+  let shown = null;
+  function Probe({runs}) { shown = useRunsAsLastRead(runs); return null; }
+  const draw = runs => React.act(async () => root.render(React.createElement(Probe, {runs})));
+  try {
+    const whole = open();
+    await draw([whole]);
+    assert.deepEqual(shown, [whole]);
+    await draw([pendingRow('run-1')]);
+    assert.deepEqual(shown, [whole], 'the reading that caught the run held shows it as last read');
+    assert.ok(stripRun({context:{sourceRef:'src', generation:g}, runs:shown}, host(), 'T1'), 'so the conversation still has its run');
+    const ended = open({lifecycle:{state:'ended by the person', end:{cause:'completed'}}});
+    await draw([ended]);
+    assert.deepEqual(shown, [ended], 'a whole row replaces what was kept at once');
+    await draw([pendingRow('run-9')]);
+    assert.deepEqual(shown, [pendingRow('run-9')], 'a run never read whole stays as the host gave it: nothing is made up for it');
+    await draw([pendingRow('run-1')]);
+    assert.deepEqual(shown, [pendingRow('run-1')], 'and a run that left the list is not brought back from memory');
+    await draw(undefined);
+    assert.deepEqual(shown, []);
+  } finally { await React.act(() => root.unmount()); document.body.removeChild(c); }
+});
+
+test('End run refused because the host held the run at that instant says in the App\'s words that nothing was ended', () => {
+  const said = guideResultWords({command:'workflow_end_run', message:'Original run operation pending', failed:true, settled:true});
+  assert.equal(said.failed, true);
+  assert.match(said.words, /the App was reading this run at that moment, so nothing was ended\. Press the button again\.$/);
+  assert.equal(said.detail, 'Original run operation pending', 'the host\'s own line stays under details');
+  // The same host words from another command are not given these words.
+  assert.doesNotMatch(guideResultWords({command:'workflow_send_run', message:'Original run operation pending', failed:true, settled:true})?.words ?? '', /nothing was ended/);
+});

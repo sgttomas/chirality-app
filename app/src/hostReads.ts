@@ -171,3 +171,26 @@ export function useOrderedHost(): { host: Json; hostReads: HostReads; readHost: 
 export function shownBeforePress(reads: HostReads | undefined): boolean {
   return !!reads && reads.settledAt !== null && reads.applied <= reads.settledAt;
 }
+
+/**
+ * For showing a run, never for deciding what a press may do. While another of its own operations holds a run (a send
+ * waiting for Codex's reply; its observation of an open run, for a moment), the host's status gives that run only in
+ * part: its reference and "original run operation pending", with no conversation, lifecycle or status
+ * (runtime_session.rs, the run rows of the workflow view). A view that looks for a conversation's run would then lose
+ * the run for that reading and show "no run". Here such a row is given as this view last read it whole; a row never
+ * read whole stays as the host gave it, and a run the host no longer lists is forgotten.
+ */
+export function useRunsAsLastRead(runs: Json): Json[] {
+  const whole = useRef(new Map<string, Json>());
+  const rows: Json[] = Array.isArray(runs) ? runs : [];
+  const listed = new Set<string>();
+  const shown = rows.map(row => {
+    const reference = typeof row?.reference === "string" ? row.reference : "";
+    if (!reference) return row;
+    listed.add(reference);
+    if (typeof row.lifecycle?.state === "string") { whole.current.set(reference, row); return row; }
+    return whole.current.get(reference) ?? row;
+  });
+  for (const reference of [...whole.current.keys()]) if (!listed.has(reference)) whole.current.delete(reference);
+  return shown;
+}

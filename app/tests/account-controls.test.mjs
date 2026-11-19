@@ -60,7 +60,10 @@ const ROW = {
 const INSPECT = 'Open Connection and access to inspect the current status and available controls.';
 const NOT_READY = [
   ['no status yet', undefined, 'Reading connection status…', 'Waiting for the App to report its current connection.'],
-  ['starting', base({state: 'starting'}), 'Codex is starting…', INSPECT],
+  // The host's own words for a start under way (hosting.rs); it never reports "starting".
+  ['verifying', base({state: 'verifying'}), 'Codex is starting…', INSPECT],
+  ['spawning', base({state: 'spawning'}), 'Codex is starting…', INSPECT],
+  ['handshaking', base({state: 'handshaking'}), 'Codex is starting…', INSPECT],
   ['stopping', base({state: 'stopping'}), 'Codex is stopping…', INSPECT],
   ['refused', base({state: 'refused', startRefusalCause: 'busy'}), 'Codex was not started', 'The App was busy with another step when Codex was due to start, so it did not start it. Use Start Codex under Connection and access to try again.'],
   ['refused for this home', base({state: 'stopped', codexHome: 'h', lastStartRefusal: {reason: 'invented reason', home: 'h'}}), 'Codex was not started', INSPECT],
@@ -436,7 +439,7 @@ test('a sign-in Codex reports completed is said as completed until an account re
     await render(after('read-3', chatgpt(), ['read-1', 'read-2']));
     assert.ok(dialogOf(container), 'the same completion does not close it again');
     // The same completion seen again after a status in which it could not be read does not close a later opening.
-    await render({...after('read-3', chatgpt(), ['read-1', 'read-2']), state: 'starting'});
+    await render({...after('read-3', chatgpt(), ['read-1', 'read-2']), state: 'handshaking'});
     await render(after('read-3', chatgpt(), ['read-1', 'read-2']));
     assert.ok(dialogOf(container), 'a completion already seen never closes a later opening');
     assert.equal(statusReads(), 1); assert.deepEqual(calls, ['checkAgain'], 'one account read for the completion');

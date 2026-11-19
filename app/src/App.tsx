@@ -35,7 +35,7 @@ import { WorkflowRegistrationReview } from "./WorkflowRegistrationReview";
 import { BringBackComposer, CleanTrialPanel, DelegatedTrialComposer, composersFor, conversationKey, findConversation, hostMessage, prefillKept } from "./TrialComposer";
 import { preparedMessages, preparedMessageLimit, type PreparedMessage } from "./preparedMessages";
 import { ConversationContext, ProjectLibraryContext, appProjectFolder, conversationFromKey, workflowSourceLimit } from "./WorkflowContext";
-import { WorkspaceDisclosure, WorkspaceConnectionStatus, revealWorkspaceTarget, revealWorkspaceLink, registerWorkspaceViews } from "./DailyWorkspace";
+import { STARTING_STATES, WorkspaceDisclosure, WorkspaceConnectionStatus, revealWorkspaceTarget, revealWorkspaceLink, registerWorkspaceViews } from "./DailyWorkspace";
 import { ActivityStrip, MoreBack, MoreList, MORE_VIEWS, WorkspaceShell, isMoreView, isRightPanelTab, turnPhase, type MoreView, type RightPanelTab, RIGHT_PANEL_TABS, type TabSelection } from "./WorkspaceShell";
 import { Navigator, NO_NAVIGATOR_READ, folderName, navigatorAfterRead, samePath, waitingConversations, type EntryOpen, type NavigatorHeld, type NavigatorReading } from "./Navigator";
 import { AccountRow, accountDeclined, accountRowWords, sourceKey as accountSourceKey, useAccountController, type AccountCommands, type AccountController, type PanelAccountCommand } from "./AccountControls";
@@ -43,7 +43,7 @@ import { flushSync } from "react-dom";
 import { UnsentWork, useReportUnsent } from "./unsentWork";
 import { DesktopSetupPanel } from "./DesktopSetupPanel";
 // Every host command goes through hostReads' invoke, which marks when a command that may change the host settles.
-import { invoke, invokeTimedRead, useOrderedHost, shownBeforePress, POLL_MS } from "./hostReads";
+import { invoke, invokeTimedRead, useOrderedHost, useRunsAsLastRead, shownBeforePress, POLL_MS } from "./hostReads";
 import { readingAfterWrite, readingRefusal, readingSentence } from "./readingSentences";
 import { REFRESH_FAILED, commandThenRefresh, observationLine, observationText, refreshAfterAction, withRefreshFailure } from "./statusRefresh";
 import { FirstUseSetup } from "./FirstUse";
@@ -570,7 +570,8 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
   const [earlierOpen, setEarlierOpen] = useState<ReadonlySet<string>>(new Set());
   const toggleEarlier = (scope: string) => setEarlierOpen(open => { const next = new Set(open); if (next.has(scope)) next.delete(scope); else next.add(scope); return next; });
   const offers: Json[] = (host?.workflowRoot?.offers ?? []).filter((offer: Json) => selected && offer?.message?.threadId === selected.threadId);
-  const runs: Json[] = (host?.workflowRoot?.runs ?? []).filter((run: Json) => selected && run?.conversation === selected.threadId && run?.home === selected.generation?.home);
+  // The run markers in the transcript: a run the host gives only in part for a reading is shown as last read whole.
+  const runs: Json[] = useRunsAsLastRead(host?.workflowRoot?.runs).filter((run: Json) => selected && run?.conversation === selected.threadId && run?.home === selected.generation?.home);
   const offerAct: RunAct = async (command, args) => { setOfferBusy(true); try { return await runAct(command, args); } finally { setOfferBusy(false); } };
   // NIR §5.8: Continue as and Fork go through the host; neither changes this conversation's role.
   // Resolves to the host's result, or undefined when the command failed (runAct shows the error).
@@ -1570,6 +1571,9 @@ export function NewerRevisionNotice({ selection, busy, act }:{ selection: Json; 
 }
 
 export function WorkflowRootPanel({ viewStale = false, readFailure = null, data, host, act, observeView, openFileAct, fileActBusy = false, openPreparedMessage, operationalReference, offerComposer, showConversation, view, findInHistory, pick = null, setPick }:{ pick?: WorkflowPick | null; setPick?: (pick: WorkflowPick | null) => void; viewStale?: boolean; readFailure?: string | null; findInHistory?: (hint: string) => void; view?: string; showConversation?: (threadId: string, target?: string) => void; offerComposer?: (threadKey: string, text: string) => void; data: Json; host: Json; act: (command:string,args:Record<string,unknown>)=>Promise<Json>; observeView?: ()=>Promise<unknown>; openFileAct?: OpenArrivalFileAct; fileActBusy?: boolean; openPreparedMessage?: (item: PreparedMessage) => void; operationalReference?: Json }) {
+  // The Run tab shows a run the host gives only in part for a reading as it was last read whole (useRunsAsLastRead).
+  const runTabRuns = useRunsAsLastRead(data?.runs);
+  const runTabData = data ? { ...data, runs: runTabRuns } : data;
   const [name,setName]=useState("");
   const [revision,setRevision]=useState("");
   const [draftsState,setDraftsState]=useState<DraftsState>(initialDraftsState);
@@ -1687,7 +1691,7 @@ export function WorkflowRootPanel({ viewStale = false, readFailure = null, data,
     {unsavedRecords.length>0&&<aside aria-label="Workflow records not saved">{unsavedRecords.map((record,index)=><p role="alert" key={`${record.reference}:${index}`}>{record.reference}: {record.limit}</p>)}</aside>}
     {/* The Run tab reads the run of the conversation open in the centre (operationalReference), through the same press and state. */}
     {view !== undefined && <div id="view-current-run" data-workspace-view="current-run" hidden={view !== "current-run"}>
-    <RunTab data={data} host={host} thread={openThread} act={action} busy={busy} outcome={guideOutcome} showConversation={showConversation} viewStale={viewStale} readFailure={readFailure}/>
+    <RunTab data={runTabData} host={host} thread={openThread} act={action} busy={busy} outcome={guideOutcome} showConversation={showConversation} viewStale={viewStale} readFailure={readFailure}/>
     </div>}
     {/* The Workflows tab picks a workflow for the next message; the composer's Start run uses the pick. */}
     {view !== undefined && <div id="view-library" data-workspace-view="workflows" hidden={view !== "workflows"}>
@@ -2622,7 +2626,8 @@ export function App() {
     : providerReading ? "Reading configured local providers…"
     : `The provider chosen for how it connects was chosen from a provider list that is now out of date. Read configured local providers again; if the choice is not kept, choose it again from the list.`;
   // The first thing that keeps Start unavailable, in the order a person meets it.
-  const startBlocked = host?.state !== "ready" ? "Codex is not connected. Start it under Connection and access."
+  const startBlocked = STARTING_STATES.has(host?.state) ? "Codex is starting…"
+    : host?.state !== "ready" ? "Codex is not connected. Start it under Connection and access."
     : startPending ? "Starting the conversation…"
     : homePending ? "Changing the connection…"
     : providerReading ? "Reading configured local providers…"
@@ -3590,6 +3595,9 @@ export function App() {
   const waitingThreads = new Set(waitingRequests.flatMap(entry => [requestOwnOf(entry), requestRootOf(entry)]).filter((id): id is string => typeof id === "string"));
   // A status the last read did not refresh says nothing current about a turn: no live mark and nothing in the strip.
   const statusCurrent = !hostReads.failure;
+  // The bottom strip, likewise.
+  const stripRuns = useRunsAsLastRead(host?.workflowRoot?.runs);
+  const stripRoot = host?.workflowRoot ? { ...host.workflowRoot, runs: stripRuns } : host?.workflowRoot;
   const navigatorContext = { now: Date.now(), activeHome: typeof host?.homeRouting?.activeModeHomeClass === "string" ? host.homeRouting.activeModeHomeClass : null, generation: host?.generation ?? null, statusCurrent };
   // An entry not loaded in the current generation opens in History, selected there, where it can be continued: the
   // History panel's own selection (history_select), with the epoch its view holds now where that view is the entry's.
@@ -3728,7 +3736,7 @@ export function App() {
             <div className="woven-collapsed-settings">{accountRow}</div>
           </div>}
           strip={<ActivityStrip phase={statusCurrent ? turnPhase(shownRow, !!shownRow && waitingThreads.has(shownRow.threadId)) : null}
-            run={statusCurrent && !shownBeforePress(hostReads) && selectedThread ? stripRun(host?.workflowRoot, host, selectedThread) : null}/>}
+            run={statusCurrent && !shownBeforePress(hostReads) && selectedThread ? stripRun(stripRoot, host, selectedThread) : null}/>}
           centre={<div id="view-conversation" data-workspace-view="conversation" className="v4-centre" onFocus={enterConversation} onPointerDown={enterConversation}>
             <ConversationPanel pick={pick} setPick={setPick} clearPick={done => setPickState(current => current === done ? null : current)} pickDropped={pickDropped} showWorkflows={() => showView("workflows")} onRunStarted={moveToRun}
               readStatus={async () => { const read = await readHost(invoke<Json>("host_status")); applyHost(read); return accepted(); }} latest={() => ({ host: accepted() ?? currentHost.current, threadKey: threadKeyNow.current, pick: pickNow.current })} toolsHost={toolsHost} showTools={showToolsTarget} before={centreNotices} attachments={attachmentPanel} actionOutcome={actionOutcome} startNew={startNew} reportChooser={choose => setConversationChooser({ choose })} localRoute={fixedLocal} focusComposer={conversationReveal?.target === "ordinary-composer-text" ? conversationReveal.sequence : undefined} composerOffer={composerOffer} preparedReveal={preparedReveal} activityNavigationRef={activityNavigationRef} activityLink={activityLink} forkConversation={forkConversation} handoffSend={(id, text) => handoffAction("continue_as_send", { id, text })} handoffRead={id => handoffAction("continue_as_send_read", { id })} codexBusy={processBusy} host={host} threadKey={threadKey} setThreadKey={setThreadKey} answer={answerRequest} readRequest={readRequestCustody} replyObservations={replyObservations} runAct={runAct} trialRunAct={trialRunAct} startAct={startRunAct} send={ordinarySend} observeOrdinaryView={observeOrdinaryView} checkPlanMode={async (generation) => {

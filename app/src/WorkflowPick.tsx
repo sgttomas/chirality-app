@@ -481,7 +481,17 @@ export async function runPickedWorkflow(run: PickRun): Promise<PickRunOutcome> {
   held.reply = sendError !== null ? replyOf(sendError) : JSON.stringify(reply ?? null);
   let after: Json = null;
   try { after = await run.read(); } catch { after = null; }
-  const sent = list(after?.workflowRoot?.runs).find((row: Json) => row.reference === reference);
+  const rowOf = (status: Json) => list(status?.workflowRoot?.runs).find((row: Json) => row.reference === reference);
+  let sent = rowOf(after);
+  // A row the host gives only in part means another operation held the run at that instant (the host's own observation
+  // of a run just opened does). That is not yet a doubt about the send: read again, briefly, before settling on one.
+  for (let again = 0; after && sent && !completeRun(sent) && again < 4; again++) {
+    await (run.pause ?? (ms => new Promise<void>(resolve => setTimeout(resolve, ms))))(250);
+    let next: Json = null;
+    try { next = await run.read(); } catch { break; }
+    if (!next) break;
+    after = next; sent = rowOf(after);
+  }
   if (!after) {
     // What happened is not read: the present result of the press, and no second send.
     const said = guideResultWords({ command: "workflow_send_run", message: sendError === null ? "" : hostMessage(sendError), failed: sendError !== null, settled: true }, false);

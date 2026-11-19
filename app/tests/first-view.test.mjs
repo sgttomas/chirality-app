@@ -524,7 +524,7 @@ test('not signed in, the line stays and the empty conversation says to sign in, 
 });
 
 test('while Codex is not connected, the empty conversation invites no first message, in the transcript or in the message box', async () => {
-  for (const [name, host, title] of [['starting', base({state: 'starting'}), /Codex is starting…/], ['stopped', base({state: 'stopped'}), /Codex is not connected/],
+  for (const [name, host, title] of [['handshaking', base({state: 'handshaking'}), /Codex is starting…/], ['verifying', base({state: 'verifying'}), /Codex is starting…/], ['stopped', base({state: 'stopped'}), /Codex is not connected/],
     ['closed', noAccount(base({generationClosed: true})), /Codex is not connected/]]) {
     await mountedApp(host, async ui => {
       const centre = byId(ui.container, 'conversation');

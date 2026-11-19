@@ -88,6 +88,9 @@ export type ConnectionFacts = {
   /** The host status's `startRefusalCause` and `build`. */
   refusalCause?: string | null; build?: string | null;
 };
+/** The host's words for a start under way (hosting.rs: start-requested, verification passed, spawned), which read
+ * as one thing to a person: Codex is starting. The host never reports the word "starting" itself. */
+export const STARTING_STATES: ReadonlySet<string> = new Set(["verifying", "spawning", "handshaking"]);
 function connectionReading({ state, setupRequired, savedSetup, generationClosed, startRefusal, codexHome, refusalCause, build }: ConnectionFacts) {
   const ready = state === "ready" && generationClosed !== true;
   const homeRefusal = !setupRequired && !!state && NO_START_UNDER_WAY.has(state) && !!startRefusal?.reason && !!codexHome && startRefusal.home === codexHome;
@@ -97,7 +100,7 @@ function connectionReading({ state, setupRequired, savedSetup, generationClosed,
   // While Codex is running, the sign-in reading speaks instead (null here).
   const title = setupRequired ? savedSetup ? "Setup saved — reopen to use it" : "Setup needed"
     : !state ? "Reading connection status…" : ready ? null
-    : state === "starting" ? "Codex is starting…" : state === "stopping" ? "Codex is stopping…"
+    : STARTING_STATES.has(state) ? "Codex is starting…" : state === "stopping" ? "Codex is stopping…"
     : refused ? "Codex was not started"
     : state === "exited-unexpectedly" ? "Codex could not stay connected"
     : "Codex is not connected";

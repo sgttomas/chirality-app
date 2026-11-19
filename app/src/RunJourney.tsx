@@ -46,6 +46,9 @@ const REFUSAL_WORDS: { exact: string; commands: string[]; words: string }[] = [
   { exact: "Native history selection changed; refresh the displayed workflow choice", commands: CHECKED_FIRST, words: OUT_OF_DATE },
   // The App's own check before any host command is issued (workflowArguments).
   { exact: "Workflow source or chat changed; refresh the displayed choice before acting", commands: CHECKED_FIRST, words: "the conversation chosen here is no longer open in this view, so nothing was done. Choose the conversation again, then press the button again." },
+  // The run was held by another of the App's own operations at that instant (the host's observation of an open run does
+  // this for a moment): the command was refused before it did anything (lib.rs workflow_end_run, try_lock).
+  { exact: "Original run operation pending", commands: ["workflow_end_run"], words: "the App was reading this run at that moment, so nothing was ended. Press the button again." },
 ];
 const refusalWords = (command: string, reply: string): string | undefined => REFUSAL_WORDS.find(row => row.exact === reply && row.commands.includes(command))?.words;
 /** The host's states for a prepared run it did not send, in plain words. Each state itself says nothing was sent. What to do is the host's own text. */

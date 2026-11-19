@@ -833,7 +833,7 @@ test('the third reader\'s third finding: after a change of active home, the old 
     const question = () => /a question is waiting/.test(place(c).textContent);
     assert.ok(question(), 'the account home\'s question, read whole');
     // The api-key home is now active and its Codex is not ready yet: its requests are not read, and account's register is not shown under it.
-    setSnapshot(switched('starting')); await run(ms => ms <= 1000);
+    setSnapshot(switched('handshaking')); await run(ms => ms <= 1000);
     assert.ok(!question(), 'the account home\'s question is not relabelled as the api-key home\'s');
     assert.match(coverageRow(c, 'requests:api-key').textContent, /^Requests from Codex in the api-key home are not read while Codex is not running\. Checked at \d\d:\d\d:\d\d\./);
     assert.match(coverageRow(c, 'home:account').textContent, /^Requests in the account home are not read \(stopped\)\./, 'the home left is named as not read');

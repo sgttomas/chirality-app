@@ -214,7 +214,7 @@ test('readiness, runnable selection and an in-flight original action keep the ex
   const view = await mount(sample,() => pending.promise);
   let action;
   try {
-    const starting = structuredClone(sample.hostStatus);starting.state = 'starting';
+    const starting = structuredClone(sample.hostStatus);starting.state = 'handshaking';
     await view.render(starting);
     assert.equal(props(chainButton(articleFor(view.container,sample.currentRun))).disabled,true);
     const notRunnable = structuredClone(sample.hostStatus);selectionFor(notRunnable,sample.threadId).runnable = false;

@@ -640,7 +640,7 @@ test('after a development "unconfirmed" refusal, Start Codex under Connection an
   assert.deepEqual(started,{modeHomeClass:'account'},'pressing it asks the host to start Codex');
  });
 });
-for (const [state,closed,expected] of [['absent',false,'Codex is not connected'],['starting',false,'Codex is starting'],['ready',false,'Codex is running'],['ready',true,'Codex is not connected'],['refused',false,'Codex was not started'],['exited-unexpectedly',false,'Codex could not stay connected']]) {
+for (const [state,closed,expected] of [['absent',false,'Codex is not connected'],['spawning',false,'Codex is starting'],['handshaking',false,'Codex is starting'],['ready',false,'Codex is running'],['ready',true,'Codex is not connected'],['refused',false,'Codex was not started'],['exited-unexpectedly',false,'Codex could not stay connected']]) {
  test(`connection overview reports ${state}/${closed} without choosing or starting`,async()=>{
   await mounted({initialize:false,beforeMount:account=>{account.state=state;account.generationClosed=closed;}},async ui=>{
    const status=region(ui.c,'Workspace connection status');assert.ok(status);
