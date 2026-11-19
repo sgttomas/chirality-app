@@ -293,7 +293,7 @@ export function includedSelection(name, { selectedAt = at(3, 10), reference = "s
 import defineWorkText from "../../../src-tauri/resources/production_workflows/define-work/WORKFLOW.md?raw";
 export const RUN_REF = "run:workflow:8e0a2c4e-6a8c-4e0a-9c2e-4a6c8e0a2c4e"; // opaque_id("run:workflow:")
 export const CLIENT_MESSAGE = "workflow-message:0c2e4a6c-8e0a-4c2e-8a4c-6e8a0c2e4a6c"; // opaque_id("workflow-message:")
-export const PERSON_TEXT = "Define the work for the harbour survey's summary report: what the report must cover, who reviews it, and what counts as done. The survey notes are in docs/.";
+export const PERSON_TEXT = "Define the work for the harbour survey's summary report: what the report must cover, who reviews it, and what counts as done. The survey notes are in notes/.";
 const DEFINE_WORK = packageOf("define-work");
 const SUPPLY_FOLDER = ".chirality/workflow-supply/define-work/2d8f18aa3453810e855a366b3f6697320d735541ac92c1bce6d1a70ae3d3c05e/define-work"; // package_copy::content_folder, storage::key(revision)
 /** compose_run_text for define-work as an included (bundled) workflow, its other file supplied as a project copy (TX-7 (c)). */
