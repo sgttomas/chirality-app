@@ -34,8 +34,8 @@ import { BringBackComposer, CleanTrialPanel, DelegatedTrialComposer, composersFo
 import { preparedMessages, preparedMessageLimit, type PreparedMessage } from "./preparedMessages";
 import { ConversationContext, ProjectLibraryContext, appProjectFolder, conversationFromKey, workflowSourceLimit } from "./WorkflowContext";
 import { WorkspaceDisclosure, WorkspaceConnectionStatus, revealWorkspaceTarget, revealWorkspaceLink, registerWorkspaceViews } from "./DailyWorkspace";
-import { ActivityStrip, WorkspaceShell, isRightPanelTab, turnPhase, type RightPanelTab } from "./WorkspaceShell";
-import { AccountRow, Navigator, navigatorEntries, type NavigatorEntry } from "./Navigator";
+import { ActivityStrip, WorkspaceShell, isRightPanelTab, turnPhase, type RightPanelTab, RIGHT_PANEL_TABS } from "./WorkspaceShell";
+import { AccountRow, Navigator, navigatorEntries, navigatorProjects, type NavigatorEntry } from "./Navigator";
 import { flushSync } from "react-dom";
 import { UnsentWork, useReportUnsent } from "./unsentWork";
 import { DesktopSetupPanel } from "./DesktopSetupPanel";
@@ -895,7 +895,7 @@ function NativeConfirmationContent() {
     return () => { live = false; clearInterval(t); };
   }, []);
   if (!shown.length) return null;
-  return <section role="region" aria-label="Content named by an open native confirmation" style={{ border: "2px solid #a60", padding: 8 }}>
+  return <section className="native-confirmation-content" role="region" aria-label="Content named by an open native confirmation" style={{ border: "2px solid #a60", padding: 8 }}>
     <h2>Content named by an open native confirmation</h2>
     {shown.map((row: Json) => <article key={row.digest}>
       <h3>{wordOf(CONFIRMATION_KIND, row.kind) ?? "Content named by the confirmation"}</h3>{wordOf(CONFIRMATION_KIND, row.kind) === null && <p>Recorded kind: <AgentText value={row.kind} source="record" name="A kind of content the App does not recognise, as the host recorded it; the App does not vouch for its words" /></p>}
@@ -2112,6 +2112,10 @@ export function App() {
     if (sync) flushSync(apply); else apply();
   };
   const showView = (next: string) => { navigated.current = true; selectView(next); };
+  // The person's own focus or press inside the conversation view: they have gone to the conversation.
+  const enterConversation = () => { navigated.current = true; if (!conversationVisited) setConversationVisited(true); };
+  // A tab the person selects lands as its link did: its view shown and its disclosure open. Focus stays on the tab.
+  const selectTab = (next: RightPanelTab) => { showView(next); revealWorkspaceTarget(RIGHT_PANEL_TABS.find(tab => tab.id === next)?.target ?? "", false); };
   useEffect(() => registerWorkspaceViews(next => {
     if (!autoMoving.current) navigated.current = true;
     selectView(next, true);
@@ -2859,11 +2863,14 @@ export function App() {
   // of the active home's current generation, by the conversation it names.
   const waitingRequests = waitingReads.filter(r => r.state === "whole" || r.state === "limited").flatMap(r => r.entries)
     .filter(entry => entry.source === "supplier-request" && entry.target.kind === "request");
-  const requestThreadOf = (entry: WaitingEntry) => entry.target.kind === "request" ? entry.target.group.threadId : null;
-  const waitingThreads = new Set(waitingRequests.map(requestThreadOf).filter((id): id is string => typeof id === "string"));
-  // Today the App has one project, its project folder, holding the loaded conversations of the current generation.
-  const projects = [{ folder: appProjectFolder(host), entries: navigatorEntries(host, waitingThreads) }];
-  const answerIn = (entry: NavigatorEntry) => { const first = waitingRequests.find(request => requestThreadOf(request) === entry.threadId); if (first) goToWaiting(first); };
+  // A delegated agent's request is marked on the conversation it descends from, as "Waiting on you" groups it; the
+  // request's own conversation stays the one opened.
+  const requestRootOf = (entry: WaitingEntry) => entry.group.label.kind === "conversation" ? entry.group.label.threadId : null;
+  const waitingThreads = new Set(waitingRequests.map(requestRootOf).filter((id): id is string => typeof id === "string"));
+  // A status the last read did not refresh says nothing current about a turn: no live mark and nothing in the strip.
+  const statusCurrent = !hostReads.failure;
+  const projects = navigatorProjects(appProjectFolder(host), navigatorEntries(host, waitingThreads).map(entry => statusCurrent ? entry : { ...entry, live: false }));
+  const answerIn = (entry: NavigatorEntry) => { const first = waitingRequests.find(request => requestRootOf(request) === entry.threadId); if (first) goToWaiting(first); };
   const newChat = () => revealWorkspaceTarget("workspace-start", true);
   const openSettings = () => revealWorkspaceTarget("workspace-tools", true);
   const shownRow = selectedThread ? (host?.threads ?? []).find((t: Json) => t.threadId === selectedThread && JSON.stringify(t.generation) === JSON.stringify(host?.generation)) : null;
@@ -2891,15 +2898,15 @@ export function App() {
           };
       }}/>
         <NativeConfirmationContent />
-        {firstRead === "read" && <WorkspaceShell hidden={setupRequired} rightTab={rightTab} onRightTab={showView} rightCollapsed={rightCollapsed} setRightCollapsed={setRightCollapsed}
-          navigator={<Navigator projects={projects} selectedKey={threadKey} choose={conversationChooser.choose} answer={answerIn} newChat={newChat} openSettings={openSettings}/>}
+        {firstRead === "read" && <WorkspaceShell hidden={setupRequired} rightTab={rightTab} onRightTab={selectTab} rightCollapsed={rightCollapsed} setRightCollapsed={setRightCollapsed}
+          navigator={<Navigator projects={projects} selectedKey={threadKey} choose={conversationChooser.choose ? key => { navigated.current = true; conversationChooser.choose?.(key); } : null} answer={answerIn} newChat={newChat} openSettings={openSettings}/>}
           collapsedNavigator={openNavigator => <div className="woven-collapsed-strip" aria-label="Collapsed chat navigation">
             {projects.some(project => project.entries.some(entry => entry.needsAnswer)) ? <button type="button" aria-label="Needs answer" onClick={openNavigator}>!</button> : null}
             <button type="button" aria-label="New chat" onClick={newChat}>＋</button>
             <div className="woven-collapsed-settings"><AccountRow open={openSettings}/></div>
           </div>}
-          strip={<ActivityStrip phase={turnPhase(shownRow, !!shownRow && waitingThreads.has(shownRow.threadId))}/>}
-          centre={<div className="daily-workspace" onFocus={() => { if (!conversationVisited) setConversationVisited(true); }} onPointerDown={() => { if (!conversationVisited) setConversationVisited(true); }}>
+          strip={<ActivityStrip phase={statusCurrent ? turnPhase(shownRow, !!shownRow && waitingThreads.has(shownRow.threadId)) : null}/>}
+          centre={<div className="daily-workspace">
         {/* "Waiting on you" stays in view while the conversation scrolls: a sticky element sticks only within its
             parent, so this is a direct child of the element that scrolls. */}
         <div className="workspace-sticky">
@@ -2928,7 +2935,7 @@ export function App() {
           source {trialObservation.relation.source.sourceRef ?? "unavailable"}; home {trialObservation.relation.source.modeHomeClass ?? "unavailable"}; generation {JSON.stringify(trialObservation.relation.source.generation)};
           requested target {JSON.stringify(trialObservation.relation.target)}): {String(trialObservation.limit).replace(/\.$/, "")}. The original command outcome is unchanged.
         </p>}</div>
-        <div id="view-conversation" data-workspace-view="conversation" className="workspace-view">
+        <div id="view-conversation" data-workspace-view="conversation" className="workspace-view" onFocus={enterConversation} onPointerDown={enterConversation}>
         <WorkspaceDisclosure id="workspace-start" title="New conversation" description="Model and role — start explicitly" open={startOpenByDefault ? true : undefined} onToggle={setStartShown}>
           <h2>New conversation</h2>
           {signedInNotice && <p role="status" aria-label="Signed in">You're signed in. Choose a model to start a conversation.</p>}

@@ -2,12 +2,13 @@ import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, ty
 
 type Json = any;
 
-/** The right panel's tabs: the App's views other than the conversation, in this order. */
+/** The right panel's tabs: the App's views other than the conversation, in this order, each with the element a
+ * person lands on when they select it. */
 export const RIGHT_PANEL_TABS = [
-  { id: "run", label: "Run a workflow" },
-  { id: "make", label: "Make a workflow" },
-  { id: "history", label: "History" },
-  { id: "settings", label: "Settings & tools" },
+  { id: "run", label: "Run a workflow", target: "view-run" },
+  { id: "make", label: "Make a workflow", target: "view-make" },
+  { id: "history", label: "History", target: "workspace-history" },
+  { id: "settings", label: "Settings & tools", target: "workspace-tools" },
 ] as const;
 export type RightPanelTab = typeof RIGHT_PANEL_TABS[number]["id"];
 export const isRightPanelTab = (view: string): view is RightPanelTab => RIGHT_PANEL_TABS.some(tab => tab.id === view);
@@ -33,7 +34,8 @@ export function ActivityStrip({ phase }: { phase: TurnPhase }) {
 /** The right region's frame: the tab strip, the panel's own controls, and the selected view. Every view stays
  * mounted; the App hides the ones not selected. */
 export function RightPanel({ tab, onTab, expanded, onExpand, onClose, hidden, children }: {
-  tab: RightPanelTab; onTab: (tab: RightPanelTab) => void; expanded: boolean; onExpand: () => void; onClose: () => void; hidden: boolean; children: ReactNode;
+  /** `onExpand` is null where widening the panel would change nothing (the regions are stacked). */
+  tab: RightPanelTab; onTab: (tab: RightPanelTab) => void; expanded: boolean; onExpand: (() => void) | null; onClose: () => void; hidden: boolean; children: ReactNode;
 }) {
   const tabsRef = useRef<HTMLDivElement>(null);
   const keyDown = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -52,7 +54,7 @@ export function RightPanel({ tab, onTab, expanded, onExpand, onClose, hidden, ch
           aria-selected={tab === t.id} tabIndex={tab === t.id ? 0 : -1} onClick={() => onTab(t.id)}>{t.label}</button>)}
       </div>
       <div className="woven-right-panel-controls">
-        <button type="button" aria-label={expanded ? "Return panel" : "Expand panel"} title={expanded ? "Return panel" : "Expand panel"} aria-pressed={expanded} onClick={onExpand}>{expanded ? "⤡" : "⤢"}</button>
+        {onExpand ? <button type="button" aria-label={expanded ? "Return panel" : "Expand panel"} title={expanded ? "Return panel" : "Expand panel"} aria-pressed={expanded} onClick={onExpand}>{expanded ? "⤡" : "⤢"}</button> : null}
         <button type="button" aria-label="Collapse right panel" onClick={onClose}>×</button>
       </div>
     </header>
@@ -155,7 +157,7 @@ export function WorkspaceShell({ hidden, navigator, collapsedNavigator, centre, 
   const style = { ...(layout.columns ? { gridTemplateColumns: layout.columns } : {}), "--woven-activity-height": "32px" } as CSSProperties;
   const openNavigator = () => setNavigatorCollapsed(false);
   return <section ref={workspace} className={`woven-workspace woven-t3-workspace${layout.stacked ? " is-stacked" : ""}`} style={style} hidden={hidden}>
-    <main className="woven-dialogue-region" aria-label="Conversation">{centre}</main>
+    <section className="woven-dialogue-region" aria-label="Conversation">{centre}</section>
     <div className={`woven-region woven-region--navigator${navigatorCollapsed ? " is-collapsed" : ""}`}>
       <button type="button" className="woven-region-toggle button-muted" aria-label={navigatorCollapsed ? "Open Navigator" : "Close Navigator"} onClick={() => setNavigatorCollapsed(!navigatorCollapsed)}>
         {navigatorCollapsed ? <span className="woven-collapsed-brand" aria-hidden="true">C</span> : <span aria-hidden="true">‹</span>}
@@ -170,7 +172,7 @@ export function WorkspaceShell({ hidden, navigator, collapsedNavigator, centre, 
       onPointerDown={event => beginDrag(event, "right")} onKeyDown={event => resizeByKey(event, "right")}/>
     <aside className={`woven-region woven-region--coordination${rightCollapsed ? " is-collapsed" : ""}`}>
       {rightCollapsed ? <button type="button" className="woven-region-toggle button-muted" aria-label="Open right panel" onClick={() => setRightCollapsed(false)}>›</button> : null}
-      <RightPanel tab={rightTab} onTab={selectTab} expanded={expanded !== null} onExpand={toggleExpanded} onClose={() => { restoreExpanded(); setRightCollapsed(true); }} hidden={rightCollapsed}>{right}</RightPanel>
+      <RightPanel tab={rightTab} onTab={selectTab} expanded={expanded !== null} onExpand={layout.stacked ? null : toggleExpanded} onClose={() => { restoreExpanded(); setRightCollapsed(true); }} hidden={rightCollapsed}>{right}</RightPanel>
       {rightCollapsed ? <span className="woven-collapsed-label">{RIGHT_PANEL_TABS.find(t => t.id === rightTab)?.label}</span> : null}
     </aside>
     {strip}

@@ -14,6 +14,8 @@ export type NavigatorEntry = {
   live: boolean;
   /** The host status holds a request for it that waits for the person's answer. */
   needsAnswer: boolean;
+  /** The folder Codex reports the conversation working in; null where the row carries none. */
+  folder: string | null;
 };
 /** One project: a folder and the conversations listed under it. */
 export type NavigatorProject = {
@@ -33,7 +35,25 @@ export function navigatorEntries(host: Json, waiting: ReadonlySet<string>): Navi
   return rows.map((row: Json, i: number) => ({
     key: conversationKey(row), threadId: row.threadId, title: labels[i],
     live: row?.status?.type === "active", needsAnswer: waiting.has(row.threadId),
+    folder: typeof row?.cwd === "string" && row.cwd ? row.cwd : null,
   }));
+}
+
+const samePath = (a: string, b: string) => a.replace(/[\\/]+$/, "") === b.replace(/[\\/]+$/, "");
+/**
+ * The entries by project. A conversation is listed under the App's project only where Codex reports it working in
+ * that folder; one working elsewhere (a conversation continued from History, for example) is listed under its own
+ * folder, and one whose folder is not reported under no heading. The App's project comes first, listed even when empty.
+ */
+export function navigatorProjects(appFolder: string | null, entries: readonly NavigatorEntry[]): NavigatorProject[] {
+  const projects: NavigatorProject[] = appFolder !== null ? [{ folder: appFolder, entries: [] }] : [];
+  const unplaced: NavigatorEntry[] = [];
+  for (const entry of entries) {
+    if (entry.folder === null) { unplaced.push(entry); continue; }
+    const project = projects.find(p => p.folder !== null && samePath(p.folder, entry.folder as string));
+    if (project) project.entries.push(entry); else projects.push({ folder: entry.folder, entries: [entry] });
+  }
+  return unplaced.length ? [...projects, { folder: null, entries: unplaced }] : projects;
 }
 
 /** The folder's name: the last part of its path. */
