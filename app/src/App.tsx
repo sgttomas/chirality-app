@@ -152,11 +152,20 @@ type PreparedComposerReveal = { sequence: number; item: PreparedMessage; isCurre
  * confirmed in the generation it was issued for); a definite refusal, nothing started (`failed`, the host's message);
  * or an outcome the App could not confirm (`notConfirmed`, with the host's message where it gave one). Null when
  * nothing was sent. */
-export type StartOutcome = { opened: string } | { failed: string } | { notConfirmed: true; reason?: string };
+export type StartOutcome = { opened: string; own?: StartIntentChange } | { failed: string } | { notConfirmed: true; reason?: string };
+/** What the person has chosen for a new conversation, counted synchronously at each change: the settings a start
+ * sends (model, provider, entry, role), the conversation chosen (each navigation, so away and back is a change), and
+ * the home (its epoch, and whether a change of home is still pending). */
+export type StartIntent = { settings: number; navigation: number; home: number; homePending: boolean };
+/** The changes a confirmed start made itself: its selection of the new conversation and its consumption of the
+ * chooser. They are not the person's. */
+export type StartIntentChange = { settings: number; navigation: number };
 /** The new conversation's own settings, which the App holds: its role and model, with their panels. `binding`
  * changes whenever the settings a start would send change (the chooser's edits, role, source and home): a Send
  * captured before such a change starts nothing. */
-export type StartSettings = { role: string; model: string; blocked: string; rolePanel: ReactNode; modelPanel: ReactNode; notice?: ReactNode; binding?: string; start: () => Promise<StartOutcome | null> };
+export type StartSettings = { role: string; model: string; blocked: string; rolePanel: ReactNode; modelPanel: ReactNode; notice?: ReactNode; binding?: string; start: () => Promise<StartOutcome | null>;
+  /** The person's choices as they stand now, read after an await (StartIntent). */
+  intent?: () => StartIntent };
 
 // The host's refusals of a start that are made before anything is dispatched, so nothing started
 // (lib.rs start_conversation: start_source/check_start_source, runtime_session.rs:2803, 2806, 2933; access.rs:160,
@@ -275,7 +284,10 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
   // only while Codex offers plan mode. The word shown is the person's choice where they made one, else the last mode.
   const requestedMode = selected ? (host?.requestedModes ?? []).find((r: Json) => JSON.stringify(r.generation) === generationKey && r.threadId === selected.threadId) ?? null : null;
   const planOffered = host?.planMode?.state === "offered";
-  const [modeChoice, setModeChoice] = useState<{ owner: string; mode: "chat" | "plan" } | null>(null);
+  const [modeChoice, setModeChoiceState] = useState<{ owner: string; mode: "chat" | "plan" } | null>(null);
+  // Each choice of a mode, counted at the choice: a first message whose mode was changed after its press is not sent.
+  const modeRevision = useRef(0);
+  const setModeChoice = (choice: { owner: string; mode: "chat" | "plan" }) => { modeRevision.current++; setModeChoiceState(choice); };
   const modeChosen: "chat" | "plan" | null = modeChoice && modeChoice.owner === ordinaryOwner ? modeChoice.mode : null;
   const lastPlan = requestedMode?.mode === "plan";
   const modeShown: "chat" | "plan" = modeChosen ?? (lastPlan ? "plan" : "chat");
@@ -360,7 +372,17 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
     if (!pressCurrent() || threadKeyNow.current !== "") {
       setError("Not started: that Send belonged to an earlier view, text or choice of settings for the new conversation. Check them and press Send again."); return;
     }
-    const press = { generation: host?.generation, home: host?.homeRouting?.activeModeHomeClass ?? null, revision: textRevision.current, draft: text, mode: sendMode };
+    const press = { generation: host?.generation, home: host?.homeRouting?.activeModeHomeClass ?? null, revision: textRevision.current, draft: text, mode: sendMode,
+      modeRevision: modeRevision.current, intent: startNew.intent?.() ?? null };
+    // After the last await: nothing the person chose has changed since the press. The start's own selection of the
+    // new conversation and its consumption of the chooser (`own`) are not changes.
+    const unchanged = (own: StartIntentChange | undefined) => {
+      if (textRevision.current !== press.revision || modeRevision.current !== press.modeRevision) return false;
+      if (!press.intent) return true;
+      const now = startNew.intent?.();
+      return !!now && !now.homePending && now.home === press.intent.home
+        && now.settings === press.intent.settings + (own?.settings ?? 0) && now.navigation === press.intent.navigation + (own?.navigation ?? 0);
+    };
     // What is current after the start returns, read from the view as last rendered.
     const sourceCurrent = () => {
       const now = hostNow.current;
@@ -379,7 +401,7 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
       // The native start binds the generation it was dispatched with and returns that same one: another is no success.
       if (!sameActivityGeneration(generation, press.generation) || typeof threadId !== "string" || !threadId) { setStartOutcome({ kind: "not-confirmed" }); return; }
       const shown = threadKeyNow.current;
-      if (!sourceCurrent() || (shown !== "" && shown !== outcome.opened) || textRevision.current !== press.revision) { setStartOutcome({ kind: "view-changed" }); return; }
+      if (!sourceCurrent() || (shown !== "" && shown !== outcome.opened) || !unchanged(outcome.own)) { setStartOutcome({ kind: "view-changed" }); return; }
       const owner = ordinaryConversationRef(generation, threadId);
       const request: OrdinaryTextRequest = { generation: { ...generation }, threadId, text: press.draft, ...(press.mode ? { mode: press.mode } : {}) };
       setBusy(press.mode ? `sending in ${press.mode} mode` : "sending");
@@ -2061,6 +2083,8 @@ export function App() {
     chooserHome.current = { mode: homeClass, epoch: chooserHome.current.epoch + 1 };
   }
   const editRevision = useRef(0);
+  // The settings a new conversation's start sends (model, provider, entry and role), counted at each change.
+  const startSettingsRevision = useRef(0);
   const providerReadSequence = useRef(0);
   const providerReadPending = useRef(false);
   const [providerReading, setProviderReading] = useState(false);
@@ -2073,6 +2097,7 @@ export function App() {
     if (Object.hasOwn(patch, "modelProvider") || Object.hasOwn(patch, "entryId")) providerRowChoice.current = null;
     expireEndpointPreview();
     editRevision.current++;
+    startSettingsRevision.current++;
     const previous = choiceRef.current.homeEpoch === chooserHome.current.epoch ? choiceRef.current : emptyConversationChoice;
     const next = { ...previous, ...patch, homeEpoch: chooserHome.current.epoch };
     choiceRef.current = next;
@@ -2708,14 +2733,16 @@ export function App() {
       // dispatched with and returns that same one, so a reply naming another is not a success.
       const opened = startedConversationKey(response) !== null && sameActivityGeneration(response?.startGeneration, source.generation) ? startedConversationKey(response) : null;
       if (opened) {
+        // The changes the start makes itself, which the first message's send does not count as the person's.
+        const own: StartIntentChange = { settings: 0, navigation: 0 };
         // The new conversation is shown only while no conversation is chosen and the source is still the one the
         // start was issued for: a newer choice by the person is kept, never replaced.
-        if (threadKeyNow.current === "" && sameActivityGeneration(currentHost.current?.generation, source.generation)) setThreadKey(opened);
+        if (threadKeyNow.current === "" && sameActivityGeneration(currentHost.current?.generation, source.generation)) { setThreadKey(opened); own.navigation++; }
         // Consume only the submitted edit, before the independent refresh.
         // Even an edit away and back is a newer choice and must survive.
-        if (editRevision.current === revision && chooserHome.current.epoch === epoch) reviseChoice(emptyConversationChoice);
+        if (editRevision.current === revision && chooserHome.current.epoch === epoch) { reviseChoice(emptyConversationChoice); own.settings++; }
         setSignedInNotice(false);
-        outcome = { opened };
+        outcome = { opened, own };
       } else outcome = { notConfirmed: true };
       setMessage(`thread_start: ${JSON.stringify(response)}`);
     } catch (error) {
@@ -3266,9 +3293,10 @@ export function App() {
   // The empty conversation's own settings: the present start's role and model choices, in compact form; the
   // conversation is started with its first message.
   const startNew: StartSettings = { role, model, blocked: startBlocked, start: startConversation,
+    intent: () => ({ settings: startSettingsRevision.current, navigation: threadChoiceRevision.current, home: chooserHome.current.epoch, homePending: homePendingRef.current }),
     binding: JSON.stringify([editRevision.current, chooserHome.current.epoch, model, modelProvider, entryId, role, roleTouched, host?.generation ?? null, host?.homeRouting?.activeModeHomeClass ?? null]),
     notice: signedInNotice ? <p role="status" aria-label="Signed in">You're signed in. Choose a model to start a conversation.</p> : undefined,
-    rolePanel: <RoleChoice group="start-thread-role" roleSet={host?.roleSet} limits={host?.roleLimits} role={role} preselected={!roleTouched && !!role && role === host?.roleSet?.defaultRole} setRole={next => { expireEndpointPreview(); roleInitialized.current = true; setRoleTouched(true); setRole(next); }}/>,
+    rolePanel: <RoleChoice group="start-thread-role" roleSet={host?.roleSet} limits={host?.roleLimits} role={role} preselected={!roleTouched && !!role && role === host?.roleSet?.defaultRole} setRole={next => { expireEndpointPreview(); startSettingsRevision.current++; roleInitialized.current = true; setRoleTouched(true); setRole(next); }}/>,
     modelPanel: <div className="workspace-start-fields">
       <p><strong>How it connects</strong></p>
       <AccessRouteChoice homeClass={homeClass} modelProvider={modelProvider} entryId={entryId} model={model} disabled={startPending || homePending || providerReading || endpointBusy}

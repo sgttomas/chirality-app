@@ -409,6 +409,46 @@ test('the first message is sent only while the press is still current: start con
   });
 });
 
+test('one press binds the first message through its start and send: a settings edit, a home change still pending, a navigation away and back or a mode change since the press sends nothing', async () => {
+  // The person's choices as the parent counts them; the start reports the changes it made itself.
+  const own = {settings: 1, navigation: 1};
+  const confirmed = {...opened(), own};
+  const cases = [
+    ['nothing changed but the start\'s own selection and consumption', intent => { intent.settings += 1; intent.navigation += 1; }, true],
+    ['a settings edit (the model, provider, entry or role)', intent => { intent.settings += 2; intent.navigation += 1; }, false],
+    ['a navigation away and back', intent => { intent.settings += 1; intent.navigation += 3; }, false],
+    ['a home change still pending', intent => { intent.settings += 1; intent.navigation += 1; intent.homePending = true; }, false],
+    ['a home change', intent => { intent.settings += 1; intent.navigation += 1; intent.home += 1; }, false],
+  ];
+  for (const [what, during, sent] of cases) {
+    const intent = {settings: 4, navigation: 7, home: 2, homePending: false};
+    await newChatPanel(async ui => {
+      await ui.render({startNew: startSettings({intent: () => ({...intent})})});
+      await ui.type('Hello'); await ui.press();
+      during(intent);
+      await ui.answer(0, confirmed);
+      if (sent) assert.deepEqual(ui.sends.map(s => s.args[2]), ['Hello'], what);
+      else {
+        assert.deepEqual(ui.sends, [], `${what}: conversation_send_text was not issued`);
+        assert.ok(ui.alerts().includes(VIEW_CHANGED), what);
+        assert.equal(props(chatInput(ui.container)).value, 'Hello', `${what}: the draft stays`);
+      }
+    });
+  }
+  // The mode chosen on the settings line after the press: nothing is sent.
+  await newChatPanel(async ui => {
+    const intent = {settings: 0, navigation: 0, home: 0, homePending: false};
+    await ui.render({startNew: startSettings({intent: () => ({...intent})})});
+    await ui.type('Hello'); await ui.press();
+    intent.settings++; intent.navigation++;
+    const plan = ui.container.querySelectorAll(n => n.localName === 'input' && props(n).type === 'radio' && n.parentNode.textContent.includes('Plan (experimental)'))[0];
+    await React.act(async () => props(plan).onChange());
+    await ui.answer(0, confirmed);
+    assert.deepEqual(ui.sends, [], 'conversation_send_text was not issued');
+    assert.ok(ui.alerts().includes(VIEW_CHANGED));
+  }, {h: host({planMode: {state: 'offered'}})});
+});
+
 test('a definite refusal says nothing started; any other rejection says only what is established; a retry is not held', async () => {
   await newChatPanel(async ui => {
     await ui.type('Hello'); await ui.press();
