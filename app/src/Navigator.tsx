@@ -43,7 +43,7 @@ export function navigatorEntries(host: Json, waiting: ReadonlySet<string>): Navi
 }
 
 /** The same path as written, but for one trailing separator. Two spellings of one folder (an alias) do not match. */
-const samePath = (a: string, b: string) => a.replace(/\/$/, "") === b.replace(/\/$/, "");
+export const samePath = (a: string, b: string) => a.replace(/\/$/, "") === b.replace(/\/$/, "");
 /**
  * The entries by project. Only the App's own project, the one it has established, gets a heading, and a conversation
  * is listed under it only where Codex reports it working in exactly that folder. Every other conversation (one
