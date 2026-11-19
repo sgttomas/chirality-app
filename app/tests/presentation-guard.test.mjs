@@ -408,6 +408,7 @@ const SURFACES = [
   askedSurface('asked question, not read', 'not-read', ['asked-title', 'asked-option-one', 'asked-free-title']),
   askedSurface('asked question, followed', 'followed', ['asked-title', 'asked-option-two', 'A message from you follows this question.']),
   askedSurface('asked question, another waiting', 'another', ['asked-title', 'asked-option-one', 'Another question the agent asked in this conversation']),
+  askedSurface('asked question, not established', 'not-established', ['asked-title', 'asked-option-two', 'Chirality cannot establish whether a message from you follows this question.']),
   askedSurface('asked question, in a delegated agent\'s conversation', 'waiting', ['asked-title', 'asked-option-two', 'asked-free-title', "asked in a delegated agent's conversation"], true),
   {name: 'asked question in activity', data: {view: {generation: g, home: 'h', items: [askedItem], descendants: [], askedQuestions: {read: ['T'], waiting: [{threadId: 'T', turnId: 'turn-a', itemId: 'call-a', questions: askedEntry.questions}]}}},
     draw: d => React.createElement(NativeActivityView, {view: d.view, threadId: 'T'}), expect: ['asked-message-text', 'asked-title', 'asked-option-one', 'asked-free-title'], interact: true},

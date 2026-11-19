@@ -30,7 +30,7 @@ import { RecoveryCustodyPanel } from "./RecoveryCustodyPanel";
 import { CompareResult, initialDraftsState, LastCleanTrialLine, WorkflowDraftsView, type DraftsState } from "./WorkflowDrafts";
 import { LibraryEntries } from "./LibraryEntries";
 import { WorkflowRegistrationReview } from "./WorkflowRegistrationReview";
-import { AskedQuestionContext, type AskedBinding, type AskedSendResult, type AskedUnavailable } from "./AskedQuestionCard";
+import { AskedQuestionContext, askedAdmittedTopLevel, type AskedBinding, type AskedSendResult, type AskedUnavailable } from "./AskedQuestionCard";
 import { BringBackComposer, CleanTrialPanel, DelegatedTrialComposer, composersFor, conversationKey, findConversation, hostMessage, prefillKept } from "./TrialComposer";
 import { preparedMessages, preparedMessageLimit, type PreparedMessage } from "./preparedMessages";
 import { ConversationContext, ProjectLibraryContext, appProjectFolder, conversationFromKey, workflowSourceLimit } from "./WorkflowContext";
@@ -276,6 +276,8 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
     if (busy || turnActionPending.current) return { sent: false, unavailable: "busy" };
     if (!binding || ordinaryView.current.owner !== binding.owner || ordinaryView.current.epoch !== binding.epoch || unconfirmedSequence.current !== binding.attempts) return { sent: false, unavailable: "stale" };
     if (!selected || selected.threadId !== threadId || !ordinaryView.current.ready) return { sent: false, unavailable: "other-conversation" };
+    // The one rule the list and the card use: only an admitted top-level conversation, never one known as a delegated agent's.
+    if (!askedAdmittedTopLevel(host, threadId)) return { sent: false, unavailable: "no-send" };
     if (heldSend(threadId)) return { sent: false, unavailable: "unconfirmed" };
     if (!answer) return { sent: false, unavailable: "nothing-to-send" };
     const request: OrdinaryTextRequest = { generation: { ...selected.generation }, threadId, text: answer };
@@ -511,7 +513,7 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
         : item.kind === "delegated" ? <DelegatedTrialComposer pending={item.pending} conversations={currentThreads} busy={!!busy} ready={host?.state === "ready" && host?.generationClosed !== true} act={trialAct} />
         : <BringBackComposer pending={item.pending} conversations={currentThreads} busy={!!busy} ready={host?.state === "ready" && host?.generationClosed !== true} act={trialAct} />}
     </div>)}
-    <AskedQuestionContext.Provider value={{ view: host?.nativeView, threadId: selected?.threadId ?? null, send: sendAsked, binding: askedBinding, pending: !!busy, unavailable: askedUnavailable }}>
+    <AskedQuestionContext.Provider value={{ view: host?.nativeView, status: host, threadId: selected?.threadId ?? null, send: sendAsked, binding: askedBinding, pending: !!busy, unavailable: askedUnavailable }}>
     <NativeActivityView navigationRef={activityNavigationRef} key={`activity:${JSON.stringify([selected?.generation, selected?.threadId])}`} view={host?.nativeView} threadId={selected?.threadId} runs={runs} offers={offers}
       trialTurns={workflowRoot?.trialTurns} trialChildren={workflowRoot?.trialChildren} delegation={selected?.delegation}
       stopLabelFor={(thread, turn) => stopLabel(host?.codexStops, thread, turn, host?.stopRequests, appHome(host?.homeRouting?.activeModeHomeClass))}

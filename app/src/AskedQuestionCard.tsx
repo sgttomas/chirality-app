@@ -1,4 +1,4 @@
-import { createContext, useContext, useRef, useState } from "react";
+import { createContext, useContext, useLayoutEffect, useRef, useState } from "react";
 import { AgentText, Word, numberWords } from "./AgentText";
 import { EXACT_TEXT } from "./exactText";
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -15,10 +15,12 @@ export type AskedQuestionText = { title: string; options?: string[] | null };
 /** The question item: its conversation, turn and item, and its questions. */
 export type AskedQuestionEntry = { threadId: string; turnId: string; itemId: string; questions: AskedQuestionText[] };
 /** What is established about it: waiting on the person (it is the conversation's waiting entry); a message from the
- * person follows it (the conversation is read and nothing waits there); another question of the agent's in the same
- * conversation is the waiting entry (whether a message from the person follows this one is not established); or the
- * conversation's later messages are not read. */
-export type AskedStanding = "waiting" | "followed" | "another" | "not-read";
+ * person follows it (the reading names this item as one the App observed a message from the person after); another
+ * question of the agent's in the same conversation is the waiting entry (whether a message from the person follows this
+ * one is not established); the conversation is read and nothing waits there, but the reading does not name this item as
+ * followed (whether a message from the person follows it is not established); or the conversation's later messages are
+ * not read. */
+export type AskedStanding = "waiting" | "followed" | "another" | "not-established" | "not-read";
 /** Why the card cannot send now, in the App's words (ASKED_UNAVAILABLE). */
 export type AskedUnavailable = "not-connected" | "busy" | "unconfirmed" | "other-conversation" | "no-send" | "nothing-to-send" | "stale";
 /** What the conversation's send path reported: sent, not sent for a reason the App names, or a failure as reported. */
@@ -42,6 +44,7 @@ const STANDING_WORDS = {
   "not-read": "The agent asked this and went on: its turn did not wait for you. Your answer is sent as your next message in this conversation.",
   followed: "The agent asked this and went on: its turn did not wait for you.",
   another: "The agent asked this and went on: its turn did not wait for you.",
+  "not-established": "The agent asked this and went on: its turn did not wait for you.",
 } as const;
 const DELEGATED = "This question was asked in a delegated agent's conversation. Chirality sends no answer there; the agent you are talking with can relay it.";
 
@@ -58,10 +61,11 @@ function answerFor(question: AskedQuestionText, chosen: number | null | undefine
 }
 
 /** The exact text sent as the person's message. For each answered question: the line `You asked: ` and its title
- * quoted as a JSON string; then either `I choose your option N: ` and the option's text quoted the same way, or the
- * line `My answer:` and the person's text, exactly as typed, on the lines after it. Questions are separated by one
- * blank line; unanswered questions are left out. Quoting keeps the agent's line breaks, carriage returns and quotes
- * inside one line, so nothing of the agent's can read as one of the person's answers. Empty when none is answered. */
+ * quoted as a JSON string; then either `I choose your option N: ` and the option's text quoted the same way, or
+ * `My answer: ` and the person's text, exactly as typed, quoted the same way on the same line. Questions are separated
+ * by one blank line; unanswered questions are left out. Quoting keeps every line break, carriage return and quote of
+ * the agent's text and of the person's inside one line, so neither can read as another line of the message (a second
+ * answer, or a question the App quoted). Empty when none is answered. */
 export function askedQuestionReply(questions: readonly AskedQuestionText[], answers: AskedAnswers): string {
   // A question without a title as text is never sent: nothing the App cannot quote exactly goes into the message.
   return (Array.isArray(questions) ? questions : []).flatMap((question, i) => {
@@ -69,7 +73,7 @@ export function askedQuestionReply(questions: readonly AskedQuestionText[], answ
     const answer = answerFor(question, answers.chosen[i], answers.typed[i]);
     if (answer === null) return [];
     const asked = `You asked: ${JSON.stringify(question.title)}`;
-    return ["typed" in answer ? `${asked}\nMy answer:\n${answer.typed}` : `${asked}\nI choose your option ${answer.option + 1}: ${JSON.stringify(answer.text)}`];
+    return ["typed" in answer ? `${asked}\nMy answer: ${JSON.stringify(answer.typed)}` : `${asked}\nI choose your option ${answer.option + 1}: ${JSON.stringify(answer.text)}`];
   }).join("\n\n");
 }
 
@@ -86,14 +90,37 @@ export function askedQuestionsOf(value: Json): AskedQuestionText[] | null {
   return out;
 }
 
+const sameItem = (a: Json, entry: Pick<AskedQuestionEntry, "threadId" | "turnId" | "itemId">) =>
+  a?.threadId === entry.threadId && a?.turnId === entry.turnId && a?.itemId === entry.itemId;
+
 /** The standing of one question item, read from a home's native view snapshot (its askedQuestions). A view whose
- * observation has ended is not a current reading: the conversation's later messages are then not read. */
+ * observation has ended is not a current reading: the conversation's later messages are then not read. A message
+ * from the person follows the item only where `askedQuestions.followed` names that item (the one question, per read
+ * conversation with no waiting question, that the App observed a message from the person after); a missing or
+ * malformed `followed` names nothing. */
 export function askedStanding(view: Json, entry: Pick<AskedQuestionEntry, "threadId" | "turnId" | "itemId">): AskedStanding {
   const asked = view?.askedQuestions;
   if (!view || view.observationEnded === true || !Array.isArray(asked?.read) || !asked.read.includes(entry.threadId)) return "not-read";
   const waiting = (Array.isArray(asked.waiting) ? asked.waiting : []).find((w: Json) => w?.threadId === entry.threadId);
-  if (!waiting) return "followed";
-  return waiting.turnId === entry.turnId && waiting.itemId === entry.itemId ? "waiting" : "another";
+  if (waiting) return sameItem(waiting, entry) ? "waiting" : "another";
+  return Array.isArray(asked.followed) && asked.followed.some((f: Json) => sameItem(f, entry)) ? "followed" : "not-established";
+}
+
+const delegatedSource = (source: Json) => !!source && typeof source === "object" && !Array.isArray(source) && Object.hasOwn(source, "subAgent");
+
+/** Whether a conversation is part of the agent's question that does not wait: an admitted top-level conversation of
+ * the status's current generation. Its row is in the status's conversations (`threads`, which must be a list) with
+ * that generation, and no sign the status gives marks it as a delegated agent's: no row for it names a parent or a
+ * delegated agent's source (`threadSource.subAgent`), and the native view does not list it among descendants. The one
+ * rule for coverage, the list's entries, the card's answer control and the send. */
+export function askedAdmittedTopLevel(status: Json, threadId: unknown): boolean {
+  if (typeof threadId !== "string" || threadId === "" || !Array.isArray(status?.threads)) return false;
+  const generation = JSON.stringify(status?.generation);
+  const rows: Json[] = status.threads.filter((t: Json) => t?.threadId === threadId);
+  if (!rows.some((t: Json) => JSON.stringify(t?.generation) === generation)) return false;
+  if (rows.some((t: Json) => (typeof t?.parentThreadId === "string" && t.parentThreadId !== "") || delegatedSource(t?.threadSource))) return false;
+  const descendants: Json[] = Array.isArray(status?.nativeView?.descendants) ? status.nativeView.descendants : [];
+  return !descendants.some((d: Json) => d?.threadId === threadId);
 }
 
 export function AskedQuestionCard({ entry, standing, send, binding = null, pending, unavailable, delegated = false }: { entry: AskedQuestionEntry; standing: AskedStanding; send?: AskedSend; binding?: AskedBinding | null; pending: boolean; unavailable: AskedUnavailable | null; delegated?: boolean }) {
@@ -111,13 +138,33 @@ export function AskedQuestionCard({ entry, standing, send, binding = null, pendi
   const current = useRef(reply);
   current.current = reply;
   const blocked: AskedUnavailable | null = !send ? "no-send" : unavailable;
+  // A press belongs to one committed control that offers Send, once. Each drawing makes its own binding; the commit of
+  // a drawing that offers Send makes that binding the live one, and any other commit, or unmounting, leaves none live.
+  // A press acts only while its binding is live, and uses it before it sends: a handler kept from another drawing, from
+  // a card whose standing no longer offers an answer, from a card no longer mounted, or from a press already made,
+  // sends nothing. A later drawing that offers Send has a fresh binding, so the person can press again after a failure.
+  const offered = answering && !!send && reply !== "" && !sending && !pending && !blocked;
+  const livePress = useRef<{ used: boolean } | null>(null);
+  const answeringNow = useRef(false);
+  const pressBinding = { used: false };
+  useLayoutEffect(() => {
+    livePress.current = offered ? pressBinding : null;
+    answeringNow.current = answering;
+    return () => { livePress.current = null; answeringNow.current = false; };
+  });
   const choose = (i: number, option: number) => { setChosen(c => ({ ...c, [i]: option })); setTyped(t => { const next = { ...t }; delete next[i]; return next; }); setOutcome(null); };
   const clear = (i: number) => { setChosen(c => { const next = { ...c }; delete next[i]; return next; }); setTyped(t => { const next = { ...t }; delete next[i]; return next; }); setOutcome(null); };
   const press = async () => {
+    if (pressBinding.used) return;
     // The text sent is exactly the preview shown with this press.
     const text = reply;
+    if (livePress.current !== pressBinding || text !== current.current) {
+      // Said only where the card still offers answering; a card that no longer does says nothing of an old press.
+      if (answeringNow.current) setOutcome({ sent: false, unavailable: "stale" });
+      return;
+    }
     if (!send || !text || sending || pending || blocked) return;
-    if (text !== current.current) { setOutcome({ sent: false, unavailable: "stale" }); return; }
+    pressBinding.used = true; livePress.current = null;
     setSending(true); setOutcome(null);
     let result: AskedSendResult;
     try { result = await send(entry?.threadId, text, binding); }
@@ -132,6 +179,7 @@ export function AskedQuestionCard({ entry, standing, send, binding = null, pendi
       <p><b>Question from the agent</b> · <Word value={standing} words={STANDING_WORDS} source="record" label="Recorded:" name="A standing the App does not recognise" /></p>
       {standing === "followed" && <p>A message from you follows this question.</p>}
       {standing === "another" && <p>Chirality cannot establish whether a message from you follows this question. Another question the agent asked in this conversation is the one listed under "Waiting on you".</p>}
+      {standing === "not-established" && <p>Chirality cannot establish whether a message from you follows this question.</p>}
       {standing === "not-read" && <p>Chirality has not read this conversation's later messages, so it cannot say whether you replied.</p>}
     </>}
     {questions.map((question, i) => {
@@ -159,14 +207,15 @@ export function AskedQuestionCard({ entry, standing, send, binding = null, pendi
   </div>;
 }
 
-/** What the conversation's view hands every card it draws: the native view snapshot, the conversation shown, the send
- * path with the view it is bound to now, and whether a send is pending or unavailable. Absent outside a conversation's
- * own view, where nothing is sent from a card. */
-export type AskedQuestionHost = { view: Json; threadId: string | null; send: AskedSend; binding: AskedBinding | null; pending: boolean; unavailable: AskedUnavailable | null };
+/** What the conversation's view hands every card it draws: the native view snapshot, the host status it came with (for
+ * askedAdmittedTopLevel), the conversation shown, the send path with the view it is bound to now, and whether a send is
+ * pending or unavailable. Absent outside a conversation's own view, where nothing is sent from a card. */
+export type AskedQuestionHost = { view: Json; status: Json; threadId: string | null; send: AskedSend; binding: AskedBinding | null; pending: boolean; unavailable: AskedUnavailable | null };
 export const AskedQuestionContext = createContext<AskedQuestionHost | null>(null);
 
 /** The card at a completed agent message that carries questions with delivery "async"; nothing for any other item.
- * At an item of another conversation than the one shown (a delegated agent's), the card is information only. */
+ * At an item of another conversation than the one shown (a delegated agent's), or of one that is not an admitted
+ * top-level conversation (askedAdmittedTopLevel), the card is information only. */
 export function AskedQuestionMount({ row }: { row: Json }) {
   const host = useContext(AskedQuestionContext);
   const n = row?.native;
@@ -174,7 +223,7 @@ export function AskedQuestionMount({ row }: { row: Json }) {
   const questions = askedQuestionsOf(n.questions);
   if (!questions || typeof row.threadId !== "string" || typeof row.turnId !== "string" || typeof n.id !== "string") return <p>This message carries questions the App cannot read; Codex's item is shown as sent.</p>;
   const entry: AskedQuestionEntry = { threadId: row.threadId, turnId: row.turnId, itemId: n.id, questions };
-  const delegated = !!host && typeof host.threadId === "string" && row.threadId !== host.threadId;
+  const delegated = !!host && typeof host.threadId === "string" && (row.threadId !== host.threadId || !askedAdmittedTopLevel(host.status, row.threadId));
   return <AskedQuestionCard key={JSON.stringify([row.threadId, row.turnId, n.id])} entry={entry} standing={askedStanding(host?.view, entry)} delegated={delegated}
     send={host?.send} binding={host?.binding ?? null} pending={host?.pending ?? false} unavailable={host ? host.unavailable : "no-send"} />;
 }

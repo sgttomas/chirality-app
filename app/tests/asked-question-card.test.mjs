@@ -21,12 +21,12 @@ const elements = (container, tag) => container.querySelectorAll(element => eleme
 const button = (container, words) => elements(container, 'button').filter(element => element.textContent === words);
 const field = container => elements(container, 'textarea').filter(element => element.parentNode.textContent.startsWith('Your own answer'));
 
-test('the message quotes each answered question\'s title, then the option chosen by its number and quoted text, or the person\'s own text after a line of its own', () => {
+test('the message quotes each answered question\'s title, then the option chosen by its number and quoted text, or the person\'s own text quoted the same way', () => {
   assert.equal(askedQuestionReply(questions, {chosen: {0: 1}, typed: {}}), 'You asked: "Which invented colour?"\nI choose your option 2: "Invented blue"');
   assert.equal(askedQuestionReply(questions, {chosen: {0: 0, 2: 0}, typed: {1: 'Line one\nline two'}}),
-    'You asked: "Which invented colour?"\nI choose your option 1: "Invented red"\n\nYou asked: "Anything else?"\nMy answer:\nLine one\nline two\n\nYou asked: "Third invented question"\nI choose your option 1: "Only one"');
+    'You asked: "Which invented colour?"\nI choose your option 1: "Invented red"\n\nYou asked: "Anything else?"\nMy answer: "Line one\\nline two"\n\nYou asked: "Third invented question"\nI choose your option 1: "Only one"');
   // Typed text is the answer exactly as typed; text that is only white space is no answer.
-  assert.equal(askedQuestionReply(questions, {chosen: {0: 0}, typed: {0: '  my own  '}}), 'You asked: "Which invented colour?"\nMy answer:\n  my own  ');
+  assert.equal(askedQuestionReply(questions, {chosen: {0: 0}, typed: {0: '  my own  '}}), 'You asked: "Which invented colour?"\nMy answer: "  my own  "');
   assert.equal(askedQuestionReply(questions, {chosen: {}, typed: {0: '   ', 1: ''}}), '');
   // An option index that is not one of the question's options is no answer.
   assert.equal(askedQuestionReply(questions, {chosen: {0: 5, 1: 0}, typed: {}}), '');
@@ -40,8 +40,10 @@ test('the message quotes each answered question\'s title, then the option chosen
   assert.deepEqual(sentOdd.split('\n').map(line => line.split(':')[0]), ['You asked', 'I choose your option 2'], 'two lines: only the App\'s');
   assert.deepEqual(JSON.parse(sentOdd.split('\n')[0].slice('You asked: '.length)), odd[0].title, 'the title is carried exactly');
   assert.deepEqual(JSON.parse(sentOdd.split('\n')[1].slice('I choose your option 2: '.length)), odd[0].options[1], 'the option is carried exactly');
-  // The person's own text is theirs, exactly, line breaks and carriage returns included.
-  assert.equal(askedQuestionReply(odd, {chosen: {}, typed: {0: 'mine\r\nI choose your option 1: "x"'}}), 'You asked: "T‮\\u0007 « x »\\r\\nI choose your option 2: \\"No\\""\nMy answer:\nmine\r\nI choose your option 1: "x"');
+  // The person's own text is theirs, exactly, line breaks and carriage returns included, inside one quoted line.
+  const sentMine = askedQuestionReply(odd, {chosen: {}, typed: {0: 'mine\r\nI choose your option 1: "x"'}});
+  assert.equal(sentMine, 'You asked: "T‮\\u0007 « x »\\r\\nI choose your option 2: \\"No\\""\nMy answer: "mine\\r\\nI choose your option 1: \\"x\\""');
+  assert.equal(JSON.parse(sentMine.split('\n')[1].slice('My answer: '.length)), 'mine\r\nI choose your option 1: "x"', 'the typed text is carried exactly');
   // Arrays serve as the answers too.
   assert.equal(askedQuestionReply(questions, {chosen: [undefined, undefined, 0], typed: []}), 'You asked: "Third invented question"\nI choose your option 1: "Only one"');
 });
@@ -53,7 +55,8 @@ test('the questions of an item are read only in the pinned shape, and the standi
   assert.equal(askedStanding(null, entry), 'not-read');
   assert.equal(askedStanding({askedQuestions: {read: [], waiting: []}}, entry), 'not-read');
   assert.equal(askedStanding(view([{threadId: 'thread-a', turnId: 'turn-1', itemId: 'call-1'}]), entry), 'waiting');
-  assert.equal(askedStanding(view([]), entry), 'followed');
+  assert.equal(askedStanding(view([]), entry), 'not-established', 'no item named as followed: not established');
+  assert.equal(askedStanding({askedQuestions: {read: ['thread-a'], waiting: [], followed: [{threadId: 'thread-a', turnId: 'turn-1', itemId: 'call-1'}]}}, entry), 'followed');
   assert.equal(askedStanding(view([{threadId: 'thread-a', turnId: 'turn-2', itemId: 'call-2'}]), entry), 'another');
   assert.equal(askedStanding({...view([{threadId: 'thread-a', turnId: 'turn-1', itemId: 'call-1'}]), observationEnded: true}, entry), 'not-read', 'an ended observation is not a current reading');
 });
@@ -121,7 +124,7 @@ test('nothing is sent on render, on choosing an option or on typing; the press s
     await click(button(container, 'Choose option 2')[0]);
     await type(field(container)[1], 'Invented free answer');
     assert.deepEqual(sent, [], 'nothing sent by choosing or typing');
-    const expected = 'You asked: "Which invented colour?"\nI choose your option 2: "Invented blue"\n\nYou asked: "Anything else?"\nMy answer:\nInvented free answer';
+    const expected = 'You asked: "Which invented colour?"\nI choose your option 2: "Invented blue"\n\nYou asked: "Anything else?"\nMy answer: "Invented free answer"';
     assert.equal(preview(container).replaceAll('⏎', ''), expected, 'the message is shown, exactly, before the press');
     assert.ok(container.textContent.includes('Selected: option 2 Its text: Invented blue'), 'the choice is shown as the request card shows it');
     // Typing replaces a choice; choosing replaces typing: the field never holds the agent's option text.
@@ -139,15 +142,14 @@ test('nothing is sent on render, on choosing an option or on typing; the press s
   } finally { await done(); }
 });
 
-test('the preview shows a carriage return the person typed', async () => {
+test('the preview shows a carriage return the person typed, as the message carries it: quoted on the answer\'s line', async () => {
   const {container, done} = await mounted(React.createElement(AskedQuestionCard, {entry, standing: 'waiting', send: async () => ({sent: true}), pending: false, unavailable: null}));
   try {
     await type(field(container)[1], 'one\r\ntwo');
     const lines = elements(previewBox(container), 'div').filter(d => d.getAttribute?.('class') === 'agent-text-line');
-    assert.equal(lines.length, 4, 'the carriage return stays on its line rather than being folded into the line break');
-    const mark = loadSrc('AgentText').agentTextShown('\r');
-    assert.notEqual(mark, '\r');
-    assert.ok(lines[2].textContent.includes(`one${mark}`), 'the carriage return is marked where it is');
+    assert.equal(lines.length, 2, 'the typed line break and carriage return stay inside the quoted answer');
+    assert.ok(lines[1].textContent.includes('My answer: "one\\r\\ntwo"'), 'the carriage return is shown where it is');
+    assert.ok(!lines.some(line => line.textContent.includes('\r')), 'no carriage return reaches the message itself');
   } finally { await done(); }
 });
 
@@ -198,7 +200,8 @@ test('while a send is pending elsewhere the card does not send', async () => {
 test('the mount draws the card only at a completed agent message with questions delivered async, standing read from the view', () => {
   const row = (native, displayState = 'completed', threadId = 'thread-a') => ({threadId, turnId: 'turn-1', native, displayState});
   const asked = {id: 'call-1', type: 'agentMessage', text: 'x', delivery: 'async', questions};
-  const host = {view: {askedQuestions: {read: ['thread-a'], waiting: [{threadId: 'thread-a', turnId: 'turn-1', itemId: 'call-1', questions}]}}, threadId: 'thread-a', send: async () => ({sent: true}), binding: null, pending: false, unavailable: null};
+  const status = {generation: {appSession: 's'}, threads: [{generation: {appSession: 's'}, threadId: 'thread-a'}]};
+  const host = {view: {askedQuestions: {read: ['thread-a'], waiting: [{threadId: 'thread-a', turnId: 'turn-1', itemId: 'call-1', questions}]}}, status, threadId: 'thread-a', send: async () => ({sent: true}), binding: null, pending: false, unavailable: null};
   const html = (r, value = host) => unescape(renderToStaticMarkup(React.createElement(AskedQuestionContext.Provider, {value}, React.createElement(AskedQuestionMount, {row: r}))));
   assert.ok(html(row(asked)).includes('Send answers'));
   for (const other of [{...asked, delivery: undefined}, {...asked, delivery: 'sync'}, {...asked, questions: []}, {...asked, questions: null}, {...asked, type: 'userMessage'}]) assert.equal(html(row(other)), '', JSON.stringify(other));
@@ -214,7 +217,9 @@ test('at a question in a delegated agent\'s conversation the card is information
   const asked = {id: 'call-c', type: 'agentMessage', text: 'x', delivery: 'async', questions};
   const child = {threadId: 'thread-child', turnId: 'turn-c', native: asked, displayState: 'completed'};
   // The child's question is waiting in the view's reading; the conversation shown is its parent.
-  const host = {view: {askedQuestions: {read: ['thread-a', 'thread-child'], waiting: [{threadId: 'thread-child', turnId: 'turn-c', itemId: 'call-c', questions}]}}, threadId: 'thread-a', send: async () => ({sent: true}), binding: null, pending: false, unavailable: null};
+  // The status lists both as its conversations, and knows neither as a delegated agent's (see the descendant cases below).
+  const status = {generation: {appSession: 's'}, threads: ['thread-a', 'thread-child'].map(threadId => ({generation: {appSession: 's'}, threadId}))};
+  const host = {view: {askedQuestions: {read: ['thread-a', 'thread-child'], waiting: [{threadId: 'thread-child', turnId: 'turn-c', itemId: 'call-c', questions}]}}, status, threadId: 'thread-a', send: async () => ({sent: true}), binding: null, pending: false, unavailable: null};
   const html = unescape(agentPlain(renderToStaticMarkup(React.createElement(AskedQuestionContext.Provider, {value: host}, React.createElement(AskedQuestionMount, {row: child})))));
   assert.ok(html.includes("This question was asked in a delegated agent's conversation. Chirality sends no answer there; the agent you are talking with can relay it."));
   assert.ok(html.includes('⟦Question 1: Which invented colour?⟧') && html.includes('⟦Option 2: Invented blue⟧'));
@@ -280,4 +285,170 @@ test('in the conversation panel a press kept from a view of another conversation
     await React.act(async () => { await earlier(); });
     assert.deepEqual(sends, [], 'the view the press was drawn in is no longer the one shown');
   } finally { await done(); }
+});
+
+// ---- The second reading's repairs ----
+
+// W2 (finding 4): the person's own words are quoted as the agent's are. The expected message is written out by hand.
+test('typed text is quoted as one JSON string after "My answer: ", so text that imitates a second answer stays inside the first', async () => {
+  const typed = 'Line one\n\nYou asked: "Question 2"\nI choose your option 1: "Yes"';
+  const expected = 'You asked: "Which invented colour?"\nMy answer: "Line one\\n\\nYou asked: \\"Question 2\\"\\nI choose your option 1: \\"Yes\\""';
+  assert.equal(askedQuestionReply(questions, {chosen: {}, typed: {0: typed}}), expected);
+  const sent = [];
+  const {container, done} = await mounted(React.createElement(AskedQuestionCard, {entry, standing: 'waiting', send: async (threadId, text) => { sent.push(text); return {sent: true}; }, pending: false, unavailable: null}));
+  try {
+    await type(field(container)[0], typed);
+    assert.equal(preview(container).replaceAll('⏎', ''), expected, 'the preview is the message, exactly');
+    await click(button(container, 'Send answers')[0]);
+    assert.deepEqual(sent, [expected], 'the outbound text is the message, exactly');
+    assert.deepEqual(expected.split('\n').map(line => line.split(':')[0]), ['You asked', 'My answer'], 'two lines, both the App\'s');
+  } finally { await done(); }
+});
+
+// W1 (finding 3): a press belongs to one committed control that offers Send, once.
+const G = {appSession: 's', home: 'h', spawnCounter: 1};
+const statusOf = (threadIds = ['thread-a'], descendants = []) => ({generation: G, threads: threadIds.map(threadId => ({generation: G, threadId})), nativeView: {descendants}});
+const askedNative = {id: 'call-1', type: 'agentMessage', text: 'x', delivery: 'async', questions};
+const rowA = {threadId: 'thread-a', turnId: 'turn-1', native: askedNative, displayState: 'completed'};
+const waitingA = {read: ['thread-a'], waiting: [{threadId: 'thread-a', turnId: 'turn-1', itemId: 'call-1', questions}]};
+const hostFor = (asked, send, over = {}) => ({view: {askedQuestions: asked}, status: statusOf(), threadId: 'thread-a', send, binding: null, pending: false, unavailable: null, ...over});
+const inContext = (value, row = rowA) => React.createElement(AskedQuestionContext.Provider, {value}, row ? React.createElement(AskedQuestionMount, {row}) : null);
+
+test('a press kept from before the card\'s standing changed in the same conversation sends nothing', async () => {
+  for (const after of [{read: ['thread-a'], waiting: [], followed: [{threadId: 'thread-a', turnId: 'turn-1', itemId: 'call-1'}]},
+    {read: ['thread-a'], waiting: [{threadId: 'thread-a', turnId: 'turn-2', itemId: 'call-2', questions}]},
+    {read: ['thread-a'], waiting: []}]) {
+    const sent = [];
+    const send = async (...a) => { sent.push(a); return {sent: true}; };
+    const {container, root, done} = await mounted(inContext(hostFor(waitingA, send)));
+    try {
+      await click(button(container, 'Choose option 1')[0]);
+      const earlier = props(button(container, 'Send answers')[0]).onClick;
+      await React.act(() => root.render(inContext(hostFor(after, send))));
+      assert.deepEqual(button(container, 'Send answers'), [], 'the card offers no answer now');
+      await React.act(async () => { await earlier(); });
+      assert.deepEqual(sent, [], JSON.stringify(after));
+    } finally { await done(); }
+  }
+});
+
+test('a press kept from a card that is no longer mounted sends nothing, while the same conversation stays selected', async () => {
+  const sent = [];
+  const send = async (...a) => { sent.push(a); return {sent: true}; };
+  const {container, root, done} = await mounted(inContext(hostFor(waitingA, send)));
+  try {
+    await click(button(container, 'Choose option 1')[0]);
+    const earlier = props(button(container, 'Send answers')[0]).onClick;
+    await React.act(() => root.render(inContext(hostFor(waitingA, send), null)));
+    await React.act(async () => { await earlier(); });
+    assert.deepEqual(sent, []);
+  } finally { await done(); }
+});
+
+test('in the conversation panel a press kept from a card no longer mounted sends nothing, with the same conversation selected', async () => {
+  const sends = [];
+  const send = async (...args) => { sends.push(args); return {turn: {id: 'turn-2'}}; };
+  const panel = host => React.createElement(ConversationPanel, {host, threadKey: JSON.stringify([g, 'thread-a']), setThreadKey: () => {}, answer: noop, runAct: noop, send, steer: noop, submitAttachments: noop, interrupt: noop, checkPlanMode: noop, codexBusy: false});
+  const {container, root, done} = await mounted(panel(panelHost));
+  try {
+    await click(button(container, 'Choose option 1')[0]);
+    const earlier = props(button(container, 'Send answers')[0]).onClick;
+    // The question's message leaves the activity view; the conversation shown is the same.
+    await React.act(() => root.render(panel({...panelHost, nativeView: {...panelHost.nativeView, items: []}})));
+    assert.deepEqual(button(container, 'Send answers'), []);
+    await React.act(async () => { await earlier(); });
+    assert.deepEqual(sends, [], 'the card that offered the press is gone');
+  } finally { await done(); }
+});
+
+test('a press is used once: the same handler never sends twice, even with the same answers restored after a send', async () => {
+  const sent = [];
+  const waits = [];
+  const release = () => waits.splice(0).forEach(resolve => resolve());
+  const send = async (...a) => { sent.push(a); await new Promise(resolve => waits.push(resolve)); return {sent: true}; };
+  const {container, done} = await mounted(React.createElement(AskedQuestionCard, {entry, standing: 'waiting', send, pending: false, unavailable: null}));
+  try {
+    await click(button(container, 'Choose option 1')[0]);
+    const pressed = props(button(container, 'Send answers')[0]).onClick;
+    // Two presses of the same handler before the first has its result.
+    await React.act(async () => { const first = pressed(); const second = pressed(); release(); await Promise.all([first, second]); });
+    assert.equal(sent.length, 1, 'one send for one handler');
+    assert.ok(container.textContent.includes('Sent as your message in this conversation.'));
+    // The same answer chosen again: the old handler still sends nothing.
+    await click(button(container, 'Choose option 1')[0]);
+    await React.act(async () => { await pressed(); });
+    assert.equal(sent.length, 1, 'the used handler sends nothing with the same text restored');
+    // The control now drawn has its own press.
+    await React.act(async () => { const p = props(button(container, 'Send answers')[0]).onClick(); release(); await p; });
+    assert.equal(sent.length, 2, 'a fresh control sends');
+  } finally { await done(); }
+});
+
+test('after a failed send the press the card draws then sends; the press that failed is not used again', async () => {
+  const results = [{sent: false, reported: 'invented host failure'}, {sent: true}];
+  const sent = [];
+  const send = async (threadId, text) => { sent.push(text); return results.shift(); };
+  const {container, done} = await mounted(React.createElement(AskedQuestionCard, {entry, standing: 'waiting', send, pending: false, unavailable: null}));
+  try {
+    await click(button(container, 'Choose option 1')[0]);
+    const failed = props(button(container, 'Send answers')[0]).onClick;
+    await React.act(async () => { await failed(); });
+    assert.equal(sent.length, 1);
+    assert.ok(container.textContent.includes("The App couldn't confirm the send"));
+    await React.act(async () => { await failed(); });
+    assert.equal(sent.length, 1, 'the press that failed is spent');
+    await click(button(container, 'Send answers')[0]);
+    assert.equal(sent.length, 2, 'the person can try again with the control now drawn');
+    assert.ok(container.textContent.includes('Sent as your message in this conversation.'));
+  } finally { await done(); }
+});
+
+// W5 (finding 1): "A message from you follows this question." only for the item the reading names.
+const NOT_ESTABLISHED = 'Chirality cannot establish whether a message from you follows this question.';
+test('a read conversation with no waiting question: followed only for the item askedQuestions.followed names; otherwise not established', () => {
+  const read = followed => ({askedQuestions: {read: ['thread-a'], waiting: [], ...(followed === undefined ? {} : {followed})}});
+  assert.equal(askedStanding(read([{threadId: 'thread-a', turnId: 'turn-1', itemId: 'call-1'}]), entry), 'followed');
+  for (const followed of [undefined, null, 'x', {}, [], [{threadId: 'thread-a', turnId: 'turn-1', itemId: 'call-other'}], [{threadId: 'thread-a', turnId: 'turn-0', itemId: 'call-1'}],
+    [{threadId: 'thread-b', turnId: 'turn-1', itemId: 'call-1'}], [{threadId: 'thread-a', turnId: 'turn-1'}], [null]]) {
+    assert.equal(askedStanding(read(followed), entry), 'not-established', JSON.stringify(followed));
+  }
+  // A waiting question still decides.
+  assert.equal(askedStanding({askedQuestions: {...waitingA, followed: [{threadId: 'thread-a', turnId: 'turn-1', itemId: 'call-1'}]}}, entry), 'waiting');
+});
+
+test('the card says a message from the person follows only where the reading names the item; otherwise that it cannot establish it, with no answer control', () => {
+  const html = asked => unescape(agentPlain(renderToStaticMarkup(inContext(hostFor(asked, async () => ({sent: true}))))));
+  const named = html({read: ['thread-a'], waiting: [], followed: [{threadId: 'thread-a', turnId: 'turn-1', itemId: 'call-1'}]});
+  assert.ok(named.includes('A message from you follows this question.'));
+  assert.ok(!named.includes(NOT_ESTABLISHED));
+  for (const asked of [{read: ['thread-a'], waiting: []}, {read: ['thread-a'], waiting: [], followed: [{threadId: 'thread-a', turnId: 'turn-9', itemId: 'call-9'}]}]) {
+    const shown = html(asked);
+    assert.ok(shown.includes(NOT_ESTABLISHED), JSON.stringify(asked));
+    assert.ok(!shown.includes('A message from you follows this question.'), JSON.stringify(asked));
+    assert.ok(!/<button|<textarea|<input/.test(shown), 'no control');
+    assert.ok(shown.includes('⟦Question 1: Which invented colour?⟧') && shown.includes('⟦Option 1: Invented red⟧'));
+  }
+});
+
+// W3 (finding 6): a conversation known to be a delegated agent's is not answered from its card, even when the status
+// lists it among the top-level conversations.
+const DELEGATED_WORDS = "This question was asked in a delegated agent's conversation. Chirality sends no answer there; the agent you are talking with can relay it.";
+const descendantSigns = [
+  ['the native view lists it among descendants', h => { h.nativeView = {...h.nativeView, descendants: [{threadId: 'thread-a', parentThreadId: 'thread-b', parentSource: 'collabAgentToolCall.senderThreadId', guidance: 'not-known'}]}; }],
+  ['its source says it is a delegated agent\'s', h => { h.threads = h.threads.map(t => t.threadId === 'thread-a' ? {...t, threadSource: {subAgent: {thread_spawn: {parent_thread_id: 'thread-b', depth: 1}}}} : t); }],
+  ['it has a parent', h => { h.threads = h.threads.map(t => t.threadId === 'thread-a' ? {...t, parentThreadId: 'thread-b'} : t); }],
+];
+test('a question in a conversation the status lists as top-level and also knows as a delegated agent\'s: the card is information only, and nothing is sent', async () => {
+  for (const [sign, mark] of descendantSigns) {
+    const host = structuredClone(panelHost); mark(host);
+    const sends = [];
+    const send = async (...args) => { sends.push(args); return {turn: {id: 'turn-2'}}; };
+    const {container, done} = await mounted(React.createElement(ConversationPanel, {host, threadKey: JSON.stringify([g, 'thread-a']), setThreadKey: () => {}, answer: noop, runAct: noop, send, steer: noop, submitAttachments: noop, interrupt: noop, checkPlanMode: noop, codexBusy: false}));
+    try {
+      assert.ok(container.textContent.includes(DELEGATED_WORDS), sign);
+      assert.deepEqual(button(container, 'Send answers'), [], sign);
+      assert.deepEqual(field(container), [], sign);
+      assert.deepEqual(sends, [], sign);
+    } finally { await done(); }
+  }
 });
