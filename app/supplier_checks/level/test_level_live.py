@@ -1559,8 +1559,10 @@ class FolderPerConversation(Probing):
         """An invented `AGENTS.md` in each of A and B, each with its own marker line. For a conversation started in
         B and, as the control, one started in A, each with its one trust entry untrusted and then trusted: which of
         the two files the start reply's `instructionSources` names, and which marker lines the requests the stub
-        receives for that conversation's turn carry. Every case is observed before anything is asserted, so a
-        failure states all of them."""
+        receives for that conversation's turn carry. With a trusted entry the conversation's own folder's file is
+        named and its marker carried, and never the other folder's; with an untrusted entry, as the App sends for
+        a folder the person's settings do not mark, no file is named and no marker carried. Every case is observed
+        before anything is asserted, so a failure states all of them."""
         with L.Run(SCRATCH, BINARY, second_project=SECOND, instructions=True) as run:
             run.stub.watched = (run.markers['a'], run.markers['b'])
             files = {side: os.path.realpath(str(f / 'AGENTS.md')) for side, f in
@@ -1581,8 +1583,8 @@ class FolderPerConversation(Probing):
                         'named': sorted(side for side, path in files.items() if path in sources),
                         'other sources': sorted(path for path in sources if path not in files.values()),
                         'carried': sorted(side for side, marker in run.markers.items() if marker in carried)}
-            expected = {(own, trust): {'named': [own], 'other sources': [], 'carried': [own]}
-                        for own in ('b', 'a') for trust in ('untrusted', 'trusted')}
+            expected = {(own, trust): {'named': loaded, 'other sources': [], 'carried': loaded}
+                        for own in ('b', 'a') for trust, loaded in (('untrusted', []), ('trusted', [own]))}
             self.assertEqual(observed, expected, 'by (the folder the conversation was started in, its trust entry): '
                              'which AGENTS.md the reply named and which marker the turn carried: %r' % (observed,))
 
