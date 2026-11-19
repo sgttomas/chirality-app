@@ -882,12 +882,13 @@ fn fleet_reader_every_other_absence_keeps_its_limit_as_on_main() {
 }
 
 /// Both fleet folders absent, but an import the store holds names a fleet log
-/// for the project, found there or copied there: the limits stay as on main.
+/// for the project, found there or copied there, whatever its length (a
+/// zero-byte log too): the limits stay as on main.
 #[test]
 fn fleet_reader_both_folders_absent_with_an_import_naming_the_log_keep_their_limits() {
-    for held in [true, false] {
+    for (held, empty) in [(true, false), (false, false), (true, true), (false, true)] {
         let f = Fixture::new();
-        let row = native_package_row(&f, "fl:app:named-by-import", 1);
+        let row = if empty { Vec::new() } else { native_package_row(&f, "fl:app:named-by-import", 1) };
         let log = f.pair(&[row.clone()]);
         let dir = log.parent().unwrap().parent().unwrap().to_owned();
         if held {
@@ -907,20 +908,20 @@ fn fleet_reader_both_folders_absent_with_an_import_naming_the_log_keep_their_lim
         } else {
             restore_fleet_package(&f, &log, true);
         }
-        assert!(records_store::package::named_bytes(&dir, STORE_LOG).unwrap() > 0);
+        assert_eq!(records_store::package::names_member(&dir, STORE_LOG), Ok(true), "held {held}, empty {empty}");
         std::fs::remove_dir_all(log.parent().unwrap()).unwrap();
         std::fs::remove_dir_all(f.project.join(FOLDER)).unwrap();
         let view = f.read();
         assert_project_absences_as_on_main(&view);
-        assert_eq!(limit_at(&view, STORE_LOG).first().map(String::as_str), Some(SOURCE_MISSING), "held {held}: {}", view["limits"]);
+        assert_eq!(limit_at(&view, STORE_LOG).first().map(String::as_str), Some(SOURCE_MISSING), "held {held}, empty {empty}: {}", view["limits"]);
         assert_eq!(view["coordination"]["protectedLog"]["status"], "missing");
     }
 }
 
 /// Import records that cannot be read keep the limits. The attachment's own
 /// retention reading refuses first (it requires the import records whole), so
-/// no absence is read as empty; the reader's own check (`named_bytes` must
-/// answer 0) would keep them too.
+/// no absence is read as empty; the reader's own check (`names_member` must
+/// answer false) would keep them too.
 #[test]
 fn fleet_reader_unreadable_import_records_keep_the_absent_store_folder_limited() {
     let f = Fixture::new();

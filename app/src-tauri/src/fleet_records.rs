@@ -489,7 +489,7 @@ pub(crate) fn read_for_workspace(workspace: Option<&Path>) -> Result<Value,Strin
                 let fleet = attached.dir.join("fleet");
                 let listed = matches!(census.metadata(&fleet), Ok(None)) && census.directory(&attached.dir).is_ok();
                 if listed && census.absent(&fleet)
-                    && records_store::package::named_bytes(&attached.dir,&format!("fleet/{LOG}")) == Ok(0)
+                    && records_store::package::names_member(&attached.dir,&format!("fleet/{LOG}")) == Ok(false)
                     && !accepted_history(&attached.history) {
                     for index in [store_at, log_at, graphs_at, briefs_at] { limits.remove(index); }
                     log.read_as_empty();
