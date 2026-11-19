@@ -339,8 +339,6 @@ fn the_launched_project_is_open_only_when_attached() {
     assert_eq!(moved.notice, Some(ProjectNotice { kind: "moved".into(), message: fault_message("moved"), resolutions: vec!["adopt".into(), "new-identity".into()] }));
     let refused = launched(Examined::Attached { project: Some("P".into()), fault: None, refusal: Some("retention state unavailable".into()), resolutions: vec![] });
     assert_eq!((refused.state, refused.notice.unwrap().kind.as_str()), (ProjectState::Unavailable, "unavailable"));
-    let no_store = launched(Examined::StoreUnavailable("records store not created yet".into()));
-    assert_eq!((no_store.current, no_store.state), (true, ProjectState::Unavailable));
     let open = launched(Examined::Attached { project: Some("P".into()), fault: None, refusal: None, resolutions: vec![] });
     assert_eq!((open.state, open.project_id.as_deref(), open.notice), (ProjectState::Open, Some("P"), None));
 }
@@ -469,8 +467,6 @@ impl Fixture {
         let base = temp.join(crate::util::opaque_id(&format!("{prefix}-projects-")).unwrap());
         std::fs::create_dir_all(&base).unwrap();
         crate::records_store::use_store_for_test(Some(Ok(crate::records_store::Store { root: store.clone(), placement: crate::records_store::Placement::Override, limits: vec![] })));
-        forget_launched_for_test();
-        take_examined_for_test();
         Fixture { store, base }
     }
     fn trees(&self) -> (Tree, Tree) {
@@ -479,7 +475,6 @@ impl Fixture {
 }
 impl Drop for Fixture {
     fn drop(&mut self) {
-        forget_launched_for_test();
         crate::records_store::use_store_for_test(None);
         let _ = std::fs::remove_dir_all(&self.store);
         let _ = std::fs::remove_dir_all(&self.base);
@@ -527,15 +522,13 @@ fn the_whole_read_writes_nothing_and_reads_only_the_launched_project_through_the
     let was = f.trees();
     let read = read_as_command(&launched, vec![fresh_home()]);
     assert_eq!(f.trees(), was, "the read wrote, created or touched nothing in the store or the projects");
-    assert_eq!(take_examined_for_test(), [s(&launched)], "no folder but the launched one reached the store's readers");
     assert!(!crate::records_store::known_project_root(&two), "the read remembered the other project's folder");
     assert_eq!(crate::records_store::configured_project_dir(&two), other_log);
 
     let current = &read.projects[0];
     assert_eq!((current.root.clone(), current.current, current.state, current.notice.clone()), (s(&launched), true, ProjectState::Open, None));
-    assert_eq!(current.runs_read.outcome, RunsOutcome::Read);
-    let run_entry = &current.entries[0];
-    assert_eq!((run_entry.id.as_str(), run_entry.project_source, run_entry.run.as_ref().unwrap().state), ("thread:launched", ProjectSource::RunRecord, RunState::Open));
+    assert_eq!(current.runs_read.outcome, RunsOutcome::NotRead { reason: LAUNCHED_RUNS_NOT_READ.into() });
+    assert!(current.entries.is_empty());
     let second = project(&read, &s(&two));
     assert_eq!((second.label.as_str(), second.state, second.notice.clone()), ("two/proj", ProjectState::Listed, None));
     assert!(second.project_id.is_some(), "the registry's identity");
@@ -546,42 +539,19 @@ fn the_whole_read_writes_nothing_and_reads_only_the_launched_project_through_the
     assert_eq!((gone_project.state, gone_project.notice.as_ref().unwrap().kind.as_str()), (ProjectState::Unavailable, "gone"));
     assert_eq!(read.conversations[0].outcome, ReadOutcome::NotRead { reason: "Codex is not running for this home, so its conversations were not read.".into() });
 
-    // Within LAUNCHED_REUSE the launched reading is reused.
-    read_as_command(&launched, vec![]);
-    assert!(take_examined_for_test().is_empty(), "a second read within 10 seconds read the launched project again");
-
     // The registry's last line torn: read to its last complete line, and said.
     let roots = f.store.join("roots.jsonl");
     let mut bytes = std::fs::read(&roots).unwrap();
     bytes.extend_from_slice(b"{\"format\":\"chirality.records-store.root\",\"projectId\":");
     std::fs::write(&roots, &bytes).unwrap();
-    forget_launched_for_test();
     let was = f.trees();
     let read = crate::storage::without_mutations_for_test(|| crate::records_store::listed_folders()).unwrap();
     assert!(read.torn.is_some());
     let read = read_as_command(&launched, vec![]);
     assert_eq!(f.trees(), was, "nothing written beside a torn registry either");
-    assert_eq!(take_examined_for_test(), [s(&launched)]);
     assert_eq!(read.projects.len(), 3, "the complete lines still list every folder");
     assert!(read.registry_limits.iter().any(|l| l.contains("roots.jsonl")), "{:?}", read.registry_limits);
     assert!(!crate::records_store::known_project_root(&two));
-}
-
-// Point 15: the routing changing while the runs are read gives no runs.
-#[test]
-fn a_reassociation_during_the_read_gives_no_runs() {
-    let f = Fixture::new("navigator-reassociation");
-    let launched = folder(&f.base, "proj");
-    crate::records_store::attach(&launched, true).unwrap();
-    open_run(&launched, "run:launched", "thread:launched");
-    as_at_launch();
-    let link = launched.join(crate::records_store::PROJECT_LINK);
-    crate::records_store::HISTORY_AFTER_ROWS.with(|slot| *slot.borrow_mut() = Some(Box::new(move || std::fs::remove_file(&link).unwrap())));
-    let read = read_as_command(&launched, vec![]);
-    let current = &read.projects[0];
-    assert_eq!(current.runs_read.outcome, RunsOutcome::NotRead { reason: crate::records_store::HISTORY_CHANGED_VIEW.into() });
-    assert!(current.entries.is_empty(), "no runs given under this identity");
-    drop(f);
 }
 
 #[test]
@@ -598,7 +568,7 @@ fn without_a_store_the_launched_project_is_still_shown() {
     assert_eq!(read.projects.len(), 1);
     assert_eq!((read.projects[0].current, read.projects[0].state), (true, ProjectState::Unavailable));
     assert!(read.registry_limits[0].contains("not read"), "{:?}", read.registry_limits);
-    assert!(matches!(&read.projects[0].runs_read.outcome, RunsOutcome::NotRead { reason } if reason.contains("records store")));
+    assert!(matches!(&read.projects[0].runs_read.outcome, RunsOutcome::NotRead { .. }));
     crate::records_store::use_store_for_test(None);
     let _ = std::fs::remove_dir_all(&base);
 }

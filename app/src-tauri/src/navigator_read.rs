@@ -14,15 +14,9 @@
 //!   examined), and runs not read. The store's readers were made for the one
 //!   opened project: reading another project's records through them would
 //!   remember its folder for later writers and take its admission.
-//! - **The launched project is read as the App already reads it.** Its
-//!   attachment comes from `records_store::status`, which `host_status` reads
-//!   every second for the same folder, and its recorded runs from the reader
-//!   Reopen uses (`read_project_runs_for_listing`, which skips the
-//!   declarations this view does not show), within the store's before-and-
-//!   after routing check (`HistoryRead`). It adds no reader for any other
-//!   folder. That reading is kept and reused for `LAUNCHED_REUSE` (10 seconds)
-//!   for the same launched folder and store, so polling the panel makes at
-//!   most one such reading per 10 seconds.
+//! - **The launched project's attachment** comes from `records_store::status`,
+//!   which `host_status` reads every second for the same folder. Its recorded
+//!   runs are not read.
 //! - **Codex's side is memory.** Each home's Host is read through
 //!   `Host::navigator_projection` (no reply write is settled, unlike
 //!   `snapshot`), its history view through the rows it has received, and its
@@ -50,8 +44,8 @@ use std::path::{Path, PathBuf};
 
 /// The longest title made from a conversation's preview, in characters.
 pub const TITLE_CHARS: usize = 60;
-/// How long a reading of the launched project's attachment and runs is reused.
-pub const LAUNCHED_REUSE: std::time::Duration = std::time::Duration::from_secs(10);
+/// The `runsRead` reason of the launched project while its runs are not read.
+pub const LAUNCHED_RUNS_NOT_READ: &str = "The navigator does not read the project's recorded runs.";
 /// What `conversations[].list` names.
 pub const LIST_WORDS: &str = "saved conversations, not archived, as Codex listed them when it became ready";
 /// The `runsRead` reason of a listed project that is not the launched one.
@@ -409,8 +403,6 @@ pub(crate) enum Examined {
     Gone,
     /// The folder cannot be examined (the reason as the reader gave it).
     Unexaminable(String),
-    /// The records store cannot be read, so the launched project is not attached.
-    StoreUnavailable(String),
     /// How the store attaches the launched project (its `status`).
     Attached { project: Option<String>, fault: Option<String>, refusal: Option<String>, resolutions: Vec<String> },
 }
@@ -722,8 +714,6 @@ fn section(root: &str, folder: Option<&FolderInput>, listing: Option<&crate::rec
             if current { "The folder is not there, so its recorded runs cannot be read until it is located.".to_owned() } else { NOT_OPEN_RUNS.to_owned() }),
         Some(Examined::Unexaminable(e)) => (ProjectState::Unavailable, unavailable("unavailable", format!("The folder could not be examined ({e}).")),
             if current { "The folder could not be examined, so its recorded runs were not read.".to_owned() } else { NOT_OPEN_RUNS.to_owned() }),
-        Some(Examined::StoreUnavailable(e)) => (ProjectState::Unavailable, unavailable("unavailable", format!("The records store could not be read ({e}), so this project is not attached to its records.")),
-            format!("The records store could not be read ({e}), so the recorded runs were not read.")),
         Some(Examined::Attached { project, fault, refusal, resolutions }) => {
             if project.is_some() { project_id = project.clone(); }
             match (fault, refusal, project) {
@@ -1049,8 +1039,8 @@ fn gather(sources: Sources) -> Gathered {
     Gathered { read_at, current_root, aliases, no_project_folders, registry, folders, homes, index, finished, catalog }
 }
 
-/// The store's registry, the launched project examined (or its reading reused)
-/// and every other listed folder enumerated. File reads only; no App lock is held.
+/// The store's registry, the launched project's attachment and every other
+/// listed folder enumerated. File reads only; no App lock is held.
 fn gather_projects(current: Option<&str>) -> (Result<crate::records_store::ListedFolders, String>, Vec<FolderInput>) {
     let registry = crate::records_store::listed_folders();
     let mut folders: Vec<FolderInput> = current.iter().map(|root| launched(root)).collect();
@@ -1071,18 +1061,8 @@ fn enumerate(root: &str) -> FolderInput {
     FolderInput { root: root.to_owned(), examined, runs: RunsInput::NotAttempted }
 }
 
-/// The last reading of the launched project: its root, the store it was read
-/// in, when, and what was read.
-struct LaunchedReading {
-    root: String,
-    store: PathBuf,
-    at: std::time::Instant,
-    folder: FolderInput,
-}
-static LAUNCHED: std::sync::Mutex<Option<LaunchedReading>> = std::sync::Mutex::new(None);
-
-/// The launched project's attachment and recorded runs, reused for
-/// `LAUNCHED_REUSE` for the same folder and store.
+/// The launched project's attachment, as the store's `status` gives it. Its
+/// recorded runs are not read here.
 fn launched(root: &str) -> FolderInput {
     let path = Path::new(root);
     match std::fs::symlink_metadata(path) {
@@ -1090,40 +1070,6 @@ fn launched(root: &str) -> FolderInput {
         Err(e) => return FolderInput { root: root.into(), examined: Examined::Unexaminable(e.to_string()), runs: RunsInput::NotAttempted },
         Ok(_) => {}
     }
-    let store = match crate::records_store::opened_existing() {
-        Ok((store, _)) => store,
-        Err(e) => return FolderInput { root: root.into(), examined: Examined::StoreUnavailable(e), runs: RunsInput::NotAttempted },
-    };
-    if let Some(kept) = LAUNCHED.lock().unwrap_or_else(|p| p.into_inner()).as_ref()
-        .filter(|k| k.root == root && k.store == store && k.at.elapsed() < LAUNCHED_REUSE) {
-        return kept.folder.clone();
-    }
-    let folder = examine_launched(root, path);
-    *LAUNCHED.lock().unwrap_or_else(|p| p.into_inner()) = Some(LaunchedReading { root: root.into(), store, at: std::time::Instant::now(), folder: folder.clone() });
-    folder
-}
-
-#[cfg(test)]
-thread_local! { static EXAMINED: std::cell::RefCell<Vec<String>> = const { std::cell::RefCell::new(Vec::new()) }; }
-/// The folders examined through the store's readers on this thread since the
-/// last call (tests).
-#[cfg(test)]
-pub(crate) fn take_examined_for_test() -> Vec<String> {
-    EXAMINED.with(|e| std::mem::take(&mut *e.borrow_mut()))
-}
-/// Forgets the kept reading of the launched project (tests).
-#[cfg(test)]
-pub(crate) fn forget_launched_for_test() {
-    *LAUNCHED.lock().unwrap_or_else(|p| p.into_inner()) = None;
-}
-
-/// One observation of the launched project: the store's routing taken before,
-/// its status, its recorded runs, and the routing taken again after. Where
-/// the routing changed in between (a reassociation), no runs are given.
-fn examine_launched(root: &str, path: &Path) -> FolderInput {
-    #[cfg(test)]
-    EXAMINED.with(|e| e.borrow_mut().push(root.to_owned()));
-    let route = crate::records_store::HistoryRead::begin(path);
     let status = crate::records_store::status(Some(path));
     let Some(view) = status["project"].get("attachment").filter(|a| a.is_object()) else {
         let error = status["project"]["error"].as_str().or_else(|| status["error"].as_str()).unwrap_or("its standing with the records store was not given");
@@ -1136,40 +1082,7 @@ fn examine_launched(root: &str, path: &Path) -> FolderInput {
         refusal: string("refusal"),
         resolutions: view["resolutions"].as_array().into_iter().flatten().filter_map(|r| r.as_str().map(str::to_owned)).collect(),
     };
-    if !view["refusal"].is_null() {
-        return FolderInput { root: root.into(), examined, runs: RunsInput::NotAttempted };
-    }
-    let reading = crate::workflow_workspace::publication::ProjectRecords::open(path)
-        .map(|records| crate::records::supply::read_project_runs_for_listing(&records));
-    let notice = route.finish(path);
-    // Where the routing after cannot be told, the attachment is taken again:
-    // another identity or a refusal now means the runs read may not be this
-    // project's, and none are given.
-    let changed = match &notice {
-        crate::records_store::HistoryNotice::Changed => true,
-        crate::records_store::HistoryNotice::Unavailable(_) => {
-            let again = crate::records_store::status(Some(path));
-            let after = &again["project"]["attachment"];
-            after["projectId"] != view["projectId"] || after["refusal"] != view["refusal"]
-        }
-        _ => false,
-    };
-    let runs = match (reading, notice) {
-        (Err(e), _) => RunsInput::NotRead(format!("The recorded runs were not read ({e}).")),
-        (Ok(_), _) if changed => RunsInput::NotRead(crate::records_store::HISTORY_CHANGED_VIEW.to_owned()),
-        (Ok((reading, started)), notice) => {
-            let mut limits = reading.limits;
-            limits.extend(notice.view());
-            let runs = reading.runs.into_iter().map(|run| {
-                let opened = run.records.iter().find(|e| e["kind"] == "run_opened").and_then(|e| e["writtenAt"].as_str()).map(str::to_owned);
-                let earliest = run.records.iter().filter_map(|e| e["writtenAt"].as_str()).min().map(str::to_owned);
-                let started_at = started.get(&run.run).cloned().or(opened).or(earliest);
-                RunInput { run_id: run.run, conversation: run.conversation, workflow: run.workflow, lifecycle: run.lifecycle, started_at }
-            }).collect();
-            RunsInput::Read { runs, limits }
-        }
-    };
-    FolderInput { root: root.into(), examined, runs }
+    FolderInput { root: root.into(), examined, runs: RunsInput::NotRead(LAUNCHED_RUNS_NOT_READ.to_owned()) }
 }
 
 #[cfg(test)]
