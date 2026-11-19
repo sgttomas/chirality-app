@@ -3564,3 +3564,14 @@ div.woven-chat-section-heading--folder:hover { background:transparent; }
 .woven-workspace .woven-navigator-session-row:has(> .navigator-entry-title) > .woven-navigator-session { flex:1 1 100%; }
 .woven-navigator-session-row > .navigator-entry-title { flex:1 1 100%; min-width:0; padding:0 8px 6px; font-size:11px; color:var(--ink-soft); }
 .woven-navigator-sections > .conversation-choices-attribution { margin:0; padding:0 8px; color:var(--ink-faint); font-size:11px; }
+/* The account popover (AccountControls.tsx): the state's one action is the primary button; the App controls are
+   menu rows, as 3.0.1 draws them, not boxed buttons. */
+.account-controls-popover .account-controls-group > strong { font-size:13px; color:var(--ink); }
+.account-controls-popover .account-controls-group > .setup-primary:not(:disabled) { background:var(--cta); color:var(--cta-ink); border-color:var(--cta); }
+.account-controls-popover .account-controls-group > button:not(.account-controls-menu-action) { justify-self:start; text-align:left; }
+.account-controls-popover .account-controls-group > .setup-primary { justify-self:stretch; }
+.account-controls-popover .account-controls-menu-action { margin:0 -8px; padding:6px 8px; border-color:transparent; border-radius:6px; color:var(--ink); font-weight:500; }
+.account-controls-popover .account-controls-menu-action:hover,
+.account-controls-popover .account-controls-menu-action:focus-visible { background:var(--accent-soft); }
+.account-controls-popover .account-controls-group:last-child { gap:2px; }
+.account-controls-popover:focus { outline:none; }

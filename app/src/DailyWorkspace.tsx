@@ -78,7 +78,8 @@ export function refusedStartWords(cause?: string | null, build?: string | null):
     default: return { link: true, words: "The App did not record why. Connection and access shows Codex's controls." };
   }
 }
-export function WorkspaceConnectionStatus({ state, setupRequired, savedSetup, generationClosed, startRefusal, codexHome, refusalCause, build, signIn = "unread", plan = null, codexError = null, checkAgain, startSignIn }: {
+/** The connection facts of the host status that the workspace line and the account row both read. */
+export type ConnectionFacts = {
   state?: string; setupRequired?: boolean; savedSetup?: boolean; generationClosed?: boolean;
   /** The host status's `lastStartRefusal`: why the last start of Codex was refused before it was spawned, and for which home. */
   startRefusal?: { reason?: string; home?: string } | null;
@@ -86,6 +87,42 @@ export function WorkspaceConnectionStatus({ state, setupRequired, savedSetup, ge
   codexHome?: string | null;
   /** The host status's `startRefusalCause` and `build`. */
   refusalCause?: string | null; build?: string | null;
+};
+function connectionReading({ state, setupRequired, savedSetup, generationClosed, startRefusal, codexHome, refusalCause, build }: ConnectionFacts) {
+  const ready = state === "ready" && generationClosed !== true;
+  const homeRefusal = !setupRequired && !!state && NO_START_UNDER_WAY.has(state) && !!startRefusal?.reason && !!codexHome && startRefusal.home === codexHome;
+  // A start refused before anything connected is said as not started, never as a lost connection.
+  const refused = !setupRequired && (state === "refused" || homeRefusal);
+  const cause = state === "refused" && !setupRequired && !homeRefusal ? refusedStartWords(refusalCause, build) : null;
+  // While Codex is running, the sign-in reading speaks instead (null here).
+  const title = setupRequired ? savedSetup ? "Setup saved — reopen to use it" : "Setup needed"
+    : !state ? "Reading connection status…" : ready ? null
+    : state === "starting" ? "Codex is starting…" : state === "stopping" ? "Codex is stopping…"
+    : refused ? "Codex was not started"
+    : state === "exited-unexpectedly" ? "Codex could not stay connected"
+    : "Codex is not connected";
+  const guidance = setupRequired ? savedSetup ? "Your saved choices apply on the next launch." : "Choose shared settings and a project below."
+    // Codex started and the App reached it. Whether anyone is signed in is what the account reads the host
+    // recorded for this connection establish; the host reads the account itself once Codex is ready.
+    : ready ? ""
+    : !state ? "Waiting for the App to report its current connection."
+    : cause ? cause.words
+    : "Open Connection and access to inspect the current status and available controls.";
+  return { ready, homeRefusal, cause, title, guidance };
+}
+/** The connection's words while Codex is not running and ready (or setup is needed): its title and guidance, as the
+ * workspace line says them; null while Codex is ready, when the sign-in reading speaks. The workspace line and the
+ * account row both take their words from here, so the two never disagree. */
+export function connectionWords(facts: ConnectionFacts): { title: string; guidance: string } | null {
+  const { title, guidance } = connectionReading(facts);
+  return title === null ? null : { title, guidance };
+}
+/** The workspace line's sentence while Codex is ready: the sign-in reading's own (SIGN_IN_WORDS), which says Codex is
+ * running, with the plan Codex reports for a ChatGPT account. */
+export function signInSentence(signIn: AccountReading, plan: string | null): string {
+  return `${SIGN_IN_WORDS[signIn]}${signIn === "chatgpt-account" ? planWords(plan) : ""}`;
+}
+export function WorkspaceConnectionStatus({ state, setupRequired, savedSetup, generationClosed, startRefusal, codexHome, refusalCause, build, signIn = "unread", plan = null, codexError = null, checkAgain, startSignIn }: ConnectionFacts & {
   /** What the App has established of this connection's sign-in (AccountStatus.tsx, accountReading): the same
    * reading the account panel shows, so the two never disagree. */
   signIn?: AccountReading;
@@ -98,7 +135,7 @@ export function WorkspaceConnectionStatus({ state, setupRequired, savedSetup, ge
   /** The sign-in Connection and access starts: offered here when Codex reports no account. */
   startSignIn?: () => Promise<void>;
 }) {
-  const ready = state === "ready" && generationClosed !== true;
+  const { ready, homeRefusal, cause, title: connectionTitle, guidance } = connectionReading({ state, setupRequired, savedSetup, generationClosed, startRefusal, codexHome, refusalCause, build });
   const mounted = useRef(true);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const [acting, setActing] = useState(false);
@@ -109,25 +146,9 @@ export function WorkspaceConnectionStatus({ state, setupRequired, savedSetup, ge
   };
   const didntSay = ready && DIDNT_SAY.includes(signIn);
   const offerSignIn = ready && signIn === "no-account" && !!startSignIn;
-  const homeRefusal = !setupRequired && !!state && NO_START_UNDER_WAY.has(state) && !!startRefusal?.reason && !!codexHome && startRefusal.home === codexHome;
-  // A start refused before anything connected is said as not started, never as a lost connection.
-  const refused = !setupRequired && (state === "refused" || homeRefusal);
-  const cause = state === "refused" && !setupRequired && !homeRefusal ? refusedStartWords(refusalCause, build) : null;
   // While Codex is running, the line is the sign-in reading's own sentence (SIGN_IN_WORDS), which says Codex is running.
-  const title = setupRequired ? savedSetup ? "Setup saved — reopen to use it" : "Setup needed"
-    : !state ? "Reading connection status…" : ready ? `${SIGN_IN_WORDS[signIn]}${signIn === "chatgpt-account" ? planWords(plan) : ""}`
-    : state === "starting" ? "Codex is starting…" : state === "stopping" ? "Codex is stopping…"
-    : refused ? "Codex was not started"
-    : state === "exited-unexpectedly" ? "Codex could not stay connected"
-    : "Codex is not connected";
+  const title = connectionTitle ?? signInSentence(signIn, plan);
   const linkUseful = !cause || cause.link;
-  const guidance = setupRequired ? savedSetup ? "Your saved choices apply on the next launch." : "Choose shared settings and a project below."
-    // Codex started and the App reached it. Whether anyone is signed in is what the account reads the host
-    // recorded for this connection establish; the host reads the account itself once Codex is ready.
-    : ready ? ""
-    : !state ? "Waiting for the App to report its current connection."
-    : cause ? cause.words
-    : "Open Connection and access to inspect the current status and available controls.";
   return <section className="workspace-connection-status" aria-label="Workspace connection status">
     <p role="status" aria-live="polite"><strong>{title}</strong>{guidance ? <> <span>{guidance}</span></> : null}</p>
     {didntSay && codexError && <p aria-label="What Codex said"><AgentText value={codexError} source="codex"/></p>}

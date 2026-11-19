@@ -35,7 +35,8 @@ import { preparedMessages, preparedMessageLimit, type PreparedMessage } from "./
 import { ConversationContext, ProjectLibraryContext, appProjectFolder, conversationFromKey, workflowSourceLimit } from "./WorkflowContext";
 import { WorkspaceDisclosure, WorkspaceConnectionStatus, revealWorkspaceTarget, revealWorkspaceLink, registerWorkspaceViews } from "./DailyWorkspace";
 import { ActivityStrip, WorkspaceShell, isRightPanelTab, turnPhase, type RightPanelTab, RIGHT_PANEL_TABS, type TabSelection } from "./WorkspaceShell";
-import { AccountRow, Navigator, navigatorEntries, navigatorProjects, type NavigatorEntry } from "./Navigator";
+import { Navigator, navigatorEntries, navigatorProjects, type NavigatorEntry } from "./Navigator";
+import { AccountRow, type AccountActions } from "./AccountControls";
 import { flushSync } from "react-dom";
 import { UnsentWork, useReportUnsent } from "./unsentWork";
 import { DesktopSetupPanel } from "./DesktopSetupPanel";
@@ -2894,6 +2895,12 @@ export function App() {
   const answerIn = (entry: NavigatorEntry) => { const first = waitingRequests.find(request => requestOwnOf(request) === entry.threadId) ?? waitingRequests.find(request => requestRootOf(request) === entry.threadId); if (first) goToWaiting(first); };
   const newChat = () => revealWorkspaceTarget("workspace-start", true);
   const openSettings = () => revealWorkspaceTarget("workspace-tools", true);
+  // The account row's popover: the present commands under their present conditions, each failure said on the App line.
+  const accountActions: AccountActions = { openSettings, openConnection: () => revealWorkspaceTarget("workspace-connection", true),
+    checkAgain: async () => { const shown = currentHost.current; try { await readAccountStatus(shown?.generation, shown?.homeRouting?.activeModeHomeClass, () => true); } catch (error) { setMessage(`Check again: ${readingSentence(error) ?? String(error)}`); } },
+    startSignIn: async () => { try { await homeAction("oauth_start", { generation: currentHost.current?.generation, mode: "browser" }); } catch (error) { setMessage(`oauth_start: ${String(error)}`); } },
+    signOut: async () => { const shown = currentHost.current; try { await homeAction("logout_home", { generation: shown?.generation, modeHomeClass: shown?.homeRouting?.activeModeHomeClass }); } catch (error) { setMessage(`logout_home: ${String(error)}`); } } };
+  const accountRow = <AccountRow host={host} actions={accountActions}/>;
   const shownRow = selectedThread ? (host?.threads ?? []).find((t: Json) => t.threadId === selectedThread && JSON.stringify(t.generation) === JSON.stringify(host?.generation)) : null;
   const workspaceShown = firstRead === "read" && !setupRequired;
   return (<UnsentWork.Provider value={reportUnsent}><PermissionLevelActions.Provider value={{ host, change: changePermissionLevel, unavailable: homePending, stale: shownBeforePress(hostReads), readFailed: !!hostReads.failure }}>
@@ -2924,11 +2931,11 @@ export function App() {
         <WaitingOnYou readings={waitingReads} view={host?.nativeView} busy={homePending} onOpen={() => { void readFleetOnOpen(); }} openGroup={group => { void openRequests(group); }} go={goToWaiting}/>
         </div>}
         {firstRead === "read" && <WorkspaceShell hidden={setupRequired} rightTab={rightTab} onRightTab={selectTab} rightCollapsed={rightCollapsed} setRightCollapsed={collapseRight}
-          navigator={<Navigator projects={projects} selectedKey={threadKey} choose={conversationChooser.choose ? key => { navigated.current = true; conversationChooser.choose?.(key); } : null} answer={answerIn} newChat={newChat} openSettings={openSettings}/>}
+          navigator={<Navigator projects={projects} selectedKey={threadKey} choose={conversationChooser.choose ? key => { navigated.current = true; conversationChooser.choose?.(key); } : null} answer={answerIn} newChat={newChat} account={accountRow}/>}
           collapsedNavigator={openNavigator => <div className="woven-collapsed-strip" aria-label="Collapsed chat navigation">
             {projects.some(project => project.entries.some(entry => entry.needsAnswer)) ? <button type="button" aria-label="Needs answer" onClick={openNavigator}>!</button> : null}
             <button type="button" aria-label="New chat" onClick={newChat}>＋</button>
-            <div className="woven-collapsed-settings"><AccountRow open={openSettings}/></div>
+            <div className="woven-collapsed-settings">{accountRow}</div>
           </div>}
           strip={<ActivityStrip phase={statusCurrent ? turnPhase(shownRow, !!shownRow && waitingThreads.has(shownRow.threadId)) : null}/>}
           centre={<div className="daily-workspace">
