@@ -59,14 +59,21 @@ async function mounted(r,place=project){
 }
 
 test('an answer is sent under its question\'s id whatever that id is, including one a plain object would lose',async()=>{
-  // A question's id is the agent's text. `__proto__` assigned to a plain object makes no entry, so its answer was dropped.
-  const odd=JSON.parse('{"threadId":"T","turnId":"u","itemId":"i","questions":[{"id":"__proto__","header":"Odd","question":"First?","isOther":true,"isSecret":false,"options":[{"label":"One","description":"d"}]},{"id":"constructor","header":"Odd","question":"Second?","isOther":true,"isSecret":false,"options":[{"label":"Two","description":"d"}]},{"id":"left","header":"Odd","question":"Third?","isOther":true,"isSecret":false,"options":[{"label":"Three","description":"d"}]}]}');
-  const sent=questionAnswers(odd.questions,JSON.parse('{"__proto__":0}'),JSON.parse('{"constructor":"typed"}'));
-  assert.equal(JSON.stringify(sent),'{"__proto__":{"answers":["One"]},"constructor":{"answers":["typed"]}}','each answer is an own entry; the unanswered question is absent');
+  // A question's id is the agent's text. `__proto__` assigned to a plain object makes no entry, so its answer was
+  // dropped; `constructor` read from one answers from the prototype, so a selection was shown that nobody made.
+  const odd=JSON.parse('{"threadId":"T","turnId":"u","itemId":"i","questions":[{"id":"__proto__","header":"Odd","question":"First?","isOther":true,"isSecret":false,"options":[{"label":"One","description":"d"}]},{"id":"constructor","header":"Odd","question":"Second?","isOther":true,"isSecret":false,"options":[{"label":"Two","description":"d"}]},{"id":"toString","header":"Odd","question":"Third?","isOther":true,"isSecret":false,"options":[{"label":"Three","description":"d"}]}]}');
+  const r={...question(),nativeParameters:odd};
   assert.equal(JSON.stringify(questionAnswers(odd.questions,{},{})),'{}','nothing chosen or typed sends nothing, whatever the ids');
-  const html=renderRaw({...question(),nativeParameters:odd},project);
+  const html=renderRaw(r,project);
   assert.equal((html.match(/Selected: (?:<!-- -->)?—/g)??[]).length,3,'no question shows a selection the person did not make');
+  assert.equal((html.match(/<input[^>]*value=""/g)??[]).length,3,'and each own-answer field is empty');
   assert.ok(html.includes(`<button disabled="">${shared.questionChoices['question-answers']}</button>`));
+  const q=await mounted(r);
+  await q.press('Choose option 1');
+  await q.press(shared.questionChoices['question-answers']);
+  assert.equal(q.calls.length,1);
+  assert.equal(JSON.stringify(q.calls[0].slice(1)),'[{"answers":{"__proto__":{"answers":["One"]}}},"question-answers"]','the first question\'s answer is an own entry of what is sent; the two left unanswered are absent');
+  await q.done();
 });
 
 test('a question\'s send and decline buttons forward their closed choice beside the unchanged answer; other kinds forward none',async()=>{
