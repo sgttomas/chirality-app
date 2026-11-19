@@ -287,6 +287,22 @@ fn stamp(path: &Path) -> Result<Value, String> {
         Err(e) => Err(e.to_string()),
     }
 }
+/// Whether any of the project's validated import intents names a member at
+/// `relative`, of any length, as held by the store when an import began
+/// (`before`) or copied there (`copied`). A name that differs only in letter
+/// case names it too: on a file system that ignores case it is the same
+/// path. Evidence that a record was there, not provenance (`quoted_prefix`).
+/// An error where the import records cannot be read, or an import is
+/// unfinished or uncertain.
+pub(crate) fn names_member(dir: &Path, relative: &str) -> Result<bool, String> {
+    require_complete(dir)?;
+    Ok(entries(dir)?.iter().any(|e| {
+        e.intent.before.keys().chain(e.intent.copied.keys()).any(|name| same_member_path(name, relative))
+    }))
+}
+fn same_member_path(name: &str, relative: &str) -> bool {
+    name.to_lowercase() == relative.to_lowercase()
+}
 pub(crate) fn quoted_prefix(dir: &Path, relative: &str, bytes: &[u8]) -> Result<u64, String> {
     require_complete(dir)?;
     let mut prefix = 0;

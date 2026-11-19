@@ -813,3 +813,51 @@ fn native_links_unknown_line_stray_naming_unnamed_closure_or_empty_line_still_re
         assert!(administrative_lines(&imports, "chirality.records-store.import").is_err());
     }
 }
+#[test]
+fn native_links_a_subfolder_replaced_or_removed_before_the_project_append_refuses_it_then_recovers() {
+    for how in ["file", "link", "removed"] {
+        let f = Fixture::new();
+        let mut p = f.pending();
+        let fleet = f.scope.project.path.join(".chirality/fleet");
+        // A first attempt the project side refuses (a file where graphs belongs), so the next attempt is the
+        // project side alone, which the hook at its pre-append check can reach.
+        f.put(&fleet.join("graphs"), b"");
+        settle(&mut p);
+        assert!(p.store_done && !p.project_done, "{how}");
+        std::fs::remove_file(fleet.join("graphs")).unwrap();
+        let briefs = fleet.join("briefs");
+        let elsewhere = f.root.join("elsewhere");
+        std::fs::create_dir(&elsewhere).unwrap();
+        let (at, target) = (briefs.clone(), elsewhere.clone());
+        BEFORE_APPEND.with(|h| {
+            *h.borrow_mut() = Some(Box::new(move || {
+                std::fs::remove_dir(&at).unwrap();
+                match how {
+                    "file" => std::fs::write(&at, b"").unwrap(),
+                    "link" => symlink(&target, &at).unwrap(),
+                    _ => {}
+                }
+            }))
+        });
+        settle(&mut p);
+        assert!(p.store_done && !p.project_done, "{how}: the project write is refused");
+        let project = std::fs::read(f.logs().1).unwrap_or_default();
+        // The record's line is refused. Where the folder was only removed, the limit line that follows in the
+        // same attempt makes it again, as any project write does, and lands.
+        assert!(!project.windows(p.bytes.len()).any(|w| w == p.bytes), "{how}: the record's line is not appended");
+        assert_eq!(project.is_empty(), how != "removed", "{how}");
+        assert!(std::fs::read_dir(&elsewhere).unwrap().next().is_none(), "{how}: nothing through the link");
+        if how != "removed" { std::fs::remove_file(&briefs).unwrap(); }
+        // The next attempt makes the folder again and completes.
+        settle(&mut p);
+        assert!(p.store_done && p.project_done, "{how}");
+        let lines = |path: PathBuf| {
+            let mut lines: Vec<Vec<u8>> = std::fs::read(path).unwrap().split_inclusive(|b| *b == b'\n').map(<[u8]>::to_vec).collect();
+            lines.sort();
+            lines
+        };
+        assert_eq!(lines(f.logs().0), lines(f.logs().1), "{how}: the same lines on both sides");
+        assert!(lines(f.logs().1).contains(&p.bytes), "{how}");
+        assert!(crate::records_inspect::presence(&briefs).unwrap().is_some_and(|m| m.file_type().is_dir()));
+    }
+}

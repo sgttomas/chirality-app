@@ -686,3 +686,26 @@ An entry is added in the same pull request that makes the limitation standing.
   settings the App gives its Codex); DEL-02-04 (the guidance). The level
   fixtures show the behaviour at the pinned Codex version
   (`app/supplier_checks/level`, the question rows).
+
+### LIM-039: Fleet folders deleted whole can read as nothing recorded
+
+- **Id:** LIM-039
+- **Exit criteria:** 5
+- **What is unavailable:** a stated limit in every case where a project's
+  fleet records have been deleted. In a project attached to the records store,
+  where no fleet folder exists in the project or in its store folder and
+  nothing the App holds or has imported names a fleet log, the App reads the
+  fleet records as recording nothing. Any other absent fleet folder, subfolder
+  or log is a missing record, and the App says the status is incomplete. Where
+  both folders were deleted whole and nothing the App holds or imported names
+  them, the App cannot tell that from a project that never had any: the return
+  queue can then read as empty and "Waiting on you" can show nothing waiting.
+- **Why:** a freshly set-up project has neither folder, and reading that as
+  incomplete would mark every ordinary project incomplete from its first
+  launch. The App keeps no other record of whether
+  fleet records ever existed for a project.
+- **What the person does instead:** do not delete a project's
+  `.chirality/fleet` folder while work is delegated. If it was deleted,
+  restore it from Git or a backup; the App reads it again at its next reading.
+- **Basis:** DEL-06-02 REQ-002 (the waiting view's limits); DEL-06-01 (the
+  fleet records' reader and writer).

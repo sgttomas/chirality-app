@@ -844,3 +844,12 @@ fn package_import_an_emptied_or_fragments_only_account_is_unknown_never_no_impor
     STOP.with(|flag| *flag.borrow_mut() = None);
     check(&f, "unfinished", false);
 }
+
+#[test]
+fn a_member_name_differing_only_in_letter_case_names_the_same_path() {
+    assert!(same_member_path("fleet/coordination.fleet.jsonl", "fleet/coordination.fleet.jsonl"));
+    assert!(same_member_path("fleet/Coordination.fleet.jsonl", "fleet/coordination.fleet.jsonl"));
+    assert!(same_member_path("FLEET/COORDINATION.FLEET.JSONL", "fleet/coordination.fleet.jsonl"));
+    assert!(!same_member_path("fleet/coordination.fleet.json", "fleet/coordination.fleet.jsonl"));
+    assert!(!same_member_path("reads/records-reads.jsonl", "fleet/coordination.fleet.jsonl"));
+}
