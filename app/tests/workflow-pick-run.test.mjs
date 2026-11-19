@@ -144,10 +144,13 @@ test('a new chat: the first press starts the conversation and chooses the includ
     assert.deepEqual(select.context, {sourceRef: 'src', generation: g, historyEpoch: 3, threadId: 'created', selectionRef: null, inspectionRef: null, libraryRef: LIB}, 'the guide\'s context, for the new conversation');
     const order = ui.host.calls.map(call => call.command);
     assert.ok(order.indexOf('host_status', order.indexOf('thread_start')) < order.indexOf('workflow_select_production_bundle'), 'the status is read for the new row before choosing');
-    assert.match(ui.c.textContent, /Chosen for this conversation\. Nothing has been sent: read what it needs, then press Start run\./);
+    assert.match(ui.c.textContent, /Read what it needs, then press Start run\. Nothing has been sent\./);
     assert.match(labelled(ui.c, 'Workflow for this message').textContent, /Required tools: not declared, so the App can't check them\./, 'the check is shown before anything is sent');
     assert.equal(props(chatInput(ui.c)).value, TEXT, 'the text is kept');
+    // Left here, the conversation reads as what it is: a workflow chosen and no run started, not a run.
+    assert.equal(labelled(ui.c, 'Workflow chosen, not started')?.textContent, 'plan-work is chosen for this conversation. No run has been started.');
     await ui.press();
+    assert.ok(!labelled(ui.c, 'Workflow chosen, not started'), 'once a run of the conversation exists, the note is gone');
     assert.deepEqual(ui.names(), ['thread_start', 'workflow_select_production_bundle', 'workflow_prepare_run', 'workflow_send_run']);
     const prepare = ui.issued()[2].args;
     assert.deepEqual({...prepare, context: undefined}, {generation: g, threadId: 'created', personText: TEXT, context: undefined});
