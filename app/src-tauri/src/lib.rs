@@ -102,6 +102,7 @@ pub(crate) mod run_restart;
 pub mod runtime_session;
 mod waiting_requests;
 mod native_waiting;
+pub(crate) mod navigator_read;
 #[cfg(test)] mod waiting_requests_tests;
 #[cfg(test)]
 #[path = "placement_homes_tests.rs"]
@@ -2049,6 +2050,14 @@ fn history_action(
     let snapshot = home.history.lock().unwrap().snapshot(root.as_deref().ok());
     Ok(snapshot)
 }
+/// The navigator's one read: every project of the records store, with its
+/// conversations and the workflow runs they carry. A read only: it writes,
+/// starts and sends nothing, so the interface may call it on a timer
+/// (`navigator_read`).
+#[tauri::command(async)]
+fn navigator_read(state: State<'_, AppState>) -> navigator_read::NavigatorRead {
+    navigator_read::read(&state)
+}
 #[tauri::command]
 fn history_select(state: State<'_, AppState>, generation: Value, selection_epoch: u64, thread_id: String) -> Result<Value, String> {
     let home = state.homes.lock().unwrap().for_generation(&generation)?;
@@ -3632,6 +3641,7 @@ pub fn run() {
             desktop_setup_pick, desktop_setup_preview, desktop_setup_new_settings_preview, desktop_setup_project_preview, desktop_setup_prepare, quit_app,
             file_act_select, file_act_open_arrival, file_act_confirm, file_act_continue, file_act_dismiss, file_act_read, file_act_observe_lapses, file_act_retry_lapses,
             read_recovery_custody,
+            navigator_read,
             read_recovery_request_history,
             recovery_retry,
             read_connector_routes,

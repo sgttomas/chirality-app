@@ -1177,6 +1177,45 @@ fn roots_of(lines: &[Value], project: &str) -> Vec<String> {
     current.into_iter().filter(|(_, on)| *on).map(|(r, _)| r).collect()
 }
 
+/// One folder the registry of project folders lists, as its complete lines
+/// record it: the root as written, the identities current at it, and the
+/// position of the first line that names it (the order the store learned of
+/// the folder).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct ListedFolder {
+    pub root: String,
+    pub identities: Vec<String>,
+    pub first_line: usize,
+}
+/// The registry of project folders as read for a view of every project: the
+/// folders with a current identity, in the order first recorded, and what was
+/// not read (its limits, and the sentence every attachment shows while its
+/// last line is incomplete).
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub(crate) struct ListedFolders {
+    pub folders: Vec<ListedFolder>,
+    pub limits: Vec<String>,
+    pub torn: Option<String>,
+}
+/// Every folder the store's registry lists. A read: it opens the store as it
+/// exists (`opened`), reads `roots.jsonl` by the shared reading, and creates,
+/// locks, mints and registers nothing. `Err` when the store or its registry
+/// cannot be read at all.
+pub(crate) fn listed_folders() -> Result<ListedFolders, String> {
+    let (store, _) = opened()?;
+    let (lines, _, limits) = roots_read(&store)?;
+    let torn = roots_torn(&store)?.then(|| REGISTRY_TORN.to_owned());
+    let mut folders: Vec<ListedFolder> = Vec::new();
+    for (position, line) in lines.iter().enumerate() {
+        let Some(root) = line["root"].as_str() else { continue };
+        if folders.iter().any(|f| f.root == root) { continue; }
+        folders.push(ListedFolder { root: root.to_owned(), identities: Vec::new(), first_line: position });
+    }
+    for folder in &mut folders { folder.identities = listed(&lines, &folder.root); }
+    folders.retain(|f| !f.identities.is_empty());
+    Ok(ListedFolders { folders, limits, torn })
+}
+
 /// What the project's link file says.
 #[derive(Clone, Debug, PartialEq)]
 enum Link {

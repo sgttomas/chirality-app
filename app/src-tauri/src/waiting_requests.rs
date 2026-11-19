@@ -2,7 +2,7 @@
 use crate::{home_resources::HomeClass, runtime_session::HomeRouter};
 use serde_json::{json, Value};
 
-fn groups(class: HomeClass, snapshot: &Value) -> Vec<Value> {
+pub(crate) fn groups(class: HomeClass, snapshot: &Value) -> Vec<Value> {
     let generation = &snapshot["generation"];
     if snapshot["state"] != "ready" || crate::recovery::generation_ref(generation).is_err() { return vec![]; }
     let mut groups: Vec<Value> = Vec::new();

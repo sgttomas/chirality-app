@@ -1562,6 +1562,11 @@ impl HistorySession {
     pub fn history_mut(&mut self) -> Option<&mut crate::native_history::NativeHistory> {
         self.history.as_mut()
     }
+    /// The outcome of the App's own list read when Codex became ready
+    /// (`readAtReady`), as last published: its generation and state.
+    pub(crate) fn read_at_ready(&self) -> Option<&Value> {
+        self.read_at_ready.as_ref()
+    }
     pub(crate) fn child_limit_observations(&self)->Value{self.child_guidance.limits()}
     pub fn bind(&mut self, binding: crate::role_lifecycle::RoleBinding) -> Result<(), String> {
         self.roles.insert(binding)
@@ -6090,6 +6095,33 @@ impl WorkflowRootSession {
         points.extend(self.selection_marks.get(&(home.into(), thread.into())).map(|mark| mark.supersession(view)));
         points
     }
+    /// FN-1…FN-3: the finished report the run guide is offered for the run in
+    /// force in `thread`, as `offers` reads it.
+    fn finished_offer(&self, view: &Value, thread: &str, reference: &str, run: &WorkflowRun) -> Option<crate::run_offers::FinishedReport> {
+        crate::run_offers::finished_report(view, &run.in_force(reference, view))
+            .filter(|r| !self.finished_offer_suppressed(reference) && self.trial_offer_refusal(thread, &r.item().turn).is_none())
+    }
+    /// For each run in force in `view`'s home that this process holds: whether
+    /// the run guide is offered the agent's finished report for it (the same
+    /// reading as `offers`), or `None` where the run's operation is pending
+    /// and that cannot be told now. A read of memory only.
+    pub(crate) fn finished_offers_in(&self, view: &Value) -> Vec<(String, Option<bool>)> {
+        let Some(home) = view["home"].as_str() else { return vec![] };
+        let mut out = Vec::new();
+        for (run_home, thread) in self.conversations.keys() {
+            if run_home != home { continue; }
+            match self.run_in_force(home, thread) {
+                Ok(Some((reference, run))) => {
+                    let finished = run.try_lock().ok().map(|run| self.finished_offer(view, thread, &reference, &run).is_some());
+                    out.push((reference, finished));
+                }
+                Ok(None) => {}
+                // A pending operation: every run of the conversation is untold.
+                Err(_) => out.extend(self.conversations[&(run_home.clone(), thread.clone())].iter().map(|r| (r.clone(), None))),
+            }
+        }
+        out
+    }
     /// RN-3…RN-7, PR-1…PR-5, FN-1…FN-3: the offers the person may act on, from
     /// agent messages this App observed live. Display data only: an offer records,
     /// selects, ends and starts nothing; each press is re-verified by the host.
@@ -6102,8 +6134,7 @@ impl WorkflowRootSession {
             let mut run_name = None;
             if let Some((reference, run)) = &in_force {
                 let Ok(run) = run.try_lock() else { continue };
-                finished = crate::run_offers::finished_report(view, &run.in_force(reference, view))
-                    .filter(|r| !self.finished_offer_suppressed(reference) && self.trial_offer_refusal(&thread, &r.item().turn).is_none());
+                finished = self.finished_offer(view, &thread, reference, &run);
                 run_name = Some(run.prepared().workflow().name.clone());
             }
             // WR TT-2: lines in a clean trial conversation (or a fork of one),
