@@ -168,6 +168,22 @@ test('picking a workflow lands in the message box; removing the pick moves nothi
   } finally { proto.focus = previous.focus; proto.scrollIntoView = previous.scroll; }
 });
 
+test('the chip shows the workflow\'s name and its source; the revision digest is whole under its Details', async () => {
+  await mounted(standIn({threads: ['T1']}), async ui => {
+    await ui.choose('T1'); await ui.pick();
+    const chip = ui.composer().querySelectorAll(n => n.localName === 'li' && n.getAttribute('class') === 'method-chip')[0];
+    assert.ok(chip, 'the chip is drawn');
+    const small = chip.querySelectorAll(n => n.localName === 'small')[0];
+    assert.equal(chip.querySelectorAll(n => n.localName === 'span')[0].textContent, 'Plan the work', 'the workflow\'s name as the library gives it');
+    assert.equal(small.textContent, 'Chirality Library 9.9.9', 'its source');
+    assert.ok(!small.textContent.includes('·') && !/revision|0123456789/.test(small.textContent), `name and source only: ${small.textContent}`);
+    assert.ok(!chip.querySelectorAll(n => n.localName === 'code')[0], 'no digest on the chip');
+    const details = ui.composer().querySelectorAll(n => n.localName === 'details' && n.getAttribute('class') === 'v4-pick-details')[0];
+    assert.ok(details && !props(details).open, 'Details is closed');
+    assert.ok(details.querySelectorAll(n => n.localName === 'code' && n.textContent === 'plan-work-revision-0123456789abcdef')[0], 'the digest, whole, under Details');
+  });
+});
+
 test('a new chat: the first press starts the conversation and chooses the included workflow, then stops to show its tools; the second prepares and sends it once', async () => {
   await mounted(standIn(), async ui => {
     await ui.newChat();

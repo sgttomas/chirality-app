@@ -3,7 +3,7 @@
 // keeps a workflow selection only for a conversation that exists and has no command that clears one, so nothing is
 // sent or stored when a workflow is picked or removed. The press issues the Run guide's own commands, in its order and
 // under its guards (RunJourney.tsx RunWorkflowGuide), each awaited once and none retried.
-import { safeName, idWords } from "./AgentText";
+import { safeName } from "./AgentText";
 import { chatWorkflow, workflowArguments, workflowAssurance } from "./workflowSelection";
 import { LibraryPathsBesideWorkflow, RoleBesideWorkflow, includedEntryOf, librarySourceWords } from "./IncludedWorkflows";
 import { RequirementCheck, toolReading } from "./RequirementCheck";
@@ -308,7 +308,9 @@ export function PickChip({ pick, host, thread, disabled, remove }: { pick: Workf
   const newer = selection?.newerRevision;
   return <div className="v4-pick" aria-label="Workflow for this message">
     <ul className="method-chip-list" aria-label="Workflow picked">
-      <li className="method-chip"><span>{pick.title}</span><small>{pick.from} · {revision ?? <code title={idWords(pick.revision)}>{pick.revision.slice(0, 12)}…</code>}</small>
+      {/* The chip names the workflow and its source (and a registered revision's number); the revision digest is
+          whole under Details. */}
+      <li className="method-chip"><span>{pick.title}</span><small>{pick.from}{revision ? ` · ${revision}` : null}</small>
         <button type="button" aria-label={`Remove ${safeName(pick.name)}`} title="Remove" disabled={disabled} onClick={remove}>×</button></li>
     </ul>
     {tools ? <p className="v4-pick-note">{tools.words}{tools.missing.map((tool, index) => <span key={index}>{index ? "," : ""} <strong>{tool}</strong></span>)}{tools.missing.length ? "." : ""}
