@@ -1051,6 +1051,18 @@ fn child(parent: &std::fs::File, name: &str) -> Result<std::fs::File, String> {
         .map_err(|e| e.to_string())?;
     Ok(dir)
 }
+/// Whether `name` in the held folder `parent` is a folder, examined without
+/// following a link: false for a link, a file or nothing there.
+fn folder_at(parent: &std::fs::File, name: &str) -> Result<bool, String> {
+    use std::os::fd::AsRawFd;
+    let name = std::ffi::CString::new(name).map_err(|e| e.to_string())?;
+    let mut status = std::mem::MaybeUninit::<libc::stat>::uninit();
+    if unsafe { libc::fstatat(parent.as_raw_fd(), name.as_ptr(), status.as_mut_ptr(), libc::AT_SYMLINK_NOFOLLOW) } != 0 {
+        let error = std::io::Error::last_os_error();
+        return if error.kind() == std::io::ErrorKind::NotFound { Ok(false) } else { Err(error.to_string()) };
+    }
+    Ok(unsafe { status.assume_init() }.st_mode & libc::S_IFMT == libc::S_IFDIR)
+}
 fn plain(file: &std::fs::File) -> Result<crate::records_index::Stamp, String> {
     let m = file.metadata().map_err(|e| e.to_string())?;
     if !m.is_file() || m.nlink() != 1 {
@@ -1343,6 +1355,15 @@ fn publish_bound(
     let recheck = crate::records_index::open_log(&path).map_err(|e| e.to_string())?;
     if plain(&recheck)? != before || read_log(&path)? != original {
         return Err("Fleet source replaced/changed before append".into());
+    }
+    // The project's briefs and graphs folders are still folders in the held
+    // fleet folder, not followed if a link stands in their place.
+    if phase == 1 {
+        for name in ["briefs", "graphs"] {
+            if !folder_at(&folder, name)? {
+                return Err(format!("Fleet {name} folder replaced or removed before append"));
+            }
+        }
     }
     if duplicate.is_none() {
         file.write_all(bytes)
