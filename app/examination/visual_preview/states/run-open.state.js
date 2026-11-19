@@ -4,9 +4,10 @@
 // run a command that needs the network (git fetch). Everything the agent and Codex said is invented.
 import { readyHost, accountRead, CHATGPT_ACCOUNT, signInCompleted, threadRow, workflowRoot, projectLibrary, includedSelection, LIBRARY_REF, historyEmpty,
   runRow, turnReadings, nativeView, itemRow, runStartMessage, chosenView, LEVELS, GEN, THREAD, TURN, PROJECT, at, unix, waitingOverview } from "./_shared.js";
-import { selfIssued, pressesAfterMount, chooseRunConversation, chooseConversation } from "./_commands.js";
+import { selfIssued, pressesAfterMount, openInNavigator } from "./_commands.js";
 
-pressesAfterMount("run-open", [chooseRunConversation, chooseConversation]);
+// The person opens the conversation from the navigator; it has a run, so the right panel shows Run.
+pressesAfterMount("run-open", [openInNavigator]);
 
 const LEVEL_ENTRY = "level-chosen:6c8e0a2c-4e6a-4c8e-9a0c-2e4a6c8e0a2c";
 const reportedAtStart = { from: "thread/start", at: at(2, 1), requestRef: "request:thread-start-1", requestedLevelId: "full", approvalPolicy: "never", approvalsReviewer: "user",

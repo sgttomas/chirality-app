@@ -2,9 +2,9 @@
 // registered_listing reports the limit (workflow_library.rs read_ledger) and the entry listing that open_project_library
 // observes at once is unavailable for the same cause (workflow_library_entries.rs EntryListing::observe → scan).
 import { readyHost, accountRead, CHATGPT_ACCOUNT, signInCompleted, threadRow, workflowRoot, projectLibrary, LIBRARY_REF, PROJECT, nativePath, at, historyEmpty } from "./_shared.js";
-import { selfIssued, pressesAfterMount, chooseRunConversation, chooseWorkflowsTab } from "./_commands.js";
+import { selfIssued, pressesAfterMount, chooseWorkflowsTab } from "./_commands.js";
 
-pressesAfterMount("workflows-tab-ledger-unread", [chooseRunConversation, chooseWorkflowsTab]);
+pressesAfterMount("workflows-tab-ledger-unread", [chooseWorkflowsTab]);
 
 const LEDGER_LIMIT = `registration ledger malformed: ${PROJECT}/.chirality/workflow-registry.jsonl: incomplete final line (no newline) at line 3`;
 const unreadLibrary = { ...projectLibrary, registered: { limit: LEDGER_LIMIT },

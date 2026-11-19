@@ -3754,3 +3754,6 @@ div.woven-chat-section-heading--folder:hover { background:transparent; }
 .v4-runview .run-tab-chosen { font-size:14px; color:var(--ink); }
 .method-library-actions { display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 10px; }
 .daily-workspace .method-library-actions button { padding:4px 10px; font-size:12.5px; }
+/* The right region clips rather than hides: a reveal's scrollIntoView could otherwise scroll the hidden overflow and
+   take the tab bar out of view. Only the panel's own content (#right-view-content) scrolls. */
+.woven-workspace .woven-region--coordination { overflow: clip; }

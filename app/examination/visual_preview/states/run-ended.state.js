@@ -2,10 +2,11 @@
 // "completed", the finished report kept on the run); its end notice waits for the conversation's next ordinary turn;
 // Results lists the run. The host no longer offers the finished end (the run is not in force).
 import { readyHost, accountRead, CHATGPT_ACCOUNT, signInCompleted, threadRow, workflowRoot, projectLibrary, includedSelection, LIBRARY_REF, historyEmpty, runRow, turnReadings, nativeView, waitingOverview, TURN } from "./_shared.js";
-import { selfIssued, pressesAfterMount, chooseRunConversation } from "./_commands.js";
+import { selfIssued, pressesAfterMount, openInNavigator } from "./_commands.js";
 import { answered, finishedItems, editsLevel, finishedReport, COMPLETED_AT } from "./_later.js";
 
-pressesAfterMount("run-ended", [chooseRunConversation]);
+// The person opens the conversation from the navigator; it has a run, so the right panel shows Run.
+pressesAfterMount("run-ended", [openInNavigator]);
 
 const turn = turnReadings("completed", { completedAt: COMPLETED_AT });
 export const endedRun = { ...runRow("ended", { levelId: "edits", end: "completed", finishedReport, endedAfterTurn: TURN }),

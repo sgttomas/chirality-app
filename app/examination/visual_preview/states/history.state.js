@@ -3,11 +3,12 @@
 // read (thread/turns/list, summary view). Reading opens nothing. Codex's preview of the conversation is the start of its
 // first user message, which is the App's run-start text (the exact length Codex keeps is not reproduced here).
 import { defaultRoleBinding, HOME, GEN, THREAD, TURN, PROJECT, MODEL, unix, runStartMessage, historyEmpty } from "./_shared.js";
-import { selfIssued, pressesAfterMount, chooseRunConversation } from "./_commands.js";
+import { selfIssued, pressesAfterMount, chooseMoreTab, chooseMoreEntry } from "./_commands.js";
 import { endedHost } from "./run-ended.state.js";
 import { FINISHED_TEXT, COMPLETED_AT } from "./_later.js";
 
-pressesAfterMount("history", [chooseRunConversation]);
+// History is under More: the person opens More, then History in its list.
+pressesAfterMount("history", [chooseMoreTab, chooseMoreEntry("history")]);
 
 const ROLE_UNKNOWN = { standing: "unknown", reason: "original request-bound App role/source metadata not supplied; native agentRole, config, runtime record or fork relation does not establish it" }; // native_history.rs role_unknown
 // HistorySession::snapshot sets appRole on each listed row and on the selection from the session's role binding: this

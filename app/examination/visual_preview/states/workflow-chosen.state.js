@@ -2,10 +2,10 @@
 // setup is the App's project; one conversation started and idle, with the default role; the person opened
 // the project's workflows and chose the included workflow define-work for that conversation; nothing prepared.
 import { readyHost, accountRead, CHATGPT_ACCOUNT, signInCompleted, threadRow, workflowRoot, projectLibrary, includedSelection, LIBRARY_REF, historyEmpty } from "./_shared.js";
-import { selfIssued, pressesAfterMount, chooseRunConversation } from "./_commands.js";
+import { selfIssued, pressesAfterMount, openInNavigator } from "./_commands.js";
 
-// The person chose the conversation in the guide before choosing the workflow; the renderer alone holds that choice.
-pressesAfterMount("workflow-chosen", [chooseRunConversation]);
+// The person opens the conversation from the navigator; it has no run, so the right panel stays on Workflows.
+pressesAfterMount("workflow-chosen", [openInNavigator]);
 
 export default {
   title: "Workflow chosen (define-work), nothing prepared",

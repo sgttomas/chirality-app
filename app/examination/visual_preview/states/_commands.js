@@ -42,8 +42,8 @@ export const selfIssued = (over = {}) => ({
 });
 
 /**
- * A press the person made in this session that only the renderer holds (such as the conversation the
- * Run a workflow guide is set to), replayed once after the page has rendered, for the named state only:
+ * A press the person made in this session that only the renderer holds (such as the conversation open in the
+ * centre or the right panel's tab), replayed once after the page has rendered, for the named state only:
  * every state module is imported by states/index.js, so the check on the URL keeps it to its own page.
  * `steps` are functions of the document returning an element to click, tried until each is found.
  */
@@ -58,8 +58,8 @@ export function pressesAfterMount(state, steps) {
   };
   setTimeout(next, 300);
 }
-/** The run guide's choice of the one conversation (RunJourney.tsx ConversationChoices, group run-conversation). */
-export const chooseRunConversation = doc => [...doc.querySelectorAll('input[type="radio"][name="run-conversation"]')].find(input => input.value !== "");
+/** The navigator's first conversation (Navigator.tsx): opening it shows the Run tab when it has a run (App.tsx tab rules). */
+export const openInNavigator = doc => doc.querySelector("button.woven-navigator-session[data-session-id]:not([disabled])");
 /** The Conversation view's choice of the one conversation (App.tsx ConversationChoices, group current-conversation). */
 export const chooseConversation = doc => [...doc.querySelectorAll('input[type="radio"][name="current-conversation"]')].find(input => input.value !== "");
 /** lib.rs read_available_models → model_catalog::view, for the account home: a short invented list (no real model is named). */
@@ -77,6 +77,10 @@ export const availableModels = (args = {}) => ({ state: "observed", generation: 
 export const chooseWorkflowsTab = doc => doc.getElementById("right-tab-workflows");
 /** The right panel's Run tab (WorkspaceShell.tsx RIGHT_PANEL_TABS, id current-run). */
 export const chooseRunTab = doc => doc.getElementById("right-tab-current-run");
+/** The right panel's More tab, which opens on its list (WorkspaceShell.tsx MoreList). */
+export const chooseMoreTab = doc => doc.getElementById("right-tab-more");
+/** One entry of More's list, by its view (WorkspaceShell.tsx MORE_VIEWS: make, history, conversation-tools). */
+export const chooseMoreEntry = view => doc => doc.querySelector(`button.v4-more-entry[data-more-view="${view}"]`);
 /** "Use in message" on the Workflows tab's card for an included workflow (WorkflowLibrary.tsx), by its name. */
 export const pickIncludedCard = name => doc => doc.getElementById("view-library")?.querySelector(`li[aria-label="Included workflow ${name}"] button[aria-pressed="false"]`) ?? null;
 /** The person writes in the composer (App.tsx ConversationPanel, "Chat input"): React's own value setter, then an input
