@@ -770,3 +770,56 @@ fn another_folder_put_at_the_projects_path_is_not_the_project() {
     assert_eq!(trust.choice_for(&project), Some(AppTrust::FolderChanged), "same path, another folder");
     std::fs::remove_dir_all(base).unwrap();
 }
+
+// ---- Second repair: the acts and the view (C) ----
+
+#[test]
+fn a_preview_cannot_be_installed_while_a_confirmation_is_in_its_dialog_two_threads() {
+    use std::sync::mpsc::channel;
+    use std::time::Duration;
+    let (project, trust) = set_up("trust-preview-race-");
+    trust.switch_off_launched().unwrap();
+    let first = trust.preview_on_launched().unwrap()["token"].as_str().unwrap().to_owned();
+    // A second preview is held after its check, before its install.
+    let (checked_tx, checked_rx) = channel::<()>();
+    let (go_tx, go_rx) = channel::<()>();
+    *trust.before_preview_install.lock().unwrap() = Some(Box::new(move || { checked_tx.send(()).unwrap(); go_rx.recv().unwrap(); }));
+    let (in_dialog_tx, in_dialog_rx) = channel::<()>();
+    let (close_tx, close_rx) = channel::<()>();
+    std::thread::scope(|scope| {
+        let second = scope.spawn(|| trust.preview_on_launched());
+        checked_rx.recv_timeout(Duration::from_secs(5)).unwrap();
+        // The first preview's confirmation reaches its dialog only after the second preview's step has ended.
+        let (trust, first) = (&trust, &first);
+        let confirming = scope.spawn(move || trust.confirm_on(first, |_, _, _| { in_dialog_tx.send(()).unwrap(); close_rx.recv().unwrap(); Ok(false) }));
+        assert!(in_dialog_rx.recv_timeout(Duration::from_millis(300)).is_err(), "the dialog waits for the preview's one step");
+        go_tx.send(()).unwrap();
+        let second = second.join().unwrap().unwrap()["token"].as_str().unwrap().to_owned();
+        in_dialog_rx.recv_timeout(Duration::from_secs(5)).unwrap();
+        // While the dialog is open: no preview is installed, and none can be.
+        assert!(trust.preview.lock().unwrap().is_none(), "the preview installed before the dialog is withdrawn with it");
+        assert!(trust.preview_on_launched().unwrap_err().contains("already open"));
+        close_tx.send(()).unwrap();
+        assert_eq!(confirming.join().unwrap().unwrap()["state"], "cancelled; trust not switched on");
+        assert_eq!(trust.confirm_on(&second, |_, _, _| Ok(true)).unwrap_err(), "This trust preview is not the open one; review it again");
+    });
+    assert!(matches!(choice(&trust), AppTrust::OffBySwitch { .. }));
+    std::fs::remove_dir_all(project).unwrap();
+}
+
+#[test]
+fn the_view_offers_no_switch_where_the_choice_cannot_be_read_and_gives_its_detail() {
+    let (project, trust) = set_up("trust-view-not-read-");
+    trust.switch_off_launched().unwrap();
+    let view = trust.view();
+    assert_eq!((view["canSwitch"].as_bool(), view["offers"].clone()), (Some(true), json!(["switch-on"])), "the control");
+    std::fs::OpenOptions::new().append(true).open(switches(&project)).unwrap().write_all(b"{\"format\":\"chirality.project-trust-switch\",\"trust\":\"on\"}\n").unwrap();
+    let AppTrust::NotRead { detail: Some(detail) } = choice(&trust) else { panic!("not read") };
+    let view = trust.view();
+    assert_eq!((view["canSwitch"].as_bool(), view["offers"].clone(), view["cannotSwitch"].as_str()), (Some(false), json!([]), Some(CANNOT_SWITCH)));
+    assert_eq!(view["cannotSwitchDetail"], json!({"text": detail, "standing": cl::NOT_THE_APPS_TEXT}));
+    // And the acts refuse as the view says.
+    assert_eq!(trust.preview_on_launched().unwrap_err(), format!("{CANNOT_SWITCH} {detail}"));
+    assert!(trust.switch_off_launched().unwrap_err().starts_with(CANNOT_SWITCH));
+    std::fs::remove_dir_all(project).unwrap();
+}

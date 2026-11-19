@@ -626,15 +626,16 @@ fn write_profile(path: &Path, requested: &RequestedInputs) -> Result<(), String>
 /// will trust the project, followed by the whole effects text (`project_trust::EFFECTS_TEXT`); `projectTrust` holds
 /// the same, with the repository sentence and its root as supplied text where the project's folder is not its own
 /// root. A route that names no project says nothing new.
-fn with_project_trust(review: &mut Value, project: Option<&Path>) {
-    let Some(project) = project else { return };
+/// Everything is made from `observed`, the one observation the preview also stores.
+fn with_project_trust(review: &mut Value, observed: Option<&crate::project_trust::TrustObservation>) {
+    let Some(observed) = observed else { return };
     // The review's own list shows the trust line and what it turns on, the repository sentence included where it
     // applies, in the words the statement carries.
     if let Some(effects) = review["effects"].as_array_mut() {
         effects.push(json!(crate::project_trust::WILL_TRUST));
-        effects.extend(crate::project_trust::effects_lines(project).into_iter().map(Value::from));
+        effects.extend(observed.lines().into_iter().map(Value::from));
     }
-    review["projectTrust"] = json!({"line": crate::project_trust::WILL_TRUST, "effects": crate::project_trust::effects_for(project)});
+    review["projectTrust"] = json!({"line": crate::project_trust::WILL_TRUST, "effects": observed.effects()});
 }
 
 pub(crate) struct Launch {
@@ -714,9 +715,10 @@ struct Preview {
     project: Option<PathBuf>,
     source_refs: [Reference; 3],
     project_ref: Option<Reference>,
-    /// The trust lines the review showed for the project it names (DEL-01-01), frozen: the statement carries these,
-    /// and a change from them before the confirmation refuses.
-    trust: Option<String>,
+    /// The one observation of what trust turns on for the project the review names (DEL-01-01), frozen: the review,
+    /// the statement and the lines it carries are made from it, and a project observed otherwise before the
+    /// confirmation refuses.
+    trust: Option<crate::project_trust::TrustObservation>,
 }
 pub(crate) struct DesktopSetup {
     data: Result<PathBuf, String>,
@@ -1551,13 +1553,14 @@ impl DesktopSetup {
         )?;
         let token = crate::util::opaque_id("desktop-project-preview-")?;
         let mut result = json!({"defaults":Self::first_use_defaults("retain-account-project"),"token":token,"kind":"retain-account-project","affirmative":"Save project for next launch","accountHome":account.display().to_string(),"project":project.as_ref().map(|p|p.display().to_string()),"effects":[format!("Retain the currently admitted account directory {}",account.display()),format!("Project on next launch: {}",project.as_ref().map(|p|p.display().to_string()).unwrap_or_else(||"explicitly absent".into())),"Save only a pending project request; create no home, links or credentials"],"resources":resource_view(&plan)?,"standing":"Original admitted account/shared/supplier references are retained; active workspace and all current owners/choices remain unchanged"});
-        with_project_trust(&mut result, project.as_deref());
+        let observed = project.as_deref().map(crate::project_trust::TrustObservation::of);
+        with_project_trust(&mut result, observed.as_ref());
         self.preview = Some(Preview {
             token,
             kind: PreviewKind::RetainProject { admission, request },
             account,
             shared,
-            trust: project.as_deref().map(crate::project_trust::setup_trust_lines),
+            trust: observed,
             project,
             source_refs: active.shared.clone(),
             project_ref,
@@ -1608,12 +1611,12 @@ impl DesktopSetup {
             None => setup,
         })
     }
-    /// The trust lines the review showed for the project it names, if any, as frozen at review; refused when what
-    /// trust turns on for that project would now be said differently.
+    /// The trust lines the review showed for the project it names, if any, made from the observation frozen at
+    /// review; refused when the project's folder, as resolved, or its root is now observed otherwise.
     pub(crate) fn preview_trust_lines(&self, token: &str) -> Result<Option<String>, String> {
         let preview = self.preview.as_ref().filter(|p| p.token == token).ok_or("Setup preview changed; review the effects again")?;
         match (&preview.project, &preview.trust) {
-            (Some(project), Some(lines)) if crate::project_trust::setup_trust_lines(project) == *lines => Ok(Some(lines.clone())),
+            (Some(project), Some(observed)) if observed.project == *project && crate::project_trust::TrustObservation::of(project) == *observed => Ok(Some(observed.setup_lines())),
             (None, None) => Ok(None),
             _ => Err("Setup preview changed; review the effects again".into()),
         }
@@ -1670,7 +1673,8 @@ impl DesktopSetup {
         ]);
         effects["standing"] = json!("Nothing is created until you confirm. No other Codex settings, home or credential is read, imported or changed.");
         effects["defaults"] = Self::first_use_defaults("new-settings");
-        with_project_trust(&mut effects, preview.project.as_deref());
+        // The list is rebuilt for this route from the observation the preview stored, not observed again.
+        with_project_trust(&mut effects, preview.trust.as_ref());
         Ok(effects)
     }
     pub fn preview(
@@ -1701,7 +1705,8 @@ impl DesktopSetup {
         )?;
         let token = crate::util::opaque_id("desktop-preview-")?;
         let mut effects = json!({"defaults":Self::first_use_defaults("new-home"),"token":token,"kind":"new-home","affirmative":"Prepare home and save for next launch","accountHome":account.display().to_string(),"effects":[format!("Create new account directory {}",account.display()),format!("Create config.toml link → {}",shared.config_toml.display()),format!("Create AGENTS.md link → {}",shared.global_agents_md.display()),format!("Create skills link → {}",shared.skills.display()),format!("Save private pending request {}",data.join(PROFILE).display())],"project":project.as_ref().map(|p|p.display().to_string()),"resources":resource_view(&plan)?,"standing":"No credential import or existing-home adoption. Only the explicit prepare/save action creates these paths. Missing targets remain visible source limits."});
-        with_project_trust(&mut effects, project.as_deref());
+        let observed = project.as_deref().map(crate::project_trust::TrustObservation::of);
+        with_project_trust(&mut effects, observed.as_ref());
         let source_refs = [
             &shared.config_toml,
             &shared.global_agents_md,
@@ -1721,7 +1726,7 @@ impl DesktopSetup {
             kind: PreviewKind::NewHome,
             account,
             shared,
-            trust: project.as_deref().map(crate::project_trust::setup_trust_lines),
+            trust: observed,
             project,
             source_refs,
             project_ref,
@@ -7232,6 +7237,38 @@ mod tests {
                     assert!(whole.starts_with(&lines) && whole.contains(crate::project_trust::EFFECTS_TEXT), "{route}");
                 }
             }
+        }
+    }
+    #[test]
+    fn setup_makes_its_review_and_statement_from_one_observation_and_refuses_when_the_project_is_observed_otherwise() {
+        let f = Fixture::new();
+        let mut setup = f.setup();
+        let launch = setup.resolve(None, true, || panic!("setup has no probe"));
+        setup.admit_root(launch, Ok(f.data.clone()));
+        let repository = f.root.join("one-observation");
+        std::fs::create_dir_all(repository.join(".git")).unwrap();
+        std::fs::write(repository.join(".git").join("HEAD"), b"ref: refs/heads/main\n").unwrap();
+        let below = repository.join("inner");
+        std::fs::create_dir_all(&below).unwrap();
+        for route in ["new-home", "new-settings"] {
+            // The root changes right after the project is observed, where the review's effects and the stored lines
+            // were once computed apart.
+            let (git, moved) = (repository.join(".git"), repository.join("git-moved"));
+            crate::project_trust::after_trust_observation_for_test(Some(Box::new(move || std::fs::rename(&git, &moved).unwrap())));
+            let review = if route == "new-home" { setup.preview(f.shared.clone(), Some(below.clone()), SUPPLIER).unwrap() } else { setup.preview_new_settings(Some(below.clone())).unwrap() };
+            let token = review["token"].as_str().unwrap().to_owned();
+            // The review is made from the observation: the root it was observed with.
+            assert_eq!(review["projectTrust"]["effects"]["insideRepository"]["root"], json!(repository.to_string_lossy()), "{route}");
+            let shown: Vec<String> = review["projectTrust"]["effects"]["lines"].as_array().unwrap().iter().map(|l| l.as_str().unwrap().to_owned()).collect();
+            // The project is now observed otherwise: the confirmation refuses.
+            assert_eq!(setup.preview_statement(&token).unwrap_err(), "Setup preview changed; review the effects again", "{route}");
+            // Observed as reviewed again: the statement carries exactly the lines the review showed.
+            std::fs::rename(repository.join("git-moved"), repository.join(".git")).unwrap();
+            let lines = setup.preview_trust_lines(&token).unwrap().unwrap();
+            assert_eq!(lines, format!("{}\n{}", crate::project_trust::WILL_TRUST, shown.join("\n")), "{route}");
+            assert!(setup.preview_statement(&token).unwrap().ends_with(&lines), "{route}");
+            let listed: Vec<&str> = review["effects"].as_array().unwrap().iter().map(|e| e.as_str().unwrap()).collect();
+            assert!(listed.ends_with(&shown.iter().map(String::as_str).collect::<Vec<_>>()), "{route}: the review's own list");
         }
     }
     #[test]

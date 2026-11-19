@@ -89,33 +89,73 @@ pub(crate) fn how_known(launch_source: &str) -> Known {
     if launch_source == crate::desktop_startup::SAVED_REQUEST_SOURCE { Known::SetUpInApp } else { Known::EnvironmentRoute }
 }
 
+
 /// Where the root Codex computes differs from `project`: the sentence's two parts and the root between them, as
 /// supplied text. None where the project's folder is its own root. Computed by the function the trust entry uses
 /// (`codex_level::project_root`), so the words and the entry cannot disagree.
+#[cfg(test)]
 pub(crate) fn inside_repository(project: &Path) -> Option<Value> {
-    let root = cl::project_root(project);
-    (root != project).then(|| json!({"before": INSIDE_REPOSITORY_BEFORE, "root": root.to_string_lossy(), "after": INSIDE_REPOSITORY_AFTER,
-        "standing": "The folder is supplied text."}))
+    TrustObservation::of(project).inside_repository()
+}
+
+/// One observation of what trust turns on for a project: its folder as given and as resolved, and the root Codex
+/// computes for it, each read once. Setup's review, the lines it stores and its statement are all made from one.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct TrustObservation {
+    pub project: PathBuf,
+    pub resolved: Option<PathBuf>,
+    pub root: PathBuf,
+}
+#[cfg(test)]
+thread_local! { static AFTER_OBSERVATION: std::cell::RefCell<Option<Box<dyn FnOnce()>>> = const { std::cell::RefCell::new(None) }; }
+/// Runs `hook` once, on this thread, right after the next observation is made.
+#[cfg(test)]
+pub(crate) fn after_trust_observation_for_test(hook: Option<Box<dyn FnOnce()>>) {
+    AFTER_OBSERVATION.with(|h| *h.borrow_mut() = hook);
+}
+impl TrustObservation {
+    pub(crate) fn of(project: &Path) -> Self {
+        let observed = Self { project: project.to_path_buf(), resolved: std::fs::canonicalize(project).ok(), root: cl::project_root(project) };
+        #[cfg(test)]
+        if let Some(hook) = AFTER_OBSERVATION.with(|h| h.borrow_mut().take()) { hook(); }
+        observed
+    }
+    fn inside_repository(&self) -> Option<Value> {
+        (self.root != self.project).then(|| json!({"before": INSIDE_REPOSITORY_BEFORE, "root": self.root.to_string_lossy(), "after": INSIDE_REPOSITORY_AFTER,
+            "standing": "The folder is supplied text."}))
+    }
+    /// The lines every surface shows, in this order: the effects text, then the repository sentence where it applies.
+    pub(crate) fn lines(&self) -> Vec<String> {
+        let mut lines = vec![EFFECTS_TEXT.to_owned()];
+        if self.root != self.project { lines.push(format!("{INSIDE_REPOSITORY_BEFORE}{}{INSIDE_REPOSITORY_AFTER}", self.root.to_string_lossy())); }
+        lines
+    }
+    /// The effects text, the repository sentence where it applies, and both as the lines shown.
+    pub(crate) fn effects(&self) -> Value {
+        json!({"text": EFFECTS_TEXT, "insideRepository": self.inside_repository(), "lines": self.lines()})
+    }
+    /// Setup's statement: the trust line, then what trust turns on.
+    pub(crate) fn setup_lines(&self) -> String {
+        format!("{WILL_TRUST}\n{}", self.lines().join("\n"))
+    }
 }
 
 /// What trust turns on for `project`, as the lines every surface shows in this order: the effects text, then the
 /// repository sentence where it applies. The one source for setup's review and statement, the switch-on
 /// confirmation and the view.
 pub(crate) fn effects_lines(project: &Path) -> Vec<String> {
-    let mut lines = vec![EFFECTS_TEXT.to_owned()];
-    let root = cl::project_root(project);
-    if root != project { lines.push(format!("{INSIDE_REPOSITORY_BEFORE}{}{INSIDE_REPOSITORY_AFTER}", root.to_string_lossy())); }
-    lines
+    TrustObservation::of(project).lines()
 }
 
 /// The effects text for `project`, the repository sentence where it applies, and both as the lines shown.
 pub(crate) fn effects_for(project: &Path) -> Value {
-    json!({"text": EFFECTS_TEXT, "insideRepository": inside_repository(project), "lines": effects_lines(project)})
+    TrustObservation::of(project).effects()
 }
 
 /// Setup's statement, where a route names a project: the trust line, then what trust turns on.
+#[cfg(test)]
 pub(crate) fn setup_trust_lines(project: &Path) -> String {
-    format!("{WILL_TRUST}\n{}", effects_plain(project))
+    TrustObservation::of(project).setup_lines()
 }
 /// What setup's confirmation shows in the App beside its native statement, when the setup lines fit the native
 /// statement and the effects do not: the trust lines as the person reads them, frozen at review.
@@ -229,6 +269,8 @@ pub struct ProjectTrust {
     revisions: Mutex<std::collections::HashMap<PathBuf, String>>,
     #[cfg(test)]
     pub(crate) after_confirmation: Mutex<Option<Box<dyn FnOnce() + Send>>>,
+    #[cfg(test)]
+    pub(crate) before_preview_install: Mutex<Option<Box<dyn FnOnce() + Send>>>,
 }
 
 impl ProjectTrust {
@@ -340,22 +382,36 @@ impl ProjectTrust {
     // ---- The acts ----
 
     /// What the switch-on confirmation will show for the project the view named, and the token that confirms
-    /// exactly it. Writes nothing. Refused while another trust confirmation is open.
+    /// exactly it. Writes nothing. Refused while another trust confirmation is open: the check and the install are
+    /// one step under the confirmation's lock, so no preview is installed while a confirmation is in its dialog.
     pub(crate) fn preview_on(&self, project: &str) -> Result<Value, String> {
         let project = self.held(project)?;
-        if self.confirming.lock().unwrap_or_else(|p| p.into_inner()).is_some() {
+        let confirming = self.confirming.lock().unwrap_or_else(|p| p.into_inner());
+        if confirming.is_some() {
             return Err("A trust confirmation is already open; finish it first; nothing written".into());
         }
-        if let Some(reason) = crate::records_store::trust_switch_refusal(&project.physical) {
+        let read = self.read_noting(&project, None);
+        if let Some(reason) = Self::switch_refusal(&project, &read.choice) {
             return Err(format!("{CANNOT_SWITCH} {reason}"));
         }
-        let read = self.read_noting(&project, None);
-        if read.choice == AppTrust::FolderChanged { return Err(format!("{CANNOT_SWITCH} {CHOICE_FOLDER_CHANGED}")); }
         let content = Self::content(&project);
         let token = crate::util::opaque_id("project-trust-on-")?;
+        #[cfg(test)]
+        if let Some(hook) = self.before_preview_install.lock().unwrap().take() { hook(); }
         *self.preview.lock().unwrap_or_else(|p| p.into_inner()) = Some(Preview { token: token.clone(), project: project.folder.clone(),
             identity: read.identity, revision: read.revision, physical: project.physical.clone(), root: Self::root_of(&project), content: content.clone() });
+        drop(confirming);
         Ok(json!({"token": token, "content": content, "perform": PERFORM, "decline": DECLINE}))
+    }
+    /// Why no switch can be written for `project` now, its choice read as `choice`: what the records store refuses,
+    /// a folder that is no longer the one admitted, or a choice whose record could not be read (its detail, supplied
+    /// text). The view offers no switch, and the acts write none, where this is given.
+    fn switch_refusal(project: &KnownProject, choice: &AppTrust) -> Option<String> {
+        crate::records_store::trust_switch_refusal(&project.physical).or_else(|| match choice {
+            AppTrust::FolderChanged => Some(CHOICE_FOLDER_CHANGED.to_owned()),
+            AppTrust::NotRead { detail } => Some(detail.clone().unwrap_or_default()),
+            _ => None,
+        })
     }
     fn root_of(project: &KnownProject) -> Option<PathBuf> {
         std::fs::canonicalize(cl::project_root(&project.folder)).ok()
@@ -379,11 +435,13 @@ impl ProjectTrust {
         let whole = format!("{}\n{TAKES_EFFECT} {RUNNING_UNCHANGED}", effects_plain(&project.folder));
         let statement = ns::whole_or_in_app("project trust", "project trust effects", whole.clone(), &json!(whole),
             |digest| format!("{SWITCH_ON_POINTER}{digest}\n{TAKES_EFFECT}"))?;
-        // At most one confirmation in its native dialog; a second preview is refused meanwhile.
+        // At most one confirmation in its native dialog; a second preview is refused meanwhile, and one installed
+        // before the dialog opened is withdrawn with it.
         {
             let mut confirming = self.confirming.lock().unwrap_or_else(|p| p.into_inner());
             if confirming.is_some() { return Err("A trust confirmation is already open; finish it first; nothing written".into()); }
             *confirming = Some(token.to_owned());
+            *self.preview.lock().unwrap_or_else(|p| p.into_inner()) = None;
         }
         let answer = confirm(statement, DECLINE, PERFORM);
         *self.confirming.lock().unwrap_or_else(|p| p.into_inner()) = None;
@@ -451,8 +509,7 @@ impl ProjectTrust {
             AppTrust::OffByNewIdentity { .. } => "new-identity", AppTrust::NoChoice => "environment-route", AppTrust::NotRead { .. } => "not-read",
             AppTrust::FolderChanged => "folder-changed",
         };
-        let refusal = crate::records_store::trust_switch_refusal(&project.physical)
-            .or_else(|| (choice == AppTrust::FolderChanged).then(|| CHOICE_FOLDER_CHANGED.to_owned()));
+        let refusal = Self::switch_refusal(&project, &choice);
         let on = matches!(choice, AppTrust::OnBySetup | AppTrust::OnBySwitch { .. });
         json!({
             "project": project.folder.to_string_lossy(), "projectStanding": "The folder is supplied text.", "known": project.known.word(),
