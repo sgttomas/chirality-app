@@ -761,8 +761,8 @@ OTHER_MODEL = 'level-invented-other-model'
 MCP_STDIO = 'level_invented_stdio'
 MCP_HTTP = 'level_invented_http'
 TRUST_ENV = 'LEVEL_TRUST_ENV'
-# The one other line the `ZDOTDIR` start-up file holds: a shell builtin, which starts no program and writes nothing,
-# so that a command can show the file ran even where the sandbox refuses the marker's write.
+# The one other line each shell start-up file (`ZDOTDIR`'s and `BASH_ENV`'s) holds: a shell builtin, which starts no
+# program and writes nothing, so that a command can show the file ran even where the sandbox refuses the marker's write.
 STARTUP_ENV = 'LEVEL_INVENTED_STARTUP'
 STARTUP_LINE = 'export %s=ran' % STARTUP_ENV
 # The keys the public source at rust-v0.169.0 strips from a project's own settings (PROJECT_LOCAL_CONFIG_DENYLIST in
@@ -1036,7 +1036,7 @@ class Run:
             # A program a rule can name, with no redirection: a project's exec-policy rule matches its first word.
             for key in ('touch-out', 'touch-in'):
                 cmds[key] = '/usr/bin/touch %s' % shlex.quote(str(p[key]))
-            # What a command sees of the variable the `ZDOTDIR` start-up file exports, then of the variable a
+            # What a command sees of the variable either shell start-up file exports, then of the variable a
             # project's shell environment policy may set, one labelled line each; exits 0 either way.
             cmds['env'] = 'printf "startup=%%s\\nvariable=%%s" "${%s-unset}" "${%s-unset}"' % (STARTUP_ENV, TRUST_ENV)
         return cmds
@@ -1086,11 +1086,11 @@ class Run:
         return {'zdotdir': self.root / 'outside' / 'zdotdir', 'bash-env': self.root / 'outside' / 'bash-env.sh'}
 
     def write_shell_files(self):
-        """`ZDOTDIR`'s `.zshenv`: `STARTUP_LINE`, then the marker command. `BASH_ENV`'s file: the marker command."""
+        """`ZDOTDIR`'s `.zshenv` and `BASH_ENV`'s file: each `STARTUP_LINE`, then its own marker command."""
         files = self.shell_files()
         os.mkdir(files['zdotdir'], 0o700)
         (files['zdotdir'] / '.zshenv').write_text(STARTUP_LINE + '\n' + self.marker_command('zdotdir') + '\n')
-        files['bash-env'].write_text(self.marker_command('bash-env') + '\n')
+        files['bash-env'].write_text(STARTUP_LINE + '\n' + self.marker_command('bash-env') + '\n')
 
     def write_trust_file(self, relative, text):
         """Write one of `TRUST_FILES` into the project A, replacing what was there."""

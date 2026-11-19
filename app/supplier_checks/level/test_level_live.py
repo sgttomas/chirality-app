@@ -2135,6 +2135,9 @@ class FolderPerConversation(Probing):
             self.governed_by_b(run, again, thread, **turn)
 
 
+# The two start-up files a project's shell environment can point a command's shell at, by marker. Which one runs on a
+# machine is observed by each test, not assumed; the tests do not establish which shell ran the commands.
+SHELL_START_UP = {'zdotdir': "`ZDOTDIR`'s `.zshenv`", 'bash-env': 'the `BASH_ENV` file'}
 TRUST_CASES = ('untrusted', 'trusted')  # each the other's control; untrusted first, so a marker it shows is its own
 HOOK_EVENT_NAMES = {'SessionStart': 'sessionStart', 'UserPromptSubmit': 'userPromptSubmit', 'PreToolUse': 'preToolUse',
                     'PostToolUse': 'postToolUse', 'Stop': 'stop'}  # the protocol's spelling of each hook event
@@ -2886,8 +2889,8 @@ class TrustedProject(Probing):
     def shell_case(self, run, trust, config=None, level=None, commands=1):
         """A fresh server; a start at `level` (full access unless named) with the entry `trust` (and `config` added
         to the App's); then `commands` commands on the thread, each printing, on a labelled line each, the
-        variable the `ZDOTDIR` start-up file exports and the fixture's variable, with the `ZDOTDIR` marker's runs
-        read before and after each; then the server stopped. A command's value is its `variable=` line, shown as
+        variable either shell start-up file exports and the fixture's variable, with each start-up file's marker's
+        runs read before and after each; then the server stopped. A command's value is its `variable=` line, shown as
         'the variable set' when it is the value the settings give the variable; its `startup=` line is kept as
         'startup', and any other output lines apart."""
         run.clear_markers()
@@ -2899,7 +2902,7 @@ class TrustedProject(Probing):
         thread = reply['thread']['id']
         each = []
         for _ in range(commands):
-            before = run.marker_runs('zdotdir')
+            before = {name: run.marker_runs(name) for name in SHELL_START_UP}
             try:
                 outcome = probe(run, client, thread, 'env', **turn)
                 lines = outcome.text.splitlines()
@@ -2913,35 +2916,91 @@ class TrustedProject(Probing):
             except L.Refused as refused:
                 command, startup, other = ('unresolved', str(refused)[:200]), None, []
             each.append({'command': command, 'startup': startup, 'other output lines': other,
-                         'zdotdir before and after': (before, run.marker_runs('zdotdir'))})
+                         'markers before and after': {name: (before[name], run.marker_runs(name))
+                                                      for name in SHELL_START_UP}})
         time.sleep(1)
         client.stop()
         return {'command': each[0]['command'], 'commands': each, 'zdotdir': run.marker_runs('zdotdir'),
                 'bash-env': run.marker_runs('bash-env')}
 
-    def shell_seen(self, case):
+    def start_up_file(self, observed, name):
+        """Which of the two shell start-up files was read inside the commands on this machine, observed and not
+        assumed: the one whose marker rose across a command in the case `name`, where the project's start-up file is
+        expected to run (a marker written while the server started or stopped does not count). Printed; returned as
+        (that file's marker, the other's). Fails, saying so, where the case did not start or where neither or both
+        rose there."""
+        case = observed.get(name)
+        if not isinstance(case, dict) or 'start error' in case:
+            self.fail('The case %r did not start, so this machine shows neither shell start-up file running.\n'
+                      'observed:\n%s' % (name, shown(observed)))
+        ran = [marker for marker in SHELL_START_UP
+               if any(a > b for b, a in (c['markers before and after'][marker] for c in case['commands']))]
+        if len(ran) != 1:
+            self.fail('In the case %r %s across the commands, so the test cannot tell which start-up file the '
+                      'commands read.\nobserved:\n%s' % (name, "neither start-up file's marker rose" if not ran else
+                                                          "both start-up files' markers rose", shown(observed)))
+        sys.stderr.write('\nSTART-UP FILE %s: the file read inside the commands was %s (its marker rose across the '
+                         'commands in the case %r)\n' % (self.id().rsplit('.', 1)[-1], SHELL_START_UP[ran[0]], name))
+        sys.stderr.flush()
+        return ran[0], next(marker for marker in SHELL_START_UP if marker != ran[0])
+
+    @staticmethod
+    def start_up_paths(run):
+        """For each start-up file, by marker: its own path and its marker's, each from the run's root on (as
+        `/outside/...`), so that a line names them however the root before it is spelled."""
+        return {name: tuple('/' + str(path.relative_to(run.root))
+                            for path in (run.shell_files()[name], run.marker(name))) for name in SHELL_START_UP}
+
+    @staticmethod
+    def naming(case, paths):
+        """Every other output line of every command in `case` that names any of `paths`."""
+        return [line for c in case['commands'] for line in c['other output lines'] if any(p in line for p in paths)]
+
+    @staticmethod
+    def refused_marker(command, marker_path):
+        """Whether a command's other output lines hold a refused write naming that marker."""
+        return any(marker_path in line and 'not permitted' in line.lower() for line in command['other output lines'])
+
+    def shell_seen(self, case, ran, other, paths, kept_out):
+        """What the override test asserts of one case; `kept_out` is whether its row says the environment is kept
+        out, in which case no command's output may name either start-up file or either marker."""
         if not isinstance(case, dict) or 'start error' in case:
             return case
-        return {'command': case['command'], 'zdotdir ran': case['zdotdir'] > 0, 'bash-env': case['bash-env']}
+        out = {'command': case['command'], 'startup': [c['startup'] for c in case['commands']],
+               "the other start-up file's marker's runs": case[other]}
+        if kept_out:
+            out["the start-up file's marker's runs"] = case[ran]
+            out['output lines naming either start-up file'] = self.naming(case, paths[ran] + paths[other])
+        else:
+            out["the start-up file's marker risen across each command"] = [
+                a > b for b, a in (c['markers before and after'][ran] for c in case['commands'])]
+            out['output lines naming the other start-up file'] = self.naming(case, paths[other])
+        return out
 
-    def test_a_trusted_projects_shell_environment_reaches_commands_and_runs_its_zdotdir(self):
+    def test_a_trusted_projects_shell_environment_reaches_commands_and_runs_its_start_up_file(self):
         """The project's `.codex/config.toml` sets, through `shell_environment_policy.set`, a variable of the
-        fixture's own, `ZDOTDIR` (a folder whose `.zshenv` exports `LEVEL_INVENTED_STARTUP=ran` and then runs the
-        marker command, writing under `outside`) and `BASH_ENV` (a file that is the marker command). At the App's
-        edits and full-access levels, on a fresh server for each entry, two commands on the thread, each printing
-        the start-up file's variable and the project's. With the `trusted` entry, at both levels, each command sees
-        the project's variable and the start-up file's: the start-up file runs inside each command. At edits it
-        runs under that command's sandbox: the marker's runs do not rise across either command, its write outside
-        the project being refused there. At full access its write succeeds, and the marker's runs rise across each
-        command. With the `untrusted` entry, at both levels, each command sees both variables unset and the marker
-        never runs. The `BASH_ENV` marker never runs (the commands' shell is zsh). Recorded, not asserted: the
-        marker's counts and each command's other output lines (at edits, the start-up file's refused write). The
-        positive control: the same policy in the person's own settings, with the `untrusted` entry, at full access:
-        each command sees both variables and the marker's runs rise across each."""
+        fixture's own, `ZDOTDIR` (a folder whose `.zshenv` exports `LEVEL_INVENTED_STARTUP=ran` and then runs its
+        marker command, writing under `outside`) and `BASH_ENV` (a file that does the same with a marker of its
+        own). At the App's edits and full-access levels, on a fresh server for each entry, two commands on the
+        thread, each printing the start-up file's variable and the project's. The start-up file is the one observed
+        to be read inside the commands on this machine: the one whose marker rose across the commands with the
+        `trusted` entry at full access. It is printed, and the test fails if neither or both rose there. (By their
+        own documentation zsh reads the first and bash the second; the test does not establish which shell ran the
+        commands.) With the `trusted` entry, at both levels, each command sees the project's variable and the
+        start-up file's: the start-up file runs inside each command. At edits it runs under that command's sandbox:
+        its marker's runs do not rise across either command, and each command's output carries a refused write
+        naming its marker ("not permitted"), its write outside the project being refused there. At full access its
+        write succeeds, and its marker's runs rise across each command. With the `untrusted` entry, at both levels,
+        each command sees both variables unset and its marker never runs. In every case the other start-up file's
+        marker never runs, and no command's output names the other start-up file or its marker. Recorded, not
+        asserted: both markers' counts and each command's other output lines. The positive control: the same policy
+        in the person's own settings, with the `untrusted` entry, at full access: each command sees both variables
+        and the start-up file's marker's runs rise across each."""
         observed = {}
         for level_name, level in (('edits', self.EDITS), ('full access', self.FULL_ROW)):
             with L.Run(SCRATCH, BINARY, trusted_project=True) as run:
                 run.write_trust_file('.codex/config.toml', run.shell_env_toml())
+                paths = self.start_up_paths(run)
                 for trust in TRUST_CASES:
                     observed['%s, %s' % (trust, level_name)] = self.shell_case(run, trust, level=level, commands=2)
         with L.Run(SCRATCH, BINARY, trusted_project=True) as run:
@@ -2949,25 +3008,37 @@ class TrustedProject(Probing):
             observed["control: in the person's settings, full access"] = self.shell_case(
                 run, 'untrusted', level=self.FULL_ROW, commands=2)
         self.report(observed)
+        ran, other = self.start_up_file(observed, 'trusted, full access')
 
         def seen(name, case):
             if not isinstance(case, dict) or 'start error' in case:
                 return case
             out = {'commands': [c['command'] for c in case['commands']],
-                   'startup': [c['startup'] for c in case['commands']], 'bash-env': case['bash-env']}
+                   'startup': [c['startup'] for c in case['commands']],
+                   "the other start-up file's marker's runs": case[other],
+                   'output lines naming the other start-up file': self.naming(case, paths[other])}
             if name.startswith('untrusted'):
-                out['zdotdir'] = case['zdotdir']
+                out["the start-up file's marker's runs"] = case[ran]
             else:
-                out['zdotdir risen across each command'] = [a > b for b, a in
-                                                            (c['zdotdir before and after'] for c in case['commands'])]
+                out["the start-up file's marker risen across each command"] = [
+                    a > b for b, a in (c['markers before and after'][ran] for c in case['commands'])]
+            if name == 'trusted, edits':
+                out["a refused write naming the start-up file's marker, in each command"] = [
+                    self.refused_marker(c, paths[ran][1]) for c in case['commands']]
             return out
         variable, unset = (SUCCEEDED, 'the variable set'), (SUCCEEDED, 'unset')
-        seen_both = {'commands': [variable, variable], 'startup': ['ran', 'ran'], 'bash-env': 0}
-        unseen = {'commands': [unset, unset], 'startup': ['unset', 'unset'], 'bash-env': 0, 'zdotdir': 0}
-        rising = dict(seen_both, **{'zdotdir risen across each command': [True, True]})
+        seen_both = {'commands': [variable, variable], 'startup': ['ran', 'ran'],
+                     "the other start-up file's marker's runs": 0, 'output lines naming the other start-up file': []}
+        unseen = {'commands': [unset, unset], 'startup': ['unset', 'unset'],
+                  "the other start-up file's marker's runs": 0, 'output lines naming the other start-up file': [],
+                  "the start-up file's marker's runs": 0}
+        rising = dict(seen_both, **{"the start-up file's marker risen across each command": [True, True]})
         self.assertEqual({k: seen(k, v) for k, v in observed.items()}, {
             'untrusted, edits': unseen,
-            'trusted, edits': dict(seen_both, **{'zdotdir risen across each command': [False, False]}),
+            'trusted, edits': dict(seen_both, **{"the start-up file's marker risen across each command":
+                                                 [False, False],
+                                                 "a refused write naming the start-up file's marker, in each command":
+                                                 [True, True]}),
             'untrusted, full access': unseen,
             'trusted, full access': rising,
             "control: in the person's settings, full access": rising},
@@ -3048,15 +3119,21 @@ class TrustedProject(Probing):
         """The project's policy is the one in the shell-environment row; each case with the `trusted` entry, the
         App's own start at full access, one command, on a fresh server; the override in the start's
         `config.shell_environment_policy`. The controls are these cases against each other, within the one trust
-        state. No override: the command sees the project's variable and the `ZDOTDIR` marker runs. Of the forms
-        exercised, two keep it out. Each key the project sets, given an empty value: the command sees the variable
-        empty, not unset, and the marker does not run. `include_only` listing the names of the environment Codex is
-        given: the variable is unset and the marker does not run. Three do not: `inherit = "none"`, `exclude` of
-        each key, and the whole table sent again with an empty `set`, after each of which the command still sees the
-        project's variable and the marker still runs."""
+        state. The start-up file is the one observed to be read inside the commands on this machine, as in that row:
+        the one whose marker rose across the command with no override. It is printed, and the test fails if neither
+        or both rose there. No override: the command sees the project's variable and the start-up file's variable,
+        and the start-up file's marker rises across the command. Of the forms exercised, two keep it out, and in
+        each the command sees the start-up file's variable unset, the marker does not run, and no output line names
+        either start-up file or either marker. Each key the project sets, given an empty value: the command sees the
+        variable empty, not unset. `include_only` listing the names of the environment Codex is given: the variable
+        is unset. Three do not: `inherit = "none"`, `exclude` of each key, and the whole table sent again with an
+        empty `set`, after each of which the command still sees the project's variable and the start-up file's, and
+        the marker still rises across the command. In every case the other start-up file's marker never runs, and
+        no output line names the other start-up file or its marker. Recorded, not asserted: both markers' counts."""
         observed = {}
         with L.Run(SCRATCH, BINARY, trusted_project=True) as run:
             run.write_trust_file('.codex/config.toml', run.shell_env_toml())
+            paths = self.start_up_paths(run)
             names = (L.TRUST_ENV, 'ZDOTDIR', 'BASH_ENV')
             cases = {'no override': None,
                      'each key set empty': {'set': {name: '' for name in names}},
@@ -3068,12 +3145,17 @@ class TrustedProject(Probing):
                 observed[name] = self.shell_case(
                     run, 'trusted', config=policy and {'shell_environment_policy': policy})
         self.report(observed)
-        still = {'command': (SUCCEEDED, 'the variable set'), 'zdotdir ran': True, 'bash-env': 0}
-        self.assertEqual({k: self.shell_seen(v) for k, v in observed.items()}, {
+        ran, other = self.start_up_file(observed, 'no override')
+        kept_out = ('each key set empty', 'include_only the environment Codex is given')
+        out = {'startup': ['unset'], "the other start-up file's marker's runs": 0,
+               "the start-up file's marker's runs": 0, 'output lines naming either start-up file': []}
+        still = {'command': (SUCCEEDED, 'the variable set'), 'startup': ['ran'],
+                 "the other start-up file's marker's runs": 0, 'output lines naming the other start-up file': [],
+                 "the start-up file's marker risen across each command": [True]}
+        self.assertEqual({k: self.shell_seen(v, ran, other, paths, k in kept_out) for k, v in observed.items()}, {
             'no override': still,
-            'each key set empty': {'command': (SUCCEEDED, ''), 'zdotdir ran': False, 'bash-env': 0},
-            'include_only the environment Codex is given': {'command': (SUCCEEDED, 'unset'), 'zdotdir ran': False,
-                                                            'bash-env': 0},
+            'each key set empty': dict(out, command=(SUCCEEDED, '')),
+            'include_only the environment Codex is given': dict(out, command=(SUCCEEDED, 'unset')),
             'inherit none': still, 'exclude each key': still, 'the whole table, with an empty set': still},
             'observed:\n%s' % shown(observed))
 

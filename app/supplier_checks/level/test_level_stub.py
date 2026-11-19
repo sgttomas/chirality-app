@@ -402,14 +402,20 @@ class TrustedProjectFiles(unittest.TestCase):
             self.assertEqual(L.STARTUP_LINE, 'export LEVEL_INVENTED_STARTUP=ran')
             self.assertEqual((files['zdotdir'] / '.zshenv').read_text(),
                              L.STARTUP_LINE + '\n' + run.marker_command('zdotdir') + '\n')
-            self.assertEqual(files['bash-env'].read_text(), run.marker_command('bash-env') + '\n')
-            if os.path.exists('/bin/zsh'):  # the measured command sees what the start-up file exports
-                done = subprocess.run(['/bin/zsh', '-c', run.commands()['env']], capture_output=True, text=True,
-                                      env={'PATH': L.SYSTEM_PATH, 'ZDOTDIR': str(files['zdotdir'])}, check=True,
-                                      stdin=subprocess.DEVNULL)
-                self.assertEqual(done.stdout, 'startup=ran\nvariable=unset')
-                self.assertEqual(run.marker_runs('zdotdir'), 1)
-                run.clear_markers()
+            self.assertEqual(files['bash-env'].read_text(),
+                             L.STARTUP_LINE + '\n' + run.marker_command('bash-env') + '\n')
+            # The measured command sees what either start-up file exports, through the shell that reads it; only
+            # that file's marker runs.
+            for shell, variable, value, name in (('/bin/zsh', 'ZDOTDIR', files['zdotdir'], 'zdotdir'),
+                                                 ('/bin/bash', 'BASH_ENV', files['bash-env'], 'bash-env')):
+                if os.path.exists(shell):
+                    done = subprocess.run([shell, '-c', run.commands()['env']], capture_output=True, text=True,
+                                          env={'PATH': L.SYSTEM_PATH, variable: str(value)}, check=True,
+                                          stdin=subprocess.DEVNULL)
+                    self.assertEqual(done.stdout, 'startup=ran\nvariable=unset', shell)
+                    self.assertEqual({other: run.marker_runs(other) for other in ('zdotdir', 'bash-env')},
+                                     {'zdotdir': int(name == 'zdotdir'), 'bash-env': int(name == 'bash-env')}, shell)
+                    run.clear_markers()
             # Each is read where its shell reads it: shown here, so that the live control's marker means what it says.
             # Standard input is /dev/null: bash reads no BASH_ENV when its standard input is a socket (its check for
             # being started by a remote shell daemon), and a test runner's inherited input can be one.
