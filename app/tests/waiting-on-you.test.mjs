@@ -281,7 +281,9 @@ test('the place is present on every view, directly under the navigation, inside 
       const sticky = here.parentNode;
       assert.equal(sticky.getAttribute('class'), 'workspace-sticky', 'it stays in view with the navigation');
       assert.equal(sticky.parentNode, main, 'a direct child of the workspace that holds every view, so it sticks while any of them scrolls');
-      assert.equal(sticky.childNodes[0].localName, 'nav'); assert.equal(sticky.childNodes[1], here, 'directly under the navigation');
+      // The navigation sits in the heading bar; the place follows that bar directly.
+      assert.equal(sticky.childNodes[0].localName, 'header'); assert.ok(sticky.childNodes[0].contains(link.parentNode), 'the navigation is in the heading bar');
+      assert.equal(sticky.childNodes[1], here, 'directly under the navigation');
     }
     assert.equal(c.querySelectorAll(n => n.getAttribute('aria-label') === 'Requests waiting for your answer').length, 1, 'the waiting count is inside the place, once');
     assert.ok(place(c).contains(c.querySelectorAll(n => n.getAttribute('aria-label') === 'Requests waiting for your answer')[0]));

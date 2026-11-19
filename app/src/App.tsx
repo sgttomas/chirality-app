@@ -814,7 +814,7 @@ function ExternalObservationPanel({ data, select }: { data: Json; select: () => 
     const title = wordOf(EVIDENCE_TITLES, key);
     const document = observation?.[key];
     if (!document) return <p key={key}>{title}: not supplied; no comparison established.</p>;
-    return <article key={key} style={{ borderTop: "1px solid #ccc", paddingTop: 8 }}>
+    return <article key={key} className="separated">
       <h3>{`${wordOf(EVIDENCE_TITLES, key)} · ${wordOf(EVIDENCE_ASSESSMENT, document.assessment) ?? "assessment shown below"}`}</h3>
       {wordOf(EVIDENCE_ASSESSMENT, document.assessment) === null && <p>Recorded assessment: <AgentText value={document.assessment} source="record" name="An assessment the App does not recognise, as the host recorded it; the App does not vouch for its words" /></p>}
       <p>Selected file: {document.displayPath}</p>
@@ -884,7 +884,7 @@ function NativeConfirmationContent() {
     return () => { live = false; clearInterval(t); };
   }, []);
   if (!shown.length) return null;
-  return <section role="region" aria-label="Content named by an open native confirmation" style={{ border: "2px solid #a60", padding: 8 }}>
+  return <section role="region" aria-label="Content named by an open native confirmation" className="confirmation-content">
     <h2>Content named by an open native confirmation</h2>
     {shown.map((row: Json) => <article key={row.digest}>
       <h3>{wordOf(CONFIRMATION_KIND, row.kind) ?? "Content named by the confirmation"}</h3>{wordOf(CONFIRMATION_KIND, row.kind) === null && <p>Recorded kind: <AgentText value={row.kind} source="record" name="A kind of content the App does not recognise, as the host recorded it; the App does not vouch for its words" /></p>}
@@ -1263,8 +1263,6 @@ export function WorkflowRootPanel({ viewStale = false, readFailure = null, data,
       <p>Selection and run text are recorded before sending; if recording fails nothing is sent. A run opens when its start turn is observed and ends only when the person ends it: an interrupt, stop, quit, failed or completed turn, or an agent's "Workflow finished" line does not end it. Ending here records "ended by the person"; when the agent writes its "Workflow finished" line, the conversation offers End run beneath that message, which records cause "completed". After an end, the next message in this conversation (text, a plan or default mode turn, an attachment-bearing turn or a Continue-as request) carries the end notice first, once. Load/select this conversation and its received turn in native History before checking.</p>
       </>}
     </article>;})}
-    </div>
-    </details>
     <button disabled={busy} onClick={()=>action("workflow_read_records",{})}>Read recorded workflow supply (durable, read-only)</button>
     <CompareResult result={draftsState.compared}/>
     <button disabled={busy} onClick={()=>action("workflow_reopen",{})}>Reopen recorded workflow runs (read-only)</button>
@@ -1301,6 +1299,8 @@ export function WorkflowRootPanel({ viewStale = false, readFailure = null, data,
       <details><summary>Original workflow request</summary><RecordedData value={outcome.relation} /></details>
     </div>}
     {outcome?.limits.map((message,index)=><p role="status" aria-label="Workflow observation limit" key={index}><AgentText value={message} source="record" label="Observation limit:" name="An observation limit, which may carry text the App received, not only the App's words" /></p>)}
+    </div>
+    </details>
   </section>;
 }
 
@@ -1480,7 +1480,7 @@ export function AttachmentSelectionPanel({ data, act }: { data: Json; act: (comm
     {data?.reason && <p>{data.reason}</p>}{data?.operation?.message && <p role="alert">{data.operation.message}</p>}{error && <p role="alert">{error}</p>}
     {data?.operation?.state === "draft-prefilled-not-sent" && <div role="status"><p>Draft {data.operation.draft?.name} added ({data.operation.added} files). {data.operation.standing}</p>
       {(data.operation.notAttached ?? []).length > 0 && <ul role="alert" aria-label="Draft files not attached">{data.operation.notAttached.map((f: Json) => <li key={f.path}>Not attached: {f.path} ({f.bytes} bytes) — {f.reason}</li>)}</ul>}</div>}
-    {rows.map((row, index) => <article key={row.selection.selectionRef} style={{ borderTop: "1px solid #ccc", paddingTop: 8 }}>
+    {rows.map((row, index) => <article key={row.selection.selectionRef} className="separated">
       <h3>Selected attachment {index + 1}</h3>
       <p>Name: <AgentText value={row.selection.displayName} source="record" name="The selected file's name, as recorded; the App does not vouch for its words" /> · standing: <AgentText value={row.selection.standing} source="record" name="The selection's standing, as the host recorded it; the App does not vouch for its words" /></p>
       {row.selection.draft && <p>draft {row.selection.draft.name} at content {String(row.selection.draft.content?.value ?? "").slice(0, 12)} — not a registered workflow; this conversation is not a workflow run.</p>}
@@ -1519,7 +1519,7 @@ export function TraceReceivingPanel({ data, currentContext, select }: { data: Js
     <p>Selection: {data?.selection?.state ?? "not selected"} {data?.selection?.reason}</p>
     {busy && <p>Waiting for native selection and one source read.</p>}{error && <p role="alert">{error}</p>}
     <details><summary>Current App-observed context, separate from imported records</summary><p>This context never fills an imported subject, configuration, date or host origin. App executable identity is not established by this selector.</p><RecordedData value={currentContext} /></details>
-    {(data?.receiving?.imports ?? []).map((imported: Json, index: number) => <article key={index} style={{ borderTop: "1px solid #ccc", paddingTop: 8 }}>
+    {(data?.receiving?.imports ?? []).map((imported: Json, index: number) => <article key={index} className="separated">
       <h3>Import {index + 1}</h3>
       <p>Record kind: <AgentText value={imported.recordKind} source="record" name="The imported record's kind, as recorded; the App does not vouch for its words" /> · assessment: <AgentText value={imported.assessment} source="record" name="The host's assessment of the import, as recorded; the App does not vouch for its words" /></p>
       <p>Declared evidence category: {imported.declaredEvidenceCategory}. {imported.source?.sourceStanding}</p>
@@ -1546,7 +1546,7 @@ export function TraceReceivingPanel({ data, currentContext, select }: { data: Js
 export function ActControlPanel({ offer, choice, setChoice, decide, close }: {
   offer: Json; choice: string; setChoice: (choice: string) => void; decide: () => void; close: () => void;
 }) {
-  return <section style={{ border: "1px solid #888", padding: 8 }}>
+  return <section className="boxed">
     <h2>Act control</h2>
     <p>Act: <AgentText value={offer.wording} source="file" label="The package states the act:" name="The act's wording as the decision package states it, not the App's words" /> · kind: <AgentText value={offer.actKind} source="file" name="The act's kind as the decision package states it, not the App's words" /></p>
     <p>
@@ -1592,7 +1592,7 @@ export function DecisionPackagesPanel({ view, name, setName, recordName, refresh
     <p>Last writer continuation: {writer?.trigger ?? "not run"} · {writer?.state ?? "not run"} · new requests recorded: {writer?.requestsRecordedNow ?? 0}.</p>
     {(writer?.captureRecovery ?? []).filter((r: Json) => r.state !== "AC-7 recorded" || r.backlinkPending || r.delayEvidencePending).map((r: Json, i: number) => <p key={i}>Capture: {r.state} · {r.statusDetail ?? r.writeFailure ?? r.backlinkFailure ?? r.delayEvidenceFailure ?? r.captureDurability}</p>)}
     {(writer?.limits ?? []).map((limit: string, index: number) => <p key={index}>Writer limit: {limit}</p>)}
-    {(view?.rows ?? []).map((row: Json) => <article key={row.package} id={typeof row.package === "string" ? decisionPackageAnchor(row.package) : undefined} style={{ borderTop: "1px solid #ccc", paddingTop: 8 }}>
+    {(view?.rows ?? []).map((row: Json) => <article key={row.package} id={typeof row.package === "string" ? decisionPackageAnchor(row.package) : undefined} className="separated">
       <h3>Decision package {idWords(row.package)}</h3>
       <p>Act requested: <AgentText value={row.actRequested} source="file" name="The act the decision package requests, as the package states it, not the App's words" /> · state: <AgentText value={row.state} source="record" name="The package's state, as the host recorded it; the App does not vouch for its words" /></p>
       <p>Request resolution: {row.requestResolution ?? "not reported"}. Recorded request sources: {JSON.stringify(row.requestSources ?? [])}.</p>
@@ -1629,8 +1629,8 @@ export const FIRST_READ_PATIENCE_MS = 10_000;
 /** What stands in for the welcome and the workspace until the first status read is applied. The read's
  * own diagnostic is not shown: hostReads drops it at the source, so no status read's raw text is rendered. */
 function FirstReadStatus({ failed, slow, retry }: { failed: boolean; slow: boolean; retry: () => void }) {
-  if (!failed && !slow) return <p role="status">Starting Chirality…</p>;
-  return <section aria-label="Chirality could not start">
+  if (!failed && !slow) return <div className="workspace-starting"><p role="status">Starting Chirality…</p></div>;
+  return <section className="workspace-starting" aria-label="Chirality could not start">
     {failed ? <p role="alert">Chirality could not read its own state. It keeps trying; you can also try again now.</p>
       : <p role="status">Chirality is taking longer than usual to start. It keeps trying; you can also try again now.</p>}
     <p><button onClick={retry}>Try again</button></p>
@@ -2831,16 +2831,13 @@ export function App() {
   return (<UnsentWork.Provider value={reportUnsent}><PermissionLevelActions.Provider value={{ host, change: changePermissionLevel, unavailable: homePending, stale: shownBeforePress(hostReads), readFailed: !!hostReads.failure }}><DailyWorkspace>
         {firstRead !== "read" && <FirstReadStatus failed={firstRead === "failed"} slow={firstReadSlow} retry={() => { void refresh().catch(() => undefined); }}/>}
         {setupRequired && <FirstUseSetup view={host.desktopSetup}/>}
-        {firstRead === "read" && <div hidden={setupRequired}>
-        <header className="workspace-heading"><div><h1>Chirality</h1><p>Workflow workspace</p></div><p>Make, try, review and refine workflows through conversation.</p></header>
-        <WorkflowAssuranceSetting setting={host?.workflowRoot?.assuranceSetting} act={async (command, args) => commandThenRefresh(() => invoke(command, args), refresh, () => setMessage(withRefreshFailure))}/>
-        </div>}
-        {/* The navigation and "Waiting on you" stay in view together whichever view is shown. A sticky
+        {/* The heading, the navigation and "Waiting on you" stay in view together whichever view is shown. A sticky
             element sticks only within its parent, so this is a direct child of the workspace, which holds every view. */}
         {firstRead === "read" && <div className="workspace-sticky" hidden={setupRequired}>
+        <header className="workspace-heading"><div className="workspace-brand"><h1>Chira<em>lity</em></h1><p>Workflow workspace</p></div><p className="workspace-tagline">Make, try, review and refine workflows through conversation.</p>
         <nav className="workspace-nav" aria-label="Workspace navigation">
           {WORKSPACE_VIEWS.map(item => <a key={item.id} href={`#${item.target}`} aria-current={taskView === item.id ? "page" : undefined}>{item.label}</a>)}
-        </nav>
+        </nav></header>
         <WaitingOnYou readings={waitingReads} view={host?.nativeView} busy={homePending} onOpen={() => { void readFleetOnOpen(); }} openGroup={group => { void openRequests(group); }} go={goToWaiting}/>
         </div>}
         {firstRead === "read" && <div hidden={setupRequired}>
@@ -2870,7 +2867,7 @@ export function App() {
           };
       }}/>
         <NativeConfirmationContent />
-        {firstRead === "read" && <div hidden={setupRequired}>
+        {firstRead === "read" && <div className="workspace-body" hidden={setupRequired}>
         {offer && <ActControlPanel offer={offer} choice={choice} setChoice={setChoice} decide={decide} close={() => setOffer(null)} />}
         <div className="workspace-notices"><div id="other-requests">
             {outsideRequests.length > 0 && <h3>Requests outside the selected conversation</h3>}
@@ -2911,7 +2908,7 @@ export function App() {
           <p aria-label="New conversation choice">{!model.trim() || !modelProvider.trim() ? "not started — no model selected" : entryCompatible ? `New conversation choice: ${model} via ${modelProvider} (${entryId})` : "Choose how this conversation connects (step 1)."}</p>
 
           <p>
-            <button onClick={startConversation} disabled={!!startBlocked} aria-describedby={startBlocked ? "start-conversation-blocked" : undefined}>Start thread</button>
+            <button className="setup-primary" onClick={startConversation} disabled={!!startBlocked} aria-describedby={startBlocked ? "start-conversation-blocked" : undefined}>Start thread</button>
             {startBlocked && <>{" "}<span id="start-conversation-blocked" role="status">{startBlocked}</span></>}
           </p>
           <a href="#workspace-connection">Set up access or start Codex</a>
@@ -2971,8 +2968,10 @@ export function App() {
         </div>
         <div id="view-history" data-workspace-view="history" className="workspace-view workspace-view-narrow" hidden={taskView !== "history"}>
           <WorkspaceDisclosure id="workspace-history" title="History and recovery" description="Read prior conversations and inspect recovery custody" open>
+            <HistoryPanel host={host} refresh={refresh} threadKey={threadKey} setThreadKey={setThreadKey} captureContinueNavigation={captureContinueNavigation} openConversation={openAdmittedConversation} searchHint={historyHint}/>
+            <WorkspaceDisclosure id="workspace-recovery" title="Recovery custody" description="Pending records, pointer observations and requests left open">
             <RecoveryCustodyPanel key={JSON.stringify([host?.homeRouting?.activeModeHomeClass, host?.generation])} modeHomeClass={host?.homeRouting?.activeModeHomeClass} generation={host?.generation ?? null} nativeHistoryGeneration={host?.nativeHistory?.generation ?? null} read={() => invoke("read_recovery_custody", { modeHomeClass: host?.homeRouting?.activeModeHomeClass, generation: host?.generation ?? null })} readRequests={(cursor: Json) => invoke("read_recovery_request_history", { modeHomeClass: host?.homeRouting?.activeModeHomeClass, generation: host?.generation ?? null, cursor: cursor ?? null })} retry={(threadId: string) => invoke("recovery_retry", { modeHomeClass: host?.homeRouting?.activeModeHomeClass, generation: host?.generation ?? null, threadId })}/>
-        <HistoryPanel host={host} refresh={refresh} threadKey={threadKey} setThreadKey={setThreadKey} captureContinueNavigation={captureContinueNavigation} openConversation={openAdmittedConversation} searchHint={historyHint}/>
+            </WorkspaceDisclosure>
           </WorkspaceDisclosure>
         </div>
         <section id="workspace-tools" data-workspace-view="settings" className="workspace-tools workspace-view workspace-view-narrow" aria-label="Workspace tools" hidden={taskView !== "settings"}>
@@ -2982,6 +2981,9 @@ export function App() {
             <HomeAccessPanel host={host} resources={{ ...host?.homeResources, namespaceProtection: host?.nativeNamespaces, keyAdmission: host?.keyNamespaceAdmission }} navigating={homePending} readAccount={readAccountStatus} local={localAccess} act={async (command, args) => { await homeAction(command, args); }}/>
             <EffectiveAccessSettingsPanel host={host} navigating={homePending} refresh={refreshEffectiveAccessSettings}/>
   <CodexProcessControls host={host} busy={processBusy} act={(command, args) => { void processAct(command, args); }}/>
+          </WorkspaceDisclosure>
+          <WorkspaceDisclosure id="workspace-approval" title="Workflow approval" description="Which registrations let a workflow run">
+            <WorkflowAssuranceSetting setting={host?.workflowRoot?.assuranceSetting} act={async (command, args) => commandThenRefresh(() => invoke(command, args), refresh, () => setMessage(withRefreshFailure))}/>
           </WorkspaceDisclosure>
           <WorkspaceDisclosure id="workspace-files" title="Files and standing acts" description="Review a saved App-side output and its original act context">
             <FileActPanel command={(name, args) => invoke(name, args)} controlRef={fileActPanel} onBusyChange={setFileActBusy}/>
