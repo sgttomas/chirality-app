@@ -7272,6 +7272,48 @@ mod tests {
         }
     }
     #[test]
+    fn where_not_even_the_setup_lines_fit_the_whole_statement_is_shown_in_the_app_with_the_trust_line_natively() {
+        let f = Fixture::new();
+        let mut setup = f.setup();
+        let launch = setup.resolve(None, true, || panic!("setup has no probe"));
+        setup.admit_root(launch, Ok(f.data.clone()));
+        // A project folder whose path alone takes the setup lines with the trust pointer past the native limit, inside
+        // a repository so the repository sentence is among the effects.
+        let repository = f.root.join("whole-in-app");
+        std::fs::create_dir_all(repository.join(".git")).unwrap();
+        std::fs::write(repository.join(".git").join("HEAD"), b"ref: refs/heads/main\n").unwrap();
+        let project = ["a", "b", "c"].iter().fold(repository.clone(), |at, part| at.join(part.repeat(150)));
+        std::fs::create_dir_all(&project).unwrap();
+        let review = setup.preview_new_settings(Some(project.clone())).unwrap();
+        let token = review["token"].as_str().unwrap().to_owned();
+        let trust = setup.preview_trust_lines(&token).unwrap().unwrap();
+        let whole = setup.preview_statement(&token).unwrap();
+        let setup = Mutex::new(setup);
+        let mut seen = None;
+        crate::desktop_setup_confirmation::prepare(&setup, &token, |statement, _| {
+            seen = Some((statement.text.clone(), statement.in_app.as_ref().map(|c| (c.kind, c.content.clone()))));
+            Ok(tauri_plugin_dialog::MessageDialogResult::Custom(crate::desktop_setup_confirmation::LEAVE.into()))
+        }).unwrap();
+        let (text, in_app) = seen.unwrap();
+        // Natively: the summary naming the content by digest, and the trust line among the effects.
+        assert!(text.starts_with("Create settings and save for next launch. Complete reviewed effects are shown in the App"), "{text}");
+        assert!(text.ends_with(crate::project_trust::SETUP_TRUST_AMONG_EFFECTS), "{text}");
+        assert!(!text.contains(crate::project_trust::EFFECTS_TEXT));
+        // In the App: the whole statement, the trust line and every effects line included.
+        let (kind, content) = in_app.unwrap();
+        assert_eq!((kind, content.clone()), ("desktop setup effects", json!({"effects": whole})));
+        let shown = content["effects"].as_str().unwrap();
+        assert!(shown.ends_with(&trust) && trust.starts_with(crate::project_trust::WILL_TRUST), "the trust line, then what it turns on");
+        for line in review["projectTrust"]["effects"]["lines"].as_array().unwrap() {
+            assert!(shown.contains(line.as_str().unwrap()), "{line}");
+        }
+        assert!(shown.contains(crate::project_trust::INSIDE_REPOSITORY_BEFORE));
+        // A change between review and confirmation refuses before any confirmation is shown.
+        std::fs::rename(repository.join(".git"), repository.join("git-moved")).unwrap();
+        let refused = crate::desktop_setup_confirmation::prepare(&setup, &token, |_, _| panic!("no confirmation is shown")).unwrap_err();
+        assert_eq!(refused, "Setup preview changed; review the effects again");
+    }
+    #[test]
     fn new_settings_are_created_only_at_confirmed_prepare_inside_the_app_data() {
         use std::os::unix::fs::PermissionsExt;
         let f = Fixture::new();
