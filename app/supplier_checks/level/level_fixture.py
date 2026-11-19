@@ -843,9 +843,10 @@ class Run:
         env.update(extra or {})
         return env
 
-    def start(self):
+    def start(self, flags=()):
+        """Start the app server. `flags` are further `-c` settings, given as the App gives its session flags."""
         admitted_binary(self.binary)
-        client = Client(self)
+        client = Client(self, flags)
         self.clients.append(client)
         client.initialize()
         return client
@@ -934,12 +935,13 @@ class Run:
 
 
 class Client:
-    def __init__(self, run):
+    def __init__(self, run, flags=()):
         self.run = run
         self.stderr = open(run.root / ('codex-stderr-%d.log' % len(run.clients)), 'wb')
         self.proc = subprocess.Popen(
             [run.binary, '-c', 'analytics.enabled=false', '-c', 'model_provider="openai"',
-             '-c', 'openai_base_url="%s"' % run.stub.base_url, 'app-server'],
+             '-c', 'openai_base_url="%s"' % run.stub.base_url]
+            + [part for flag in flags for part in ('-c', flag)] + ['app-server'],
             cwd=str(run.project), env=run.environment(), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
             stderr=self.stderr, start_new_session=True)
         self.pgid = self.proc.pid  # its own session, so its own process group
@@ -954,6 +956,7 @@ class Client:
         self.notes = []
         self.server_requests = []  # {'method', 'thread', 'id', 'params'}; params kept in memory only
         self.tool_call_policy = 'answer'  # 'answer' or 'hold'
+        self.question_policy = 'decline'  # 'decline' (no answers) or 'hold'
         self.held = []
         self.writer = threading.Lock()
         self.reader_end = None  # set by read(): 'eof', or the error that stopped it
@@ -1003,7 +1006,10 @@ class Client:
             else:
                 self.answer_tool_call(record)
         elif method == 'item/tool/requestUserInput':
-            self.send({'jsonrpc': '2.0', 'id': frame['id'], 'result': {'answers': {}}})
+            if self.question_policy == 'hold':
+                self.held.append(record)
+            else:
+                self.send({'jsonrpc': '2.0', 'id': frame['id'], 'result': {'answers': {}}})
         else:
             self.send({'jsonrpc': '2.0', 'id': frame['id'],
                        'error': {'code': -32601, 'message': 'fixture: not answered'}})
@@ -1011,6 +1017,11 @@ class Client:
     def answer_tool_call(self, record):
         self.send({'jsonrpc': '2.0', 'id': record['id'], 'result': {
             'success': True, 'contentItems': [{'type': 'inputText', 'text': 'Invented records answer.'}]}})
+
+    def answer_question(self, record, answers):
+        """Answer a held question: `answers` maps each question's id to the list of answers given."""
+        self.send({'jsonrpc': '2.0', 'id': record['id'], 'result': {
+            'answers': {key: {'answers': given} for key, given in answers.items()}}})
 
     def call(self, method, params, timeout=30):
         with self.lock:

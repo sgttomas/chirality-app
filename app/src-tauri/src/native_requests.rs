@@ -55,6 +55,12 @@ fn validators() -> Result<&'static HashMap<String, jsonschema::Validator>, Strin
         .map_err(Clone::clone)
 }
 pub fn negative(method: &str, answer: &Value) -> bool {
+    // A question's reply is a decline exactly when its answers map is empty, which is how Codex reads it. It is
+    // classified by that map alone: no other field of the reply, such as another request kind's `action` or
+    // `decision`, can make the register record a decline for a reply that carries answers.
+    if method == "item/tool/requestUserInput" {
+        return answer.get("answers").and_then(Value::as_object).is_some_and(|answers| answers.is_empty());
+    }
     let decision = answer.get("decision").unwrap_or(answer);
     matches!(
         decision.as_str(),
@@ -64,7 +70,6 @@ pub fn negative(method: &str, answer: &Value) -> bool {
             answer.get("action").and_then(Value::as_str),
             Some("decline" | "cancel")
         )
-        || (method == "item/tool/requestUserInput" && answer.get("answers") == Some(&json!({})))
         || (method == "item/permissions/requestApproval"
             && answer.get("permissions") == Some(&json!({})))
 }
@@ -799,6 +804,82 @@ mod tests {
         assert_eq!(r.close_for(&gen(),"supplier-exit"),1);
         assert_eq!(r.entries()[0]["state"],"ended-unanswered");
         assert!(r.withdraw_prepared(&gen(),&json!("opaque")).is_err(),"a closed source refuses");
+    }
+    /// DEL-01-04 REQ-001: a question raised in an ordinary conversation arrives as Codex sends it at the pin
+    /// with the question feature on (`supplier_checks/level`, `QuestionInAnOrdinaryConversation`): marked
+    /// `isBlocking` false. The register holds it exactly as it holds plan mode's: waiting until the person
+    /// answers, with Codex's content unchanged, the answer written as given, and nothing settling it meanwhile.
+    #[test]
+    fn a_question_from_an_ordinary_conversation_waits_and_is_answered_as_given() {
+        let schema:Value=serde_json::from_str(include_str!("../resources/runtime_core/hosting.server-request-entry.schema.json")).unwrap();
+        let validator=jsonschema::options().offline().build(&schema).unwrap();
+        let question=|blocking:bool|json!({"threadId":"t","turnId":"u","itemId":"call","isBlocking":blocking,"questions":[
+            {"id":"q1","header":"Invented","question":"Invented question?","isOther":true,"isSecret":false,
+             "options":[{"label":"Yes","description":"Invented yes"},{"label":"No","description":"Invented no"}]},
+            {"id":"q2","header":"Fixed","question":"Invented fixed choice?","isOther":false,"isSecret":false,
+             "options":[{"label":"A","description":"Invented a"},{"label":"B","description":"Invented b"}]}]});
+        let mut ordinary=RequestRegister::default();
+        assert!(receive(&mut ordinary,"item/tool/requestUserInput",question(false)).is_none(),"no reply is prepared on arrival");
+        let mut plan=RequestRegister::default();
+        receive(&mut plan,"item/tool/requestUserInput",question(true));
+        let (e,p)=(ordinary.entries()[0].clone(),plan.entries()[0].clone());
+        assert_eq!((e["state"].as_str(),e["classification"].as_str(),e["replyWriteResult"].as_str()),(Some("outstanding"),Some("known-answerable"),Some("not-attempted")));
+        assert_eq!(e["nativeParameters"],question(false),"Codex's content is kept unchanged");
+        let record=ordinary.records()[0].clone();
+        validator.validate(&record).unwrap();
+        assert_eq!((record["originClass"].as_str(),record["subjectReferences"]["thread"].as_str()),(Some("person-input"),Some("t")));
+        // Apart from Codex's own mark, the entry is the one a plan-mode question makes.
+        let mut same=p.clone();same["nativeParameters"]["isBlocking"]=json!(false);
+        assert_eq!(e,same);
+        // An answer the question does not offer is refused and the question still waits.
+        assert!(ordinary.prepare(&gen(),&json!("opaque"),&json!({"answers":{"q2":{"answers":["Neither"]}}}),"person-via-interaction",Some(ACTOR)).is_err());
+        assert!(ordinary.prepare(&gen(),&json!("opaque"),&json!({"answers":{"unasked":{"answers":["A"]}}}),"person-via-interaction",Some(ACTOR)).is_err());
+        assert_eq!(ordinary.entries()[0]["state"],"outstanding");
+        // The person's answer, a free one and a listed one, is written to Codex as given.
+        let given=json!({"answers":{"q1":{"answers":["A free answer, invented."]},"q2":{"answers":["B"]}}});
+        let wire=ordinary.prepare(&gen(),&json!("opaque"),&given,"person-via-interaction",Some(ACTOR)).unwrap();
+        assert_eq!(wire,json!({"id":"opaque","result":given}));
+        ordinary.begin_reply_write(&gen(),&json!("opaque")).unwrap().complete(true);ordinary.observe_completed_reply_writes();
+        let answered=ordinary.records()[0].clone();
+        validator.validate(&answered).unwrap();
+        assert_eq!((answered["state"].as_str(),answered["settlement"]["kind"].as_str(),answered["settlement"]["origin"]["class"].as_str()),(Some("answered"),Some("answer"),Some("person-via-interaction")));
+        assert_eq!(answered["settlement"]["nativeContent"],given);
+        assert!(ordinary.prepare(&gen(),&json!("opaque"),&given,"person-via-interaction",Some(ACTOR)).is_err(),"answered once");
+        // An explicit decline is the person's too, and reaches Codex as an answer with no answers.
+        let mut declined=RequestRegister::default();
+        receive(&mut declined,"item/tool/requestUserInput",question(false));
+        let wire=declined.prepare(&gen(),&json!("opaque"),&json!({"answers":{}}),"person-via-interaction",Some(ACTOR)).unwrap();
+        assert_eq!(wire["result"],json!({"answers":{}}));
+        declined.begin_reply_write(&gen(),&json!("opaque")).unwrap().complete(true);declined.observe_completed_reply_writes();
+        assert_eq!((declined.entries()[0]["state"].as_str(),declined.records()[0]["settlement"]["kind"].as_str()),(Some("declined"),Some("decline")));
+        // Fields a question's reply does not have cannot change how it is recorded: with answers it is an answer,
+        // whatever another request kind's decline words say beside them, and Codex is sent what was given.
+        for extra in [json!({"action":"decline"}),json!({"action":"cancel"}),json!({"decision":"decline"}),json!({"decision":"cancel"}),json!({"decision":{"denied":{"rejection":""}}}),json!({"permissions":{}})] {
+            let mut reply=given.clone();
+            for (k,v) in extra.as_object().unwrap() { reply[k]=v.clone(); }
+            assert!(!negative("item/tool/requestUserInput",&reply),"{reply}");
+            let mut tampered=RequestRegister::default();
+            receive(&mut tampered,"item/tool/requestUserInput",question(false));
+            match tampered.prepare(&gen(),&json!("opaque"),&reply,"person-via-interaction",Some(ACTOR)) {
+                Ok(wire)=>{
+                    assert_eq!(wire["result"],reply);
+                    tampered.begin_reply_write(&gen(),&json!("opaque")).unwrap().complete(true);tampered.observe_completed_reply_writes();
+                    assert_eq!((tampered.entries()[0]["state"].as_str(),tampered.records()[0]["settlement"]["kind"].as_str()),(Some("answered"),Some("answer")),"{reply}");
+                }
+                Err(_)=>assert_eq!(tampered.entries()[0]["state"],"outstanding","a refused reply leaves the question waiting"),
+            }
+        }
+        // And an empty answers map is a decline whatever else the reply holds.
+        assert!(negative("item/tool/requestUserInput",&json!({"answers":{},"action":"accept"})));
+        assert!(!negative("item/tool/requestUserInput",&json!({"action":"decline"})),"no answers map is not a decline; the reply is refused by its shape");
+        // Left unanswered until Codex's process ends, it ends unanswered: nothing answered it.
+        let mut left=RequestRegister::default();
+        receive(&mut left,"item/tool/requestUserInput",question(false));
+        assert_eq!(left.close_for(&gen(),"app-quit"),1);
+        let ended=left.records()[0].clone();
+        assert_eq!((ended["state"].as_str(),ended["endCause"].as_str()),(Some("ended-unanswered"),Some("process-exit")));
+        assert!(ended.get("settlement").is_none());
+        assert!(left.prepare(&gen(),&json!("opaque"),&given,"person-via-interaction",Some(ACTOR)).is_err(),"a question whose Codex has ended takes no answer");
     }
     #[test]
     fn closed_unknown_and_late_write_keep_secret_reply_values_removed() {

@@ -145,9 +145,10 @@ fn the_development_model_address_setting_is_listed_with_its_reason_only_where_ap
 #[test]
 fn every_session_setting_the_app_applies_is_listed_with_a_reason() {
     let account = HostConfig::new("/x".into(), "/a".into(), "/p".into(), "/w".into());
-    assert_eq!(account.session_flags, ["analytics.enabled=false", "model_provider=\"openai\""]);
+    assert_eq!(account.session_flags, ["analytics.enabled=false", "model_provider=\"openai\"", "features.default_mode_request_user_input=true"]);
     let listed = applied_session_settings(&account.session_flags);
-    assert_eq!(listed.as_array().unwrap().len(), 2);
+    assert_eq!(listed.as_array().unwrap().len(), 3);
+    assert!(listed[2]["reason"].as_str().unwrap().contains("under development"), "the supplier's standing of the feature is said");
     assert!(listed[1]["reason"].as_str().unwrap().contains("Your files are not changed"));
     let unknown = applied_session_settings(&["invented.setting=1".into()]);
     assert_eq!(unknown, json!([{"setting":"invented.setting=1","reason":"No reason is recorded for this setting."}]), "an unrecognised setting is listed, not dropped");
