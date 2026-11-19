@@ -103,6 +103,7 @@ pub(crate) mod run_restart;
 pub mod runtime_session;
 mod waiting_requests;
 mod native_waiting;
+pub(crate) mod navigator_read;
 #[cfg(test)] mod waiting_requests_tests;
 #[cfg(test)]
 #[path = "placement_homes_tests.rs"]
@@ -184,6 +185,8 @@ pub struct AppState {
     continue_as: Mutex<conversation_roles::Handoffs>,
     /// The App quit question and whether the quit may proceed (K-4, SQ-Q).
     app_quit: app_quit::AppQuit,
+    /// Host status's last records store observation, shown by the navigator.
+    records_status: navigator_read::StatusSlot,
 }
 
 impl AppState {
@@ -909,6 +912,7 @@ fn host_status(state: State<'_, AppState>) -> Value {
     s["codexStops"] = json!({"outcomes":state.codex_stops.lock().unwrap().clone(),"stopWaitLimitSeconds":codex_stop::STOP_WAIT_LIMIT.as_secs(),"records":codex_stop::RECORDS_LIMIT});
     s["connectorRouteAvailability"] = connector_route_view::availability(state.workspace.as_deref(), &state.project_context, state.project_context_limit.as_deref());
     s["recordsStore"] = records_store::status(state.workspace.as_deref());
+    let records_observation = s["recordsStore"].clone();
     // DEL-01-01: the launched project's trust: the App's choice and why, what the last frame sent, what trust
     // turns on, and whether it can be switched now.
     s["projectTrustChoice"] = state.project_trust.view();
@@ -933,6 +937,11 @@ fn host_status(state: State<'_, AppState>) -> Value {
     if let Err(e) = &*state.instructions_root.lock().unwrap() {
         s["instructionsProblem"] = json!(e);
     }
+    // Kept for the navigator once this read's runtime and attachment-selection
+    // guards are released, so no lock is taken under them.
+    drop(selections);
+    drop(runtime);
+    state.records_status.keep(state.workspace.as_deref(), records_observation);
     s
 }
 
@@ -2096,6 +2105,15 @@ fn history_action(
     let root = state.instructions_root.lock().unwrap().clone();
     let snapshot = home.history.lock().unwrap().snapshot(root.as_deref().ok());
     Ok(snapshot)
+}
+/// The navigator's one read: every project of the records store, with its
+/// conversations, and for the open project each conversation's latest
+/// workflow run and how many it carries. A read only, from what the App
+/// holds: it writes, starts and sends nothing, so the interface may call it
+/// on a timer (`navigator_read`).
+#[tauri::command(async)]
+fn navigator_read(state: State<'_, AppState>) -> navigator_read::NavigatorRead {
+    navigator_read::read(&state)
 }
 #[tauri::command]
 fn history_select(state: State<'_, AppState>, generation: Value, selection_epoch: u64, thread_id: String) -> Result<Value, String> {
@@ -3424,6 +3442,7 @@ fn freeze_startup_state(launch: desktop_startup::Launch, desktop: Arc<Mutex<desk
         codex_stops: Mutex::new(Vec::new()),
         continue_as: Mutex::new(conversation_roles::Handoffs::default()),
         app_quit: app_quit::AppQuit::default(),
+        records_status: Default::default(),
     };
     (state, home)
 }
@@ -3685,6 +3704,7 @@ pub fn run() {
             desktop_setup_pick, desktop_setup_preview, desktop_setup_new_settings_preview, desktop_setup_project_preview, desktop_setup_prepare, quit_app,
             file_act_select, file_act_open_arrival, file_act_confirm, file_act_continue, file_act_dismiss, file_act_read, file_act_observe_lapses, file_act_retry_lapses,
             read_recovery_custody,
+            navigator_read,
             read_recovery_request_history,
             recovery_retry,
             read_connector_routes,
@@ -3793,7 +3813,7 @@ mod workflow_root_context_tests {
         let control=Arc::new(Mutex::new(Some(ActControl::new(&root))));
         let mut workflows=runtime_session::WorkflowRootSession::default();workflows.open_library(root.clone(),"project",Some(&root),control.clone()).unwrap();
         let library=workflows.active_library().unwrap();
-        let state=AppState{desktop_setup:None,endpoint_edits:Arc::new(Mutex::new(Default::default())),compiled_development_selection:json!({"standing":"test-fixture-not-observed"}),connector_drafts:Mutex::new(connector_materialization::Registry::default()),connector_sources:Mutex::new(connector_source::Session::default()),workspace:Some(root.clone()),project_trust:Arc::new(project_trust::ProjectTrust::default()),act:control,file_acts:Mutex::new(file_act_root::FileActRoot::default()),file_act_lapses:Mutex::new(file_act_lapse::Observer::default()),workflows:Mutex::new(workflows),decision_writer_status:Mutex::new(Value::Null),person_name:Mutex::new(None),instructions_root:Mutex::new(Err("unavailable".into())),app_user_data_root:Mutex::new(Err("unavailable".into())),external_observation:Mutex::new(Default::default()),trace_selection:Mutex::new(Default::default()),attachment_selection:Mutex::new(runtime_session::AttachmentSelectionSession::new(Some(root.clone()))),role_log:role_observations::RoleLog::open(&root).map(Arc::new),native_links:Mutex::new(native_conversation_links::Session::default()),delegation_reconciliation:Mutex::new(Value::Null),project_context:recovery::ExplicitAppProjectContext::unknown(),project_context_limit:Some("unknown".into()),homes:Mutex::new(runtime_session::HomeRouter::new(home.clone()).unwrap()),home_bootstrap:Mutex::new(Err("descriptor unavailable; no inferred home".into())),native_namespaces:Mutex::new(Err("unavailable".into())),key_namespace_admission:Mutex::new(Value::Null),key_setup:Mutex::new(()),local_credentials:Default::default(),root_home_inputs:Value::Null,codex_stop_gate:Mutex::new(()),codex_stops:Mutex::new(Vec::new()),continue_as:Mutex::new(Default::default()),app_quit:Default::default()};
+        let state=AppState{desktop_setup:None,endpoint_edits:Arc::new(Mutex::new(Default::default())),compiled_development_selection:json!({"standing":"test-fixture-not-observed"}),connector_drafts:Mutex::new(connector_materialization::Registry::default()),connector_sources:Mutex::new(connector_source::Session::default()),workspace:Some(root.clone()),project_trust:Arc::new(project_trust::ProjectTrust::default()),act:control,file_acts:Mutex::new(file_act_root::FileActRoot::default()),file_act_lapses:Mutex::new(file_act_lapse::Observer::default()),workflows:Mutex::new(workflows),decision_writer_status:Mutex::new(Value::Null),person_name:Mutex::new(None),instructions_root:Mutex::new(Err("unavailable".into())),app_user_data_root:Mutex::new(Err("unavailable".into())),external_observation:Mutex::new(Default::default()),trace_selection:Mutex::new(Default::default()),attachment_selection:Mutex::new(runtime_session::AttachmentSelectionSession::new(Some(root.clone()))),role_log:role_observations::RoleLog::open(&root).map(Arc::new),native_links:Mutex::new(native_conversation_links::Session::default()),delegation_reconciliation:Mutex::new(Value::Null),project_context:recovery::ExplicitAppProjectContext::unknown(),project_context_limit:Some("unknown".into()),homes:Mutex::new(runtime_session::HomeRouter::new(home.clone()).unwrap()),home_bootstrap:Mutex::new(Err("descriptor unavailable; no inferred home".into())),native_namespaces:Mutex::new(Err("unavailable".into())),key_namespace_admission:Mutex::new(Value::Null),key_setup:Mutex::new(()),local_credentials:Default::default(),root_home_inputs:Value::Null,codex_stop_gate:Mutex::new(()),codex_stops:Mutex::new(Vec::new()),continue_as:Mutex::new(Default::default()),app_quit:Default::default(),records_status:Default::default()};
         let (_,context)=current_actor_context_for(&state,&home);
         let package=root.join(workflow_workspace::development_catalog::NAME);std::fs::create_dir(&package).unwrap();
         let catalog=workflow_workspace::development_catalog::DevelopmentCatalog::load().unwrap();for(name,bytes)in catalog.select_embedded().snapshot().files(){std::fs::write(package.join(name),bytes).unwrap();}

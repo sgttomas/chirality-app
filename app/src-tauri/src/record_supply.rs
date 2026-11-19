@@ -544,6 +544,9 @@ pub struct RecordedRun {
     /// when the record has none, which reads as unknown.
     pub assurance: Value,
     pub lifecycle: RecordedLifecycle,
+    /// When the run's start was recorded: its run-start record's `observed_at`,
+    /// where that record is readable. Not part of any view.
+    pub start_observed_at: Option<String>,
     pub restart_interruptions: Vec<Value>,
     /// Every RS entry of this run, in the order read from its logs. None is
     /// filtered and none is made here.
@@ -829,6 +832,7 @@ pub fn read_project_runs(project: &ProjectRecords, restart_events: &[Value]) -> 
         }
     }
     let mut starts: std::collections::BTreeMap<String, Value> = Default::default();
+    let mut start_times: std::collections::BTreeMap<String, String> = Default::default();
     let mut declared: std::collections::BTreeMap<String, Result<Value, String>> = Default::default();
     let mut packages = Default::default();
     // A record that cannot be read could be another start of any run, so no run's start is then
@@ -852,6 +856,9 @@ pub fn read_project_runs(project: &ProjectRecords, restart_events: &[Value]) -> 
                             declared_by_records(project, &record, &mut packages)
                         };
                         declared.insert(run.clone(), read);
+                        if let Some(at) = record.envelope()["observed_at"].as_str() {
+                            start_times.entry(run.clone()).or_insert_with(|| at.to_owned());
+                        }
                         starts.insert(run, record.body().clone());
                     }
                     Ok(_) => {}
@@ -926,6 +933,7 @@ pub fn read_project_runs(project: &ProjectRecords, restart_events: &[Value]) -> 
                     .and_then(|e| e["body"]["follows"].as_str())
                     .map(str::to_owned),
                 assurance: start.and_then(|s| s.get("assurance")).cloned().unwrap_or(Value::Null),
+                start_observed_at: start_times.remove(&run),
                 records: recorded.remove(&run).unwrap_or_default(),
                 declared: declared
                     .remove(&run)
