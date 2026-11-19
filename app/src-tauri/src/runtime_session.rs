@@ -21,6 +21,42 @@ pub struct RuntimeSession {
     recovery_pages: u64,
     native_owner: Option<crate::hosting::NativeProjectionOwner>,
     source_ready: Option<Value>,
+    /// Replies naming a conversation (`result.thread`) received in this
+    /// generation before their client request record was settled: each is
+    /// held, in memory only, as its frame id and result until that record
+    /// settles. It is read once if the record settles as this generation's
+    /// thread/start, thread/fork or thread/resume with a result, and dropped
+    /// if it settles any other way or the generation ends.
+    held_replies: Vec<(Value, Value)>,
+}
+/// At most this many replies are held awaiting their request's settlement; an
+/// older one beyond it is dropped, with a limit said.
+const HELD_REPLY_LIMIT: usize = 256;
+/// How a reply's client request record stands, for reading the agent's question that does not wait.
+enum ReplyRecord<'a> {
+    /// Settled as this generation's request with a result: its method.
+    Result(&'a str),
+    /// Settled any other way.
+    Other,
+    /// Not yet settled, or not yet recorded.
+    Unsettled,
+}
+fn reply_record<'a>(snapshot: &'a Value, generation: &Value, id: &Value) -> ReplyRecord<'a> {
+    let record = snapshot["clientRequests"].as_array().into_iter().flatten()
+        .find(|r| r["generation"] == *generation && r["requestIdentity"] == *id);
+    match record {
+        None => ReplyRecord::Unsettled,
+        Some(r) if r["outcome"] == "pending" || r["outcome"].is_null() => ReplyRecord::Unsettled,
+        Some(r) if r["outcome"] == "response-observed-result" => r["method"].as_str().map_or(ReplyRecord::Other, ReplyRecord::Result),
+        Some(_) => ReplyRecord::Other,
+    }
+}
+fn read_reply(view: &mut NativeView, method: &str, result: &Value) {
+    match method {
+        "thread/start" => view.asked_thread_started(result["thread"]["id"].as_str().unwrap_or_default()),
+        "thread/fork" | "thread/resume" => view.asked_continuation_reply(result),
+        _ => {}
+    }
 }
 impl RuntimeSession {
     fn owned(owner: crate::hosting::NativeProjectionOwner) -> Self {
@@ -143,6 +179,8 @@ impl RuntimeSession {
             }
             self.view = None;
             self.account = None;
+            // Replies held for the generation left behind are never read in another.
+            self.held_replies.clear();
             self.account_revision = self.account_revision.saturating_add(1);
             self.position = 0;
             self.history_pages = 0;
@@ -222,19 +260,22 @@ impl RuntimeSession {
                             && r["outcome"] == "response-observed-result"
                     });
                 // A reply to this generation's own thread/start, thread/fork or
-                // thread/resume, read at its place in the receiving order: a
-                // started conversation is read from its start; a continuation's
-                // reply is read for the turns it carries.
-                if frame["class"] == "response" {
-                    let method = snapshot["clientRequests"].as_array().into_iter().flatten()
-                        .find(|r| r["generation"] == self.generation && r["requestIdentity"] == native["id"]
-                            && r["outcome"] == "response-observed-result")
-                        .and_then(|r| r["method"].as_str());
-                    if let Some(view) = self.view.as_mut() {
-                        match method {
-                            Some("thread/start") => view.asked_thread_started(native["result"]["thread"]["id"].as_str().unwrap_or_default()),
-                            Some("thread/fork" | "thread/resume") => view.asked_continuation_reply(&native["result"]),
-                            _ => {}
+                // thread/resume: a started conversation is read from its start; a
+                // continuation's reply is read for the turns it carries. It is read
+                // only from a settled record of this generation's request; a reply
+                // naming a conversation whose record is not yet settled is held
+                // until it is (below).
+                if frame["class"] == "response" && native["result"]["thread"].is_object() {
+                    match reply_record(snapshot, &self.generation, &native["id"]) {
+                        ReplyRecord::Result(method) => if let Some(view) = self.view.as_mut() { read_reply(view, method, &native["result"]); },
+                        ReplyRecord::Other => {}
+                        ReplyRecord::Unsettled => {
+                            if self.held_replies.len() >= HELD_REPLY_LIMIT {
+                                self.held_replies.remove(0);
+                                let limit = "a reply naming a conversation was dropped before its request settled; whether the agent asked a question there is read again when it is next read".to_owned();
+                                if !self.limits.contains(&limit) { self.limits.push(limit); }
+                            }
+                            self.held_replies.push((native["id"].clone(), native["result"].clone()));
                         }
                     }
                 }
@@ -249,6 +290,18 @@ impl RuntimeSession {
                 self.position = position;
             }
         }
+        // Held replies whose request has settled since: read once, or dropped.
+        if self.view.is_some() && !self.closed && !self.held_replies.is_empty() {
+            let generation = self.generation.clone();
+            let held = std::mem::take(&mut self.held_replies);
+            for (id, result) in held {
+                match reply_record(snapshot, &generation, &id) {
+                    ReplyRecord::Result(method) => if let Some(view) = self.view.as_mut() { read_reply(view, method, &result); },
+                    ReplyRecord::Other => {}
+                    ReplyRecord::Unsettled => self.held_replies.push((id, result)),
+                }
+            }
+        }
         if close_from_snapshot && !active && self.view.is_some() && !self.closed && snapshot["state"] != "handshaking" {
             if let Some(view) = self.view.as_mut() {
                 let _ = view.close(&self.generation);
@@ -257,6 +310,7 @@ impl RuntimeSession {
                 account.lost();
             }
             self.closed = true;
+            self.held_replies.clear();
             if !self.closed_generations.contains(&self.generation) {
                 self.closed_generations.push(self.generation.clone());
             }
@@ -13948,5 +14002,63 @@ mod asked_question_reply_tests {
         let received = session.receive(&json!({"generation":g(),"snapshot":{"state":"ready","clientRequests":[foreign]},
             "frames":[reply(1, 1, json!({"thread":{"id":"started","turns":[]}}))],"gap":false}));
         assert_eq!(asked_question(&received["nativeView"], "started"), AskedQuestion::NotRead);
+    }
+    fn observe(session: &mut RuntimeSession, generation: Value, state: &str, requests: Value, frames: Value) -> Value {
+        session.receive(&json!({"generation":generation,"snapshot":{"state":state,"clientRequests":requests},"frames":frames,"gap":false}))
+    }
+    #[test]
+    fn a_resume_reply_carrying_turns_is_read() {
+        let mut session = RuntimeSession::default();
+        let received = observe(&mut session, g(), "ready", json!([request(1, "thread/resume", "response-observed-result")]),
+            json!([reply(1, 1, json!({"thread":{"id":"resumed","turns":question_turns()}}))]));
+        assert!(matches!(asked_question(&received["nativeView"], "resumed"), AskedQuestion::Waiting(e) if e["itemId"] == "q1"));
+    }
+    #[test]
+    fn a_reply_consumed_before_its_write_settles_is_read_once_it_settles_as_a_result() {
+        let mut session = RuntimeSession::default();
+        let frames = json!([reply(1, 1, json!({"thread":{"id":"forked","turns":question_turns()}})),
+            reply(2, 2, json!({"thread":{"id":"failed","turns":question_turns()}}))]);
+        // The frames are consumed while the records are pending (or not yet written).
+        let received = observe(&mut session, g(), "ready", json!([request(1, "thread/fork", "pending")]), frames);
+        assert_eq!(asked_question(&received["nativeView"], "forked"), AskedQuestion::NotRead);
+        assert_eq!(asked_question(&received["nativeView"], "failed"), AskedQuestion::NotRead);
+        // The writes settle; the frames are not delivered again.
+        let settled = json!([request(1, "thread/fork", "response-observed-result"), request(2, "thread/fork", "response-observed-error")]);
+        let received = observe(&mut session, g(), "ready", settled.clone(), json!([]));
+        assert!(matches!(asked_question(&received["nativeView"], "forked"), AskedQuestion::Waiting(e) if e["itemId"] == "q1"));
+        assert_eq!(asked_question(&received["nativeView"], "failed"), AskedQuestion::NotRead, "a request settled as an error is never read");
+        assert!(session.held_replies.is_empty());
+        // Read once: a later reading of the conversation is not overwritten by the held reply.
+        let received = observe(&mut session, g(), "ready", settled, json!([]));
+        assert!(matches!(asked_question(&received["nativeView"], "forked"), AskedQuestion::Waiting(_)));
+    }
+    #[test]
+    fn held_replies_are_dropped_when_the_generation_closes_or_another_follows() {
+        let mut session = RuntimeSession::default();
+        observe(&mut session, g(), "ready", json!([]), json!([reply(1, 1, json!({"thread":{"id":"forked","turns":question_turns()}}))]));
+        assert_eq!(session.held_replies.len(), 1);
+        // The generation closes with the record still pending; a settlement seen afterwards is not read.
+        // (A settlement in the closing observation itself is read, as frames delivered before the close are.)
+        observe(&mut session, g(), "exited", json!([request(1, "thread/fork", "pending")]), json!([]));
+        assert!(session.held_replies.is_empty());
+        let received = observe(&mut session, g(), "exited", json!([request(1, "thread/fork", "response-observed-result")]), json!([]));
+        assert_eq!(asked_question(&received["nativeView"], "forked"), AskedQuestion::NotRead);
+        // A successor generation never reads a reply held for the one before.
+        let mut session = RuntimeSession::default();
+        observe(&mut session, g(), "ready", json!([]), json!([reply(1, 1, json!({"thread":{"id":"forked","turns":question_turns()}}))]));
+        let next = json!({"appSession":"s","home":"h","spawnCounter":2});
+        let received = observe(&mut session, next, "ready", json!([request(1, "thread/fork", "response-observed-result")]), json!([]));
+        assert_eq!(asked_question(&received["nativeView"], "forked"), AskedQuestion::NotRead);
+    }
+    #[test]
+    fn a_successor_generation_keeps_nothing_of_the_earlier_reading() {
+        let mut session = RuntimeSession::default();
+        let asked = json!({"generation":g(),"position":1,"class":"notification","frame":{"method":"item/completed","params":{"threadId":"t","turnId":"u1",
+            "item":{"id":"q1","type":"agentMessage","text":"Invented?","delivery":"async","questions":[{"title":"Invented?"}]}}}});
+        let received = observe(&mut session, g(), "ready", json!([]), json!([asked]));
+        assert!(matches!(asked_question(&received["nativeView"], "t"), AskedQuestion::Waiting(_)));
+        let next = json!({"appSession":"s","home":"h","spawnCounter":2});
+        let received = observe(&mut session, next, "ready", json!([]), json!([]));
+        assert_eq!(received["nativeView"]["askedQuestions"], json!({"read":[],"waiting":[]}));
     }
 }
