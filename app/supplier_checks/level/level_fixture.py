@@ -642,7 +642,12 @@ class RecordingRefusal:
         self.server.server_close()
 
 
-RUN_FOLDERS = ('home', 'userhome', 'outside', 'tmpdir')
+# Names the run's own layout uses in its root (the plain one and the App's, `working_files`), and `.git`, which
+# beside the project would be a repository marker above it.
+RUN_FOLDERS = ('home', 'userhome', 'outside', 'tmpdir', 'Invented App Data', 'Invented App Data Working Files',
+               '.git')
+# The relative write's exit when the folder it finds itself in is neither project: nothing is written.
+RELATIVE_ELSEWHERE = 97
 
 
 class Run:
@@ -665,7 +670,7 @@ class Run:
         if second_project is not None:
             if '/' in second_project or second_project in ('', '.', '..'):
                 raise Refused('a second project folder name, not a path')
-            if second_project == project_name or second_project in RUN_FOLDERS:
+            if second_project == project_name or second_project in RUN_FOLDERS or second_project.startswith('codex-stderr-'):
                 raise Refused('the second project folder needs a name of its own')
             if any(c in second_project for c in UNSAFE_PATH_CHARACTERS):
                 raise Refused('only the first project folder name may carry %r' % UNSAFE_PATH_CHARACTERS)
@@ -872,8 +877,12 @@ class Run:
         cmds['net'] = '/usr/bin/perl -e %s %d' % (shlex.quote(NET_PROBE), self.stub.port)
         if self.second_project is not None:
             # Run in whatever folder the command is given: the folder it prints, and the file it writes there.
+            # The relative write checks, in the same shell call, that the folder it is in is one of the two
+            # projects, and writes nothing anywhere else: a command given some other folder exits 97.
             cmds['pwd'] = '/bin/pwd -P'
-            cmds['relative'] = 'printf ok > %s' % RELATIVE_NAME
+            cmds['relative'] = 'case "$(/bin/pwd -P)" in %s|%s) printf ok > %s;; *) exit %d;; esac' % (
+                shlex.quote(os.path.realpath(self.project)), shlex.quote(os.path.realpath(self.project_b)),
+                RELATIVE_NAME, RELATIVE_ELSEWHERE)
         if self.working_files:
             cmds.update({key: command for key, (command, _) in self.entry_operations().items()})
         return cmds

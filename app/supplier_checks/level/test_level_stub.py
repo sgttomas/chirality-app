@@ -9,6 +9,7 @@ import json
 import threading
 import os
 import shlex
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -271,7 +272,21 @@ class SecondProject(unittest.TestCase):
                 self.assertTrue(str(path).startswith(str(run.root) + '/'), key)
                 self.assertEqual(shlex.split(commands[key])[-1], str(path), key)
             self.assertEqual(shlex.split(commands['pwd']), ['/bin/pwd', '-P'])
-            self.assertEqual(shlex.split(commands['relative']), ['printf', 'ok', '>', L.RELATIVE_NAME])
+            self.assertEqual(commands['relative'], 'case "$(/bin/pwd -P)" in %s|%s) printf ok > %s;; *) exit 97;; esac'
+                             % (shlex.quote(os.path.realpath(run.project)),
+                                shlex.quote(os.path.realpath(run.project_b)), L.RELATIVE_NAME))
+            # Run by a shell in each project it lands there; in any other folder it exits 97 and writes nothing.
+            elsewhere = run.root / 'outside'
+            for folder, code in ((run.project, 0), (run.project_b, 0), (elsewhere, L.RELATIVE_ELSEWHERE)):
+                for shell in filter(os.path.exists, ('/bin/sh', '/bin/zsh', '/bin/bash')):
+                    landing = folder / L.RELATIVE_NAME
+                    done = subprocess.run([shell, '-c', commands['relative']], cwd=str(folder), capture_output=True)
+                    self.assertEqual(done.returncode, code, (shell, folder, done.stderr))
+                    self.assertEqual(landing.exists(), code == 0, (shell, folder))
+                    if code == 0:
+                        self.assertEqual(landing.read_text(), 'ok')
+                        landing.unlink()
+            self.assertEqual(os.listdir(elsewhere), [])
             self.assertNotIn('/', L.RELATIVE_NAME)
             self.assertEqual(run.relative_landings(), {'a': run.project / L.RELATIVE_NAME,
                                                        'b': run.project_b / L.RELATIVE_NAME})
@@ -279,7 +294,8 @@ class SecondProject(unittest.TestCase):
 
     def test_bs_name_is_checked(self):
         for name in ('', '.', '..', 'a/b', 'project', 'outside', 'home', 'userhome', 'tmpdir', 'has $x', 'q"x',
-                     'b`x`', 'back\\slash'):
+                     'b`x`', 'back\\slash', '.git', 'Invented App Data', 'Invented App Data Working Files',
+                     'codex-stderr-0.log'):
             with self.subTest(name=name), self.assertRaises(L.Refused):
                 L.Run(self.scratch, '/nonexistent/codex', second_project=name)
         for option in ('second_git_marker', 'instructions', 'project_settings'):
@@ -325,6 +341,9 @@ class SecondProject(unittest.TestCase):
         stub.answer(carrying)
         stub.answer(body('LEVEL[k] go'))
         self.assertEqual([r['markers'] for r in stub.requests[1:]], [['INVENTED-B'], []])
+        # Only the markers are kept: nothing else of the request's text is in what the stub retains for it.
+        self.assertEqual(set(stub.requests[1]), {'key', 'tools', 'body_tools', 'body_keys', 'markers'})
+        self.assertNotIn('invented INVENTED-B here', json.dumps(stub.requests[1]))
         self.assertEqual(stub.requests[-1]['key'], 'k')
 
 
