@@ -2882,23 +2882,23 @@ fn trust_switch_place(root: &Path) -> Result<Option<(PathBuf, String, String)>, 
 }
 
 /// The switch file's complete lines. The parent chain is checked before a missing file is read as "no switches":
-/// the project's store folder and its `trust` folder must each be a real folder, with no link anywhere on the
-/// path, or the `trust` folder absent; anything else is not read.
+/// no link anywhere on the path (`storage::check_path`), the project's store folder there, and the `trust` folder
+/// there or absent, each asked through `records_inspect`, which keeps "not there" apart from "could not tell". A
+/// `trust` that is not a folder makes the file's own reading fail, so it is not read either.
 fn read_trust_file(dir: &Path) -> Result<Vec<Value>, String> {
     let path = dir.join(TRUST_SWITCHES);
     let unreadable = |what: &Path, why: String| format!("records store unreadable: {}: {why}", what.display());
     crate::storage::check_path(&path).map_err(|e| unreadable(&path, e))?;
-    match std::fs::symlink_metadata(dir) {
-        Ok(m) if m.is_dir() => {}
-        Ok(_) => return Err(unreadable(dir, "the project's store folder is not a folder".into())),
+    match crate::records_inspect::presence(dir) {
+        Ok(Some(_)) => {}
+        Ok(None) => return Err(unreadable(dir, "the project's store folder is not there".into())),
         Err(e) => return Err(unreadable(dir, e.to_string())),
     }
     let folder = path.parent().ok_or("the switch file has no folder")?;
-    match std::fs::symlink_metadata(folder) {
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(vec![]),
+    match crate::records_inspect::presence(folder) {
+        Ok(None) => return Ok(vec![]),
+        Ok(Some(_)) => {}
         Err(e) => return Err(unreadable(folder, e.to_string())),
-        Ok(m) if m.is_dir() => {}
-        Ok(_) => return Err(unreadable(folder, "not a folder".into())),
     }
     read_store_file(&path)?.require_whole(&path)
 }
