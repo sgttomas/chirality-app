@@ -910,7 +910,8 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
       <p id="ordinary-send-readiness" role="status" aria-live="polite" className={(pick ? !pickReady && (!!text || projectMissing || !!pickStop || !pickCurrent) : sendBlocked) ? "v4-composer-status" : "visually-hidden"}>{pick ? pickReadiness : sendReadiness}</p>
     </form>
     <div ref={contextLine} id={newChat ? "workspace-start" : undefined} className="chat-context" role="group" aria-label="Chat context">
-      <span>{newChat ? "Start in" : "Working in"}</span>
+      {/* Heard, not shown: the folder's words stay in what a screen reader reads, so the line keeps to fewer rows. */}
+      <span className="visually-hidden">{newChat ? "Start in " : "Working in "}</span>
       {selected && folder !== null && !inAppFolder
         ? <span className="chat-folder-fixed">{rowFolder === null ? "folder not reported by Codex" : <>Codex reports another folder: <AgentText value={rowFolder} source="codex" label="Folder:" name="The folder Codex reports for this conversation, not the App's words" /></>}</span>
         : <span className="chat-folder-fixed">{!selected && !newChat ? "no conversation available" : folder !== null ? <><span aria-hidden="true">▱ </span>{folderName(folder)}</> : "project folder not established"}</span>}
@@ -2488,7 +2489,7 @@ export function App() {
     : providerReading ? "Reading configured local providers…"
     : endpointBusy ? "A provider change is in progress."
     : !modelProvider.trim() ? "Choose how this conversation connects."
-    : !model.trim() ? "Not started — no model selected. Choose a model below."
+    : !model.trim() ? "Not started — no model selected."
     : !entryCompatible ? "This choice does not belong to the connection in use. Choose how it connects again."
     : rowChoiceStale ? rowChoiceNote
     : "";

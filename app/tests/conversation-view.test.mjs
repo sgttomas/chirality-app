@@ -316,7 +316,7 @@ test('the attach control opens the present attachment selection, which stays mou
 test('the settings line shows the folder, role, mode, access level, model and effort; the level\'s name is in view and its reading sentence is in its panel', async () => {
   await mounted(host({threads: [{...host().threads[0], cwd: projectPath}]}), async ({container}) => {
     const line = settingsLine(container);
-    assert.match(line.textContent, /^Working in▱ pump-skid·HELP_HUMAN·Chat/);
+    assert.match(line.textContent, /^Working in ▱ pump-skid·HELP_HUMAN·Chat/);
     assert.equal(props(settingButton(container, 'Access level'))['aria-label'], 'Access level: Full access. Opens what it allows.', 'its name says what pressing it opens');
     assert.equal(settingButton(container, 'Access level').textContent, 'Full access', 'the level\'s name, and only it, is in view');
     assert.equal(settingButton(container, 'Model').textContent, 'reported-model');
@@ -333,7 +333,7 @@ test('the settings line shows the folder, role, mode, access level, model and ef
   });
   // With no project folder the App says so; it never guesses one.
   await mounted(host({currentAppProjectContext: null, attachmentSelections: null}), async ({container}) => {
-    assert.match(settingsLine(container).textContent, /^Working inproject folder not established/);
+    assert.match(settingsLine(container).textContent, /^Working in project folder not established/);
   });
   // One press from the name: what the level allows, where it comes from, that reading is not limited, what allowing a
   // command means at a level that asks, and beside them what was sent and reported, the next-turn note, the project's
@@ -562,18 +562,39 @@ test('with attachments selected and their panel closed, the composer says Send s
 test('"Working in" names the App\'s folder only where the conversation\'s row reports that folder', async () => {
   await mounted(host({threads: [{...host().threads[0], cwd: '/somewhere/else'}]}), async ({container}) => {
     const line = settingsLine(container);
-    assert.match(agentPlain(line.textContent), /^Working inCodex reports another folder: Folder: \/somewhere\/else·/);
+    assert.match(agentPlain(line.textContent), /^Working in Codex reports another folder: Folder: \/somewhere\/else·/);
     const box = line.querySelectorAll(n => n.getAttribute('aria-label') === "The folder Codex reports for this conversation, not the App's words")[0];
     assert.ok(box, 'the reported folder is marked as Codex\'s text');
     for (let n = box; n && n !== line; n = n.parentNode) assert.notEqual(n.localName, 'button', 'outside any control');
     assert.doesNotMatch(line.textContent, /pump-skid/);
   });
   await mounted(host(), async ({container}) => {
-    assert.match(settingsLine(container).textContent, /^Working infolder not reported by Codex·/);
+    assert.match(settingsLine(container).textContent, /^Working in folder not reported by Codex·/);
   });
   await mounted(host({threads: [{...host().threads[0], cwd: `${projectPath}/`}]}), async ({container}) => {
-    assert.match(settingsLine(container).textContent, /^Working in▱ pump-skid·/, 'the same folder with a trailing separator, as the navigator reads it');
+    assert.match(settingsLine(container).textContent, /^Working in ▱ pump-skid·/, 'the same folder with a trailing separator, as the navigator reads it');
   });
+});
+
+test('the settings line keeps "Working in" and "Start in" for a screen reader, not on screen, before the folder', async () => {
+  const heard = line => line.querySelectorAll(n => n.localName === 'span' && n.getAttribute('class') === 'visually-hidden')[0];
+  await mounted(host({threads: [{...host().threads[0], cwd: projectPath}]}), async ({container}) => {
+    const line = settingsLine(container);
+    assert.equal(line.getAttribute('role'), 'group'); assert.equal(line.getAttribute('aria-label'), 'Chat context');
+    const words = heard(line);
+    assert.ok(words, 'the words are in the line');
+    assert.ok(words === line.childNodes[0], 'first, so they are heard before the folder');
+    assert.equal(words.textContent, 'Working in ');
+    const folder = line.querySelectorAll(n => n.getAttribute?.('class') === 'chat-folder-fixed')[0];
+    assert.ok(folder && line.childNodes.indexOf(folder) === 1, 'the folder follows them');
+    assert.equal(line.textContent.replace(words.textContent, '').startsWith('▱ pump-skid'), true, 'what is seen starts with the folder');
+  });
+  const container = document.createElement('div'); document.body.appendChild(container); const root = createRoot(container);
+  try {
+    await React.act(async () => root.render(React.createElement(ConversationPanel, {host: host(), threadKey: '', setThreadKey: () => {}, answer: noop, runAct: noop, send: noop, steer: noop,
+      submitAttachments: noop, interrupt: noop, checkPlanMode: noop, codexBusy: false, startNew: startSettings()})));
+    assert.equal(heard(settingsLine(container)).textContent, 'Start in ', 'a new conversation: where it will start');
+  } finally { await React.act(() => root.unmount()); document.body.removeChild(container); }
 });
 
 test('the model help says where the mode is chosen', async () => {
