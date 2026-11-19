@@ -148,6 +148,16 @@ export function chosenNotStarted(host: Json, thread: string, doubted: boolean): 
   return root.runs.some((run: Json) => mine(run) && mayHaveBeenSent(run)) ? null : name;
 }
 
+/** What a read establishes about a preparation whose reply gave no run: the one new prepared run of the conversation
+ * (`found`), or, with every run given in full and none new, that nothing was prepared; else nothing (`established` false). */
+function preparationOutcome(host: Json, conversation: string, before: readonly string[]): { established: boolean; found?: Json } {
+  const rows = list(host?.workflowRoot?.runs);
+  if (!Array.isArray(host?.workflowRoot?.runs) || rows.some((r: Json) => !completeRun(r))) return { established: false };
+  const fresh = rows.filter((r: Json) => r.conversation === conversation && !before.includes(r.reference));
+  if (!fresh.length) return { established: true };
+  return fresh.length === 1 && !fresh[0].source && starts(fresh[0].lifecycle.state, "prepared") ? { established: true, found: fresh[0] } : { established: false };
+}
+
 /** The declared part of a selection as the Run guide reads it. */
 const declarationOf = (selection: Json) => selection?.compatibility?.preparation?.declaration ?? selection?.declaration;
 
@@ -403,14 +413,12 @@ export async function runPickedWorkflow(run: PickRun): Promise<PickRunOutcome> {
   // Step 5: prepare, unless this composer prepared a run for exactly this and it is still prepared and unsent.
   const want = preparationKey(selection, pick, conversation, host, personText);
   if (doubt?.kind === "prepare" && memory.doubts.get(conversation) === doubt) {
-    // The preparation's outcome: its reference when the host gave one, else the one new prepared run of this conversation.
-    const fresh = list(host?.workflowRoot?.runs).filter((r: Json) => doubt.reference ? r.reference === doubt.reference : completeRun(r) && r.conversation === conversation && !list(doubt.before).includes(r.reference));
-    const found = fresh.length === 1 && completeRun(fresh[0]) && fresh[0].conversation === conversation && !fresh[0].source && starts(fresh[0].lifecycle.state, "prepared") ? fresh[0] : null;
-    if (found) {
+    const outcome = preparationOutcome(host, conversation, doubt.before ?? []);
+    if (outcome.found) {
       // Prepared. Used only for exactly what it was prepared for; otherwise left unsent, as the guide leaves one no longer wanted.
-      if (want === doubt.key.slice(doubt.key.indexOf(":") + 1)) memory.prepared.set(conversation, { reference: found.reference, key: want });
+      if (want === doubt.key.slice(doubt.key.indexOf(":") + 1)) memory.prepared.set(conversation, { reference: outcome.found.reference, key: want });
       memory.doubts.delete(conversation);
-    } else if (fresh.length > 0 || runs.partial) {
+    } else if (!outcome.established) {
       if (!acknowledged) return stop(`The App couldn't establish whether the run was prepared, so it didn't prepare it again. Read Run a workflow, then confirm below to go on. ${NOTHING_SENT}`);
       memory.doubts.delete(conversation);
     } else memory.doubts.delete(conversation); // every row read in full, none new: nothing was prepared.
@@ -430,14 +438,25 @@ export async function runPickedWorkflow(run: PickRun): Promise<PickRunOutcome> {
     if (refused !== null && refusedFirst(refused)) return notPrepared(reasonPart(refused));
     reference = text(reply?.reference);
     if (!reference) {
-      // Not established: kept, so the next press looks for it before preparing again.
-      memory.doubts.set(conversation, { kind: "prepare", conversation, binding, command: "workflow_prepare_run", key: `${++doubtSequence}:${want}`, before, reply: refused !== null ? replyOf(refused) : JSON.stringify(reply ?? null) });
-      if (refused !== null) return notPrepared(reasonPart(refused));
-      return notPrepared("the App didn't report the prepared run");
-    }
+      // The reply establishes nothing: kept, and the status read now. Said "wasn't prepared" only when the read shows
+      // every run in full and none new; a new prepared run is the one this press made; anything else holds.
+      const kept: PickDoubt = { kind: "prepare", conversation, binding, command: "workflow_prepare_run", key: `${++doubtSequence}:${want}`, before, reply: refused !== null ? replyOf(refused) : JSON.stringify(reply ?? null) };
+      memory.doubts.set(conversation, kept);
+      const why: Part = refused !== null ? reasonPart(refused) : "the App didn't report the prepared run";
+      try { host = await run.read(); } catch { return stop("The App couldn't establish whether the run was prepared: ", why, `. ${NOTHING_SENT}`); }
+      const change = moved();
+      if (change) return change;
+      const outcome = preparationOutcome(host, conversation, before);
+      if (!outcome.established) return stop("The App couldn't establish whether the run was prepared: ", why, `. ${NOTHING_SENT}`);
+      memory.doubts.delete(conversation);
+      if (!outcome.found) return notPrepared(why);
+      reference = text(outcome.found.reference);
+      memory.prepared.set(conversation, { reference, key: want });
+    } else {
     memory.prepared.set(conversation, { reference, key: want });
+    try { host = await run.read(); } catch { preparedNow = true; return stop(`The run was prepared, but the App couldn't read its state afterwards, so it wasn't started. ${NOTHING_SENT}`); }
+    }
     preparedNow = true;
-    try { host = await run.read(); } catch { return stop(`The run was prepared, but the App couldn't read its state afterwards, so it wasn't started. ${NOTHING_SENT}`); }
     const change = moved();
     if (change) return change;
   }
