@@ -2181,3 +2181,58 @@ fn a_frame_waiting_at_the_writer_is_not_written_after_its_folder_or_root_changed
         }
     }
 }
+
+// ---- Second repair: the settings-file message's order and its request (D) ----
+
+fn accept(host: &Host, request: &SourceRequest, thread: &str) {
+    reply(host, json!({"jsonrpc": "2.0", "id": request.request_id(), "result": {"thread": {"id": thread, "status": "idle"}}}));
+}
+
+#[test]
+fn the_commands_error_is_bound_to_its_own_request_for_start_fork_and_continue() {
+    let (base, project, _, _) = git_project("app-trust-notice-receipt");
+    let (host, _) = app_project_host(&base, &project, SET_UP);
+    let wire = Responder::attach(&host, |_| layers_with(json!({})));
+    let expected = format!("{} {}", cl::PROJECT_SETTINGS_NOT_ATTRIBUTED, cl::PROJECT_SETTINGS_SEE_TRUST);
+    // Start, fork and Continue (a resume, the frame Continue sends), each refused by the settings file, then each
+    // followed by a later request of the same kind that Codex accepts: the shown message goes, the refused
+    // request's own error stays.
+    for (method, _) in START_RESUME_FORK {
+        let refused = send(&host, method, frame_params(method, &project)).unwrap();
+        wire.next_sent();
+        refuse(&host, &refused, UNSUPPORTED);
+        assert_eq!(host.settings_notice_error(refused.request_ref()), Some(expected.clone()), "{method}");
+        let accepted = send(&host, method, frame_params(method, &project)).unwrap();
+        wire.next_sent();
+        accept(&host, &accepted, "thread");
+        assert!(host.snapshot()["projectSettingsRefusal"].is_null(), "{method}: a later success removes what is shown");
+        assert_eq!(host.settings_notice_error(refused.request_ref()), Some(expected.clone()), "{method}: bound to its own request");
+        assert_eq!(host.settings_notice_error(accepted.request_ref()), None, "{method}");
+        if method == "thread/fork" { assert_eq!(host.thread_fork_finish(&refused).unwrap_err(), expected); }
+    }
+    wire.close(&host);
+    std::fs::remove_dir_all(&base).unwrap();
+}
+
+#[test]
+fn outcomes_for_a_root_are_ordered_by_request_not_by_reply() {
+    let (base, project, _, _) = git_project("app-trust-notice-order");
+    let (host, _) = app_project_host(&base, &project, SET_UP);
+    let wire = Responder::attach(&host, |_| layers_with(json!({})));
+    let start = || { let r = send(&host, "thread/start", json!({"cwd": project})).unwrap(); wire.next_sent(); r };
+    let shown = || host.snapshot()["projectSettingsRefusal"]["requestRef"].as_str().map(str::to_owned);
+    // An older request's refusal arriving after a newer request's success: not shown.
+    let (older, newer) = (start(), start());
+    accept(&host, &newer, "newer");
+    refuse(&host, &older, UNSUPPORTED);
+    assert_eq!(shown(), None, "an older refusal does not undo a newer success");
+    assert!(host.settings_notice_error(older.request_ref()).is_some(), "its own request still says why");
+    // A newer request's refusal, then an older request's success: the refusal stays.
+    let (older, newer) = (start(), start());
+    refuse(&host, &newer, UNSUPPORTED);
+    assert_eq!(shown(), Some(newer.request_ref().to_owned()));
+    accept(&host, &older, "older");
+    assert_eq!(shown(), Some(newer.request_ref().to_owned()), "an older success does not remove a newer refusal");
+    wire.close(&host);
+    std::fs::remove_dir_all(&base).unwrap();
+}

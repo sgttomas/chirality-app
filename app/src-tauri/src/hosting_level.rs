@@ -119,9 +119,18 @@ pub(crate) struct LevelState {
     /// could not load its settings (`codex_level::project_settings_refusal`), and each conversation's.
     pub(crate) settings_refusal: Option<SettingsNotice>,
     pub(crate) thread_settings_refusal: HashMap<String, SettingsNotice>,
-    /// Such a refusal whose reply came before its frame's write settled: recorded only once the write settles as
-    /// written, by request key.
-    pub(crate) unsettled_notices: HashMap<String, SettingsNotice>,
+    /// An outcome (a settings-file refusal or a success) of a frame carrying a trusted entry whose reply came before
+    /// its write settled: applied only once the write settles as written, by request key.
+    pub(crate) unsettled_outcomes: HashMap<String, TrustOutcome>,
+    /// The order of the frames written with a trusted entry: each gets the next number (`trust_order`, by request
+    /// key), and an outcome for a root is applied only when its frame is later than the latest outcome applied for
+    /// that root (`trust_outcome_at`), so an older reply never replaces a newer outcome.
+    pub(crate) trust_sequence: u64,
+    pub(crate) trust_order: HashMap<String, u64>,
+    pub(crate) trust_outcome_at: HashMap<String, u64>,
+    /// The command's own error for each request Codex refused as a settings-file refusal, by the request's own
+    /// reference: what start, fork and Continue return for that request, whatever is shown since.
+    pub(crate) settings_errors: HashMap<String, String>,
     /// The trust level each project root's latest written entry carried: a notice stands only while it is trusted.
     pub(crate) latest_trust: HashMap<String, String>,
     /// A test's own budget for the trust reading, in place of the reading default.
@@ -135,6 +144,12 @@ pub(crate) struct LevelState {
 /// A settings-file notice and what it rests on: its project root, its request, the conversation it names, and the
 /// App's choice revision and project its trusted entry was sent under. It is shown only while the root's latest
 /// entry is still trusted and the choice is still at that revision (`notice_stands`).
+#[derive(Clone, Debug)]
+pub(crate) enum TrustOutcome {
+    Refused(SettingsNotice),
+    Accepted { root: String, thread: Option<String> },
+}
+
 #[derive(Clone, Debug)]
 pub(crate) struct SettingsNotice {
     pub(crate) value: Value,
@@ -329,15 +344,21 @@ impl Host {
     /// After a leveled request's write attempt: what was sent, and `level_sent` once per conversation per chosen
     /// level. A re-send of the same choice to the same conversation writes nothing.
     pub(super) fn level_write_noted(i: &mut Inner, key: &str, written: bool) {
-        // A settings-file refusal whose reply came first stands only once its frame settles as written.
-        if let Some(notice) = i.level.unsettled_notices.remove(key) {
-            if written { Self::record_settings_notice(i, notice); }
-        }
         if written {
             if let Some(trust) = i.source_requests.get(key).and_then(|e| e.request.level.as_ref()).and_then(|b| b.trust.as_ref()) {
                 let (root, level) = (trust.root.to_string_lossy().into_owned(), trust.trust_level().to_owned());
+                // Numbered in the order the frames carrying a trusted entry were written.
+                if level == "trusted" {
+                    i.level.trust_sequence += 1;
+                    let n = i.level.trust_sequence;
+                    i.level.trust_order.insert(key.to_owned(), n);
+                }
                 i.level.latest_trust.insert(root, level);
             }
+        }
+        // An outcome whose reply came first applies only once its frame settles as written.
+        if let Some(outcome) = i.level.unsettled_outcomes.remove(key) {
+            if written { Self::apply_trust_outcome(i, key, outcome); }
         }
         let Some(e) = i.source_requests.get(key) else { return };
         if e.attempt_position.is_none() { return; }
@@ -389,20 +410,19 @@ impl Host {
                 let notice = SettingsNotice { value: refusal, root: trust.root.to_string_lossy().into_owned(), request_ref: request_ref.clone(),
                     thread: match &bound.target { Target::Conversation(t) => Some(t.clone()), _ => None },
                     project: trust.choice_project.clone(), revision: trust.choice_revision.clone() };
-                // Only from a frame that settled as written; a reply first is held until the write settles.
-                if e.written { Self::record_settings_notice(i, notice); } else { i.level.unsettled_notices.insert(key.to_owned(), notice); }
+                Self::trust_outcome(i, key, TrustOutcome::Refused(notice));
+            } else {
+                i.level.trust_order.remove(key);
             }
             i.level.request_sent.remove(key);
             i.level.sent_by_request.remove(key);
             return;
         }
-        // A later start, resume or fork of the same conversation or project that Codex accepted: the refusal no
-        // longer stands.
-        if let Some(trust) = &bound.trust {
-            let root = trust.root.to_string_lossy().into_owned();
-            if i.level.settings_refusal.as_ref().is_some_and(|n| n.root == root) { i.level.settings_refusal = None; }
-            if let Target::Conversation(t) = &bound.target { i.level.thread_settings_refusal.remove(t); }
-            i.level.thread_settings_refusal.retain(|_, n| n.root != root);
+        // A start, resume or fork carrying a trusted entry that Codex accepted: a refusal for its root from an earlier
+        // frame no longer stands.
+        if let Some(trust) = bound.trust.as_ref().filter(|trust| trust.trust_level() == "trusted") {
+            let thread = match &bound.target { Target::Conversation(t) => Some(t.clone()), _ => None };
+            Self::trust_outcome(i, key, TrustOutcome::Accepted { root: trust.root.to_string_lossy().into_owned(), thread });
         }
         let result = &frame["result"];
         let thread = match &bound.target {
@@ -458,9 +478,34 @@ impl Host {
         Self::queue_level_entry(i, entry);
     }
 
-    fn record_settings_notice(i: &mut Inner, notice: SettingsNotice) {
-        if let Some(t) = &notice.thread { i.level.thread_settings_refusal.insert(t.clone(), notice.clone()); }
-        i.level.settings_refusal = Some(notice);
+    /// An outcome of the frame `key`: applied now where its frame settled as written, else held until it does.
+    fn trust_outcome(i: &mut Inner, key: &str, outcome: TrustOutcome) {
+        if i.source_requests.get(key).is_some_and(|e| e.written) { Self::apply_trust_outcome(i, key, outcome); }
+        else { i.level.unsettled_outcomes.insert(key.to_owned(), outcome); }
+    }
+    /// A settled outcome: a refusal's command error is kept for its own request whatever happens next; the outcome
+    /// is shown only where its frame is later than the latest outcome applied for its root.
+    fn apply_trust_outcome(i: &mut Inner, key: &str, outcome: TrustOutcome) {
+        if let TrustOutcome::Refused(notice) = &outcome {
+            if let Some(first) = notice.value["lines"][0].as_str() {
+                i.level.settings_errors.insert(notice.request_ref.clone(), format!("{first} {}", cl::PROJECT_SETTINGS_SEE_TRUST));
+            }
+        }
+        let Some(n) = i.level.trust_order.remove(key) else { return };
+        let root = match &outcome { TrustOutcome::Refused(notice) => notice.root.clone(), TrustOutcome::Accepted { root, .. } => root.clone() };
+        if i.level.trust_outcome_at.get(&root).is_some_and(|latest| *latest >= n) { return; }
+        i.level.trust_outcome_at.insert(root.clone(), n);
+        match outcome {
+            TrustOutcome::Refused(notice) => {
+                if let Some(t) = &notice.thread { i.level.thread_settings_refusal.insert(t.clone(), notice.clone()); }
+                i.level.settings_refusal = Some(notice);
+            }
+            TrustOutcome::Accepted { root, thread } => {
+                if i.level.settings_refusal.as_ref().is_some_and(|n| n.root == root) { i.level.settings_refusal = None; }
+                if let Some(t) = &thread { i.level.thread_settings_refusal.remove(t); }
+                i.level.thread_settings_refusal.retain(|_, n| n.root != root);
+            }
+        }
     }
     /// A notice stands exactly as long as its cause: while the latest entry written for its root is still trusted,
     /// and the App's choice it was sent under is still at the revision it was sent under.
@@ -472,14 +517,11 @@ impl Host {
         };
         settings && choice
     }
-    /// The command's own error text for a start, resume or fork whose refusal is a standing settings-file notice:
-    /// the notice's first sentence and where to look, never Codex's error object.
+    /// The command's own error text for the start, resume (Continue) or fork `request_ref` names, where Codex
+    /// refused that request as a settings-file refusal: bound to the request itself, not to what is shown now.
+    /// Never Codex's error object.
     pub(crate) fn settings_notice_error(&self, request_ref: &str) -> Option<String> {
-        let i = self.inner.0.lock().unwrap();
-        let notice = i.level.settings_refusal.as_ref().filter(|n| n.request_ref == request_ref)
-            .or_else(|| i.level.thread_settings_refusal.values().find(|n| n.request_ref == request_ref))?;
-        let first = notice.value["lines"][0].as_str()?;
-        Some(format!("{first} {}", cl::PROJECT_SETTINGS_SEE_TRUST))
+        self.inner.0.lock().unwrap().level.settings_errors.get(request_ref).cloned()
     }
 
     // ---- The person's choice ----

@@ -2090,7 +2090,9 @@ fn history_action(
     // Only the original accepted manual page can enter native activity. The
     // shared receiver also delivers pages accepted by an earlier host tick.
     home.reconcile_manual_history();
-    waited?;
+    // DEL-01-01: a Continue refused by a trusted project's own settings is said as the App says it, never as
+    // Codex's error object.
+    if let Some(text) = home.host.history_settings_error(&receipt, &waited?) { return Err(text); }
     let root = state.instructions_root.lock().unwrap().clone();
     let snapshot = home.history.lock().unwrap().snapshot(root.as_deref().ok());
     Ok(snapshot)

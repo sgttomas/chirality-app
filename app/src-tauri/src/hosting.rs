@@ -3728,6 +3728,12 @@ impl Host {
         Ok(HistoryDispatch {query:query.clone(),source,local_config:None})
     }
     pub fn history_wait(&self, dispatch: &HistoryDispatch, wait: Duration) -> Result<Value,String> {self.source_request_wait(&dispatch.source,wait)}
+    /// DEL-01-01: the command's own error for a Continue (`thread/resume`) that Codex refused as a settings-file
+    /// refusal, as the App says it; None for any other read or outcome, whose result is returned as before.
+    pub fn history_settings_error(&self, dispatch: &HistoryDispatch, evidence: &Value) -> Option<String> {
+        if dispatch.query.method()!="thread/resume"||evidence["response"].get("error").is_none() {return None;}
+        self.settings_notice_error(&dispatch.source.request_ref)
+    }
     pub fn history_dispatch_status(&self, dispatch: &HistoryDispatch) -> Result<Value,String> {self.source_request_status(&dispatch.source)}
 
     /// Private actual SourceEvidence only; caller evidence JSON is never consumed as proof.
@@ -3831,7 +3837,6 @@ impl Host {
 
     pub fn history_admit_resume(&self, history: &NativeHistory, dispatch: &HistoryDispatch) -> Result<Value,String> {
         self.check_source(&dispatch.source)?;
-        if let Some(text)=self.settings_notice_error(&dispatch.source.request_ref) {return Err(text);}
         if dispatch.query.method()!="thread/resume"||dispatch.query.params()!=&json!({"threadId":history.selected_thread(),"excludeTurns":true}) {return Err("only original explicit Continue packet can admit".into());}
         let candidate=history.resumed_thread().ok_or("latest history state is not an eligible Continue response")?;
         let snapshot=history.snapshot();let query=serde_json::to_value(&dispatch.query).map_err(|e|e.to_string())?;
