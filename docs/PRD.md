@@ -409,7 +409,8 @@ Shared access does not transfer decision rights (OD-05).
   of the level in force is always shown wherever a conversation is shown;
   what the level allows, where it comes from and that reading is not limited
   are shown when the person opens it, one action from the name, and in full
-  in the conversation's tools (R-LEVEL). The App offers a level only once a fixture has shown that level at
+  in the conversation's tools (R-LEVEL). Wherever else the App shows a level,
+  it says there that reading is not limited. The App offers a level only once a fixture has shown that level at
   the pinned Codex version. The level is the person's own setting (V4-AUT-04):
   it is no reserved act and stands in for none. Only the person sets or
   changes it, by a choice the App takes from the person alone, and the

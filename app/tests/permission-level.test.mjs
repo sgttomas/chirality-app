@@ -455,6 +455,20 @@ test('the ask above the composer says, in the full panel\'s words, when its pres
   },async()=>({}));
 });
 
+test('wherever levels are named with none in force, the ask above the composer and the full panel say that reading is not limited, in the host\'s words',async()=>{
+  const {READING_NOT_LIMITED}=loadSrc('PermissionLevel');
+  assert.equal(READING_NOT_LIMITED,sentence('READING_SENTENCE'),'the App\'s sentence is the host\'s');
+  const global=panelHost({levelDefault:null,levelRecordMissing:sentence('RECORD_MISSING_SENTENCE'),levelAskPreselected:'full'});
+  await inConversation(global,'',async({c})=>{
+    assert.ok(askAbove(c).textContent.includes(READING_NOT_LIMITED),'the ask above the composer');
+    assert.ok(fullPanel(c).textContent.includes(READING_NOT_LIMITED),'the full panel with no level in force');
+  },async()=>({}));
+  const own=panelHost({threads:[thread('T',{chosen:null,ask:{sentence:'Invented ask for this conversation.',preselected:'full'}})]});
+  await inConversation(own,JSON.stringify([g,'T']),async({c})=>{
+    assert.ok(askAbove(c).textContent.includes(READING_NOT_LIMITED),'a conversation\'s own ask');
+  },async()=>({}));
+});
+
 test('the one-press level panel shows what Codex reported where it differs, the trust lines with their project root and the lasting rules, in view',async()=>{
   const level={chosen:chosen('supervised','chosen'),sent:{levelId:'supervised',writeResult:'written'},agreement:'differs',
     reported:{requestedLevelId:'supervised',approvalPolicy:'invented-policy',approvalsReviewer:'invented-reviewer',sandbox:{type:'invented-sandbox'}},
