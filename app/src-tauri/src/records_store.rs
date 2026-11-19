@@ -1177,6 +1177,64 @@ fn roots_of(lines: &[Value], project: &str) -> Vec<String> {
     current.into_iter().filter(|(_, on)| *on).map(|(r, _)| r).collect()
 }
 
+/// One folder the registry of project folders lists, as its complete lines
+/// record it: the root as written, the identities current at it, and the
+/// position of the first line that names it (the order the store learned of
+/// the folder).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct ListedFolder {
+    pub root: String,
+    pub identities: Vec<String>,
+    pub first_line: usize,
+}
+/// The registry of project folders as read for a view of every project: the
+/// folders with a current identity, in the order first recorded, and what was
+/// not read (its limits, and the sentence every attachment shows while its
+/// last line is incomplete).
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub(crate) struct ListedFolders {
+    pub folders: Vec<ListedFolder>,
+    pub limits: Vec<String>,
+    pub torn: Option<String>,
+}
+/// Every folder the store's registry lists, for the navigator. It publishes
+/// nothing: it takes the store this process already opened (`OPENED`, checked
+/// again as `still_bound` checks it) and refuses where the store has not been
+/// opened, rather than opening it; it reads `roots.jsonl` once, its rows and
+/// whether its last line is torn from the same bytes, and leaves the shared
+/// registry reading (`ROOTS`) as it was. No folder is examined, attached or
+/// remembered. `Err` when the registry cannot be read at all.
+pub(crate) fn listed_folders() -> Result<ListedFolders, String> {
+    const NOT_OPENED: &str = "the records store has not been opened by this App, so its list of project folders was not read";
+    // The store this process already configured and opened, if any: this read
+    // configures, creates and opens nothing (no `current()` on a cold path).
+    let bound = OPENED.lock().unwrap_or_else(|p| p.into_inner()).clone().ok_or(NOT_OPENED)?;
+    #[cfg(test)]
+    let configured = TEST_STORE.with(|s| s.borrow().clone()).or_else(|| STORE.read().unwrap_or_else(|p| p.into_inner()).clone());
+    #[cfg(not(test))]
+    let configured = STORE.read().unwrap_or_else(|p| p.into_inner()).clone();
+    let store = configured.ok_or(NOT_OPENED)??;
+    if bound.configured != store.root { return Err(NOT_OPENED.into()); }
+    let (root, _) = still_bound(&bound)?;
+    let path = root.join("roots.jsonl");
+    let bytes = match std::fs::symlink_metadata(&path) {
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Vec::new(),
+        Err(e) => return Err(format!("records store unreadable: roots.jsonl: {e}")),
+        Ok(_) => crate::records_retention::read_plain(&path).map_err(|e| format!("records store unreadable: roots.jsonl: {e}"))?,
+    };
+    let read = lines::read(&bytes, &path);
+    let torn = bytes.last().is_some_and(|last| *last != b'\n').then(|| REGISTRY_TORN.to_owned());
+    let mut folders: Vec<ListedFolder> = Vec::new();
+    for (position, line) in read.values.iter().enumerate() {
+        let Some(root) = line["root"].as_str() else { continue };
+        if folders.iter().any(|f| f.root == root) { continue; }
+        folders.push(ListedFolder { root: root.to_owned(), identities: Vec::new(), first_line: position });
+    }
+    for folder in &mut folders { folder.identities = listed(&read.values, &folder.root); }
+    folders.retain(|f| !f.identities.is_empty());
+    Ok(ListedFolders { folders, limits: read.limits, torn })
+}
+
 /// What the project's link file says.
 #[derive(Clone, Debug, PartialEq)]
 enum Link {
