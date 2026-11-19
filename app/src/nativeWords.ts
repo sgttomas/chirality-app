@@ -27,6 +27,15 @@ export const ITEM_KIND = {
   collabAgentToolCall: "delegation", subAgentActivity: "sub-agent activity", webSearch: "web search", imageView: "image view", sleep: "sleep",
   imageGeneration: "image generation", enteredReviewMode: "entered review mode", exitedReviewMode: "exited review mode", contextCompaction: "context compaction",
 } as const;
+/** A turn's folded activity line while the turn runs: the kind of its latest item the host reads as in progress. */
+export const ITEM_IN_PROGRESS = {
+  userMessage: "User message in progress", hookPrompt: "Hook prompt in progress", agentMessage: "Agent message in progress", functionCallOutput: "Function call output in progress", plan: "Plan in progress",
+  reasoning: "Reasoning in progress", commandExecution: "Command in progress", fileChange: "File change in progress", mcpToolCall: "MCP tool call in progress", dynamicToolCall: "Dynamic tool call in progress",
+  collabAgentToolCall: "Delegation in progress", subAgentActivity: "Sub-agent activity in progress", webSearch: "Web search in progress", imageView: "Image view in progress", sleep: "Sleep in progress",
+  imageGeneration: "Image generation in progress", enteredReviewMode: "Entering review mode", exitedReviewMode: "Leaving review mode", contextCompaction: "Context compaction in progress",
+} as const;
+/** The conversation's agent, as the speaker of its messages: the role the App supplied, as the App names roles. */
+export const ROLE_SPEAKER = { HELP_HUMAN: "HELP_HUMAN", HELPS_HUMANS: "HELPS_HUMANS", WORKING_ITEMS: "WORKING_ITEMS" } as const;
 /** TurnPlanStepStatus. */
 export const STEP_STATUS = { pending: "pending", inProgress: "in progress", completed: "completed" } as const;
 /** TurnItemsView. */

@@ -1,7 +1,7 @@
 import { Component, useEffect, useImperativeHandle, useRef, useState, type ReactNode, type Ref } from "react";
-import { AgentText, type AgentTextSource, plainId, SuppliedId, Word, Num, Flag, wordOf, numberWords } from "./AgentText";
+import { AgentProse, AgentText, type AgentTextSource, plainId, SuppliedId, Word, Num, Flag, wordOf, numberWords } from "./AgentText";
 import { RunOffer, type RunAct } from "./RunOffers";
-import { AGENT_STATUS, AGENT_TOOL, CHANGE_KIND, CHILD_STATUS, COMMAND_SOURCE, ITEM_KIND, ITEM_STATUS, MESSAGE_PHASE, REASONING_EFFORT, STEP_STATUS, SUBAGENT_ACTIVITY, TURN_STATUS } from "./nativeWords";
+import { AGENT_STATUS, AGENT_TOOL, CHANGE_KIND, CHILD_STATUS, COMMAND_SOURCE, ITEM_IN_PROGRESS, ITEM_KIND, ITEM_STATUS, MESSAGE_PHASE, REASONING_EFFORT, ROLE_SPEAKER, STEP_STATUS, SUBAGENT_ACTIVITY, TURN_STATUS } from "./nativeWords";
 type Json = any;
 
 // Readable presentation of the host's native view (DEL-01-03 §5–§7; messages
@@ -547,10 +547,83 @@ export function TurnErrors({ errors, unreadable, turn }: { errors: Json[]; unrea
   </div>;
 }
 
+
 // RN-3…RN-7: the run offers beneath an agent message are drawn by RunOffer (a guarded view) with what the App
 // supplies for its buttons; the activity takes no other renderer for them.
 export type OfferControls = { generation: Json; ready: boolean; busy: boolean; act: RunAct };
-export function NativeActivityView({ view, threadId, offers, offerControls, runs, stopLabelFor, trialTurns, trialChildren, delegation, navigationRef }: { view: Json; threadId: string | null | undefined; offers?: Json[]; offerControls?: OfferControls; runs?: Json[]; stopLabelFor?: (threadId: string, turnId: string) => Json | null; trialTurns?: Json[]; trialChildren?: Json[]; delegation?: Json; navigationRef?: Ref<NativeActivityHandle> }) {
+
+// The conversation as a transcript (3.0.1's conversation): each message of the person under "You", each message of
+// the agent under the agent's label, and everything else a turn produced folded into one activity line for the turn,
+// which opens to the activity rendering above, unchanged. What a turn shows besides (an error from Codex, how it
+// ended or was stopped, the run markers) stays outside the fold, at the turn.
+const MESSAGE_KINDS = new Set(["userMessage", "agentMessage"]);
+type TurnSegment = { kind: "you" | "agent"; rows: Json[] };
+/** A turn's messages in their order: consecutive messages of one speaker together. The other items are folded. */
+export function turnSegments(items: Json[]): { segments: TurnSegment[]; folded: Json[]; messages: Json[] } {
+  const segments: TurnSegment[] = [], folded: Json[] = [], messages: Json[] = [];
+  for (const row of items) {
+    const type = row?.native?.type;
+    if (!MESSAGE_KINDS.has(type)) { folded.push(row); continue; }
+    messages.push(row);
+    const kind = type === "userMessage" ? "you" : "agent";
+    const last = segments[segments.length - 1];
+    if (last?.kind === kind) last.rows.push(row); else segments.push({ kind, rows: [row] });
+  }
+  return { segments, folded, messages };
+}
+/** Whether a turn is under way as the activity view reads it: Codex reported it in progress and the App still receives from that process. */
+export const turnLive = (turn: ActivityTurn, observationEnded: boolean) => turn.native?.status === "inProgress" && !observationEnded;
+const IN_PROGRESS = new Set(["in-progress", "waiting-on-request"]);
+/** The folded activity line: while the turn runs, its latest item in progress (or "Working"); after, "Turn details". Counts are observed rows, never work done. */
+function TurnActivity({ turn, folded, messages, live, plans, ownRuns, turnIds, offersFor }: { turn: ActivityTurn; folded: Json[]; messages: Json[]; live: boolean; plans: Json[]; ownRuns: Json[]; turnIds: string[]; offersFor: (row: Json) => ReactNode }) {
+  const count = folded.length, failed = folded.filter(row => row?.displayState === "failed").length;
+  const latest = live ? [...folded].reverse().find(row => IN_PROGRESS.has(row?.displayState)) : undefined;
+  return <details className={live ? "turn-activity turn-activity--live" : "turn-activity"} data-failed={failed > 0 || undefined}>
+    <summary><span className="turn-activity-summary">{!live ? "Turn details" : latest?.displayState === "waiting-on-request" ? "Waiting on a request" : (latest ? wordOf(ITEM_IN_PROGRESS, latest.native?.type) : null) ?? "Working"}
+      {count > 0 && ` · ${numberWords(count)} ${count === 1 ? "action" : "actions"}`}{failed > 0 && ` · ${numberWords(failed)} failed`}</span></summary>
+    <div className="v4-turn-activity-body">
+      <details><summary>Turn source and timing</summary><small>Turn <SuppliedId value={turn.turnId} label="Turn:" name="Turn identity as Codex reported it, not the App's words" /> · {turn.native ? <>native status <Word value={turn.native.status} words={TURN_STATUS} name="A turn status Codex sent that the App does not recognise, not the App's words" /></> : "turn status not observed"}{turn.native?.durationMs != null && <> · <Num value={turn.native.durationMs} /> ms</>}</small></details>
+      {folded.map((row, i) => <NativeItemCard key={text(row.native?.id) || `row-${i}`} row={row} plans={plans} runStart={ownRuns.some((run: Json) => run.turn === row.turnId)} after={offersFor(row)}>
+        {!UNLABELLED.has(text(row.native?.type)) && <RunLabel run={runInForce(ownRuns, turnIds, text(turn.turnId))} />}
+      </NativeItemCard>)}
+      {turn.checklists.length > 0 && <RowBoundary value={turn.checklists} row={`${turn.checklists.length}:${text(turn.checklists[turn.checklists.length - 1]?.revisionId)}`} label="checklist"><Checklist revisions={turn.checklists} /><RunLabel run={runInForce(ownRuns, turnIds, text(turn.turnId))} /></RowBoundary>}
+      {messages.length > 0 && <details><summary>The turn’s messages as Codex sent them</summary>{messages.map((row, i) => <NativeJson key={i} value={row.native} />)}</details>}
+    </div>
+  </details>;
+}
+
+/** One message of the person, or of what Codex recorded as input, in its bubble: marked as today. */
+function YourMessage({ row, runStart }: { row: Json; runStart: boolean }) {
+  return <RowBoundary value={row.native} row={row} label="native item"><div className="chat-user-text" id={itemAnchorId(row.threadId, row.turnId, row.native?.id)}>
+    <Unfinished row={row} /><UserMessage content={row.native?.content} fold={runStart} />
+  </div></RowBoundary>;
+}
+/** One message of the agent: its prose, formatted; a message that is not complete says so. */
+function AgentMessage({ row, after }: { row: Json; after: ReactNode }) {
+  const n = row.native ?? {};
+  return <RowBoundary value={row.native} row={row} label="native item"><div className="v4-agent-message" id={itemAnchorId(row.threadId, row.turnId, n.id)}>
+    {n.phase ? <p className="v4-message-phase"><small><Word value={n.phase} words={MESSAGE_PHASE} /></small></p> : null}
+    <Unfinished row={row} />
+    <AgentProse value={streamed(row) ?? text(n.text)} />
+  </div>{after}</RowBoundary>;
+}
+
+/** What the transcript shows at a turn's end, outside its fold: how it ended when that was not completion, a stop, Codex's errors. */
+function TurnEnd({ turn, observationEnded, stop, live }: { turn: ActivityTurn; observationEnded: boolean; stop: Json | null; live: boolean }) {
+  const completed = turn.native?.status === "completed";
+  return <>
+    {!live && !completed && <p className="chat-turn-status" role="status" data-turn-outcome={turn.native?.status === "interrupted" || turn.native?.status === "failed" ? turn.native.status : "unknown"}>Turn {turnStatusWords(turn.native, observationEnded)}</p>}
+    <StopLabel stop={stop} />
+    {turn.native?.error?.message && <p role="alert">Turn error: <AgentText value={text(turn.native.error.message)} source="codex" /></p>}
+    <TurnErrors errors={turn.errors} unreadable={turn.unreadableErrors} turn={turn.native} />
+  </>;
+}
+
+export function NativeActivityView({ view, threadId, offers, offerControls, runs, stopLabelFor, trialTurns, trialChildren, delegation, navigationRef, appRole, waiting = false }: { view: Json; threadId: string | null | undefined; offers?: Json[]; offerControls?: OfferControls; runs?: Json[]; stopLabelFor?: (threadId: string, turnId: string) => Json | null; trialTurns?: Json[]; trialChildren?: Json[]; delegation?: Json; navigationRef?: Ref<NativeActivityHandle>;
+  /** The conversation's role as the App bound it (the host's thread row `appRole`), for its agent's label. */
+  appRole?: Json;
+  /** A request of this conversation waits for the person's answer (the host's register says so). */
+  waiting?: boolean }) {
   const [shown, setShown] = useState<string>("");
   const [pending, setPending] = useState<(ActivityReveal & { revision: number }) | null>(null);
   const revision = useRef(0);
@@ -574,17 +647,20 @@ export function NativeActivityView({ view, threadId, offers, offerControls, runs
     const target = shown || threadId;
     if (target !== pending.location.threadId) { setPending(null); return; }
     const { threadId: thread, turnId: turn, itemId: item } = pending.location;
-    // Source/intent checks establish the destination. DOM lookup only scrolls
-    // the already-rendered row inside this activity view, never supplies custody.
+    // Source/intent checks establish the destination. DOM lookup only opens the turn's fold and scrolls the
+    // already-rendered row inside this view, never supplies custody.
     const element = container.current?.querySelector<HTMLElement>(`#${itemAnchorId(thread, turn, item)}`);
     setPending(null);
-    if (element && pending.revision === revision.current && pending.isCurrent()) element.scrollIntoView({ block: "center" });
+    if (element && pending.revision === revision.current && pending.isCurrent()) {
+      for (let node: HTMLElement | null = element.parentElement; node && node !== container.current; node = node.parentElement) if (node.tagName === "DETAILS") (node as HTMLDetailsElement).open = true;
+      element.scrollIntoView({ block: "center" });
+    }
   });
   // WR TT-2, TT-4: the host's trial labels (worded by the host) on the turn
   // that carried a trial message and on a linked sub-agent's row. Display only.
   const turnLabel = (thread: string, turn: string) => list(trialTurns).find((t: Json) => t?.threadId === thread && t?.turnId === turn)?.label;
   const childLabel = (thread: Json) => list(trialChildren).find((t: Json) => t?.threadId === thread)?.label;
-  if (!threadId) return <p>Select a conversation to see its activity.</p>;
+  if (!threadId) return <p className="panel-empty">Select a conversation to see its activity.</p>;
   const descendants = activityModel(view, threadId).subtree;
   const target = shown && descendants.some((c: Json) => c.threadId === shown) ? shown : threadId;
   const model = activityModel(view, target);
@@ -594,38 +670,58 @@ export function NativeActivityView({ view, threadId, offers, offerControls, runs
   const shownTurns = new Set(model.turns.map(turn => turn.turnId));
   const turnIds = model.turns.map(turn => text(turn.turnId));
   const unplaced = ownRuns.filter((run: Json) => !shownTurns.has(run.turn) || (run.lifecycle?.end && !shownTurns.has(run.endedAfterTurn)));
-  const offersFor = (row: Json) => target === threadId && offerControls ? list(offers).filter((offer: Json) => offer?.message?.threadId === row.threadId && offer?.message?.turnId === row.turnId && offer?.message?.itemId === row.native?.id) : [];
-  return <div ref={container} aria-label="Native activity">
-    <h3>Activity</h3>
-    <details><summary>Activity source and limits</summary><p>Codex types {view?.typesPin ? <SuppliedId value={view.typesPin} label="Types:" name="The pinned Codex types, as recorded; the App does not vouch for its words" /> : "not reported"} · supplier standing {view?.supplierStanding === undefined || view?.supplierStanding === null ? "not established" : <AgentText value={text(view.supplierStanding)} source="codex" label="Standing:" name="The supplier's standing, as recorded; the App does not vouch for its words" />}.</p>{list(view?.limits).length > 0 && <AgentText block value={list(view?.limits).map(text).join("\n")} source="codex" label="Limits:" name="The activity view's limits, as recorded; the App does not vouch for its words" />}</details>
-    {descendants.length > 0 && <label>Show <select value={target} onChange={e => {
+  const offersFor = (row: Json) => target === threadId && offerControls ? list(offers).filter((offer: Json) => offer?.message?.threadId === row.threadId && offer?.message?.turnId === row.turnId && offer?.message?.itemId === row.native?.id)
+    .map((offer: Json, k: number) => <div key={k}><RunOffer offer={offer} generation={offerControls.generation} ready={offerControls.ready} busy={offerControls.busy} act={offerControls.act} /></div>) : [];
+  const observationEnded = view?.observationEnded === true;
+  // The agent's label: the role the App supplied this conversation, where the App established it; else "Agent".
+  // A descendant's messages are its own agent's, so they carry "Agent" too, and its input is not the person's.
+  const speaker = target === threadId && appRole?.standing === "app-observed" ? wordOf(ROLE_SPEAKER, appRole?.role) ?? "Agent" : "Agent";
+  const you = target === threadId ? "You" : "Input to this agent";
+  return <div ref={container} className="v4-transcript" aria-label="Native activity">
+    {descendants.length > 0 && <p className="v4-transcript-scope"><label>Show <select value={target} onChange={e => {
       revision.current++; setPending(null);
       setShown(e.target.value === threadId ? "" : e.target.value);
     }}>
       <option value={threadId}>this conversation</option>
       {descendants.map((c: Json) => <option key={text(c.threadId)} value={text(c.threadId)}>descendant {idWords(c.threadId)}{c.parentThreadId !== threadId ? ` (of ${idWords(c.parentThreadId)})` : ""}</option>)}
-    </select></label>}
+    </select></label></p>}
     {model.parent && <p>Descendant of <Id value={model.parent.parentThreadId} /> (<Word value={model.parent.parentSource} words={PARENT_SOURCE} label="Recorded:" name="Where the parent was read, as recorded; the App does not vouch for its words" />).</p>}
     {model.goal && <p>Goal (<AgentText value={text(model.goal.source)} source="codex" label="Source:" name="Where the goal was read, as recorded; the App does not vouch for its words" />): {model.goal.native === null ? "cleared" : <AgentText value={typeof model.goal.native?.objective === "string" ? model.goal.native.objective : JSON.stringify(model.goal.native)} source="codex" />}</p>}
     {model.checklistGaps.map((gap, i) => <p key={i}>Checklist for turn <SuppliedId value={gap.turnId} label="Turn:" name="Turn identity as Codex reported it, not the App's words" />: <AgentText value={text(gap.reason)} source="codex" label="Reason:" name="Why the checklist is missing, as recorded; the App does not vouch for its words" /></p>)}
     {unplaced.length > 0 && <div><small>Workflow runs in this conversation whose position this view cannot show:</small>
       {unplaced.map((run: Json) => <div key={text(run.reference)}>{!shownTurns.has(run.turn) && <RunStartMarker run={run} />}{run.lifecycle?.end && !shownTurns.has(run.endedAfterTurn) && <RunEndMarker run={run} />}</div>)}</div>}
-    {model.turns.length === 0 && <p>No activity observed for this conversation in the current Codex generation. This view shows what the App received live in this generation and what it has read from Codex history; earlier generations' observations remain under the native JSON below.</p>}
-    {model.turns.map((turn, index) => <section key={text(turn.turnId)} aria-label={`Conversation turn ${index + 1}`} style={{ borderTop: "1px solid #ccc", marginTop: 8 }}>
-      {ownRuns.filter((run: Json) => run.turn === turn.turnId).map((run: Json) => <RunStartMarker key={text(run.reference)} run={run} />)}
-      <h4>{`Turn ${index + 1}`} · {turnStatusWords(turn.native, view?.observationEnded === true)}</h4>
-      <details><summary>Turn source and timing</summary><small>Turn <SuppliedId value={turn.turnId} label="Turn:" name="Turn identity as Codex reported it, not the App's words" /> · {turn.native ? <>native status <Word value={turn.native.status} words={TURN_STATUS} name="A turn status Codex sent that the App does not recognise, not the App's words" /></> : "turn status not observed"}{turn.native?.durationMs != null && <> · <Num value={turn.native.durationMs} /> ms</>}</small></details>
-      {turnLabel(target, turn.turnId) && <p role="note"><small><AgentText value={text(turnLabel(target, turn.turnId))} source="codex" label="Trial:" name="The trial's label for this turn, as recorded; the App does not vouch for its words" /></small></p>}
-      <StopLabel stop={stopLabelFor?.(target, text(turn.turnId)) ?? null} />
-      {turn.native?.error?.message && <p role="alert">Turn error: <AgentText value={text(turn.native.error.message)} source="codex" /></p>}
-      <TurnErrors errors={turn.errors} unreadable={turn.unreadableErrors} turn={turn.native} />
-      {turn.items.map((row, i) => <NativeItemCard key={text(row.native?.id) || `row-${i}`} row={row} plans={plans} runStart={ownRuns.some((run: Json) => run.turn === row.turnId)} after={offersFor(row).map((offer: Json, k: number) => <div key={k}>{offerControls && <RunOffer offer={offer} generation={offerControls.generation} ready={offerControls.ready} busy={offerControls.busy} act={offerControls.act} />}</div>)}>
-        {!UNLABELLED.has(text(row.native?.type)) && <RunLabel run={runInForce(ownRuns, turnIds, text(turn.turnId))} />}
-      </NativeItemCard>)}
-      {turn.checklists.length > 0 && <RowBoundary value={turn.checklists} row={`${turn.checklists.length}:${text(turn.checklists[turn.checklists.length - 1]?.revisionId)}`} label="checklist"><Checklist revisions={turn.checklists} /><RunLabel run={runInForce(ownRuns, turnIds, text(turn.turnId))} /></RowBoundary>}
-      {ownRuns.filter((run: Json) => run.lifecycle?.end && run.endedAfterTurn === turn.turnId).map((run: Json) => <RunEndMarker key={text(run.reference)} run={run} />)}
-    </section>)}
+    {model.turns.length === 0 && <p className="panel-empty">No activity observed for this conversation in the current Codex generation.</p>}
+    {model.turns.map((turn, index) => {
+      const live = turnLive(turn, observationEnded);
+      const { segments, folded, messages } = turnSegments(turn.items);
+      // The fold and the turn's end belong to the turn's last agent bubble; a turn whose last message is the
+      // person's (or that has none) gets an agent bubble for them.
+      if (segments[segments.length - 1]?.kind !== "agent") segments.push({ kind: "agent", rows: [] });
+      const runStart = ownRuns.some((run: Json) => run.turn === turn.turnId);
+      const fold = <TurnActivity turn={turn} folded={folded} messages={messages} live={live} plans={plans} ownRuns={ownRuns} turnIds={turnIds} offersFor={offersFor} />;
+      return <section key={text(turn.turnId)} className="v4-turn" aria-label={`Conversation turn ${index + 1}`} data-turn-live={live || undefined}>
+        {ownRuns.filter((run: Json) => run.turn === turn.turnId).map((run: Json) => <RunStartMarker key={text(run.reference)} run={run} />)}
+        {turnLabel(target, turn.turnId) && <p role="note"><small><AgentText value={text(turnLabel(target, turn.turnId))} source="codex" label="Trial:" name="The trial's label for this turn, as recorded; the App does not vouch for its words" /></small></p>}
+        {segments.map((segment, k) => {
+          const last = k === segments.length - 1;
+          if (segment.kind === "you") return <article key={k} className="chat-bubble chat-bubble--operator" data-role="operator" aria-label="Your message">
+            <p className="chat-speaker">{you}</p>
+            {segment.rows.map((row, i) => <YourMessage key={text(row.native?.id) || `you-${i}`} row={row} runStart={runStart} />)}
+          </article>;
+          return <article key={k} className={`chat-bubble chat-bubble--assistant${last && live ? " chat-bubble--streaming" : ""}`} data-role="assistant" aria-label={`${speaker} reply`}>
+            <p className="chat-speaker">{speaker}</p>
+            {last && live && fold}
+            {segment.rows.map((row, i) => <AgentMessage key={text(row.native?.id) || `agent-${i}`} row={row} after={offersFor(row)} />)}
+            {last && live && waiting && target === threadId && <p className="chat-runtime-status" data-turn-phase="waiting" role="status">Waiting for you</p>}
+            {last && <TurnEnd turn={turn} observationEnded={observationEnded} stop={stopLabelFor?.(target, text(turn.turnId)) ?? null} live={live} />}
+            {last && !live && fold}
+          </article>;
+        })}
+        {ownRuns.filter((run: Json) => run.lifecycle?.end && run.endedAfterTurn === turn.turnId).map((run: Json) => <RunEndMarker key={text(run.reference)} run={run} />)}
+      </section>;
+    })}
     <DelegationLine delegation={target === threadId ? delegation : null} descendants={model.children.length} />
-    {model.children.length > 0 && <><h4>Descendants</h4><p>A completed turn here says nothing about these descendants.</p><ul>{model.children.map((c: Json, i: number) => <li key={text(c?.threadId) || `child-${i}`}><RowBoundary value={c} label="descendant"><Child child={c} trialLabel={childLabel(c?.threadId)} /></RowBoundary></li>)}</ul></>}
+    {model.children.length > 0 && <section className="v4-descendants" aria-label="Descendants"><h4>Descendants</h4><p>A completed turn here says nothing about these descendants.</p><ul>{model.children.map((c: Json, i: number) => <li key={text(c?.threadId) || `child-${i}`}><RowBoundary value={c} label="descendant"><Child child={c} trialLabel={childLabel(c?.threadId)} /></RowBoundary></li>)}</ul></section>}
+    <details className="v4-transcript-source"><summary>Activity source and limits</summary><p>This view shows what the App received live in this generation and what it has read from Codex history; earlier generations' observations remain under the native JSON in Host diagnostics.</p><p>Codex types {view?.typesPin ? <SuppliedId value={view.typesPin} label="Types:" name="The pinned Codex types, as recorded; the App does not vouch for its words" /> : "not reported"} · supplier standing {view?.supplierStanding === undefined || view?.supplierStanding === null ? "not established" : <AgentText value={text(view.supplierStanding)} source="codex" label="Standing:" name="The supplier's standing, as recorded; the App does not vouch for its words" />}.</p>{list(view?.limits).length > 0 && <AgentText block value={list(view?.limits).map(text).join("\n")} source="codex" label="Limits:" name="The activity view's limits, as recorded; the App does not vouch for its words" />}</details>
   </div>;
 }

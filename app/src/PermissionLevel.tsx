@@ -84,6 +84,37 @@ export function PermissionLevel({ host, threadId }: { host: Json; threadId?: str
   return <LevelPanel key={JSON.stringify([levelOwner(host), threadId])} host={host} threadId={threadId}/>;
 }
 
+/** The level in force for a conversation (its own level) or, with no conversation, for new conversations, and
+ * whether the App asks the person to choose one: what the settings line names. */
+export function levelInForce(host: Json, threadId?: string): { name: string; ask: boolean } {
+  const row = threadId ? list(host?.threads).find(t => t.threadId === threadId && JSON.stringify(t.generation) === JSON.stringify(host?.generation)) : null;
+  const level = threadId ? row?.level?.chosen : host?.levelDefault;
+  const ask = !!row?.level?.ask || (!level && typeof host?.levelRecordMissing === "string");
+  return { name: level ? name(level.id) : "No permission level reported", ask };
+}
+
+/** The settings line's level panel: what the level in force allows, where it came from, that reading is not limited,
+ * and the levels, in the words the full panel uses. Changing the level is the full panel's (`change`). */
+export function PermissionLevelSummary({ host, threadId, change }: { host: Json; threadId?: string; change: () => void }) {
+  const row = threadId ? list(host?.threads).find(t => t.threadId === threadId && JSON.stringify(t.generation) === JSON.stringify(host?.generation)) : null;
+  const level = threadId ? row?.level?.chosen : host?.levelDefault;
+  const globalAsk = !level && !row?.level?.ask && typeof host?.levelRecordMissing === "string";
+  const ask = row?.level?.ask ?? (globalAsk ? { sentence: host.levelRecordMissing } : null);
+  const cause = threadId ? row?.level?.refused : host?.levelSendRefusal?.threadId == null ? host?.levelSendRefusal?.cause : null;
+  return <div className="v4-level-summary">
+    <p><strong>{level ? name(level.id) : "No permission level reported"}</strong>{threadId ? " · this conversation" : " · new conversations"}</p>
+    {level && <>
+      <p>{wordOf(WRITES, level.dimensions?.writes) ?? "Write access was not reported."} {wordOf(NETWORK, level.dimensions?.network) ?? "Network access was not reported."} {wordOf(ASKS, level.dimensions?.asks) ?? "When Codex asks was not reported."}</p>
+      <p className="v4-faint">{wordOf(ORIGINS, level.origin) ?? "The origin of this level was not reported."}{typeof level.originSentence === "string" && <> {level.originSentence}</>}</p>
+      {typeof level.readingSentence === "string" ? <p className="v4-faint">{level.readingSentence}</p> : <p className="v4-faint">The reading limit was not reported.</p>}
+    </>}
+    {ask && <p role="alert">{ask.sentence}</p>}
+    <LevelRefusal cause={cause}/>
+    <ul aria-label="Permission levels">{Object.keys(NAMES).map(id => <li key={id} aria-current={level?.id === id ? "true" : undefined}><b>{wordOf(NAMES, id)}</b></li>)}</ul>
+    <p><button type="button" onClick={change}>{ask ? "Choose a permission level to continue" : "Change permission level"}</button></p>
+  </div>;
+}
+
 /** Start composers use the same active-home reading as the ordinary New conversation view. */
 export function StartPermissionLevel({ threadId, generation }: { threadId?: string; generation?: Json }) {
   const actions = useContext(PermissionLevelActions);

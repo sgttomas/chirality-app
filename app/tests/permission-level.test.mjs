@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {loadSrc} from './support/load-src.mjs';
 import {installIdleNativeWaiting} from './support/idle-native-waiting.mjs';
+import { conversationTools, settingButton } from './support/conversation-view.mjs';
 const document = installMiniDom();
 const React = (await import('react')).default;
 const {createRoot} = await import('react-dom/client');
@@ -160,13 +161,17 @@ test('the real App shows the default before Start and wires its plain setting th
   });
   try {
     await React.act(async()=>root.render(React.createElement(App)));
+    // Before the first message is sent, the new conversation's settings line names the level it would start with; the
+    // level's full panel, with its default sentences and its setting, is among the conversation's tools.
     const start=c.querySelectorAll(e=>e.getAttribute('id')==='workspace-start')[0];
-    assert.ok(start.textContent.indexOf('Permission level')<start.textContent.indexOf('Start thread'));
+    const level=settingButton(c,'Access level');assert.ok(start.contains(level),'the level is in the new conversation\'s settings line');
+    const name=props(level)['aria-label'].slice('Access level: '.length);assert.ok(name);assert.ok(level.textContent.startsWith(name),'its name is in view');
     assert.equal(calls.filter(x=>x.command==='set_level').length,0);
-    assert.ok(start.textContent.includes(sentence('APP_DEFAULT_SENTENCE')));
-    assert.ok(start.textContent.includes(sentence('APP_DEFAULT_EXPLAINED')));
-    assert.ok(start.textContent.includes(sentence('DEFAULT_SCOPE_SENTENCE')));
-    const panel=start.querySelectorAll(e=>e.getAttribute('aria-label')==='Permission level for new conversations')[0];
+    const panel=c.querySelectorAll(e=>e.getAttribute('aria-label')==='Permission level for new conversations')[0];
+    assert.ok(conversationTools(c).contains(panel));assert.ok(panel.textContent.includes(name),'the panel names the same level');
+    assert.ok(panel.textContent.includes(sentence('APP_DEFAULT_SENTENCE')));
+    assert.ok(panel.textContent.includes(sentence('APP_DEFAULT_EXPLAINED')));
+    assert.ok(panel.textContent.includes(sentence('DEFAULT_SCOPE_SENTENCE')));
     await React.act(()=>props(nodes(panel,'select')[0]).onChange({target:{value:'edits'}}));
     await React.act(async()=>props(nodes(panel,'button')[0]).onClick());
     assert.deepEqual(calls.filter(x=>x.command==='set_level'),[{command:'set_level',args:{scope:'default',levelId:'edits'}}]);

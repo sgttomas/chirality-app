@@ -6,6 +6,7 @@ import {loadSrc} from './support/load-src.mjs';
 import {installIdleNativeWaiting} from './support/idle-native-waiting.mjs';
 import {continuationFixture} from './support/continuation-fixture.mjs';
 
+import { conversationView, newChatButton, startWithFirstMessage } from './support/conversation-view.mjs';
 // Same receiving shape as ordinaryContinueCase plus the actual producer fields:
 // NativeHistory::continue_query excludes turns; resolutions have a revision;
 // HistorySession attaches Host::history_admit_resume's genuine activeAdmission.
@@ -28,9 +29,9 @@ const {createRoot}=await import('react-dom/client');
 const {App}=loadSrc('App');
 const props=e=>e[Object.keys(e).find(k=>k.startsWith('__reactProps$'))];
 const elements=(c,tag)=>c.querySelectorAll(e=>e.localName===tag);
-const button=(c,label)=>elements(c,'button').find(e=>e.textContent===label);
+const button=(c,label)=>elements(c,'button').find(e=>(e.textContent===label||e.getAttribute("aria-label")===label));
 const labelled=(c,tag,label)=>elements(c,tag).find(e=>e.parentNode.textContent.startsWith(label));
-const conversation=c=>c.querySelectorAll(e=>e.getAttribute('id')==='conversation')[0];
+const conversation=c=>conversationView(c);
 // The account home's one connection route (built-in OpenAI with the ChatGPT account); the model distinguishes a choice.
 const ROUTE='Use my ChatGPT account (built-in OpenAI)';
 const choice={model:'person-choice',route:true};
@@ -38,7 +39,7 @@ const draft='Existing unsent text é / 家\n';
 
 async function mounted(options,check){
  const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c);
- const calls=[],unexpected=[],timers=new Map(),actions=new Set();let timer=0,fail=false,selectFailure=null,resumed=false,active='account',starts=0,homes=0,selects=0,holdObserver=true,metadataReads=0;
+ const calls=[],unexpected=[],timers=new Map(),actions=new Set();const sent=[];let timer=0,fail=false,selectFailure=null,resumed=false,active='account',starts=0,homes=0,selects=0,holdObserver=true,metadataReads=0;
  const account={state:'ready',generation:g,threads:[thread('existing'),thread('other')],roleLimits:{account:{roles:[]}},nativeHistory:{state:'history-receiving',home:g.home,generation:g,selectionEpoch:0,threads:[{native:native()},{native:native('stored-other')}],dispatches:[]}};
  const keyHome={state:'ready',generation:{...g,home:'other-home'},threads:[],nativeHistory:{state:'history-receiving',home:'other-home',generation:{...g,home:'other-home'},selectionEpoch:0,selected:null,threads:[],dispatches:[]}};
  const snapshot=()=>structuredClone({...(active==='account'?account:keyHome),homeRouting:{activeModeHomeClass:active,entries:[{modeHomeClass:'account'},{modeHomeClass:'api-key'}]}});
@@ -76,26 +77,38 @@ async function mounted(options,check){
    if(options.commandError)throw options.commandError;
    return options.reply?options.reply(structuredClone(result)):structuredClone(result);
   }
+  // New chat open with Codex ready: the App reads the model list itself (a catalogue read; nothing is chosen or started).
+  if(command==='read_available_models')return {state:'observed',generation:args.generation,modeHomeClass:args.modeHomeClass,serverProvider:'openai',serverProviderState:'named',complete:true,limits:[],models:[]};
+  // A start is the person's first message: thread_start, then the ordinary send of that message to the started conversation.
+  if(command==='conversation_send_text'&&starts>0){sent.push(args);return {result:{}};}
   unexpected.push({command,args});throw Error(`Unexpected original command: ${command}`);
  });
  const track=call=>{if(call?.then){actions.add(call);call.then(()=>actions.delete(call),()=>actions.delete(call));}};
  const selected=()=>chosenIn(choiceLists(conversation(c))[0]);
  const change=async(e,value)=>React.act(()=>{if(e===choiceList(c,'Stored conversation'))selects++;track(e.localName==='fieldset'?chooseIn(e,value):props(e).onChange({target:{value}}));});
- const press=async label=>React.act(async()=>{const e=button(c,label);assert.ok(e,label);assert.equal(props(e).disabled,false,label);if(label==='Start thread')starts++;if(label==='Use account home')homes++;track(props(e).onClick());});
+ const press=async label=>{
+  // Start: New chat (no conversation chosen), then the unsent message is sent as the new conversation's first.
+  if(label==='Start thread'){starts++;assert.ok(await startWithFirstMessage(c,React.act),label);return;}
+  await React.act(async()=>{const e=button(c,label);assert.ok(e,label);assert.equal(props(e).disabled,false,label);if(label==='Use account home')homes++;track(props(e).onClick());});};
+ const newChat=async()=>React.act(async()=>{props(newChatButton(c)).onClick();});
  const poll=async()=>React.act(async()=>{const p=[...timers.values()].find(p=>p.fn.toString().includes('host_status'));assert.ok(p);p.fn();});
  // In the account home the only connection is shown in use without a press (DEL-01-05 REQ-004); elsewhere the toggle is pressed.
  const routeChosen=()=>{if(c.querySelectorAll(e=>e.getAttribute('aria-label')==='Connection in use').length)return true;const b=button(c,ROUTE);return !!b&&props(b)['aria-pressed']===true;};
  const edit=async values=>{if(values.route&&!routeChosen())await press(ROUTE);if(values.model!==undefined)await change(labelled(c,'input','Model '),values.model);};
- const values=()=>({model:labelled(c,'input','Model ')?props(labelled(c,'input','Model ')).value:null,route:routeChosen()});
+ const read=()=>({model:labelled(c,'input','Model ')?props(labelled(c,'input','Model ')).value:null,route:routeChosen()});
+ // The new conversation's choice is shown in New chat (the empty conversation). Reading it there returns to the
+ // conversation that was shown, as a person going to look and coming back.
+ const values=async()=>{const shown=selected();if(!shown)return read();await newChat();const value=read();await change(choiceLists(conversation(c))[0],shown);return value;};
  const context=()=>conversation(c).querySelectorAll(e=>e.getAttribute('aria-label')==='Prior work in continued conversation')[0];
  try{
-  await React.act(async()=>root.render(React.createElement(App)));await change(choiceLists(conversation(c))[0],key('existing'));await change(elements(conversation(c),'textarea')[0],draft);await edit(choice);
+  await React.act(async()=>root.render(React.createElement(App)));await newChat();await edit(choice);await change(choiceLists(conversation(c))[0],key('existing'));await change(elements(conversation(c),'textarea')[0],draft);
   await change(choiceList(c,'Stored conversation'),'stored');for(let n=0;n<(options.metadataReads??1);n++)await press('Read metadata');assert.equal(selected(),key('existing'));assert.equal(calls.filter(x=>x.command==='history_action'&&x.args.action==='continue').length,0);
-  await check({c,calls,account,selected,press,poll,change,edit,values,context,recover:()=>{fail=false;},failStatus:()=>{fail=true;},failSelect:failure=>{selectFailure=failure;},observeHome:async mode=>{active=mode;await poll();},track,chooser:()=>choiceLists(conversation(c))[0],browser:()=>choiceList(c,'Stored conversation')});
+  await check({c,calls,account,selected,press,poll,change,edit,values,newChat,context,recover:()=>{fail=false;},failStatus:()=>{fail=true;},failSelect:failure=>{selectFailure=failure;},observeHome:async mode=>{active=mode;await poll();},track,chooser:()=>choiceLists(conversation(c))[0],browser:()=>choiceList(c,'Stored conversation')});
   assert.deepEqual(unexpected,[]);assert.equal(calls.filter(x=>x.command==='thread_start').length,starts,'only explicit Start presses');assert.equal(calls.filter(x=>x.command==='select_home').length,homes);assert.equal(calls.filter(x=>x.command==='history_select').length,selects);
   assert.equal(calls.filter(x=>x.command==='history_action'&&x.args.action==='continue').length,1,'one original explicit Continue, never a retry on read');
-  assert.equal(props(elements(conversation(c),'textarea')[0]).value,draft,'Continue never clears or replaces the unsent draft');
-  assert.ok(calls.every(x=>['host_status','decision_view','native_confirmation_content','history_select','history_action','thread_start','select_home'].includes(x.command)),'no implicit send/resume/context drain/role operation');idle.assertClean(c);
+  // Continue never clears or replaces the unsent draft; a start sends it, unchanged, as the new conversation's first message.
+  if(sent.length)assert.deepEqual(sent.map(x=>x.text),[draft]);else assert.equal(props(elements(conversation(c),'textarea')[0]).value,draft,'Continue never clears or replaces the unsent draft');
+  assert.ok(calls.every(x=>['host_status','decision_view','native_confirmation_content','history_select','history_action','thread_start','select_home','read_available_models',...(starts?['conversation_send_text']:[])].includes(x.command)),'no implicit send/resume/context drain/role operation');idle.assertClean(c);
  }finally{
   await React.act(async()=>{options.commandGate?.resolve();options.observerGate?.resolve();options.decisionGate?.resolve();await Promise.allSettled([...actions]);});
   const text=c.textContent;await React.act(()=>root.unmount());document.body.removeChild(c);idle.restore(text);assert.equal(timers.size,0);Object.assign(globalThis,oldTimers);
@@ -103,7 +116,7 @@ async function mounted(options,check){
 }
 
 test('matched admitted Continue opens original prior context with cold role unknown and draft/chooser intact',async()=>{
- await mounted({},async ui=>{await ui.press('Continue selected conversation');assert.equal(ui.selected(),key('stored'));assert.ok(ui.context());assert.match(ui.context().textContent,/Prior agent response/);assert.match(conversation(ui.c).textContent,/Role not established/);assert.doesNotMatch(conversation(ui.c).textContent,/Role: TASK/);assert.deepEqual(ui.values(),choice);});
+ await mounted({},async ui=>{await ui.press('Continue selected conversation');assert.equal(ui.selected(),key('stored'));assert.ok(ui.context());assert.match(ui.context().textContent,/Prior agent response/);assert.match(conversation(ui.c).textContent,/Role not established/);assert.doesNotMatch(conversation(ui.c).textContent,/Role: TASK/);assert.deepEqual((await ui.values()),choice);});
 });
 
 test('matched resolution after several thread-state queries uses its exact positive revision',async()=>{
@@ -150,21 +163,26 @@ test('confirmed Continue waits for its actual operational row and completes once
  });
 });
 test('confirmed Continue survives observer failure and later read recovery without replay',async()=>{
- await mounted({failObserver:true},async ui=>{await ui.press('Continue selected conversation');assert.equal(ui.selected(),key('existing'));assert.equal(ui.context(),undefined);ui.recover();await ui.poll();assert.equal(ui.selected(),key('stored'));assert.ok(ui.context());await ui.poll();assert.deepEqual(ui.values(),choice);});
+ await mounted({failObserver:true},async ui=>{await ui.press('Continue selected conversation');assert.equal(ui.selected(),key('existing'));assert.equal(ui.context(),undefined);ui.recover();await ui.poll();assert.equal(ui.selected(),key('stored'));assert.ok(ui.context());await ui.poll();assert.deepEqual((await ui.values()),choice);});
 });
 for(const startError of ['Native start refused before send','Native start remains pending/unknown'])test(`newer ordinary Start intent supersedes Continue after ${startError}`,async()=>{
- const commandGate=deferred();await mounted({commandGate,startError},async ui=>{await ui.press('Continue selected conversation');await ui.press('Start thread');assert.equal(ui.selected(),key('existing'));await React.act(async()=>{commandGate.resolve();});assert.equal(ui.selected(),key('existing'));assert.equal(ui.context(),undefined);assert.deepEqual(ui.values(),choice);await ui.poll();assert.equal(ui.selected(),key('existing'));});
+ const commandGate=deferred();await mounted({commandGate,startError},async ui=>{await ui.press('Continue selected conversation');await ui.press('Start thread');
+  // The start is made from New chat: the person left the conversation for the empty one, and a start that does not
+  // open a conversation keeps them there with their draft. The delayed Continue does not take the view.
+  assert.equal(ui.selected(),'');await React.act(async()=>{commandGate.resolve();});assert.equal(ui.selected(),'');assert.equal(ui.context(),undefined);assert.deepEqual((await ui.values()),choice);await ui.poll();assert.equal(ui.selected(),'');});
 });
 for(const aba of [false,true])test(`newer selector choice${aba?' away and back':''} supersedes Continue`,async()=>{
- const commandGate=deferred();await mounted({commandGate},async ui=>{await ui.press('Continue selected conversation');assert.equal(props(ui.chooser()).disabled,false);await ui.change(ui.chooser(),key('other'));if(aba)await ui.change(ui.chooser(),key('existing'));await React.act(async()=>{commandGate.resolve();});assert.equal(ui.selected(),key(aba?'existing':'other'));assert.equal(ui.context(),undefined);assert.deepEqual(ui.values(),choice);});
+ const commandGate=deferred();await mounted({commandGate},async ui=>{await ui.press('Continue selected conversation');assert.equal(props(ui.chooser()).disabled,false);await ui.change(ui.chooser(),key('other'));if(aba)await ui.change(ui.chooser(),key('existing'));await React.act(async()=>{commandGate.resolve();});assert.equal(ui.selected(),key(aba?'existing':'other'));assert.equal(ui.context(),undefined);assert.deepEqual((await ui.values()),choice);});
 });
 test('newer successful Start and later chooser edits survive a delayed Continue',async()=>{
- const commandGate=deferred();await mounted({commandGate},async ui=>{await ui.press('Continue selected conversation');await ui.press('Start thread');assert.equal(ui.selected(),key('new-choice'));await ui.edit({model:'newer-unsent-choice'});const newer=ui.values();await React.act(async()=>{commandGate.resolve();});assert.equal(ui.selected(),key('new-choice'));assert.deepEqual(ui.values(),newer);});
+ const commandGate=deferred();await mounted({commandGate},async ui=>{await ui.press('Continue selected conversation');await ui.press('Start thread');assert.equal(ui.selected(),key('new-choice'));
+  // The next conversation's choice is edited in New chat, where the person now is.
+  await ui.newChat();await ui.edit({model:'newer-unsent-choice'});const newer=(await ui.values());await React.act(async()=>{commandGate.resolve();});assert.equal(ui.selected(),'');assert.deepEqual((await ui.values()),newer);});
 });
 // No API-key switch is offered; the newer home is the observed retained legacy
 // home, which offers no new-conversation choice.
 test('stale Continue observer cannot restore the original home over a newer observed home',async()=>{
- const observerGate=deferred();await mounted({observerGate},async ui=>{await ui.press('Continue selected conversation');await ui.observeHome('api-key');const newer=ui.values();assert.deepEqual(newer,{model:null,route:false});await React.act(async()=>{observerGate.resolve();});assert.match(ui.c.textContent,/Selected home: api-key\./);assert.notEqual(ui.selected(),key('stored'));assert.deepEqual(ui.values(),newer);});
+ const observerGate=deferred();await mounted({observerGate},async ui=>{await ui.press('Continue selected conversation');await ui.observeHome('api-key');const newer=(await ui.values());assert.deepEqual(newer,{model:null,route:false});await React.act(async()=>{observerGate.resolve();});assert.match(ui.c.textContent,/Selected home: api-key\./);assert.notEqual(ui.selected(),key('stored'));assert.deepEqual((await ui.values()),newer);});
 });
 // The first Continue observer has already captured its old admitted view.
 // A later normal poll renders supersession before that old response returns.
@@ -188,24 +206,27 @@ for(const supersession of ['selection epoch','thread-state query'])test(`delayed
   assert.equal(ui.context(),undefined);
   await ui.poll();
   assert.equal(ui.selected(),key('existing'),'another read cannot revive the cancelled navigation');
-  assert.deepEqual(ui.values(),choice);
+  assert.deepEqual((await ui.values()),choice);
   assert.equal(ui.account.continuationContexts[0].threadId,'stored');
   assert.equal(ui.account.continuationContexts[0].resumeRequestRef,ref,'native admission/context remains original, independently of cancelled UI navigation');
  });
 });
 test('home away-and-back intent cancels Continue despite identical final source/key',async()=>{
- const commandGate=deferred();await mounted({commandGate},async ui=>{await ui.press('Continue selected conversation');await ui.observeHome('api-key');await ui.press('Use account home');await ui.edit(choice);await React.act(async()=>{commandGate.resolve();});assert.equal(ui.selected(),key('existing'));assert.deepEqual(ui.values(),choice);});
+ const commandGate=deferred();await mounted({commandGate},async ui=>{await ui.press('Continue selected conversation');await ui.observeHome('api-key');await ui.press('Use account home');await React.act(async()=>{commandGate.resolve();});assert.equal(ui.selected(),key('existing'));
+  // The next conversation's choice, set again in New chat after the home's return, is the person's (a chooser edit made
+  // while a Continue is pending surviving it is the delayed-Continue test above).
+  await ui.newChat();await ui.edit(choice);assert.deepEqual((await ui.values()),choice);});
 });
 for(const change of ['closure','generation','epoch','query'])test(`pending Continue is cancelled by original ${change} replacement`,async()=>{
  const commandGate=deferred();await mounted({commandGate},async ui=>{await ui.press('Continue selected conversation');if(change==='closure'){ui.account.state='exited';ui.account.generationClosed=true;}if(change==='generation')ui.account.generation={...g,spawnCounter:2};if(change==='epoch')ui.account.nativeHistory.selectionEpoch=2;if(change==='query')ui.account.nativeHistory.selected.streamResolutions['thread-state']={query:{...query,query_id:4},revision:3,outcome:'native-result-observed'};await ui.poll();await React.act(async()=>{commandGate.resolve();});
   // A replaced generation no longer offers the kept choice, so no radio button shows it; the App says it is kept and unavailable.
-  if(change==='generation'){assert.equal(ui.selected(),'');assert.match(ui.c.querySelectorAll(n=>n.getAttribute('id')==='conversation')[0].textContent,/Selected conversation is no longer available in this generation/);}else assert.equal(ui.selected(),key('existing'));assert.equal(ui.context(),undefined);});
+  if(change==='generation'){assert.equal(ui.selected(),'');assert.match(conversationView(ui.c).textContent,/Selected conversation is no longer available in this generation/);}else assert.equal(ui.selected(),key('existing'));assert.equal(ui.context(),undefined);});
 });
 test('new browser selection cancels pending navigation without retargeting the original prior context',async()=>{
  await mounted({failObserver:true},async ui=>{await ui.press('Continue selected conversation');ui.recover();await ui.change(ui.browser(),'stored-other');await ui.poll();assert.equal(ui.selected(),key('existing'));assert.equal(ui.account.continuationContexts[0].threadId,'stored');assert.equal(ui.account.continuationContexts[0].resumeRequestRef,ref);assert.equal(ui.context(),undefined);});
 });
 for(const commandError of ['original Continue refused before dispatch','original Continue result unavailable'])test(`unknown/refused result never opens a row later listed by a read: ${commandError}`,async()=>{
- await mounted({commandError,admit:commandError.includes('unavailable')},async ui=>{await ui.press('Continue selected conversation');assert.equal(ui.selected(),key('existing'));await ui.poll();assert.equal(ui.selected(),key('existing'));assert.equal(ui.context(),undefined);assert.deepEqual(ui.values(),choice);});
+ await mounted({commandError,admit:commandError.includes('unavailable')},async ui=>{await ui.press('Continue selected conversation');assert.equal(ui.selected(),key('existing'));await ui.poll();assert.equal(ui.selected(),key('existing'));assert.equal(ui.context(),undefined);assert.deepEqual((await ui.values()),choice);});
 });
 const corruptions={
  'missing active admission':r=>{delete r.dispatches.at(-1).activeAdmission;},

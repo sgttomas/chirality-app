@@ -41,8 +41,9 @@ test('the card\'s answer words are the shared table\'s, entry for entry, and the
   assert.deepEqual([...renderRaw(legacy,project).matchAll(/<button[^>]*>([^<]*)<\/button>/g)].map(m=>unescape(m[1])),
     [shared.decisions.approved,shared.decisions.approved_for_session,shared.decisions.abort,shared.decisions.denied]);
   const q=renderRaw(question(),project);
-  assert.ok(q.includes(`<button>${shared.questionChoices['question-answers']}</button>`));
-  assert.ok(unescape(q).includes(`<button>${shared.questionChoices['question-decline']}</button>`));
+  // The question form's buttons are plain buttons (type button), so that no press submits the form.
+  assert.ok(q.includes(`<button type="button">${shared.questionChoices['question-answers']}</button>`));
+  assert.ok(unescape(q).includes(`<button type="button">${shared.questionChoices['question-decline']}</button>`));
 });
 
 async function mounted(r,place=project){
@@ -54,7 +55,9 @@ async function mounted(r,place=project){
   const mount=()=>React.act(()=>root.render(React.createElement(NativeRequestCard,{key:calls.length,request:r,view:null,place,answer:async(...args)=>{calls.push(args);}})));
   await mount();
   const props=node=>node[Object.keys(node).find(k=>k.startsWith('__reactProps$'))];
-  const press=async label=>{await React.act(async()=>props(container.querySelectorAll(n=>n.localName==='button'&&n.textContent===label)[0]).onClick());await mount();};
+  // A question's options are radio buttons named "Choose option N"; its answers are buttons.
+  const option=label=>container.querySelectorAll(n=>n.localName==='input'&&n.getAttribute('aria-label')===label)[0];
+  const press=async label=>{const chosen=option(label);await React.act(async()=>chosen?props(chosen).onChange({target:{checked:true}}):props(container.querySelectorAll(n=>n.localName==='button'&&n.textContent===label)[0]).onClick());await mount();};
   return {calls,press,done:async()=>{await React.act(()=>root.unmount());document.body.removeChild(container);}};
 }
 

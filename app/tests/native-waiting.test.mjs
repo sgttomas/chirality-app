@@ -8,6 +8,7 @@ import {choiceLists, chooseIn, chooser, chosenIn} from './support/choices.mjs';
 import {loadSrc} from './support/load-src.mjs';
 import './support/rust-prebuild.mjs';
 
+import { conversationView, newChatButton } from './support/conversation-view.mjs';
 const document=installMiniDom();
 const React=(await import('react')).default;
 const {createRoot}=await import('react-dom/client');
@@ -81,7 +82,7 @@ async function mounted(check,{render=()=>React.createElement(App),initial='api-k
   }};
   const settle=async()=>React.act(async()=>{for(let i=0;i<10;i++)await Promise.resolve();});
   const find=(tag,text)=>container.querySelectorAll(n=>n.localName===tag&&n.textContent===text)[0];
-  const conversation=()=>container.querySelectorAll(n=>n.getAttribute('id')==='conversation')[0];
+  const conversation=()=>conversationView(container);
   const select=()=>choiceLists(conversation())[0];
   const draft=()=>conversation().querySelectorAll(n=>n.localName==='textarea')[0];
   const field=(tag,label)=>container.querySelectorAll(n=>n.localName===tag).find(n=>n.parentNode.textContent.startsWith(label));
@@ -96,7 +97,9 @@ async function mounted(check,{render=()=>React.createElement(App),initial='api-k
       remount:async claim=>{await React.act(()=>root.unmount());owned=null;nextClaim=claim;root=createRoot(container);await React.act(async()=>root.render(render()));},
       unmount:async()=>{await React.act(()=>root.unmount());},
     });
-    const allowed=['host_status','decision_view','native_confirmation_content','request_answer_companions','host_observe','plugin:event|listen','plugin:event|unlisten','claim_native_waiting_intent','finish_native_waiting_intent','checkpoint_native_waiting_ui','open_waiting_requests'];
+    const allowed=['host_status','decision_view','native_confirmation_content','request_answer_companions','host_observe','plugin:event|listen','plugin:event|unlisten','claim_native_waiting_intent','finish_native_waiting_intent','checkpoint_native_waiting_ui','open_waiting_requests',
+      // The empty new conversation shown with Codex ready: the App's own model-list read (a catalogue read).
+      'read_available_models'];
     assert.deepEqual(calls.filter(c=>!allowed.includes(c.command)),[],'no native response, workflow, resume, start or send command');
   }finally{claimWait?.resolve();navigationWait?.resolve();listenerWait?.resolve();initialStatusWait?.resolve();await settle();await React.act(()=>root.unmount());document.body.removeChild(container);window.__TAURI_INTERNALS__=previous;window.__TAURI_EVENT_PLUGIN_INTERNALS__=priorEvents;document.getElementById=priorGet;}
 }
@@ -122,11 +125,13 @@ test('native wake-up after startup preserves same-home chooser and unsent draft 
     await ui.wake(ui.dto.native.intents.account);
     await ui.wake(null);
     assert.equal(chosenIn(ui.select()),JSON.stringify([ui.dto.account.generation,'shared-thread']));
-    assert.equal(props(ui.field('input','Model ')).value,'separate-unsent-model');
-    assert.match(ui.container.textContent,/the only connection this version offers/,'the connection in use is still shown');
     assert.equal(props(ui.draft()).value,'Unsent / 家 & literal');
     assert.equal(ui.calls.filter(c=>c.command==='open_waiting_requests').length,1);
     assert.deepEqual(ui.scrolls,['conversation']);
+    // The next conversation's choice is New chat's, kept as it was left.
+    await React.act(async()=>{props(newChatButton(ui.container)).onClick();});
+    assert.equal(props(ui.field('input','Model ')).value,'separate-unsent-model');
+    assert.match(ui.container.textContent,/the only connection this version offers/,'the connection in use is still shown');
   },{initial:'account'});
 });
 

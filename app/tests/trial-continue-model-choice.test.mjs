@@ -14,6 +14,7 @@ afterEach(() => { localRoute.LOCAL_ROUTE_OFFERED = false; });
 import {installMiniDom} from './support/mini-dom.mjs';
 import {installIdleNativeWaiting} from './support/idle-native-waiting.mjs';
 import {choiceLists, chooseIn} from './support/choices.mjs';
+import { conversationView } from './support/conversation-view.mjs';
 const document = installMiniDom();
 const React = (await import('react')).default;
 const {createRoot} = await import('react-dom/client');
@@ -26,7 +27,7 @@ const g2 = {...g, spawnCounter:2};
 const props = node => node[Object.keys(node).find(k => k.startsWith('__reactProps$'))];
 const nodes = (c, tag) => c.querySelectorAll(node => node.localName === tag);
 const region = (c, label) => c.querySelectorAll(node => node.getAttribute('aria-label') === label)[0];
-const button = (c, label) => nodes(c, 'button').find(node => node.textContent === label);
+const button = (c, label) => nodes(c, 'button').find(node => (node.textContent===label||node.getAttribute("aria-label")===label));
 const buttons = (c, prefix) => nodes(c, 'button').filter(node => node.textContent.startsWith(prefix));
 const labelled = (c, tag, label) => nodes(c, tag).find(node => node.parentNode.textContent.startsWith(label));
 const models = [
@@ -479,7 +480,7 @@ test('in the App, an unconfirmed bring-back send is named in its conversation an
   const byId = id => c.querySelectorAll(node => node.getAttribute('id') === id)[0];
   try {
     await React.act(async () => root.render(React.createElement(App)));
-    await React.act(async () => { chooseIn(choiceLists(byId('conversation'))[0], JSON.stringify([g, 'T1'])); });
+    await React.act(async () => { chooseIn(choiceLists(conversationView(c))[0], JSON.stringify([g, 'T1'])); });
     const composer = region(c, 'Bring back composer');
     assert.ok(composer, 'the prepared results composer is in its conversation');
     await React.act(async () => { props(button(composer, 'Send')).onClick(); }); await settle();
@@ -521,7 +522,7 @@ async function mountBringBacks(initialRoot, handler, check) {
   document.getElementById = id => c.querySelectorAll(node => node.getAttribute('id') === id)[0] ?? null;
   const settle = () => React.act(async () => { for (let i = 0; i < 12; i++) await Promise.resolve(); });
   const byId = id => c.querySelectorAll(node => node.getAttribute('id') === id)[0];
-  const ui = {c, calls, state, settle, select:async id => React.act(async () => { chooseIn(choiceLists(byId('conversation'))[0], JSON.stringify([g, id])); })};
+  const ui = {c, calls, state, settle, select:async id => React.act(async () => { chooseIn(choiceLists(conversationView(c))[0], JSON.stringify([g, id])); })};
   try { await React.act(async () => root.render(React.createElement(App))); await check(ui); }
   finally {
     const text = c.textContent; await React.act(() => root.unmount()); document.body.removeChild(c); idle.restore(text);

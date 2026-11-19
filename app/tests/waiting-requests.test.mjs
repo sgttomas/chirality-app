@@ -9,12 +9,15 @@ import {choiceLists, chooseIn, chooser, chosenIn} from './support/choices.mjs';
 import {loadSrc} from './support/load-src.mjs';
 import './support/rust-prebuild.mjs';
 
+import { conversationView, newChatButton, sendButton } from './support/conversation-view.mjs';
 const document=installMiniDom();
 const React=(await import('react')).default;
 const {createRoot}=await import('react-dom/client');
 const {App}=loadSrc('App');
 const props=node=>node[Object.keys(node).find(key=>key.startsWith('__reactProps$'))];
 const find=(container,tag,text)=>container.querySelectorAll(node=>node.localName===tag&&node.textContent===text)[0];
+// A new conversation is begun in New chat, its first message's Send being the start.
+const startControl=container=>sendButton(container);
 // The account home's one connection route; the model field and this route exist only in the account home.
 const ROUTE='Use my ChatGPT account (built-in OpenAI)';
 let cached, stale;
@@ -79,7 +82,7 @@ async function mounted(check,{initial='api-key',navigationWait,decisionWait,wron
     if(refuse)throw Error(stale.error);
     active=result.modeHomeClass;opened=true;return result;
   });
-  const conversation=()=>container.querySelectorAll(node=>node.getAttribute('id')==='conversation')[0];
+  const conversation=()=>conversationView(container);
   const byTag=(c,tag)=>c.querySelectorAll(node=>node.localName===tag);
   const field=(tag,label)=>byTag(container,tag).find(node=>node.parentNode.textContent.startsWith(label));
   const settle=async()=>React.act(async()=>{for(let i=0;i<8;i++)await Promise.resolve();});
@@ -90,7 +93,8 @@ async function mounted(check,{initial='api-key',navigationWait,decisionWait,wron
     // In the account home the only connection is shown in use (DEL-01-05 REQ-004); a toggle is pressed only where more than one is offered.
     const routeChosen=()=>{if(container.querySelectorAll(node=>node.getAttribute('aria-label')==='Connection in use').length)return true;const b=find(container,'button',ROUTE);return !!b&&props(b)['aria-pressed']===true;};
     const choice=()=>({model:field('input','Model ')?props(field('input','Model ')).value:null,route:routeChosen()});
-    await check({dto,container,calls,scrolls,press,change,settle,conversation,field,routeChosen,choice,select:()=>choiceLists(conversation())[0],draft:()=>byTag(conversation(),'textarea')[0]});
+    const newChat=async()=>React.act(async()=>{props(newChatButton(container)).onClick();});
+    await check({dto,container,calls,scrolls,press,change,settle,conversation,field,routeChosen,choice,newChat,select:()=>choiceLists(conversation())[0],draft:()=>byTag(conversation(),'textarea')[0]});
   }finally{navigationWait?.resolve();decisionWait?.resolve();await settle();const renderedText=container.textContent;await React.act(()=>root.unmount());document.body.removeChild(container);idle.restore(renderedText);document.getElementById=priorGet;}
 }
 
@@ -161,6 +165,8 @@ test('navigation invalidates the prior-home chooser at intent and preserves newe
     assert.equal(find(ui.container,'button',ROUTE),undefined);
     await ui.change(ui.field('input','Model '),'target-model');
     wait.resolve();await ui.settle();
+    // The navigation has opened its conversation; the next conversation's choice is read back in New chat.
+    await ui.newChat();
     assert.deepEqual(ui.choice(),{model:'target-model',route:true});
     assert.equal(ui.calls.filter(c=>c.command==='thread_start').length,0);
   },{decisionWait:wait});
@@ -171,15 +177,18 @@ test('same-home waiting navigation preserves a separate unconsumed new-conversat
     await mounted(async ui=>{
       // Only the account home offers a new-conversation choice; the retained legacy home offers none.
       const kept=initial==='account'?{model:'unsent-new-model',route:true}:{model:null,route:false};
+      // The next conversation's choice is made in New chat.
+      await ui.newChat();
       if(initial==='account')await ui.change(ui.field('input','Model '),'unsent-new-model');
       assert.deepEqual(ui.choice(),kept);
       await ui.change(ui.draft(),'Kept unsent draft / 家');
       await ui.press(`${initial} · thread shared-thread: ${initial==='account'?2:1}`);
-      assert.deepEqual(ui.choice(),kept);
       assert.equal(props(ui.draft()).value,'Kept unsent draft / 家');
       assert.equal(chosenIn(ui.select()),JSON.stringify([ui.dto[initial].generation,'shared-thread']));
       assert.deepEqual(ui.scrolls,['conversation']);
       assert.equal(ui.calls.filter(c=>c.command==='open_waiting_requests').length,1);
+      // Back in New chat, the choice is as it was left.
+      await ui.newChat();assert.deepEqual(ui.choice(),kept);
     },{initial});
   }
 });
@@ -190,25 +199,28 @@ test('same-home waiting navigation preserves a separate unconsumed new-conversat
 for(const initial of ['account','api-key'])test(`same-home pending navigation keeps its shared latch and preserves newer chooser, selection and draft edits (${initial})`,async()=>{
   const wait=deferred(),account=initial==='account';
   await mounted(async ui=>{
-    await ui.change(ui.select(),JSON.stringify([ui.dto[initial].generation,'shared-thread']));
+    // The next conversation's choice and first message, in New chat; its Send (the start) is queued from there.
+    await ui.newChat();
     if(account)await ui.change(ui.field('input','Model '),'unsent-new-model');
     const kept=account?{model:'unsent-new-model',route:true}:{model:null,route:false};
     assert.deepEqual(ui.choice(),kept);
+    await ui.change(ui.draft(),'First message');
+    assert.equal(!!props(startControl(ui.container)).disabled,!account,'a legacy home offers no new conversation');
+    const queuedStart=props(startControl(ui.container)).onClick;
+    await ui.change(ui.select(),JSON.stringify([ui.dto[initial].generation,'shared-thread']));
     const waiting=`${initial} · thread shared-thread: ${account?2:1}`;
     assert.equal(find(ui.container,'button','Use api-key home'),undefined,'no API-key home switch is offered');
     assert.equal(!!find(ui.container,'button','Use account home'),!account,'the account choice is offered only from a retained legacy home');
     const queuedOpen=props(find(ui.container,'button',waiting)).onClick;
     const queuedHome=account?null:props(find(ui.container,'button','Use account home')).onClick;
-    const queuedStart=props(find(ui.container,'button','Start thread')).onClick;
-    assert.equal(!!props(find(ui.container,'button','Start thread')).disabled,!account,'a legacy home offers no new conversation');
     await ui.press(waiting);
-    assert.deepEqual(ui.choice(),kept);
-    for(const text of [waiting,...(account?[]:['Use account home']),'Start thread'])assert.equal(props(find(ui.container,'button',text)).disabled,true,text);
+    for(const text of [waiting,...(account?[]:['Use account home'])])assert.equal(props(find(ui.container,'button',text)).disabled,true,text);
+    // With a conversation shown, Send is that conversation's; the start queued from New chat is pressed below.
     await React.act(async()=>{queuedOpen();await queuedHome?.();await queuedStart();});
     assert.equal(ui.calls.filter(c=>c.command==='open_waiting_requests').length,1,'queued presses share the synchronous pending latch');
     assert.equal(ui.calls.filter(c=>c.command==='select_home'||c.command==='thread_start').length,0);
-    if(account)await ui.change(ui.field('input','Model '),'newer-model');
     await ui.change(ui.select(),'');
+    if(account)await ui.change(ui.field('input','Model '),'newer-model');
     await ui.change(ui.draft(),'Newer unsent draft / 家');
     wait.resolve();await ui.settle();
     assert.deepEqual(ui.choice(),account?{model:'newer-model',route:true}:{model:null,route:false});
@@ -216,7 +228,7 @@ for(const initial of ['account','api-key'])test(`same-home pending navigation ke
     assert.equal(chosenIn(ui.select()),'');assert.deepEqual(ui.scrolls,[]);
     assert.match(ui.container.textContent,/navigation superseded/);
     if(!account)assert.equal(props(find(ui.container,'button','Use account home')).disabled,false);
-    assert.equal(!!props(find(ui.container,'button','Start thread')).disabled,!account);
+    assert.equal(!!props(startControl(ui.container)).disabled,!account);
     assert.equal(ui.calls.filter(c=>c.command==='select_home'||c.command==='thread_start').length,0);
   },{initial,navigationWait:wait});
 });

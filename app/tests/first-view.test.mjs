@@ -23,6 +23,9 @@ const visible = e => { for (let n = e; n; n = n.parentNode) if (props(n)?.hidden
 const currentTab = c => elements(c, 'button').find(b => b.getAttribute('role') === 'tab' && b.getAttribute('aria-selected') === 'true')?.textContent;
 // What the App shows the person now: 'Conversation' when New conversation has been revealed in the centre since the last
 // look (the App's move to a new conversation, which leaves the right panel as it is), otherwise the selected tab.
+// The empty new conversation is shown: no conversation chosen, and the settings line is the new conversation's
+// (it carries the workspace-start anchor only then).
+const newChatShown = container => !!byId(container, 'workspace-start');
 const viewNow = ui => ui.revealedSinceLastLook().includes('workspace-start') ? 'Conversation' : currentTab(ui.container);
 
 const base = (over = {}) => ({state: 'ready', generationClosed: false, generation: g, threads: [], roleLimits: {account: {roles: []}},
@@ -97,7 +100,7 @@ test('the first view at launch follows the launch account reading: no account, s
   await mountedApp(historyEmpty(signedIn()), async ui => {
     assert.equal(viewNow(ui), 'Conversation');
     assert.equal(currentTab(ui.container), 'Run a workflow', 'the right panel is left as it is');
-    assert.equal(disclosureOpen(byId(ui.container, 'workspace-start')), true, 'New conversation is open');
+    assert.equal(newChatShown(ui.container), true, 'New conversation is open');
   });
   // Otherwise Run a workflow stays: signed in with history not read (no conversation is not established), a conversation
   // in this session, the read under way, Codex didn't say, or Codex not running.
@@ -173,7 +176,7 @@ test('a sign-in completed in this process and confirmed by the read after it ope
     await ui.observe(completed(signedIn(base(), {ref: 'read-after-sign-in'})));
     assert.equal(viewNow(ui), 'Conversation', 'navigation does not block the move signing in asks for');
     assert.equal(currentTab(ui.container), 'History', 'the right panel is left as it is');
-    assert.equal(disclosureOpen(byId(ui.container, 'workspace-start')), true);
+    assert.equal(newChatShown(ui.container), true);
     assert.match(ui.container.textContent, signedInLine);
     // Once per completion.
     await ui.navigate('History');
@@ -269,7 +272,7 @@ test('signed in, the first view waits for the App\'s own history list read at re
     assert.equal(viewNow(ui), 'Run a workflow', 'the list is still being read: no conversation is not established');
     await ui.observe(historyAtReady(signedIn(), 'read-to-end'));
     assert.equal(viewNow(ui), 'Conversation', 'read to its end, none listed, none loaded');
-    assert.equal(disclosureOpen(byId(ui.container, 'workspace-start')), true, 'New conversation is open');
+    assert.equal(newChatShown(ui.container), true, 'New conversation is open');
     assert.deepEqual(historyReads(ui.calls), [], 'the renderer reads, selects, opens or resumes nothing');
   });
   // Stopped short (an error, no answer, a page missing or a cursor left), even with nothing listed so far: the App stays.
@@ -341,7 +344,7 @@ test('the App is fully usable while the history list read is under way: only the
     const runControls = controlsShown(ui.container).filter(([tag]) => tag !== 'a');
     assert.ok(runControls.length > 0, 'Run a workflow shows its controls');
     assert.ok(visible(byId(ui.container, 'workspace-start')), 'New conversation is shown beside it');
-    assert.equal(disclosureOpen(byId(ui.container, 'workspace-start')), true, 'New conversation is open, as without the read');
+    assert.equal(newChatShown(ui.container), true, 'New conversation is open, as without the read');
     await ui.navigate('History');
     const read = elements(ui.container, 'button').find(b => b.textContent === 'Read stored conversations' && visible(b));
     assert.ok(read, 'History offers its own read'); assert.equal(props(read).disabled, false, 'History\'s own read is not disabled by the App\'s');

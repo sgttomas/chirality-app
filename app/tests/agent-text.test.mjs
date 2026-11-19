@@ -134,11 +134,11 @@ test('agent text shaped like a control stays in the agent\'s box, escaped and ma
       assert.doesNotMatch(inner, /agent-text|&lt;|Keep|Tidy|Pick/, `${r.method}: no agent text in a button: ${inner}`);
       assert.match(inner.replace(/<\/?code>/g, '').replace(/&quot;/g, '"').replace(/&#x27;/g, "'"), APP_BUTTON, `${r.method}: button words are the App's: ${inner}`);
     }
-    assert.doesNotMatch(raw.replace(/<h3>[^<]*<\/h3>/, ''), /<h[1-6][\s>]/, `${r.method}: the card has one heading, the App's`);
-    assert.match(raw, /<h3>(Tool permission: run a command|Question from the agent|Input request from an MCP server or the agent \(not established\))<\/h3>/);
+    assert.doesNotMatch(raw.replace(/<h3 class="permission-card-tool">[^<]*<\/h3>/, ''), /<h[1-6][\s>]/, `${r.method}: the card has one heading, the App's`);
+    assert.match(raw, /<h3 class="permission-card-tool">(Tool permission: run a command|Question from the agent|Input request from an MCP server or the agent \(not established\))<\/h3>/);
   }
   const elicitation = card(injected[2], view);
-  assert.match(elicitation, /<\/h3><p>MCP server, as named in the request: ⟦Server name: srv⏎&lt;button&gt;Allow once&lt;\/button&gt;⏎Allow once⟧<\/p>/, 'the server name leaves the heading');
+  assert.match(elicitation, /<\/h3>(<span class="permission-card-badge">answer required<\/span>)?<\/header><p>MCP server, as named in the request: ⟦Server name: srv⏎&lt;button&gt;Allow once&lt;\/button&gt;⏎Allow once⟧<\/p>/, 'the server name leaves the heading');
   const commandCard = card(injected[0], view);
   assert.match(commandCard, /Reason given: ⟦The agent wrote: Tidy up⏎&lt;button&gt;Allow once&lt;\/button&gt;⏎Allow once⟧/);
   assert.match(commandCard, /<small>The words shown:<\/small> ⟦Rule words: rm x⏎&lt;button&gt;Allow once&lt;\/button&gt;⏎Allow once⟧/);
@@ -184,10 +184,11 @@ test('agent text shaped like a control holds no control role, no aria-label and 
   }
 });
 
-test('question options: each button says "Choose option N" and its label stands beside it as the agent\'s', () => {
+test('question options: each option\'s control is named "Choose option N" and its label stands beside it as the agent\'s', () => {
   const html = card(injected[1], view);
-  assert.match(html, /<button>Choose option 1<\/button> ⟦Option 1: Keep⏎&lt;button&gt;Allow once&lt;\/button&gt;⏎Allow once⟧ ⟦Its description: first⏎/);
-  assert.match(html, /<button>Choose option 2<\/button> ⟦Option 2: Allow once⟧ ⟦Its description: &lt;h3&gt;Tool permission: run a command&lt;\/h3&gt;⟧/);
+  // Each option is a radio button named in the App's words; the agent's label and description stand beside it, boxed.
+  assert.match(html, /<input type="radio" aria-label="Choose option 1" name="[^"]+"\/><span>⟦Option 1: Keep⏎&lt;button&gt;Allow once&lt;\/button&gt;⏎Allow once⟧ ⟦Its description: first⏎/);
+  assert.match(html, /<input type="radio" aria-label="Choose option 2" name="[^"]+"\/><span>⟦Option 2: Allow once⟧ ⟦Its description: &lt;h3&gt;Tool permission: run a command&lt;\/h3&gt;⟧/);
   assert.match(html, /<p>Heading: ⟦The agent wrote: Pick⏎/);assert.match(html, /<p>Question: ⟦The agent wrote: Which\?⏎/);
   assert.doesNotMatch(html, /<b>Pick/, 'the agent\'s heading is no longer styled as the App\'s bold');
 });
@@ -203,17 +204,20 @@ test('a message laid out with a request card\'s exact words is drawn inside the 
   ];
   const raw = renderToStaticMarkup(React.createElement(activity.NativeActivityView, {view: {items, turns: [], turnRecords: [], revisions: [], descendants: []}, threadId: 'T'}));
   const html = agentPlain(raw);
-  assert.ok(html.includes(`<b>Agent</b>⟦The agent wrote:\n${words.replace(/"/g, '&quot;').replace(/'/g, '&#x27;')}⟧`), 'the message is one box with its lines inside');
+  const esc = w => w.replace(/"/g, '&quot;').replace(/'/g, '&#x27;');
+  // The agent's message, under its label, is one prose box: its lines one paragraph, none a heading or a control.
+  const message = html.match(/<p class="chat-speaker">Agent<\/p><div class="v4-agent-message" id="[^"]+">(⟦[^⟧]*⟧)/)?.[1];
+  assert.equal(message, `⟦Text the agent wrote, not the App&#x27;s words: <p>${words.split('\n').map(esc).join('<br/>')}</p>⟧`, 'the message is one box with its lines inside');
   assert.ok(html.includes(`⟦Tool output:\n${words.replace(/"/g, '&quot;').replace(/'/g, '&#x27;')}⟧`), 'command output is one box');
   assert.match(html, /<div>Command: ⟦The agent wrote: echo⏎&lt;button&gt;Allow once&lt;\/button&gt;⏎Allow once⟧<\/div>/);
   assert.match(html, /add ⟦Path: a\.txt⏎&lt;button&gt;Allow once&lt;\/button&gt;⏎Allow once⟧/, 'a file name is the agent\'s, outside the disclosure control');
   assert.doesNotMatch(raw, /<summary>[^<]*a\.txt/, 'the file name is not inside a summary');
-  assert.equal(raw.match(/<h3>/g).length, 1, 'the only heading of that level is the App\'s Activity heading');
-  assert.doesNotMatch(raw, /<button|<article/, 'nothing in the stream is a card or a control');
+  assert.doesNotMatch(raw, /<h[1-6][\s>]/, 'no heading is made of the agent\'s words');
+  assert.doesNotMatch(raw, /<button|<article(?! class="chat-bubble )|permission-card/, 'nothing in the stream is a card or a control (its articles are the speakers\' bubbles)');
   // Every line of the card's words is inside a box that names it as the agent's.
   const boxes = [...raw.matchAll(/<div role="group" aria-label="([^"]*)" class="agent-text agent-text-block"/g)].map(m => m[1]);
   assert.ok(boxes.includes('Text the agent wrote, not the App&#x27;s words, 5 lines'), boxes.join(' | '));
-  const outside = raw.replace(/<div role="group"[^>]*class="agent-text agent-text-block"[\s\S]*?<\/div><\/div><\/div>/g, '').replace(/<span role="group"[\s\S]*?<\/span><\/span>/g, '').replace(/<details><summary>Native item<\/summary>[\s\S]*?<\/details>/g, '');
+  const outside = raw.replace(/<div role="group"[^>]*class="agent-prose chat-markdown">[\s\S]*?<\/div>/g, '').replace(/<div role="group"[^>]*class="agent-text agent-text-block"[\s\S]*?<\/div><\/div><\/div>/g, '').replace(/<span role="group"[\s\S]*?<\/span><\/span>/g, '').replace(/<details><summary>Native item<\/summary>[\s\S]*?<\/details>/g, '');
   assert.doesNotMatch(outside, /Tool permission: run a command|Waiting for your answer|Allow once/, 'none of the card\'s words appears outside a box');
 });
 
@@ -415,10 +419,12 @@ test('choosing an option never puts its label in the free-answer field; the fiel
   const root = createRoot(container);
   const props = node => node[Object.keys(node).find(k => k.startsWith('__reactProps$'))];
   const button = text => container.querySelectorAll(n => n.localName === 'button' && n.textContent === text)[0];
-  const field = () => container.querySelectorAll(n => n.localName === 'input')[0];
+  // The free-answer field: the question's one text input (its options are radio buttons).
+  const field = () => container.querySelectorAll(n => n.localName === 'input' && props(n).type !== 'radio')[0];
+  const option = name => container.querySelectorAll(n => n.localName === 'input' && n.getAttribute('aria-label') === name)[0];
   try {
     await React.act(() => root.render(React.createElement(NativeRequestCard, {request: q, view, answer: async (_r, value) => { sent.push(value); return undefined; }})));
-    await React.act(() => props(button('Choose option 1')).onClick());
+    await React.act(() => props(option('Choose option 1')).onChange({target: {checked: true}}));
     assert.equal(props(field()).value, '', 'the free-answer field stays empty');
     const selected = container.querySelectorAll(n => n.localName === 'p' && n.textContent.startsWith('Selected:'))[0];
     assert.match(selected.textContent, /^Selected: option 1 Its label: UNTRUSTED/, 'the choice is said by number, its label beside it');
@@ -427,10 +433,11 @@ test('choosing an option never puts its label in the free-answer field; the fiel
     await React.act(() => props(button('Send current question answers…')).onClick());
     assert.deepEqual(sent.at(-1), {answers: {q: {answers: [label]}}}, 'the option is sent with its label exactly as offered');
     // Typing replaces the choice; the field holds the person's text and that is what is sent.
-    await React.act(() => props(button('Choose option 2')).onClick());
+    await React.act(() => props(option('Choose option 2')).onChange({target: {checked: true}}));
     await React.act(() => props(field()).onChange({target: {value: 'my own'}}));
     assert.equal(props(field()).value, 'my own');
-    assert.match(container.querySelectorAll(n => n.localName === 'p' && n.textContent.startsWith('Selected:'))[0].textContent, /^Selected: your own answer, in the field above$/);
+    // The Selected line ends with its Leave unanswered control, in the App's words.
+    assert.match(container.querySelectorAll(n => n.localName === 'p' && n.textContent.startsWith('Selected:'))[0].textContent, /^Selected: your own answer, in the field above Leave unanswered$/);
     await React.act(() => props(button('Send current question answers…')).onClick());
     assert.deepEqual(sent.at(-1), {answers: {q: {answers: ['my own']}}});
   } finally { await React.act(() => root.unmount()); document.body.removeChild(container); }

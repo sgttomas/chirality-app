@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { Fragment, type CSSProperties } from "react";
 import { THREAD_STATUS } from "./nativeWords";
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -146,6 +146,256 @@ export function AgentText({ value, source = "agent", label, name, block = false,
       </div>)}
     </div>
   </div>;
+}
+
+// ---- The agent's prose ----
+// An agent's message in the conversation, formatted: paragraphs, emphasis and strong, ordered and unordered lists,
+// headings (drawn as a small bold line, never as a heading element), inline and fenced code, block quotes, tables
+// and a thematic break. Nothing else is interpreted. A link is drawn as its text followed by its target in plain
+// text, and is not a link; an image and raw HTML are drawn as their source text. Every character in Unicode's
+// "Other" categories and the line and paragraph separators is drawn as a visible mark, as in AgentText. The output
+// holds only p, br, strong, em, code, pre, ul, ol, li, blockquote, table, thead, tbody, tr, td, hr and span
+// elements: never a heading, button, link, form control, details element or image, never an element with a role
+// (other than the one named group around it), an id, a class taken from the text, or an event handler. The group's
+// accessibility name says whose text it is; the conversation shows the speaker's label above it.
+
+/** One piece of inline prose. */
+export type ProseInline =
+  | { kind: "text"; text: string }
+  | { kind: "code"; text: string }
+  | { kind: "em"; children: ProseInline[] }
+  | { kind: "strong"; children: ProseInline[] }
+  | { kind: "link"; children: ProseInline[]; target: string };
+/** One block of prose. */
+export type ProseBlock =
+  | { kind: "paragraph"; lines: ProseInline[][] }
+  | { kind: "heading"; level: number; content: ProseInline[] }
+  | { kind: "list"; ordered: boolean; start: number; items: ProseBlock[][] }
+  | { kind: "code"; text: string }
+  | { kind: "quote"; blocks: ProseBlock[] }
+  | { kind: "table"; header: ProseInline[][]; rows: ProseInline[][][] }
+  | { kind: "rule" };
+
+const ESCAPABLE = /[!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~]/;
+const WORD_CHAR = /[\p{L}\p{N}]/u;
+
+/** Inline prose: code spans, links (drawn as text and target), emphasis and strong; everything else is text. */
+export function proseInlines(source: string): ProseInline[] {
+  const out: ProseInline[] = [];
+  let text = "";
+  const flush = () => { if (text) { out.push({ kind: "text", text }); text = ""; } };
+  let i = 0;
+  while (i < source.length) {
+    const c = source[i];
+    if (c === "\\" && i + 1 < source.length && ESCAPABLE.test(source[i + 1])) { text += source[i + 1]; i += 2; continue; }
+    if (c === "`") {
+      let n = 0;
+      while (source[i + n] === "`") n++;
+      const fence = "`".repeat(n);
+      let close = source.indexOf(fence, i + n);
+      while (close !== -1 && source[close + n] === "`") { let m = close; while (source[m] === "`") m++; close = source.indexOf(fence, m); }
+      if (close === -1) { text += fence; i += n; continue; }
+      let inner = source.slice(i + n, close);
+      if (inner.length > 1 && inner.startsWith(" ") && inner.endsWith(" ") && inner.trim() !== "") inner = inner.slice(1, -1);
+      flush(); out.push({ kind: "code", text: inner }); i = close + n; continue;
+    }
+    if (c === "!" && source[i + 1] === "[") {
+      // An image is drawn as its source text, so its label is never read as a link.
+      const image = /^!\[[^\]\n]*\]\([^)\n]*\)/.exec(source.slice(i));
+      if (image) { text += image[0]; i += image[0].length; continue; }
+    }
+    if (c === "[") {
+      const link = /^\[((?:\\.|[^\]\\\n])+)\]\(\s*<?([^\s()<>]+)>?(?:\s+"[^"\n]*")?\s*\)/.exec(source.slice(i));
+      if (link) { flush(); out.push({ kind: "link", children: proseInlines(link[1]), target: link[2] }); i += link[0].length; continue; }
+    }
+    if (c === "<") {
+      const auto = /^<((?:https?|mailto|ftp):[^\s<>]+)>/i.exec(source.slice(i));
+      if (auto) { flush(); out.push({ kind: "link", children: [{ kind: "text", text: auto[1] }], target: auto[1] }); i += auto[0].length; continue; }
+    }
+    if (c === "*" || c === "_") {
+      const double = source[i + 1] === c;
+      const marker = double ? c + c : c;
+      const before = i > 0 ? source[i - 1] : "";
+      const after = source[i + marker.length] ?? "";
+      const opens = after !== "" && !/\s/.test(after) && !(c === "_" && WORD_CHAR.test(before));
+      if (opens) {
+        let close = -1;
+        for (let j = i + marker.length + 1; j <= source.length - marker.length; j++) {
+          if (source.startsWith(marker, j) && !/\s/.test(source[j - 1]) && (double || source[j + 1] !== c) && (double || source[j - 1] !== c)
+            && !(c === "_" && WORD_CHAR.test(source[j + marker.length] ?? ""))) { close = j; break; }
+          if (source[j] === "`") { const end = source.indexOf("`", j + 1); if (end !== -1) j = end; }
+        }
+        if (close !== -1) {
+          flush();
+          const children = proseInlines(source.slice(i + marker.length, close));
+          out.push(double ? { kind: "strong", children } : { kind: "em", children });
+          i = close + marker.length; continue;
+        }
+      }
+      text += marker; i += marker.length; continue;
+    }
+    text += c; i++;
+  }
+  flush();
+  return out;
+}
+
+const FENCE = /^( {0,3})(`{3,}|~{3,})(.*)$/;
+const ATX = /^ {0,3}(#{1,6})(?:[ \t]+(.*?))?(?:[ \t]+#+)?[ \t]*$/;
+const RULE = /^ {0,3}([-*_])(?:[ \t]*\1){2,}[ \t]*$/;
+const QUOTE = /^ {0,3}> ?(.*)$/;
+const ITEM = /^( {0,3})([-*+]|\d{1,9}[.)])([ \t]+(.*))?$/;
+const TABLE_RULE = /^ {0,3}\|?[ \t]*:?-+:?[ \t]*(\|[ \t]*:?-+:?[ \t]*)*\|?[ \t]*$/;
+const SETEXT = /^ {0,3}(=+|-+)[ \t]*$/;
+const blank = (line: string) => line.trim() === "";
+const cells = (line: string) => {
+  let row = line.trim();
+  if (row.startsWith("|")) row = row.slice(1);
+  if (row.endsWith("|") && !row.endsWith("\\|")) row = row.slice(0, -1);
+  return row.split(/(?<!\\)\|/).map(cell => proseInlines(cell.trim().replace(/\\\|/g, "|")));
+};
+const startsBlock = (line: string, next: string | undefined) => FENCE.test(line) || ATX.test(line) || RULE.test(line) || QUOTE.test(line) || ITEM.test(line)
+  || (line.includes("|") && next !== undefined && TABLE_RULE.test(next) && next.includes("-"));
+
+/** Prose blocks from the agent's text. Lines are split at line feeds; a carriage return before one is dropped. */
+export function proseBlocks(source: string): ProseBlock[] {
+  return blocksOf(source.split(/\r?\n/));
+}
+function blocksOf(lines: string[]): ProseBlock[] {
+  const blocks: ProseBlock[] = [];
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    if (blank(line)) { i++; continue; }
+    const fence = FENCE.exec(line);
+    if (fence && !(fence[2][0] === "`" && fence[3].includes("`"))) {
+      const indent = fence[1].length, mark = fence[2];
+      const body: string[] = [];
+      i++;
+      while (i < lines.length && !new RegExp(`^ {0,3}${mark[0] === "`" ? "`" : "~"}{${mark.length},}[ \\t]*$`).test(lines[i])) {
+        body.push(lines[i].replace(new RegExp(`^ {0,${indent}}`), ""));
+        i++;
+      }
+      i++;
+      blocks.push({ kind: "code", text: body.join("\n") });
+      continue;
+    }
+    const atx = ATX.exec(line);
+    if (atx) { blocks.push({ kind: "heading", level: atx[1].length, content: proseInlines(atx[2] ?? "") }); i++; continue; }
+    if (RULE.test(line)) { blocks.push({ kind: "rule" }); i++; continue; }
+    if (QUOTE.test(line)) {
+      const inner: string[] = [];
+      while (i < lines.length && !blank(lines[i]) && (QUOTE.test(lines[i]) || inner.length > 0 && !startsBlock(lines[i], lines[i + 1]))) {
+        const quoted = QUOTE.exec(lines[i]);
+        inner.push(quoted ? quoted[1] : lines[i]);
+        i++;
+      }
+      blocks.push({ kind: "quote", blocks: blocksOf(inner) });
+      continue;
+    }
+    const item = ITEM.exec(line);
+    if (item) {
+      const ordered = /\d/.test(item[2]);
+      const start = ordered ? Number.parseInt(item[2], 10) : 1;
+      const items: ProseBlock[][] = [];
+      while (i < lines.length) {
+        const current = ITEM.exec(lines[i]);
+        if (!current || /\d/.test(current[2]) !== ordered) break;
+        const contentIndent = current[1].length + current[2].length + Math.max(1, Math.min(4, (current[3] ?? " ").length - (current[4] ?? "").length));
+        const body: string[] = [current[4] ?? ""];
+        i++;
+        while (i < lines.length) {
+          const next = lines[i];
+          if (blank(next)) {
+            // A blank line continues the item only when an indented line follows it.
+            let j = i; while (j < lines.length && blank(lines[j])) j++;
+            if (j < lines.length && lines[j].search(/\S/) >= contentIndent) { for (; i < j; i++) body.push(""); continue; }
+            break;
+          }
+          const indent = next.search(/\S/);
+          if (indent >= contentIndent) { body.push(next.slice(contentIndent)); i++; continue; }
+          if (ITEM.test(next) || startsBlock(next, lines[i + 1])) break;
+          // A lazy continuation of the item's paragraph.
+          body.push(next.trim()); i++;
+        }
+        items.push(blocksOf(body));
+        let j = i; while (j < lines.length && blank(lines[j])) j++;
+        const following = j < lines.length ? ITEM.exec(lines[j]) : null;
+        if (following && /\d/.test(following[2]) === ordered && following[1].length <= 3) i = j; else break;
+      }
+      blocks.push({ kind: "list", ordered, start, items });
+      continue;
+    }
+    if (line.includes("|") && i + 1 < lines.length && TABLE_RULE.test(lines[i + 1]) && lines[i + 1].includes("-")) {
+      const header = cells(line);
+      const rows: ProseInline[][][] = [];
+      i += 2;
+      while (i < lines.length && !blank(lines[i]) && lines[i].includes("|")) { rows.push(cells(lines[i])); i++; }
+      blocks.push({ kind: "table", header, rows });
+      continue;
+    }
+    const paragraph: string[] = [line];
+    i++;
+    while (i < lines.length && !blank(lines[i])) {
+      if (SETEXT.test(lines[i])) {
+        const level = lines[i].trim()[0] === "=" ? 1 : 2;
+        blocks.push({ kind: "heading", level, content: proseInlines(paragraph.map(l => l.trim()).join(" ")) });
+        paragraph.length = 0; i++; break;
+      }
+      if (startsBlock(lines[i], lines[i + 1])) break;
+      paragraph.push(lines[i]); i++;
+    }
+    if (paragraph.length) blocks.push({ kind: "paragraph", lines: paragraph.map(l => proseInlines(l.replace(/^[ \t]+/, "").replace(/(?: {2,}|\\)$/, ""))) });
+  }
+  return blocks;
+}
+
+function ProseText({ value }: { value: string }) {
+  return <>{agentTextParts(value).map((part, i) => part.mark ? <span key={i} className="agent-text-mark" style={markStyle}>{part.text}</span> : part.text)}</>;
+}
+function ProseInlines({ value }: { value: ProseInline[] }) {
+  return <>{value.map((node, i) => {
+    switch (node.kind) {
+      case "text": return <ProseText key={i} value={node.text} />;
+      case "code": return <code key={i}><ProseText value={node.text} /></code>;
+      case "em": return <em key={i}><ProseInlines value={node.children} /></em>;
+      case "strong": return <strong key={i}><ProseInlines value={node.children} /></strong>;
+      case "link": {
+        // Not a link: the text, then its target in plain text (once, when the text is the target itself).
+        const same = node.children.length === 1 && node.children[0].kind === "text" && node.children[0].text === node.target;
+        return <span key={i} className="agent-prose-link"><ProseInlines value={node.children} />{same ? null : <> (<span className="agent-prose-target"><ProseText value={node.target} /></span>)</>}</span>;
+      }
+    }
+  })}</>;
+}
+const tight = (blocks: ProseBlock[]) => blocks.length === 1 && blocks[0].kind === "paragraph";
+function ProseBlocks({ value }: { value: ProseBlock[] }) {
+  return <>{value.map((block, i) => {
+    switch (block.kind) {
+      case "paragraph": return <p key={i}>{block.lines.map((line, k) => <Fragment key={k}>{k > 0 && <br />}<ProseInlines value={line} /></Fragment>)}</p>;
+      case "heading": return <p key={i} className={block.level <= 2 ? "agent-prose-heading agent-prose-heading--major" : "agent-prose-heading"}><strong><ProseInlines value={block.content} /></strong></p>;
+      case "list": {
+        const items = block.items.map((item, k) => <li key={k}>{tight(item) && item[0].kind === "paragraph"
+          ? item[0].lines.map((line, n) => <Fragment key={n}>{n > 0 && <br />}<ProseInlines value={line} /></Fragment>)
+          : <ProseBlocks value={item} />}</li>);
+        return block.ordered ? <ol key={i} start={block.start !== 1 ? block.start : undefined}>{items}</ol> : <ul key={i}>{items}</ul>;
+      }
+      case "code": return <pre key={i} className="agent-prose-code"><code>{block.text.split("\n").map((line, k) => <Fragment key={k}>{k > 0 && "\n"}<ProseText value={line} /></Fragment>)}</code></pre>;
+      case "quote": return <blockquote key={i}><ProseBlocks value={block.blocks} /></blockquote>;
+      case "table": return <table key={i} className="agent-prose-table">
+        <thead><tr>{block.header.map((cell, k) => <td key={k}><strong><ProseInlines value={cell} /></strong></td>)}</tr></thead>
+        <tbody>{block.rows.map((row, r) => <tr key={r}>{block.header.map((_, k) => <td key={k}><ProseInlines value={row[k] ?? []} /></td>)}</tr>)}</tbody>
+      </table>;
+      case "rule": return <hr key={i} />;
+    }
+  })}</>;
+}
+
+/** The accessibility name of the agent's formatted prose. */
+export const AGENT_PROSE_NAME = "Text the agent wrote, not the App's words";
+/** An agent's message in the conversation, formatted as described above. Every other supplied text stays in AgentText. */
+export function AgentProse({ value, name = AGENT_PROSE_NAME }: { value: Json; name?: string }) {
+  return <div role="group" aria-label={name} className="agent-prose chat-markdown"><ProseBlocks value={proseBlocks(agentTextValue(value))} /></div>;
 }
 
 export const RECORDED_DATA_LABEL = "Recorded data (JSON):";

@@ -8,7 +8,8 @@ import {loadSrc} from './support/load-src.mjs';
 import {agentBlocks, agentBlockText} from './support/agent-text.mjs';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {installIdleNativeWaiting} from './support/idle-native-waiting.mjs';
-import {choiceLists, chooseIn} from './support/choices.mjs';
+import {choiceLists, chooseIn, chosenIn} from './support/choices.mjs';
+import { conversationView, chatInput, newChatButton, sendButton, startWithFirstMessage } from './support/conversation-view.mjs';
 const document = installMiniDom();
 const React = (await import('react')).default;
 const {createRoot} = await import('react-dom/client');
@@ -27,7 +28,7 @@ const deferred = () => { let resolve, reject; const promise = new Promise((yes, 
 const props = node => node[Object.keys(node).find(k => k.startsWith('__reactProps$'))];
 const nodes = (c, tag) => c.querySelectorAll(node => node.localName === tag);
 const region = (c, label) => c.querySelectorAll(node => node.getAttribute('aria-label') === label)[0];
-const button = (c, label) => nodes(c, 'button').find(node => node.textContent === label);
+const button = (c, label) => nodes(c, 'button').find(node => (node.textContent===label||node.getAttribute("aria-label")===label));
 const buttons = (c, prefix) => nodes(c, 'button').filter(node => node.textContent.startsWith(prefix));
 const models = [
   {id:'model-a', model:'model-a', displayName:'Model A', description:'Invented general model', isDefault:true},
@@ -57,10 +58,17 @@ async function mounted(handler, check, initial = snapshotFor()) {
   const intervals = new Map(), previous = {setInterval:globalThis.setInterval, clearInterval:globalThis.clearInterval, getElementById:document.getElementById}; let timer = 0;
   globalThis.setInterval = fn => { intervals.set(++timer, fn); return timer; }; globalThis.clearInterval = id => intervals.delete(id);
   document.getElementById = id => c.querySelectorAll(node => node.getAttribute('id') === id)[0] ?? null;
-  const ui = {c, calls, press:async label => React.act(async () => { const node = button(c, label); assert.ok(node, label); assert.equal(!!props(node).disabled, false, label); await props(node).onClick(); }),
+  // A new conversation is started by its first message, sent from New chat: Start is that Send.
+  const ui = {c, calls, press:async label => label === 'Start thread' ? (assert.ok(await startWithFirstMessage(c, React.act, {newChat: chosenIn(choiceLists(conversationView(c))[0]) !== ''}), label))
+    : React.act(async () => { const node = button(c, label); assert.ok(node, label); assert.equal(!!props(node).disabled, false, label); await props(node).onClick(); }),
     setSnapshot:value => { snapshot = value; }, refresh:async () => React.act(async () => { for (const fn of intervals.values()) await fn(); }),
     summary:() => region(c, 'New conversation choice').textContent, issued:() => calls.filter(call => !['host_status', 'decision_view', 'read_fleet_records', 'native_confirmation_content'].includes(call.command))};
-  try { await React.act(() => root.render(React.createElement(App))); await check(ui); }
+  try {
+    await React.act(() => root.render(React.createElement(App)));
+    // The first message is written, so that whether Send is offered shows only whether the start's choice is complete.
+    await React.act(async () => { props(chatInput(c)).onChange({target:{value:'First message'}}); });
+    await check(ui);
+  }
   finally { const text = c.textContent; await React.act(() => root.unmount()); document.body.removeChild(c); idle.restore(text);
     globalThis.setInterval = previous.setInterval; globalThis.clearInterval = previous.clearInterval; document.getElementById = previous.getElementById; }
 }
@@ -115,7 +123,7 @@ test('a first-time account user meets the only connection in use and the model l
     assert.match(list, /Models Codex reports for provider openai/); assert.match(list, /Model A model-a · Codex's default/); assert.match(list, /not your account's entitlement or access/);
     assert.ok(button(ui.c, 'Read the list again'), 'the button stays, to read it again');
     assert.match(ui.summary(), /no model selected/, 'the reported default is not preselected');
-    assert.doesNotMatch(ui.c.textContent, /\(step 1\)/, 'no step 1 while the only connection is in use');
+    assert.doesNotMatch(ui.c.textContent, /Choose how this conversation connects/, 'no connection to choose while the only connection is in use');
     await ui.press('Use model model-b');
     assert.match(ui.summary(), /New conversation choice: model-b via openai \(chatgpt-account\)/);
     assert.match(region(ui.c, 'Available models').textContent, /Model B model-b · chosen/);
@@ -135,7 +143,7 @@ test('with two access entries available the choice returns as before: nothing is
     assert.equal(region(ui.c, 'Connection in use'), undefined);
     const route = button(ui.c, 'Use my ChatGPT account (built-in OpenAI)');
     assert.ok(route); assert.equal(props(route)['aria-pressed'], false, 'not chosen for the person');
-    assert.match(ui.c.textContent, /Choose how this conversation connects \(step 1\)/);
+    assert.match(ui.c.textContent, /Choose how this conversation connects\./);
     await goToConversation(ui);
     assert.deepEqual(ui.issued(), [], 'the list is read at the person\'s press here');
     await ui.press('Use my ChatGPT account (built-in OpenAI)');
@@ -150,14 +158,14 @@ test('a read of the connections that returns one row selects nothing; while whic
   await mounted(async command => { throw Error(`unexpected ${command}`); }, async ui => {
     assert.equal(region(ui.c, 'Connection in use'), undefined);
     assert.equal(props(button(ui.c, 'Use my ChatGPT account (built-in OpenAI)'))['aria-pressed'], false);
-    assert.match(ui.c.textContent, /Choose how this conversation connects \(step 1\)/);
+    assert.match(ui.c.textContent, /Choose how this conversation connects\./);
   }, {...snapshotFor(), homeRouting:{activeModeHomeClass:'account', entries:[{modeHomeClass:'account', generation:g, state:'ready'}]}});
   localRoute.LOCAL_ROUTE_OFFERED = false;
   // The status names no active home yet: the connections are being read, and nothing is taken as in use.
   await mounted(async command => { throw Error(`unexpected ${command}`); }, async ui => {
     assert.match(region(ui.c, 'How this conversation connects').textContent, /Reading which connections this App offers…/);
     assert.equal(region(ui.c, 'Connection in use'), undefined);
-    assert.equal(!!props(button(ui.c, 'Start thread')).disabled, true);
+    assert.equal(!!props(sendButton(ui.c)).disabled, true);
   }, {...snapshotFor(), homeRouting:{}});
 });
 
@@ -177,7 +185,8 @@ test('the connection in use is for new conversations only: an existing conversat
     const send = ui.issued().find(call => call.command === 'conversation_send_text');
     assert.ok(send); assert.equal(send.args.modelProvider, undefined); assert.equal(send.args.entryId, undefined, 'a send names no connection: the conversation keeps its own');
     assert.equal(ui.issued().filter(call => ['select_home', 'thread_start'].includes(call.command)).length, 0, 'no home is switched and nothing is started');
-    assert.equal(region(ui.c, 'Connection in use').textContent, IN_USE, 'the new conversation shows the connection in use beside it');
+    await React.act(async () => { props(newChatButton(ui.c)).onClick(); });
+    assert.equal(region(ui.c, 'Connection in use').textContent, IN_USE, 'New chat shows the connection in use for the new conversation');
   }, {...snapshotFor(), threads:[existing]});
 });
 
@@ -242,7 +251,7 @@ test('omitted OpenAI-key mode offers no product entry or dispatch; this version 
     assert.equal(button(ui.c, 'Add or replace key in native secure field…'), undefined);
     assert.equal(button(ui.c, 'Use api-key home'), undefined);
     assert.equal(!!props(button(ui.c, 'Read available models')).disabled, true);
-    assert.equal(!!props(button(ui.c, 'Start thread')).disabled, true);
+    assert.equal(!!props(sendButton(ui.c)).disabled, true);
     assert.ok(!nodes(ui.c, 'option').some(n => props(n).value === 'api-key'));
     assert.equal(ui.issued().filter(x => ['add_api_key','read_available_models','thread_start'].includes(x.command)).length, 0);
     ui.setSnapshot(snapshotFor()); await ui.refresh();
@@ -284,7 +293,9 @@ const routed = (active, local = null) => ({...snapshotFor(active, active === 'lo
 let ui;
 const localAllowed = ['prepare_local_provider', 'submit_local_provider_key', 'select_home', 'thread_start', 'read_account_status', 'read_home_access', 'local_model_settings_read', 'local_model_settings_save'];
 const assertNoSecretTraffic = ui => {
-  for (const call of ui.issued()) {
+  for (const [index, call] of ui.issued().entries()) {
+    // A start's first message: the ordinary send, only after a start.
+    if (call.command === 'conversation_send_text') { assert.ok(ui.issued().slice(0, index).some(x => x.command === 'thread_start'), 'a send only after a start'); assert.deepEqual(Object.keys(call.args).sort(), ['generation', 'mode', 'text', 'threadId'], 'the first message names no key or connection'); continue; }
     assert.ok(localAllowed.includes(call.command), call.command);
     if (call.command === 'submit_local_provider_key') assert.deepEqual(Object.keys(call.args), ['generation'], 'key entry carries only the generation');
     if (call.command === 'prepare_local_provider') assert.deepEqual(call.args ?? {}, {}, 'preparation takes no argument');
@@ -313,7 +324,7 @@ test('keyed oMLX: prepare, native key entry, local home Start and return to acco
     await ui.press('Use local oMLX home');
     assert.equal(!!props(button(ui.c, 'Sign in with your ChatGPT account (through Codex)…')).disabled, true, 'account sign-in belongs to the account home');
     assert.equal(button(ui.c, 'Use my ChatGPT account (built-in OpenAI)'), undefined);
-    assert.equal(!!props(button(ui.c, 'Start thread')).disabled, true, 'no route chosen yet');
+    assert.equal(!!props(sendButton(ui.c)).disabled, true, 'no route chosen yet');
     // The model's name is the saved setting's, shown exactly beside the App's button words.
     assert.ok(region(ui.c, 'How this conversation connects').textContent.includes(`Model: ${LOCAL.model}`));
     await ui.press('Use the oMLX model shown');
@@ -355,7 +366,7 @@ test('a settings save withdraws the key and route shown before, whether it succe
       assert.match(panel(), /Key saved by Codex — not verified/);
       await ui.press('Use local oMLX home');
       await ui.press('Use the oMLX model shown');
-      assert.equal(!!props(button(ui.c, 'Start thread')).disabled, false);
+      assert.equal(!!props(sendButton(ui.c)).disabled, false);
       await ui.press('Show local model settings');
       const address = nodes(ui.c, 'input').find(node => node.parentNode.textContent.startsWith('Server address '));
       await React.act(async () => { props(address).onChange({target:{value:'http://[::1]:9000/v1'}}); });
@@ -364,7 +375,7 @@ test('a settings save withdraws the key and route shown before, whether it succe
       assert.equal(region(ui.c, 'oMLX destination'), undefined, `${outcome}: the earlier destination is no longer shown as prepared`);
       assert.match(panel(), /The connection and key state shown before are withdrawn; prepare the oMLX connection again/, outcome);
       assert.equal(button(ui.c, 'Use the oMLX model shown'), undefined, `${outcome}: the old route is not offered`);
-      assert.equal(!!props(button(ui.c, 'Start thread')).disabled, true, `${outcome}: a route chosen before the save cannot start`);
+      assert.equal(!!props(sendButton(ui.c)).disabled, true, `${outcome}: a route chosen before the save cannot start`);
       if (outcome === 'saved') assert.match(panel(), /Saved\. Codex removed the saved key for the earlier address/);
       else {
         assert.doesNotMatch(panel(), /Saved: server/, `${outcome}: nothing is shown as saved`);
@@ -426,7 +437,7 @@ test('keyed oMLX refuses incomplete views, stale routes and duplicate presses', 
     await ui.press('Use local oMLX home');
     assert.match(ui.c.textContent, /Prepare the oMLX connection under Connection & access for this Codex session first/, 'a view for another generation offers no route');
     assert.equal(button(ui.c, 'Use the oMLX model shown'), undefined);
-    assert.equal(!!props(button(ui.c, 'Start thread')).disabled, true);
+    assert.equal(!!props(sendButton(ui.c)).disabled, true);
     assertNoSecretTraffic(ui);
   });
 });
@@ -439,10 +450,10 @@ test('review: a retained local Start cannot dispatch against a replacement gener
   }, async u => {
     ui = u;
     await ui.press('Prepare the oMLX connection'); await ui.press('Use local oMLX home'); await ui.press('Use the oMLX model shown');
-    const retained = props(button(ui.c, 'Start thread')).onClick;
-    assert.equal(!!props(button(ui.c, 'Start thread')).disabled, false);
+    const retained = props(sendButton(ui.c)).onClick;
+    assert.equal(!!props(sendButton(ui.c)).disabled, false);
     ui.setSnapshot(routed('local-provider', {...lg, spawnCounter:2})); await ui.refresh();
-    assert.equal(!!props(button(ui.c, 'Start thread')).disabled, true);
+    assert.equal(!!props(sendButton(ui.c)).disabled, true);
     await React.act(async () => { await retained(); });
     assert.equal(ui.issued().filter(call => call.command === 'thread_start').length, 0, 'the earlier generation route is not sent to its successor');
     assertNoSecretTraffic(ui);

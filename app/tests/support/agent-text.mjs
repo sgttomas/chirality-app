@@ -1,4 +1,4 @@
-// Reads rendered markup with each AgentText box (src/AgentText.tsx) written as
+// Reads rendered markup with each AgentText box (src/AgentText.tsx) and each AgentProse box written as
 // ⟦label value⟧, its marks as shown and a block's lines joined by line breaks
 // without their numbers, so assertions can say where the agent's text sits
 // beside the App's words. A box this cannot read is left as markup.
@@ -9,14 +9,19 @@ const inline = new RegExp(`<span role="group" aria-label${attr} class="agent-tex
 const line = `<div class="agent-text-line"><span class="agent-text-line-number" style${attr}>\\d+</span>((?:[^<]|${mark.replace('([^<]*)', '[^<]*')})*)</div>`;
 const block = new RegExp(`<div role="group" aria-label${attr} class="agent-text agent-text-block" style${attr}><div class="agent-text-label" style${attr}>([^<]*)</div><div class="agent-text-value" style${attr}>((?:${line.replace('((?:', '(?:').replace(')*)</div>', ')*</div>')})*)</div></div>`, 'g');
 
+// An AgentProse box (an agent's message in the transcript): its rendered prose kept as markup inside ⟦label: …⟧, its
+// marks as shown. The box holds no div, so it ends at the first closing div.
+const prose = new RegExp(`<div role="group" aria-label="([^"]*)" class="agent-prose chat-markdown">((?:(?!</div>)[\\s\\S])*)</div>`, 'g');
+
 export function agentPlain(html) {
   return html
+    .replace(prose, (_, label, inner) => `⟦${label}: ${valueText(inner)}⟧`)
     .replace(block, (_, label, lines) => `⟦${label}\n${[...lines.matchAll(new RegExp(line, 'g'))].map(m => valueText(m[1]).replace(/⏎$/, '')).join('\n')}⟧`)
     .replace(inline, (_, label, value) => `⟦${label} ${valueText(value)}⟧`);
 }
 
 /** The accessibility names of every AgentText box in the markup. */
-export const agentBoxNames = html => [...html.matchAll(/<(?:span|div) role="group" aria-label="([^"]*)" class="agent-text/g)].map(m => m[1]);
+export const agentBoxNames = html => [...html.matchAll(/<(?:span|div) role="group" aria-label="([^"]*)" class="agent-(?:text|prose)/g)].map(m => m[1]);
 
 // For a mounted tree (tests/support/mini-dom.mjs): the AgentText blocks (block text, recorded text, recorded data)
 // inside a node, and a block's text read back as it was given (its label, line numbers and line-break marks taken

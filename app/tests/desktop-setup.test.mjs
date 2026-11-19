@@ -8,6 +8,7 @@ import {loadSrc} from './support/load-src.mjs';
 import {installIdleNativeWaiting} from './support/idle-native-waiting.mjs';
 import './support/rust-prebuild.mjs';
 
+import { conversationView, chatInput, newChatButton } from './support/conversation-view.mjs';
 // Actual native resolver/prepare/save packets. The filesystem fixture is
 // invented and removed by Rust. No native App, supplier or model is launched.
 const producer = 'desktop_startup::tests::mounted_setup_packets';
@@ -28,7 +29,7 @@ const {App, FIRST_READ_PATIENCE_MS} = loadSrc('App');
 const props = node=>node[Object.keys(node).find(k=>k.startsWith('__reactProps$'))];
 const nodes = (c,tag)=>c.querySelectorAll(node=>node.localName===tag);
 const region = (c,label)=>c.querySelectorAll(node=>node.getAttribute('aria-label')===label)[0];
-const button = (c,label)=>nodes(c,'button').find(node=>node.textContent===label);
+const button = (c,label)=>nodes(c,'button').find(node=>(node.textContent===label||node.getAttribute("aria-label")===label));
 const field = (c,label)=>region(c,label);
 const labelled = (c,tag,label)=>nodes(c,tag).find(node=>node.parentNode.textContent.startsWith(label));
 const change = (node,value)=>React.act(()=>node.localName==='fieldset'?chooseIn(node,value):props(node).onChange({target:{value}}));
@@ -198,29 +199,33 @@ test('setup save in the mounted App preserves operational A, Workflow C, unsent 
     if(command==='desktop_setup_prepare'){host.desktopSetup={...packet.retained.initial,pending:packet.retained.saved.pending,retainProject:packet.retained.saved.retainProject};return packet.retained.saved;}
     assert.fail(`Unexpected IPC: ${command}`);
   });
-  const conversation=()=>c.querySelectorAll(node=>node.getAttribute('id')==='conversation')[0];
+  const conversation=()=>conversationView(c);
   const choose=id=>change(choiceLists(conversation())[0],key(id));
   try {
     await React.act(()=>root.render(React.createElement(App)));
-    await choose('A');await change(labelled(conversation(),'textarea','Text '),'Global unsent TEXT é / 家');
+    // The next conversation's model, chosen in New chat, then the conversation the person works in.
+    await React.act(async()=>{props(newChatButton(c)).onClick();});await change(labelled(c,'input','Model '),'explicit-model-stays');
+    await choose('A');await change(chatInput(c),'Global unsent TEXT é / 家');
     await change(choiceList(c,'Workflow chat'),'C');await change(choiceList(c,'Authoring conversation'),key('B'));
-    await change(labelled(c,'input','Model '),'explicit-model-stays');
     await choose('B');const original=region(c,'Trial composer');assert.ok(original);
     await change(nodes(original,'textarea')[0],'Edited original B');await change(choiceList(original,'Send to'),key('D'));
     await choose('A');const setup=region(c,'Desktop setup');
     await change(field(setup,'Desktop setup action'),'retain');await change(field(setup,'Project on next launch'),'chosen');await change(field(setup,'Next project directory'),textPath(packet.retained.project));await press(setup,'Review setup effects');await press(setup,'Save project for next launch');
     assert.equal(chosenIn(choiceLists(conversation())[0]),key('A'));
     assert.equal(chosenIn(choiceList(c,'Workflow chat')),'C');assert.equal(chosenIn(choiceList(c,'Authoring conversation')),key('B'));
-    assert.equal(props(labelled(conversation(),'textarea','Text ')).value,'Global unsent TEXT é / 家');
-    assert.equal(props(labelled(c,'input','Model ')).value,'explicit-model-stays');
+    assert.equal(props(chatInput(c)).value,'Global unsent TEXT é / 家');
     assert.equal(host.currentAppProjectContext.reference,textPath(packet.retained.currentProject));
     assert.deepEqual(host.attachmentSelections.launchAppProjectObservation.nativeRoot,packet.retained.currentProject);
     assert.match(setup.textContent,/Current launch: saved-request/,'pending save must not replace active source status');
     await press(c,'View prepared message in conversation B');
     assert.equal(region(c,'Trial composer'),original,'same mounted composer owner');
     assert.equal(props(nodes(original,'textarea')[0]).value,'Edited original B');assert.equal(chosenIn(choiceList(original,'Send to')),key('D'));
-    assert.ok(calls.every(c=>['host_status','decision_view','native_confirmation_content','desktop_setup_project_preview','desktop_setup_prepare'].includes(c.command)));
+    // read_available_models: New chat shown with Codex ready, the App's own model-list read (a catalogue read).
+    assert.ok(calls.every(c=>['host_status','decision_view','native_confirmation_content','desktop_setup_project_preview','desktop_setup_prepare','read_available_models'].includes(c.command)));
     idle.assertClean(c);
+    // Back in New chat, the next conversation's model is as it was left.
+    await React.act(async()=>{props(newChatButton(c)).onClick();});
+    assert.equal(props(labelled(c,'input','Model ')).value,'explicit-model-stays');
   } finally { const text=c.textContent;await React.act(()=>root.unmount());document.body.removeChild(c);idle.restore(text);Object.assign(globalThis,previous);assert.equal(timers.size,0); }
 });
 

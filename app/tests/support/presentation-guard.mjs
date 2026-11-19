@@ -78,7 +78,7 @@ export const TRUSTED = {
     // App's own name rule admits, else null).
     functions: ['plainId', 'idWords', 'wordOf', 'numberWords', 'isoSeconds', 'clockWords', 'safeName'],
     // Components that draw a supplied value: boxed, or as the App's words only for a value they check at run time.
-    components: ['AgentText', 'SuppliedId', 'Word', 'Num', 'Flag', 'ConversationChoices'],
+    components: ['AgentText', 'AgentProse', 'SuppliedId', 'Word', 'Num', 'Flag', 'ConversationChoices'],
   },
 };
 /** Attributes of an approved presentation that it compares, calls or uses as a radio group's name, and never draws or

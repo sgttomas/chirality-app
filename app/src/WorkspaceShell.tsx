@@ -2,12 +2,14 @@ import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, ty
 
 type Json = any;
 
-/** The right panel's tabs: the App's views other than the conversation, in this order. */
+/** The right panel's tabs: the App's views other than the conversation, in this order; the last holds the conversation's
+ * own tools that its centre view does not show (its role and continuation options, trials, the detailed panels). */
 export const RIGHT_PANEL_TABS = [
   { id: "run", label: "Run a workflow" },
   { id: "make", label: "Make a workflow" },
   { id: "history", label: "History" },
   { id: "settings", label: "Settings & tools" },
+  { id: "conversation-tools", label: "Conversation tools" },
 ] as const;
 export type RightPanelTab = typeof RIGHT_PANEL_TABS[number]["id"];
 export const isRightPanelTab = (view: string): view is RightPanelTab => RIGHT_PANEL_TABS.some(tab => tab.id === view);

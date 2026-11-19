@@ -3551,3 +3551,69 @@ div.woven-chat-section-heading--folder:hover { background:transparent; }
 .woven-workspace .woven-navigator-session-row:has(> .button-muted) { flex-wrap:wrap; }
 .woven-workspace .woven-navigator-session-row:has(> .button-muted) > .woven-navigator-session { flex:1 1 100%; }
 .woven-workspace .woven-navigator-session-row > .button-muted { margin:0 0 6px 8px; padding:2px 10px; border-color:var(--v4-you-rule); background:var(--v4-you-soft); color:var(--v4-you); font-size:11.5px; font-weight:600; }
+
+/* v4: the conversation in the centre (3.0.1's chat panel). The panel fills the centre; the App's own panels inside it
+   (notices, the fold's contents, request cards, the dock, the settings panels) keep the workspace's look. */
+.woven-dialogue-region > .v4-centre { height:100%; min-height:0; }
+.v4-centre > .woven-primary-dialogue { height:100%; }
+.daily-workspace.v4-in-chat { padding:0; margin:0; max-width:none; background:transparent; font-size:13.5px; }
+.chat-transcript > .workspace-sticky.v4-in-chat { margin:0; padding:0; background:var(--surface); }
+.chat-transcript > .workspace-sticky.v4-in-chat .waiting-on-you { background:var(--surface); }
+.chat-transcript-content.v4-in-chat { gap:22px; }
+.v4-transcript, .v4-turn { display:flex; flex-direction:column; gap:22px; min-width:0; }
+.v4-transcript-scope { margin:0; font-size:12.5px; color:var(--ink-soft); }
+.v4-transcript-source, .v4-descendants { font-size:12.5px; color:var(--ink-soft); }
+.v4-agent-message + .v4-agent-message { margin-top:10px; }
+.v4-message-phase { margin:0 0 4px !important; font-size:11.5px !important; color:var(--ink-faint); }
+.chat-turn-status { margin:6px 0 0 !important; font-size:12px !important; color:var(--ink-soft); }
+.chat-turn-status[data-turn-outcome=failed] { color:var(--danger); }
+.v4-turn-activity-body { margin:8px 0 2px; color:var(--ink); font-size:12.5px; }
+.v4-turn-activity-body > details > summary { color:var(--ink-soft); }
+/* The agent's prose: a heading is a small bold line, never larger than the text around it allows. */
+.agent-prose > :first-child { margin-top:0; }
+.agent-prose > :last-child { margin-bottom:0; }
+.agent-prose p.agent-prose-heading { margin:14px 0 4px; font-size:13.5px; }
+.agent-prose p.agent-prose-heading--major { font-size:14.5px; }
+.agent-prose ul, .agent-prose ol { margin:8px 0; padding-left:1.4em; font-size:13.5px; line-height:1.6; }
+.agent-prose li + li { margin-top:3px; }
+.agent-prose code { font-family:var(--font-code); font-size:.92em; padding:0 3px; border-radius:3px; background:var(--ground); }
+.agent-prose pre.agent-prose-code { margin:10px 0; padding:10px 12px; border:1px solid var(--rule); border-radius:6px; background:var(--ground); font-size:12.5px; white-space:pre-wrap; overflow-wrap:anywhere; }
+.agent-prose pre.agent-prose-code code { padding:0; background:transparent; }
+.agent-prose blockquote { margin:8px 0; padding:0 0 0 12px; border-left:3px solid var(--rule-strong); color:var(--ink-soft); }
+.agent-prose table.agent-prose-table { margin:10px 0; font-size:12.5px; }
+.agent-prose hr { border:0; border-top:1px solid var(--rule); margin:12px 0; }
+.agent-prose .agent-prose-target { color:var(--ink-soft); overflow-wrap:anywhere; }
+/* Request cards: the question and the answers at equal weight; the detail behind its disclosure. */
+.permission-card-header h3.permission-card-tool { margin:0; white-space:normal; }
+.request-card p { margin:8px 0; }
+.request-card .permission-card-actions { flex-wrap:wrap; }
+.request-card .permission-card-actions:has(> .v4-request-answer) { flex-direction:column; align-items:flex-start; gap:6px; }
+.v4-request-details { margin-top:8px; font-size:12.5px; color:var(--ink-soft); }
+.v4-question-option { display:flex; gap:8px; align-items:baseline; margin:6px 0; }
+.v4-question-selected { font-size:12.5px; color:var(--ink-soft); }
+.v4-request-earlier > summary { font-size:12.5px; color:var(--ink-soft); }
+/* The dock and the composer. */
+.shell--stone .chat-panel--woven > .chat-composer-dock { max-height:42vh; overflow:auto; }
+.chat-composer-dock.v4-in-chat > * { margin:8px 0 0; }
+.v4-attach-panel { padding:10px 12px; border:1px solid var(--rule); border-radius:10px; background:var(--surface); }
+.v4-composer-status { margin:0 6px 2px; font-size:12px; color:var(--ink-soft); }
+.chat-composer-line > button.button-muted { padding:4px 10px; border:1px solid var(--rule-strong); border-radius:8px; font-size:13px; }
+/* The settings line: each setting a compact button opening a small panel (the access level as drawn). */
+.v4-level { position:relative; display:inline-flex; }
+.chat-context .v4-level > button { display:inline-flex; align-items:center; gap:5px; padding:3px 8px 3px 9px; font-size:12px; font-weight:400; line-height:1.35; border:1px solid var(--rule); border-radius:999px; background:var(--surface); color:var(--ink-soft); max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.chat-context .v4-level > button::after { content:""; flex:none; width:5px; height:5px; border:solid currentColor; border-width:0 1.3px 1.3px 0; transform:translateY(-2px) rotate(45deg); opacity:.75; }
+.chat-context .v4-level > button[aria-expanded=true] { border-color:var(--ink-faint); color:var(--ink); }
+.v4-context-fixed { color:var(--ink-soft); }
+.v4-level-pop { position:absolute; z-index:40; left:-14px; bottom:calc(100% + 10px); width:min(372px, calc(100vw - 32px)); max-height:min(60vh, 520px); overflow:auto; padding:14px 16px 10px; border-radius:10px; background:var(--surface); border:1px solid var(--rule-strong); box-shadow:0 8px 30px #0002; color:var(--ink); font-size:12.5px; line-height:1.5; display:none; text-align:left; }
+.v4-level-pop.open { display:block; }
+.v4-level-pop--end { left:auto; right:-14px; }
+.v4-level-pop .daily-workspace.v4-in-chat { font-size:12.5px; }
+.v4-level-pop p { margin:4px 0 0; }
+.v4-level-pop .v4-faint { color:var(--ink-faint); font-size:11.5px; }
+.v4-level-pop ul { list-style:none; margin:10px -8px 0; padding:6px 0 0; border-top:1px solid var(--rule); }
+.v4-level-pop li { padding:4px 8px; border-radius:6px; }
+.v4-level-pop li b { font-weight:500; }
+.v4-level-pop li[aria-current=true] b { font-weight:600; }
+.v4-level-pop li[aria-current=true] b::after { content:" ●"; color:var(--accent); font-size:9px; vertical-align:middle; }
+.v4-level-pop fieldset { border:0; margin:0; padding:0; }
+.v4-mode-choice label { display:block; margin:4px 0; }

@@ -8,6 +8,7 @@ import {loadSrc} from './support/load-src.mjs';
 import {choiceLists, chosenIn, chooseIn} from './support/choices.mjs';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {installIdleNativeWaiting} from './support/idle-native-waiting.mjs';
+import { conversationView, chatInput } from './support/conversation-view.mjs';
 const document = installMiniDom();
 const React = (await import('react')).default;
 const {createRoot} = await import('react-dom/client');
@@ -64,7 +65,7 @@ const row = (c, id) => rows(c).find(b => b.getAttribute('data-session-id') === i
 const needsAnswer = (c, id) => row(c, id).parentNode.childNodes.find(b => b.localName === 'button' && b.textContent === 'Needs answer');
 const tabs = c => nodes(c, 'button').filter(b => b.getAttribute('role') === 'tab');
 const selectedTab = c => tabs(c).find(b => b.getAttribute('aria-selected') === 'true')?.textContent;
-const conversationChosen = c => chosenIn(choiceLists(byId(c, 'conversation'))[0]);
+const conversationChosen = c => chosenIn(choiceLists(conversationView(c))[0]);
 const strip = c => labelled(c, 'Activity status');
 
 test('the navigator lists the loaded conversations of the current generation, titled as the conversation view names them', () => {
@@ -127,7 +128,7 @@ test('mounted: the folder section names the project and counts its conversations
     assert.equal(row(c, 'T3').getAttribute('aria-pressed'), 'true', 'and marks it');
     assert.ok(rows(c).filter(b => b.getAttribute('data-session-id') !== 'T3').every(b => b.getAttribute('aria-pressed') === 'false'));
     // Choosing in the conversation view moves the mark too: one choice, two places.
-    await React.act(async () => chooseIn(choiceLists(byId(c, 'conversation'))[0], key('T1')));
+    await React.act(async () => chooseIn(choiceLists(conversationView(c))[0], key('T1')));
     assert.equal(row(c, 'T1').getAttribute('aria-pressed'), 'true');
     assert.deepEqual(calls.slice(before).filter(x => !['host_status', 'decision_view', 'request_answer_companions'].includes(x.command)), [], 'choosing issues no command');
   });
@@ -173,12 +174,12 @@ test('mounted: the status strip speaks only for the conversation chosen in the c
   });
 });
 
-test('mounted: the right panel\'s four tabs show the App\'s other views, all mounted; a reveal selects the tab that holds its target', async () => {
+test('mounted: the right panel\'s tabs show the App\'s other views and the conversation\'s tools, all mounted; a reveal selects the tab that holds its target', async () => {
   await mountApp(baseHost(), async ({c, calls}) => {
-    assert.deepEqual(tabs(c).map(t => t.textContent), ['Run a workflow', 'Make a workflow', 'History', 'Settings & tools']);
+    assert.deepEqual(tabs(c).map(t => t.textContent), ['Run a workflow', 'Make a workflow', 'History', 'Settings & tools', 'Conversation tools']);
     assert.deepEqual(RIGHT_PANEL_TABS.map(t => t.label), tabs(c).map(t => t.textContent));
     assert.equal(selectedTab(c), 'Run a workflow', 'at launch, with nothing to move for');
-    const views = {'Run a workflow':'view-run', 'Make a workflow':'view-make', 'History':'view-history', 'Settings & tools':'workspace-tools'};
+    const views = {'Run a workflow':'view-run', 'Make a workflow':'view-make', 'History':'view-history', 'Settings & tools':'workspace-tools', 'Conversation tools':'view-conversation-tools'};
     for (const tab of tabs(c)) {
       await React.act(async () => props(tab).onClick());
       assert.equal(selectedTab(c), tab.textContent);
@@ -189,7 +190,7 @@ test('mounted: the right panel\'s four tabs show the App\'s other views, all mou
     // A reveal in the conversation leaves the right panel as it is.
     const {revealWorkspaceTarget} = loadSrc('DailyWorkspace');
     await React.act(async () => revealWorkspaceTarget('workspace-start', true));
-    assert.equal(selectedTab(c), 'Settings & tools');
+    assert.equal(selectedTab(c), tabs(c).at(-1).textContent, 'the tab last chosen stays selected');
     // A reveal in another view selects its tab, opening the right region if it was collapsed.
     await React.act(async () => props(labelled(c, 'Collapse right panel')).onClick());
     assert.ok(!shown(labelled(c, 'Right panel')), 'collapsed'); assert.ok(byId(c, 'workspace-tools'), 'every view stays mounted while collapsed');
@@ -202,7 +203,10 @@ test('mounted: the right panel\'s four tabs show the App\'s other views, all mou
     assert.equal(selectedTab(c), 'Settings & tools');
     await React.act(async () => props(tablist).onKeyDown({key:'Home', preventDefault() {}}));
     assert.equal(selectedTab(c), 'Run a workflow');
-    assert.deepEqual(calls.filter(x => !['host_status', 'decision_view', 'native_confirmation_content', 'request_answer_companions'].includes(x.command)), [], 'the frame issues no command');
+    // Revealing the new conversation shows the empty conversation, whose settings are the new conversation's: with Codex
+    // ready the App reads the model list itself, once (a catalogue read; nothing is chosen or started).
+    assert.deepEqual(calls.filter(x => x.command === 'read_available_models').map(x => x.args.atPersonPress), [false]);
+    assert.deepEqual(calls.filter(x => !['host_status', 'decision_view', 'native_confirmation_content', 'request_answer_companions', 'read_available_models'].includes(x.command)), [], 'the frame issues no command');
   });
 });
 
@@ -239,12 +243,12 @@ test('mounted: closing the right panel collapses its region, and the toggle ther
   });
 });
 
-test('mounted: New chat reveals New conversation; the account row selects Settings & tools', async () => {
+test('mounted: New chat shows the empty conversation with its message box focused; the account row selects Settings & tools', async () => {
   await mountApp(baseHost(), async ({c, revealed}) => {
-    const start = byId(c, 'workspace-start'); start.open = false;
-    const summary = start.childNodes.find(n => n.localName === 'summary'); let focused = 0; summary.focus = () => { focused++; };
+    const field = chatInput(c); let focused = 0; field.focus = () => { focused++; };
     await React.act(async () => props(nodes(navigator(c), 'button').find(b => b.textContent === '＋ New chat')).onClick());
-    assert.equal(start.open, true, 'New conversation is open'); assert.equal(focused, 1, 'and focused');
+    assert.equal(conversationChosen(c), '', 'no conversation is chosen'); assert.ok(byId(c, 'workspace-start'), 'the settings line is the new conversation\'s');
+    assert.equal(focused, 1, 'the message box is focused');
     assert.equal(selectedTab(c), 'Run a workflow', 'the right panel is left as it is');
     await React.act(async () => props(labelled(navigator(c), 'Settings & tools')).onClick());
     assert.equal(selectedTab(c), 'Settings & tools'); assert.ok(revealed.includes('workspace-tools'));

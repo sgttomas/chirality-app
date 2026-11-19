@@ -181,6 +181,14 @@ function assertBoundary(markup, what) {
   assert.equal((raw.match(/class="agent-text(?: agent-text-block)?"/g) ?? []).length, boxes.length, `${what}: the box's class on something that is not a box`);
   assert.equal((raw.match(/class="agent-text-value"/g) ?? []).length, boxes.length, `${what}: a value with the box's class outside a box`);
   for (const [, name, style, label] of boxes) assert.ok(name.trim() !== '' && label.trim() !== '' && /(^|;)border:/.test(style), `${what}: a box without its source label, its accessibility name or its border`);
+  // An agent's message (AgentProse): a group named as text the App did not write, after its bubble's speaker label.
+  const proses = [...raw.matchAll(/<div role="group" aria-label="([^"]*)" class="agent-prose chat-markdown">/g)];
+  assert.equal((raw.match(/class="agent-prose/g) ?? []).length, proses.length, `${what}: the prose box's class on something that is not one`);
+  for (const m of proses) {
+    assert.match(m[1], /not the App&#x27;s words/, `${what}: prose not named as the agent's`);
+    const bubble = raw.lastIndexOf('<article class="chat-bubble', m.index);
+    assert.ok(bubble >= 0 && /<p class="chat-speaker">[^<]+<\/p>/.test(raw.slice(bubble, m.index)), `${what}: prose without its speaker's label`);
+  }
   const outside = outsideBoxes(raw);
   assert.ok(!outside.includes(MARK), `${what}: supplied text outside a box: …${outside.slice(Math.max(0, outside.indexOf(MARK) - 160), outside.indexOf(MARK) + 80)}…`);
   assert.ok(!raw.includes(RLO), `${what}: a direction override drawn as it is`);
@@ -208,6 +216,14 @@ const wellFormedBox = node => {
   return !!group && group.getAttribute?.('role') === 'group' && classes(group).includes('agent-text') && (group.getAttribute('aria-label') ?? '').trim() !== ''
     && String(group.style?.border ?? '').trim() !== '' && group.childNodes.some(c => classes(c).includes('agent-text-label') && (c.textContent ?? '').trim() !== '');
 };
+// An agent's message in the transcript (AgentProse): a group named as text the App did not write, in a speaker's bubble
+// whose label, shown above it, says whose text it is. Its prose holds no control or heading (the walk checks each element).
+const wellFormedProse = node => {
+  if (node.getAttribute?.('role') !== 'group' || !classes(node).includes('agent-prose') || !/not the App's words/.test(node.getAttribute('aria-label') ?? '')) return false;
+  let bubble = node.parentNode;
+  while (bubble && !classes(bubble).includes('chat-bubble')) bubble = bubble.parentNode;
+  return !!bubble && bubble.childNodes.some(c => classes(c).includes('chat-speaker') && (c.textContent ?? '').trim() !== '');
+};
 const SHOWN_ATTRIBUTES = name => name.startsWith('aria-') || ['title', 'alt', 'placeholder', 'label'].includes(name);
 function assertMounted(container, what) {
   const byId = new Map();
@@ -230,15 +246,16 @@ function assertMounted(container, what) {
       if (SHOWN_ATTRIBUTES(name) || (name === 'value' && ['input', 'textarea'].includes(tag))) assert.ok(!value.includes(MARK), `${what}: supplied text in <${tag} ${name}>`);
       if (['aria-labelledby', 'aria-describedby', 'aria-details', 'aria-errormessage'].includes(name)) for (const id of value.split(/\s+/)) {
         const target = byId.get(id);
-        assert.ok(!target || (!target.textContent.includes(MARK) && target.querySelectorAll(n => classes(n).includes('agent-text')).length === 0), `${what}: <${tag} ${name}> names supplied text`);
+        assert.ok(!target || (!target.textContent.includes(MARK) && target.querySelectorAll(n => classes(n).includes('agent-text') || classes(n).includes('agent-prose')).length === 0), `${what}: <${tag} ${name}> names supplied text`);
       }
     }
     for (const field of ['value', 'defaultValue']) if (['input', 'textarea'].includes(tag) && typeof node[field] === 'string') assert.ok(!node[field].includes(MARK), `${what}: supplied text in a field's ${field}`);
     const appRole = (role ?? '').trim().split(/\s+/).find(r => APP_ONLY_ROLES.has(r));
     const control = ctx.control || (APP_ONLY.has(tag) ? `<${tag}>` : appRole ? `role="${role}"` : null);
-    if (control) assert.ok(!classes(node).includes('agent-text'), `${what}: a box inside ${control}`);
+    if (control) assert.ok(!classes(node).includes('agent-text') && !classes(node).includes('agent-prose'), `${what}: a box inside ${control}`);
+    if (classes(node).includes('agent-prose')) assert.ok(wellFormedProse(node), `${what}: prose with the box's class outside a named group in a speaker's bubble`);
     if (classes(node).includes('agent-text-value')) assert.ok(wellFormedBox(node), `${what}: a value with the box's class outside a box with its name, border and source label`);
-    const box = ctx.box || (classes(node).includes('agent-text-value') && wellFormedBox(node));
+    const box = ctx.box || (classes(node).includes('agent-text-value') && wellFormedBox(node)) || wellFormedProse(node);
     for (const child of node.childNodes) walk(child, {box, control, tag});
   };
   walk(container, {box: false, control: null, tag: 'div'});
@@ -441,8 +458,10 @@ async function drawn(surface, data, what) {
     let readable = readableMarkup(raw) + '\n' + readableText(container);
     if (surface.interact) {
       const button = words => container.querySelectorAll(n => n.localName === 'button' && n.textContent === words)[0];
-      for (const words of ['Choose option 1', 'Allow once']) if (button(words)) {
-        await React.act(async () => { await props(button(words)).onClick(); });
+      // A question's option is a radio button named "Choose option N"; an answer is a button.
+      const option = words => container.querySelectorAll(n => n.localName === 'input' && n.getAttribute('aria-label') === words)[0];
+      for (const words of ['Choose option 1', 'Allow once']) if (button(words) || option(words)) {
+        await React.act(async () => { if (option(words)) props(option(words)).onChange({target: {checked: true}}); else await props(button(words)).onClick(); });
         assertMounted(container, `${what} (mounted, after ${words})`);
         text += container.textContent;
         readable += '\n' + readableText(container);

@@ -598,13 +598,17 @@ export function NativeRequestCard({ request, view, answer, readRequest, observat
   const elicitationAcceptSupported = formMode || p.mode === "url";
   const item = requestItem(request, view);
   const a14 = TOOL_PERMISSION.includes(method);
-  return <article id={requestAnchorId(request.generation, request.requestIdentity)} style={{ borderTop: "1px solid #ccc", padding: 8 }}>
-    <h3>{requestTitle(request)}</h3>
+  const asker = requestAsker(requestThread(request), request.generation, view);
+  const open = answerable(request) && !replyGuard;
+  // 3.0.1's card frame: the request's kind and, while it waits for the person, "answer required". The question and
+  // its answers come first; who asked (when it is not the conversation's own agent), the register and the request
+  // as Codex sent it are under "Request details". No answer is styled above another.
+  return <article id={requestAnchorId(request.generation, request.requestIdentity)} className="permission-card request-card" role="group" aria-label={`Request: ${requestTitle(request)}`}>
+    <header className="permission-card-header"><h3 className="permission-card-tool">{requestTitle(request)}</h3>{open && <span className="permission-card-badge">answer required</span>}</header>
     {!KNOWN_METHODS.includes(method) && <p>Codex named the request: {method === undefined || method === null || method === "" ? "no method" : <AgentText value={text(method)} source="codex" label="Method:" name="The request's method as Codex sent it, not the App's words" />}</p>}
     {method === ELICITATION && <p>{text(p.serverName) === "" ? "MCP server name not reported." : <>MCP server, as named in the request: <AgentText value={text(p.serverName)} label="Server name:" name={ELICITATION_TEXT} /></>}</p>}
-    <p className="request-asker"><AskedBy asker={requestAsker(requestThread(request), request.generation, view)} />.</p>
-    <p><b>{unreconciled ? reply?.command.kind === "pending" ? "Answer command in progress" : "Current request state unavailable or not reconciled" : cardState(request)}</b>{unreconciled && <>. Last observed: {cardState(request)}</>}</p>
-    {request?.settlement?.origin?.class === "app-rule" && <p><small>App rule: <SuppliedId value={request.settlement.origin.ruleName} label="Rule:" name="The App rule's name as recorded" /></small></p>}
+    {asker.kind !== "conversation" && <p className="request-asker"><AskedBy asker={asker} />.</p>}
+    {!open && <p><b>{unreconciled ? reply?.command.kind === "pending" ? "Answer command in progress" : "Current request state unavailable or not reconciled" : cardState(request)}</b>{unreconciled && <>. Last observed: {cardState(request)}</>}</p>}
     {reply && <section aria-label="Native reply observation">
       <p>{replyObservationWords(reply)}</p>
       {reply.command.kind === "rejected" && <p><AgentText value={text(reply.command.reason)} source="codex" label="Reported:" name="What the native answer command reported, not the App's words" /></p>}
@@ -612,58 +616,70 @@ export function NativeRequestCard({ request, view, answer, readRequest, observat
       {!reply.custody.available && reply.command.kind !== "pending" && <p role="alert">Request state unavailable: {reply.custody.reason ? <AgentText value={text(reply.custody.reason)} source="codex" label="Reported:" name="Why the request state could not be read, as reported; it may not be the App's words" /> : "the original request custody could not be read"}</p>}
       {unreconciled && reply.command.kind !== "pending" && readRequest && <button disabled={busy} onClick={() => { void reread(); }}>Read current request state</button>}
     </section>}
-    <About request={request} item={item} navigation={activityLink?.(request) ?? null} />
     <Subject request={request} item={item} place={place} />
-    {a14 && <p>Tool permission only. Your answer decides whether Codex may use this tool; it does not mark anything checked, take the work as done, give engineering sign-off or rely on the result, and it is not recorded as a human act. <a href="#file-acts">Open the App act control</a> (a separate standing facility; nothing is filled in from this request).</p>}
-    {(method === QUESTION || method === ELICITATION) && <p>Your answer goes to the agent as conversation input; it is not a recorded act. <a href="#file-acts">Open the App act control</a> (a separate standing facility; nothing is filled in from this request).</p>}
-    {answerable(request) && !replyGuard && <div>
+    {open && <div className="v4-request-answers">
       {modern && <AnswerConsequences request={request} forms={forms} place={place} changesArrived={fileChanges(item).length > 0} />}
-      {forms.map(form => modern ? <div key={JSON.stringify(form.decision)}>{formButton(form)}<DecisionNote request={request} decision={form.decision} place={place} /></div> : formButton(form))}
+      {forms.length > 0 && <div className="permission-card-actions">{forms.map(form => modern ? <div key={JSON.stringify(form.decision)} className="v4-request-answer">{formButton(form)}<DecisionNote request={request} decision={form.decision} place={place} /></div> : formButton(form))}</div>}
       {modern && forms.length === 0 && <p>This request offers no answer forms.</p>}
       {legacy && <div>
         <label>Reason for Codex with “{decisionWords("denied")}” (optional; sent exactly as written, up to {REJECTION_LIMIT} characters) <textarea {...EXACT_TEXT} disabled={busy} value={rejection} onChange={e => setRejection(e.target.value)} /></label>
         {rejectionRefused && <p role="alert">{rejectionRefused} Nothing is sent until it is changed.</p>}
       </div>}
-      {method === PERMISSIONS && <>
+      {method === PERMISSIONS && <div className="permission-card-actions">
         <label>Grant scope <select value={scope} onChange={e => setScope(e.target.value)}><option value="turn">turn</option><option value="session">session</option></select></label>
         <button disabled={busy} onClick={() => send({ permissions: p.permissions, scope })}>Grant the requested permissions</button>
         <button disabled={busy} onClick={() => send({ permissions: {}, scope })}>Grant nothing</button>
         <label>Grant part of them (native JSON) <input {...EXACT_TEXT} value={content} onChange={e => setContent(e.target.value)} /></label>
         <button disabled={busy || !content} onClick={() => { try { void send({ permissions: JSON.parse(content), scope }); } catch { setError("permission-json"); } }}>Send partial grant…</button>
-      </>}
-      {method === QUESTION && <>
-        {(p.questions ?? []).map((q: Json) => <div key={q.id}>
+      </div>}
+      {method === QUESTION && <form className="native-plan-clarification" onSubmit={event => event.preventDefault()}>
+        {(p.questions ?? []).map((q: Json, n: number) => <fieldset key={q.id}>
+          <legend>{`Question ${n + 1}`}</legend>
           {text(q.header) !== "" && <p>Heading: <AgentText value={text(q.header)} /></p>}
           <p>Question: {text(q.question) === "" ? "no wording reported" : <AgentText value={text(q.question)} />}</p>
-          {/* The option's label is the agent's: the button carries the App's words and the label stands beside it. */}
-          {(q.options ?? []).map((o: Json, i: number) => <div key={i}><button disabled={busy} onClick={() => { setChosen(c => ({ ...c, [q.id]: i })); setDrafts(d => { const next = { ...d }; delete next[q.id]; return next; }); }}>Choose option {i + 1}</button>
-            {" "}<AgentText value={text(o.label)} label={`Option ${i + 1}:`} />{text(o.description) !== "" && <> <AgentText value={text(o.description)} label="Its description:" /></>}</div>)}
-          {q.isOther && <label>Your own answer <input autoComplete="off" type={q.isSecret ? "password" : "text"} value={drafts[q.id] ?? ""} onChange={e => { const typed = e.target.value; setChosen(c => { const next = { ...c }; delete next[q.id]; return next; }); setDrafts(d => ({ ...d, [q.id]: typed })); }} /></label>}
-          <button disabled={busy} onClick={() => { setChosen(c => { const next = { ...c }; delete next[q.id]; return next; }); setDrafts(d => { const next = { ...d }; delete next[q.id]; return next; }); }}>Leave unanswered</button>
-          <p>Selected: {chosen[q.id] !== undefined ? q.isSecret ? "[masked]" : <SelectedOption options={q.options} index={chosen[q.id]} /> : drafts[q.id] !== undefined ? q.isSecret ? "[masked]" : "your own answer, in the field above" : "—"}</p>
-        </div>)}
-        <button disabled={busy} onClick={() => send({ answers: questionAnswers(p.questions, chosen, drafts) }, "question-answers")}>{wordOf(QUESTION_CHOICE_WORDS, "question-answers")}</button>
-        <p>Unanswered questions are omitted; entered empty answers are preserved.</p>
-        <button disabled={busy} onClick={() => send({ answers: {} }, "question-decline")}>{wordOf(QUESTION_CHOICE_WORDS, "question-decline")}</button>
-      </>}
+          {/* The option's label is the agent's: the radio button is named in the App's words and the label stands beside it. */}
+          {(q.options ?? []).map((o: Json, i: number) => <div key={i} className="v4-question-option">
+            <input type="radio" name={`${requestAnchorId(request.generation, request.requestIdentity)}-question-${n}`} aria-label={`Choose option ${i + 1}`} disabled={busy} checked={chosen[q.id] === i}
+              onChange={() => { setChosen(c => ({ ...c, [q.id]: i })); setDrafts(d => { const next = { ...d }; delete next[q.id]; return next; }); }} />
+            <span><AgentText value={text(o.label)} label={`Option ${i + 1}:`} />{text(o.description) !== "" && <> <AgentText value={text(o.description)} label="Its description:" /></>}</span></div>)}
+          {q.isOther && <label className="native-plan-clarification-other">Your own answer <input autoComplete="off" type={q.isSecret ? "password" : "text"} value={drafts[q.id] ?? ""} onChange={e => { const typed = e.target.value; setChosen(c => { const next = { ...c }; delete next[q.id]; return next; }); setDrafts(d => ({ ...d, [q.id]: typed })); }} /></label>}
+          <p className="v4-question-selected">Selected: {chosen[q.id] !== undefined ? q.isSecret ? "[masked]" : <SelectedOption options={q.options} index={chosen[q.id]} /> : drafts[q.id] !== undefined ? q.isSecret ? "[masked]" : "your own answer, in the field above" : "—"}
+            {" "}<button type="button" disabled={busy} onClick={() => { setChosen(c => { const next = { ...c }; delete next[q.id]; return next; }); setDrafts(d => { const next = { ...d }; delete next[q.id]; return next; }); }}>Leave unanswered</button></p>
+        </fieldset>)}
+        <div className="permission-card-actions">
+          <button type="button" disabled={busy} onClick={() => send({ answers: questionAnswers(p.questions, chosen, drafts) }, "question-answers")}>{wordOf(QUESTION_CHOICE_WORDS, "question-answers")}</button>
+          <button type="button" disabled={busy} onClick={() => send({ answers: {} }, "question-decline")}>{wordOf(QUESTION_CHOICE_WORDS, "question-decline")}</button>
+        </div>
+        <p><small>Unanswered questions are omitted; entered empty answers are preserved.</small></p>
+      </form>}
       {method === ELICITATION && <>
         <p>Codex input mode: <SuppliedId value={p.mode} label="Mode:" name="The input mode Codex sent, not the App's words" />.</p>
         {formMode && <label>Form content (JSON, masked) <input type="password" autoComplete="off" value={content} onChange={e => setContent(e.target.value)} /></label>}
-        {elicitationAcceptSupported && <button disabled={busy || (formMode && !content)} onClick={() => { try { void send({ action: "accept", content: formMode ? JSON.parse(content) : null, _meta: null }); } catch { setError("form-json"); } }}>Send this input <code>accept</code>…</button>}
         {!elicitationAcceptSupported && <p>Sending input is not supported for this mode in this App path. Device verification requires actual device proof; this App supplies none.</p>}
-        <button disabled={busy} onClick={() => send({ action: "decline", content: null, _meta: null })}>Decline <code>decline</code></button>
-        <button disabled={busy} onClick={() => send({ action: "cancel", content: null, _meta: null })}>Cancel <code>cancel</code></button>
+        <div className="permission-card-actions">
+          {elicitationAcceptSupported && <button disabled={busy || (formMode && !content)} onClick={() => { try { void send({ action: "accept", content: formMode ? JSON.parse(content) : null, _meta: null }); } catch { setError("form-json"); } }}>Send this input <code>accept</code>…</button>}
+          <button disabled={busy} onClick={() => send({ action: "decline", content: null, _meta: null })}>Decline <code>decline</code></button>
+          <button disabled={busy} onClick={() => send({ action: "cancel", content: null, _meta: null })}>Cancel <code>cancel</code></button>
+        </div>
       </>}
-      <p>Sending opens a native confirmation. Closing this card leaves the request waiting; the App never answers it by itself.</p>
+      <p><small>Sending opens a native confirmation. Closing this card leaves the request waiting; the App never answers it by itself.</small></p>
     </div>}
     {error && <ErrorLine kind={error.kind} reported={error.reported} />}
-    <p><small>Register: state <SuppliedId value={request.state} label="State:" name={REGISTER} /> · reply <SuppliedId value={request.replyWriteResult} label="Reply:" name={REGISTER} /> · Codex confirmation <SuppliedId value={request.acknowledgmentObservation?.status ?? "not-observed"} label="Confirmation:" name={REGISTER} />{request.settlement && <> · settled by <AgentText value={text(request.settlement.origin)} source="codex" label="Origin:" name={REGISTER} /> as <SuppliedId value={request.settlement.kind} label="Kind:" name={REGISTER} /></>}</small></p>
-    {request.closedGeneration && request.settlement && <section aria-label="Retained reply">
-      <p>Prepared reply:</p>
-      {request.settlement.nativeContent !== undefined && <AgentText block value={JSON.stringify(request.settlement.nativeContent, null, 2) ?? ""} source="codex" label="As the host recorded it:" name="The prepared reply as the host recorded it, which may hold the agent's text, not the App's words" />}
-      {request.settlement.redaction && <p>Secret answer values are removed; the original question references are retained.</p>}
-    </section>}
-    <details><summary>Native request parameters and owning generation (as received)</summary><AgentText block value={JSON.stringify({ method, requestIdentity: request.requestIdentity, generation: request.generation, parameters: p }, null, 2)} source="codex" label="As Codex sent it:" name="Native request as Codex sent it, which holds the agent's text, not the App's words" /></details>
+    {a14 && <p><small>Tool permission only. Your answer decides whether Codex may use this tool; it does not mark anything checked, take the work as done, give engineering sign-off or rely on the result, and it is not recorded as a human act. <a href="#file-acts">Open the App act control</a> (a separate standing facility; nothing is filled in from this request).</small></p>}
+    {(method === QUESTION || method === ELICITATION) && <p><small>Your answer goes to the agent as conversation input; it is not a recorded act. <a href="#file-acts">Open the App act control</a> (a separate standing facility; nothing is filled in from this request).</small></p>}
+    <details className="v4-request-details"><summary>Request details</summary>
+      {asker.kind === "conversation" && <p className="request-asker"><AskedBy asker={asker} />.</p>}
+      {open && <p>{cardState(request)}.</p>}
+      {request?.settlement?.origin?.class === "app-rule" && <p><small>App rule: <SuppliedId value={request.settlement.origin.ruleName} label="Rule:" name="The App rule's name as recorded" /></small></p>}
+      <About request={request} item={item} navigation={activityLink?.(request) ?? null} />
+      <p><small>Register: state <SuppliedId value={request.state} label="State:" name={REGISTER} /> · reply <SuppliedId value={request.replyWriteResult} label="Reply:" name={REGISTER} /> · Codex confirmation <SuppliedId value={request.acknowledgmentObservation?.status ?? "not-observed"} label="Confirmation:" name={REGISTER} />{request.settlement && <> · settled by <AgentText value={text(request.settlement.origin)} source="codex" label="Origin:" name={REGISTER} /> as <SuppliedId value={request.settlement.kind} label="Kind:" name={REGISTER} /></>}</small></p>
+      {request.closedGeneration && request.settlement && <section aria-label="Retained reply">
+        <p>Prepared reply:</p>
+        {request.settlement.nativeContent !== undefined && <AgentText block value={JSON.stringify(request.settlement.nativeContent, null, 2) ?? ""} source="codex" label="As the host recorded it:" name="The prepared reply as the host recorded it, which may hold the agent's text, not the App's words" />}
+        {request.settlement.redaction && <p>Secret answer values are removed; the original question references are retained.</p>}
+      </section>}
+      <details><summary>Native request parameters and owning generation (as received)</summary><AgentText block value={JSON.stringify({ method, requestIdentity: request.requestIdentity, generation: request.generation, parameters: p }, null, 2)} source="codex" label="As Codex sent it:" name="Native request as Codex sent it, which holds the agent's text, not the App's words" /></details>
+    </details>
   </article>;
 }
 

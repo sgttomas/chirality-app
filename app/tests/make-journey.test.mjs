@@ -127,7 +127,8 @@ test('an offered request fills only an empty composer of its conversation, keeps
   const panelHost = {state:'ready', generation:g, roleLimits:{account:{roles:[]}}, threads:[{generation:g, threadId:'T1', futureGuidanceNotices:[]}, {generation:g, threadId:'T2', futureGuidanceNotices:[]}]};
   const show = (threadKey, composerOffer) => React.act(async () => root.render(React.createElement(ConversationPanel, {host:panelHost, threadKey, composerOffer, setThreadKey:() => {},
     answer:noop, runAct:noop, send:async (...args) => { sends.push(args); }, steer:noop, submitAttachments:noop, interrupt:noop, checkPlanMode:noop, codexBusy:false})));
-  const textarea = () => all(container, 'textarea').find(node => node.parentNode.textContent.startsWith('Text '));
+  // The conversation's message box ("Chat input").
+  const textarea = () => all(container, 'textarea').find(node => node.getAttribute('id') === 'ordinary-composer-text');
   const revealed = [];
   document.getElementById = id => { revealed.push(id); return container.querySelectorAll(node => node.getAttribute('id') === id)[0] ?? null; };
   await show(key('T1'), null);

@@ -43,10 +43,12 @@ const A14={
 
 test('tool-permission cards are titled and read without the raw JSON',()=>{
   const html=render(command());
-  assert.match(html,/<h3>Tool permission: run a command<\/h3>/);
-  const outside=html.replace(/<details>[\s\S]*?<\/details>/g,'');
+  assert.match(html,/<h3 class="permission-card-tool">Tool permission: run a command<\/h3>/);
+  // What is in view without opening anything: the Request details disclosure (and what it holds) is taken out whole.
+  const outside=html.replace(/<details class="v4-request-details">[\s\S]*$/,'').replace(/<details>[\s\S]*?<\/details>/g,'');
   assert.ok(outside.includes('Command: ⟦The agent wrote: ls -la⟧')&&outside.includes('Working folder: ⟦The agent wrote: /work⟧')&&outside.includes('Reason given: ⟦The agent wrote: List the folder⟧'),'command, folder and reason are shown readably, as the agent\'s');
-  assert.ok(outside.includes('<b>Waiting for your answer</b>'));
+  assert.ok(outside.includes('<span class="permission-card-badge">answer required</span>'),'an open request says in view that it needs an answer');
+  assert.match(html,/<details class="v4-request-details"><summary>Request details<\/summary>[\s\S]*Waiting for your answer/,'its full state is in Request details');
   assert.ok(!/item\/commandExecution\/requestApproval/.test(outside),'the method name is not the title');
   for(const [method,r] of Object.entries(A14)) assert.ok(requestTitle(r).startsWith('Tool permission: '),method);
   assert.equal(requestTitle(request('item/tool/requestUserInput',{...at,questions:[],isBlocking:true})),'Question from the agent');
@@ -132,7 +134,7 @@ test('questions and input requests say they are conversation input and offer the
   assert.match(html,/Not blocking the turn/);assert.match(html,/Decline to answer/);
   const e=request('mcpServer/elicitation/request',{threadId:'T',turnId:'u',serverName:'srv',mode:'url',message:'Open this',url:'https://example.invalid/x',elicitationId:'e'});
   const eh=render(e);
-  assert.match(eh,/<h3>Input request from an MCP server or the agent \(not established\)<\/h3><p>MCP server, as named in the request: ⟦Server name: srv⟧<\/p>/,'the server name is below the heading, in its own box');
+  assert.match(eh,/<h3 class="permission-card-tool">Input request from an MCP server or the agent \(not established\)<\/h3>(<span class="permission-card-badge">answer required<\/span>)?<\/header><p>MCP server, as named in the request: ⟦Server name: srv⟧<\/p>/,'the server name is below the heading, in its own box');
   assert.match(eh,/the App never opens it/);assert.ok(!/<a href="https:/.test(eh),'the address is never a link');
 });
 
@@ -247,13 +249,16 @@ async function withReplyObserver(check, {outcome='written',failRefresh=true,perm
   });
   const props=node=>node[Object.keys(node).find(key=>key.startsWith('__reactProps$'))];
   const button=label=>container.querySelectorAll(node=>node.localName==='button'&&node.textContent===label)[0];
+  // A question's options are radio buttons, each named "Choose option N".
+  const option=label=>container.querySelectorAll(node=>node.localName==='input'&&node.getAttribute('aria-label')===label)[0];
+  const chooseOption=label=>React.act(()=>props(option(label)).onChange({target:{checked:true}}));
   const send=()=>permission?container.querySelectorAll(node=>node.localName==='button'&&node.textContent.startsWith("Don't allow; the agent continues the turn"))[0]:button('Send current question answers…');
   const render=()=>React.act(async()=>root.render(React.createElement(App)));
   try {
     await render();
     await check({container,calls,props,button,send,get custody(){return custody;},original,
-      async choose(){if(!permission)await React.act(()=>props(button('Choose option 1')).onClick());},
-      async answer(){if(!permission)await React.act(()=>props(button('Choose option 1')).onClick());await React.act(async()=>props(send()).onClick());},
+      async choose(){if(!permission)await chooseOption('Choose option 1');},
+      async answer(){if(!permission)await chooseOption('Choose option 1');await React.act(async()=>props(send()).onClick());},
       async read(){await React.act(async()=>props(button('Read current request state')).onClick());},
       async selectConversation(threadId){const select=choiceList(container,'Current-generation conversation');await React.act(()=>chooseIn(select,threadId?JSON.stringify([g,threadId]):''));},
       allowRefresh(){refreshUnavailable=false;},replyAs(next){currentOutcome=next;},

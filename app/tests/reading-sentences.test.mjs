@@ -16,6 +16,7 @@ afterEach(() => { localRoute.LOCAL_ROUTE_OFFERED = false; });
 import {installMiniDom} from './support/mini-dom.mjs';
 import {choiceLists, chooseIn} from './support/choices.mjs';
 import {installIdleNativeWaiting} from './support/idle-native-waiting.mjs';
+import { conversationView, newChatButton, startWithFirstMessage } from './support/conversation-view.mjs';
 const document = installMiniDom();
 const React = (await import('react')).default;
 const {createRoot} = await import('react-dom/client');
@@ -31,7 +32,7 @@ const project = {reference:'/invented/work'};
 const props = node => node[Object.keys(node).find(k => k.startsWith('__reactProps$'))];
 const nodes = (c, tag) => c.querySelectorAll(node => node.localName === tag);
 const region = (c, label) => c.querySelectorAll(node => node.getAttribute('aria-label') === label)[0];
-const button = (c, label) => nodes(c, 'button').find(node => node.textContent === label);
+const button = (c, label) => nodes(c, 'button').find(node => (node.textContent===label||node.getAttribute("aria-label")===label));
 const labelled = (c, tag, label) => nodes(c, tag).find(node => node.parentNode.textContent.startsWith(label));
 const change = (node, value) => React.act(() => node.localName === 'fieldset' ? chooseIn(node, value) : props(node).onChange({target:{value}}));
 const press = (c, label) => React.act(async () => { const node = button(c, label); assert.ok(node, label); assert.equal(!!props(node).disabled, false, label); await props(node).onClick(); });
@@ -229,6 +230,7 @@ async function conversationWriter(operation, commandFails, check) {
     if (command === 'decision_view') return {rows:[]};
     if (command === 'native_confirmation_content') return [];
     if (command === 'thread_start') throw READING_GATE;
+    if (command === 'read_available_models') return {state:'observed', generation:g, modeHomeClass:'account', serverProvider:'openai', serverProviderState:'named', complete:true, limits:[], models:[]};
     if (command === commands[operation]) { failStatus = true; if (commandFails) throw `invented ${operation} refusal`; return operation === 'send' ? {result:{turn:{id:'r4-turn'}}} : {}; }
     throw Error(`unexpected ${command}`);
   });
@@ -240,12 +242,14 @@ async function conversationWriter(operation, commandFails, check) {
   const tap = async label => { await React.act(async () => { const node = button(c, label); assert.ok(node, label); assert.equal(!!props(node).disabled, false, label); await props(node).onClick(); }); await settle(); };
   try {
     await React.act(async () => root.render(React.createElement(App)));
-    const panel = () => c.querySelectorAll(node => node.getAttribute('id') === 'conversation')[0];
-    await change(choiceLists(panel())[0], JSON.stringify([g, 'thread-a']));
-    // The account start's one route (the built-in provider with the ChatGPT account entry) is in use; then its model.
+    const panel = () => conversationView(c);
+    // A start from New chat: the account start's one route (the built-in provider with the ChatGPT account entry) is in
+    // use; then its model and the first message, whose Send runs the start.
+    await React.act(async () => { props(newChatButton(c)).onClick(); });
     await change(labelled(c, 'input', 'Model '), 'r4-model');
-    await tap('Start thread');
+    assert.ok(await startWithFirstMessage(c, React.act, { newChat: false })); await settle();
     assert.ok(c.textContent.includes(`thread_start: ${READING_GATE}`), 'the reading sentence is on this view');
+    await change(choiceLists(panel())[0], JSON.stringify([g, 'thread-a']));
     if (operation !== 'plan' && operation !== 'interrupt') await change(nodes(panel(), 'textarea')[0], 'invented r4 text');
     if (operation === 'interrupt') await change(labelled(panel(), 'select', 'Observed live turn '), 'live-a');
     await tap({send:'Send text', plan:'Check plan mode availability', attach:'Send text and ordered attachments', steer:'Steer current live turn', interrupt:'Interrupt selected live turn'}[operation]);

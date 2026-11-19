@@ -16,7 +16,7 @@ const thread = (threadId, generation = g) => ({generation, threadId, model:'inve
 const hostFor = (generation = g) => ({state:'ready', generation, roleLimits:{account:{roles:[]}}, threads:[thread('thread-a', generation), thread('thread-b', generation)]});
 const props = node => node[Object.keys(node).find(k => k.startsWith('__reactProps$'))];
 const nodes = (c, tag) => c.querySelectorAll(node => node.localName === tag);
-const button = (c, label) => nodes(c, 'button').find(node => node.textContent === label);
+const button = (c, label) => nodes(c, 'button').find(node => (node.textContent===label||node.getAttribute("aria-label")===label));
 const noop = async () => {};
 
 async function mounted(reply, check) {

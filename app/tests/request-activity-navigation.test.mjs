@@ -4,6 +4,7 @@ import {installMiniDom} from './support/mini-dom.mjs';
 import {choiceLists, chooseIn, chooser, chosenIn} from './support/choices.mjs';
 import {loadSrc} from './support/load-src.mjs';
 import {installIdleNativeWaiting} from './support/idle-native-waiting.mjs';
+import { conversationView } from './support/conversation-view.mjs';
 
 // Source-faithful maintained positive shapes from native-activity/request-cards
 // fixtures, with NativeView::snapshot_with_requests' exact full-generation and
@@ -92,7 +93,7 @@ async function mounted(check, prepare = () => {}) {
   });
   const c = document.createElement('div'); document.body.appendChild(c); const root = createRoot(c);
   const byId = id => c.querySelectorAll(element => element.getAttribute('id') === id);
-  const conversation = () => byId('conversation')[0];
+  const conversation = () => conversationView(c);
   const activity = () => c.querySelectorAll(element => element.getAttribute('aria-label') === 'Native activity')[0];
   const choose = async (element, value) => React.act(() => element.localName === 'fieldset' ? chooseIn(element, value) : props(element).onChange({target: {value}}));
   const show = thread => choose(elements(activity(), 'select')[0], thread);

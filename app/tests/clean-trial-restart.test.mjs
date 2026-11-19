@@ -10,6 +10,7 @@ import {agentBlocks, agentBlockText} from './support/agent-text.mjs';
 import {choiceLists, chooseIn, chosenIn} from './support/choices.mjs';
 import './support/rust-prebuild.mjs';
 
+import { conversationView } from './support/conversation-view.mjs';
 const document = installMiniDom();
 const {createRoot} = await import('react-dom/client');
 const {WorkflowRootPanel,ConversationPanel} = loadSrc('App');
@@ -17,7 +18,7 @@ const {conversationKey,findConversation} = loadSrc('TrialComposer');
 const {TrialRow,initialDraftsState} = loadSrc('WorkflowDrafts');
 const props = node => node[Object.keys(node).find(key => key.startsWith('__reactProps$'))];
 const nodes = (container,tag) => container.querySelectorAll(node => node.localName === tag);
-const button = (container,label) => nodes(container,'button').find(node => node.textContent === label);
+const button = (container,label) => nodes(container,'button').find(node => (node.textContent===label||node.getAttribute("aria-label")===label));
 async function press(container,label) {
   const control = button(container,label);
   assert.ok(control,label);
@@ -103,7 +104,7 @@ const modelFor = (root,reference) => {
   return model;
 };
 async function showCurrentTarget(container,target) {
-  const conversation = container.querySelectorAll(node => node.getAttribute('id') === 'conversation')[0];
+  const conversation = conversationView(container);
   await choose(choiceLists(conversation)[0],conversationKey(target));
 }
 

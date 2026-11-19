@@ -88,7 +88,7 @@ export function Navigator({ projects, selectedKey, choose, answer, newChat, open
   return <nav className="woven-navigator" aria-label="Workspace Navigator">
     <header className="woven-navigator-brand">Chirality</header>
     <div className="woven-navigator-sections">
-      <button type="button" className="woven-new-chat" onClick={newChat}><span aria-hidden="true">＋</span> New chat</button>
+      <button type="button" className="woven-new-chat" disabled={!choose} onClick={newChat}><span aria-hidden="true">＋</span> New chat</button>
       <div className="woven-navigator-sessions">
         {projects.map((project, i) => <ProjectSection key={project.folder ?? `project-${i}`} project={project} selectedKey={selectedKey} disabled={!choose} choose={key => choose?.(key)} answer={answer}/>)}
       </div>

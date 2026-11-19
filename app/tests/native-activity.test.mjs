@@ -65,8 +65,11 @@ test('turns follow native start time and items follow receipt order, scoped to t
 test('messages are readable, escaped and never presented as acts',()=>{
   const html=render();
   assert.ok(html.includes('Please &lt;b&gt;list&lt;/b&gt; files'));assert.ok(!html.includes('<b>list</b>'));
-  assert.match(html,/User message<\/b> \(text Codex recorded as input; not an act\)/);
-  assert.match(html,/Agent<\/b> · final answer/);assert.ok(html.includes('Thinking about listing'));
+  // The person's message under "You", in the box for what Codex recorded as their message, with no control in it.
+  const yours=html.match(/<article class="chat-bubble chat-bubble--operator" data-role="operator" aria-label="Your message"><p class="chat-speaker">You<\/p>[\s\S]*?<\/article>/)?.[0]??'';
+  assert.match(yours,/⟦Recorded as your message:\nPlease &lt;b&gt;list&lt;\/b&gt; files⟧/);assert.doesNotMatch(yours,/<button|<a |<input|<select|<textarea/);
+  // The agent's message under the agent's label, with the phase Codex gave it.
+  assert.match(html,/<p class="chat-speaker">Agent<\/p><div class="v4-agent-message" id="[^"]+"><p class="v4-message-phase"><small>final answer<\/small><\/p>/);assert.ok(html.includes('Thinking about listing'));
   assert.ok(html.includes('Goal (⟦Source: thread/goal/updated⟧): ⟦Codex sent: Ship the slice⟧'));
   assert.ok(html.includes('Turn error: ⟦Codex sent: interrupted by request⟧'));
 });
@@ -189,7 +192,8 @@ test('a plan read from Codex history shows no revision number',()=>{
   const v=view();v.revisions[0].standing='recovered-from-supplier';v.items=v.items.map(r=>r.native.id==='turn-2-plan'?{...r,standing:'recovered-from-supplier'}:r);
   const html=render(v);
   assert.match(html,/Plan<\/b><div>.*· read from Codex history/);assert.ok(!html.includes('in this conversation'));
-  assert.equal(html.match(/read from Codex history/g).length,1,'the history label appears once');
+  // The view's own account of its sources (Activity source and limits) names Codex history too; the row's label is once.
+  assert.equal(html.replace(/<details class="v4-transcript-source">[\s\S]*?<\/details>/,'').match(/read from Codex history/g).length,1,'the history label appears once');
   v.items=v.items.map(r=>r.native.id==='turn-2-plan'?{...r,standing:'live-observed'}:r);
   assert.match(render(v),/Plan<\/b> · revision read from Codex history/,'a recovered revision on a live row still says so');
   v.revisions[0].standing='something-else';assert.match(render(v),/Plan<\/b><div>/,'an unrecognised standing shows no ordinal');
@@ -330,9 +334,14 @@ test('plan revisions and tool rows carry the run in force at their turn, from th
 });
 
 
+// One turn of the transcript: its section, as drawn.
+const turnOf=(html,n)=>html.match(new RegExp(`<section class="v4-turn" aria-label="Conversation turn ${n}"[\\s\\S]*?</section>`))?.[0]??'';
+// A turn's ended state as the App words it, beside the turn; a running turn's live activity line; neither for a completed turn.
+const turnStatus=(html,n)=>turnOf(html,n).match(/<p class="chat-turn-status"[^>]*>([^<]*)<\/p>/)?.[1];
+const turnLiveLine=(html,n)=>/data-turn-live="true"/.test(turnOf(html,n).slice(0,200))?turnOf(html,n).match(/<span class="turn-activity-summary">([^<]*)/)?.[1]:undefined;
 test('messages and observed statuses stay readable while command and reasoning diagnostics are folded',()=>{
  const html=render();assert.match(html,/<section[^>]*aria-label="Conversation turn 1"/);
- assert.match(html,/<h4>Turn 1.*interrupted/);
+ assert.equal(turnStatus(html,1),'Turn interrupted');
  assert.match(html,/<div>Command: ⟦The agent wrote: ls -la⟧<\/div><details><summary>Command details<\/summary>/);
  assert.match(html,/<details><summary>Command output<\/summary>/);
  assert.match(html,/<details><summary>Reasoning summary/);
@@ -351,7 +360,7 @@ test('a turn’s error notices show in Codex’s words with the retry state it g
  const v=view();v.turns.push({id:'turn-3',status:'inProgress',startedAt:300,items:[]});v.turnRecords.push({threadId:'T',turnId:'turn-3'});
  v.turnErrors=[notice('turn-3',40,1),notice('turn-3',41,2),{...notice('turn-x',42,1),threadId:'OTHER'}];
  const html=render(v);
- assert.match(html,/<h4>Turn 3 · in progress<\/h4>/);
+ assert.match(turnLiveLine(html,3),/^Working/,'a running turn says it is working, not that it ended');assert.equal(turnStatus(html,3),undefined);
  assert.match(html,/<div role="status" aria-label="Errors Codex reported in this turn"><p>Codex reported an error in this turn 2 times; the latest: ⟦Codex sent: Reconnecting\.\.\. waiting for network — Connection failed: error sending request⟧ Codex said it will retry\. No later event naming this turn has reached the App\.<\/p>/);
  assert.match(html,/The 2 error notices in the order received, each with its whole error object/);
  assert.match(html,/<li value="2">⟦Codex sent: Reconnecting\.\.\. waiting for network — Connection failed: error sending request⟧ · will retry<small> · received at position 41<\/small>⟦As Codex sent it:\n\{\n  &quot;message&quot;: &quot;Reconnecting\.\.\. waiting for network&quot;,\n  &quot;additionalDetails&quot;: &quot;Connection failed: error sending request&quot;,\n  &quot;codexErrorInfo&quot;: \{\n    &quot;responseStreamDisconnected&quot;: \{\n      &quot;httpStatusCode&quot;: null\n    \}\n  \}\n\}⟧<\/li>/);
@@ -375,22 +384,23 @@ test('a final error notice alerts, and a stopped Codex or a dropped notice is sa
  v.turnErrors=[notice('turn-3',40,1,{observationEnded:true,laterFrameForTurn:true})];v.observationEnded=true;
  const ended=render(v);
  assert.match(ended,/The App has since received a later event naming this turn\./);assert.doesNotMatch(ended,/stopped receiving|No later event/);
- assert.match(ended,/<h4>Turn 3 · completed<\/h4>/);
+ // A completed turn is said completed only in its source and timing, with no ended-state line.
+ assert.equal(turnStatus(ended,3),undefined);assert.equal(turnLiveLine(ended,3),undefined);assert.match(turnOf(ended,3),/native status completed/);
  v.turns.find(t=>t.id==='turn-3').status='inProgress';v.observationEnded=false;
  // A notice for a turn the view has nothing else for still shows, under a turn of unknown status.
  v.turnErrors=[notice('turn-9',90,1,{willRetry:undefined})];
- const orphan=render(v);assert.match(orphan,/status unknown<\/h4>/);assert.match(orphan,/Codex did not say whether it will retry\./);
+ const orphan=render(v);assert.equal(turnStatus(orphan,4),'Turn status unknown');assert.match(orphan,/Codex did not say whether it will retry\./);
  assert.deepEqual(activityModel(v,'T').turns.at(-1).errors.length,1);
 });
 
 test('a turn last seen in progress is not headed in progress once Codex has stopped',()=>{
  const v=view();v.turns.push({id:'turn-3',status:'inProgress',startedAt:300,items:[]});v.turnRecords.push({threadId:'T',turnId:'turn-3'});
- assert.match(render(v),/<h4>Turn 3 · in progress<\/h4>/);
+ assert.match(turnLiveLine(render(v),3),/^Working/);
  v.observationEnded=true;
  const html=render(v);
- assert.match(html,/<h4>Turn 3 · in progress when last observed; the App is no longer receiving from that Codex process, so its outcome is unknown<\/h4>/);
- assert.doesNotMatch(html,/<h4>Turn 3 · inProgress<\/h4>/);
- assert.match(html,/<h4>Turn 1 · interrupted<\/h4>/,'an observed end stays as observed');assert.match(html,/<h4>Turn 2 · completed<\/h4>/);
+ assert.equal(turnStatus(html,3),'Turn in progress when last observed; the App is no longer receiving from that Codex process, so its outcome is unknown');
+ assert.equal(turnLiveLine(html,3),undefined,'not drawn as running');assert.doesNotMatch(html,/inProgress<\/p>/);
+ assert.equal(turnStatus(html,1),'Turn interrupted','an observed end stays as observed');assert.equal(turnStatus(html,2),undefined);assert.match(turnOf(html,2),/native status completed/);
 });
 
 test('a frame named error that the App could not read is said as that and given no retry meaning',()=>{

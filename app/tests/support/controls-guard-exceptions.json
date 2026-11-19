@@ -562,15 +562,6 @@
   "reason": "Its target #workflow-draft-next-step holds draftReason (App.tsx:1049), a choice of literal sentences or progress, which the workflow operations set only from literal sentences (App.tsx:988) or \"\" (1020)."
  },
  {
-  "file": "App.tsx",
-  "where": "@aria-describedby",
-  "expr": "{startBlocked ? \"start-conversation-blocked\" : undefined}",
-  "component": "App",
-  "count": 1,
-  "basis": "an App-owned literal vocabulary",
-  "reason": "Its target #start-conversation-blocked holds startBlocked (App.tsx:1919), a choice of literal sentences or rowChoiceNote (App.tsx:1912), itself literal sentences. The reference is conditional so no description is named when Start is available; the guard takes only a literal reference."
- },
- {
   "file": "DesktopSetupPanel.tsx",
   "where": "@aria-describedby",
   "expr": "\"desktop-setup-next-step\"",
@@ -632,5 +623,59 @@
   "count": 1,
   "basis": "an App-owned literal vocabulary",
   "reason": "tab is one of the literal ids of RIGHT_PANEL_TABS (WorkspaceShell.tsx:6-11, typed RightPanelTab), so this names exactly one of the tab buttons written in the same file, id right-tab-<id>, whose content is that tab's literal label. The guard takes only a literal id list."
+ },
+ {
+  "file": "App.tsx",
+  "where": "@aria-describedby",
+  "expr": "\"ordinary-send-readiness\"",
+  "component": "ConversationPanel",
+  "count": 2,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "Its target #ordinary-send-readiness holds sendReadiness, a choice of literal sentences or, with no conversation chosen, startNew.blocked followed by a literal: startNew is the App's StartSettings, whose blocked is App's startBlocked (App.tsx), a choice of literal sentences or rowChoiceNote, itself literal sentences. The guard does not follow a prop's field to its producer. It replaces the exception for the removed #start-conversation-blocked."
+ },
+ {
+  "file": "App.tsx",
+  "where": "<summary>",
+  "expr": "requestTitle(request)",
+  "component": "ConversationPanel",
+  "count": 1,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "requestTitle (RequestCards.tsx) returns only literal titles, one for each request method the App knows and one for any other. The guard does not follow an imported function's return."
+ },
+ {
+  "file": "App.tsx",
+  "where": "<summary>",
+  "expr": "cardState(request)",
+  "component": "ConversationPanel",
+  "count": 1,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "cardState (RequestCards.tsx) returns only literal sentences, one for each custody state and outcome the host reports. The guard does not follow an imported function's return."
+ },
+ {
+  "file": "App.tsx",
+  "where": "@aria-label",
+  "expr": "`Access level: ${level.name}`",
+  "component": "ConversationPanel",
+  "count": 1,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "level is levelInForce (PermissionLevel.tsx): its name is the level-name table's word for the level in force (PermissionLevel.tsx NAMES), the literal \"Not established\", or \"No permission level reported\". The guard does not follow an imported function's return."
+ },
+ {
+  "file": "App.tsx",
+  "where": "<button>",
+  "expr": "`${level.name} — choose to continue`",
+  "component": "ConversationPanel",
+  "count": 1,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "level.name as for the access level's aria-label, followed by a literal."
+ },
+ {
+  "file": "App.tsx",
+  "where": "<button>",
+  "expr": "level.name",
+  "component": "ConversationPanel",
+  "count": 1,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "level.name as for the access level's aria-label."
  }
 ]

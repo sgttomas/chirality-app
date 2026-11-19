@@ -14,6 +14,7 @@ import {loadSrc} from './support/load-src.mjs';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {installIdleNativeWaiting} from './support/idle-native-waiting.mjs';
 import './support/rust-prebuild.mjs';
+import { chatInput, sendButton } from './support/conversation-view.mjs';
 const app=new URL('../',import.meta.url),out=mkdtempSync(`${tmpdir()}/access-provider-private-`);
 const document=installMiniDom();
 const {createRoot}=await import('react-dom/client');
@@ -141,7 +142,7 @@ test('actual refusal stays safe in current source JSON and quoted role history',
 
 const props=node=>node[Object.keys(node).find(k=>k.startsWith('__reactProps$'))];
 const nodes=(c,tag)=>c.querySelectorAll(node=>node.localName===tag);
-const button=(c,label)=>nodes(c,'button').find(node=>node.textContent===label);
+const button=(c,label)=>nodes(c,'button').find(node=>(node.textContent===label||node.getAttribute("aria-label")===label));
 const labelled=(c,tag,label)=>nodes(c,tag).find(node=>node.parentNode.textContent.startsWith(label));
 const change=(node,value)=>React.act(()=>props(node).onChange({target:{value}}));
 const press=(c,label)=>React.act(async()=>{const node=button(c,label);assert.ok(node,label);assert.equal(!!props(node).disabled,false,label);await props(node).onClick();});
@@ -191,15 +192,18 @@ const ROUTE='Use my ChatGPT account (built-in OpenAI)';
 test('Start says why it is unavailable until a model is chosen; the only connection is shown in use',async()=>{
  const generation={appSession:'invented-session',home:'invented-account-home',spawnCounter:1};
  await mountedChooser({initial:{state:'ready',generationClosed:false,generation,homeRouting:{activeModeHomeClass:'account'},threads:[]}},async command=>{throw Error(`unexpected ${command}`);},async(c,calls)=>{
-  const why=()=>c.querySelectorAll(node=>node.getAttribute('id')==='start-conversation-blocked')[0]?.textContent;
+  // The start is the first message's Send; why it is unavailable is the composer's readiness line, which describes it.
+  const line=()=>c.querySelectorAll(node=>node.getAttribute('id')==='ordinary-send-readiness')[0];
+  const shownWhy=()=>line()?.getAttribute('class')==='visually-hidden'?undefined:line()?.textContent;
   assert.equal(button(c,ROUTE),undefined,'no toggle for the only connection');
   assert.match(c.textContent,/Connects with your ChatGPT account \(built-in OpenAI\) — the only connection this version offers\./);
-  assert.equal(props(button(c,'Start thread')).disabled,true);assert.match(why(),/Choose a model \(step 2\)/);
-  assert.doesNotMatch(c.textContent,/\(step 1\)/,'no step 1 while the only connection is in use');
-  assert.equal(props(button(c,'Start thread'))['aria-describedby'],'start-conversation-blocked');
+  await change(chatInput(c),'First message');
+  assert.equal(props(sendButton(c)).disabled,true);assert.match(shownWhy(),/^Choose a model\. Your draft stays here\.$/);
+  assert.doesNotMatch(c.textContent,/Choose how this conversation connects/,'no connection to choose while the only connection is in use');
+  assert.equal(props(sendButton(c))['aria-describedby'],'ordinary-send-readiness');
   await change(labelled(c,'input','Model '),'person-model');
-  assert.equal(props(button(c,'Start thread')).disabled,false);assert.equal(why(),undefined,'no reason is shown while Start is available');
-  assert.equal(props(button(c,'Start thread'))['aria-describedby'],undefined);
+  assert.equal(props(sendButton(c)).disabled,false);assert.equal(shownWhy(),undefined,'no reason is shown while Send can start it');
+  assert.equal(line().textContent,'Ready to start a new conversation and send it your text.','the line still says, to a screen reader, what Send will do');
   assert.equal(calls.filter(call=>!['host_status','decision_view','native_confirmation_content'].includes(call.command)).length,0,'choosing issues nothing');
  });
 });

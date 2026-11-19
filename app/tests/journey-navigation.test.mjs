@@ -10,6 +10,7 @@ import {loadSrc} from './support/load-src.mjs';
 import {choiceList, choiceLists, chooseIn, chosenIn} from './support/choices.mjs';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {installIdleNativeWaiting} from './support/idle-native-waiting.mjs';
+import { conversationView } from './support/conversation-view.mjs';
 const document = installMiniDom();
 const React = (await import('react')).default;
 const {createRoot} = await import('react-dom/client');
@@ -18,7 +19,7 @@ const g = {home:'account', appSession:'s1', spawnCounter:1};
 const key = id => JSON.stringify([g, id]);
 const props = node => node[Object.keys(node).find(k => k.startsWith('__reactProps$'))];
 const nodes = (c, tag) => c.querySelectorAll(node => node.localName === tag);
-const button = (c, label) => nodes(c, 'button').find(node => node.textContent === label);
+const button = (c, label) => nodes(c, 'button').find(node => (node.textContent===label||node.getAttribute("aria-label")===label));
 const shown = e => { for (let n = e; n; n = n.parentNode) if (props(n)?.hidden) return false; return true; };
 // The right panel's selected tab; the conversation is always shown in the centre beside it.
 const selectedTab = c => nodes(c, 'button').find(n => n.getAttribute('role') === 'tab' && n.getAttribute('aria-selected') === 'true')?.textContent;
@@ -44,7 +45,7 @@ test('Answer in the conversation selects the run conversation and reveals its re
   });
   try {
     await React.act(async () => root.render(React.createElement(App)));
-    const conversationSelect = () => choiceLists(c.querySelectorAll(n => n.getAttribute('id') === 'conversation')[0])[0];
+    const conversationSelect = () => choiceLists(conversationView(c))[0];
     assert.equal(chosenIn(conversationSelect()), '', 'no operational conversation is chosen yet');
     const guideSelect = choiceList(c, 'Conversation to run it in');
     await React.act(async () => chooseIn(guideSelect, 'T2'));
@@ -90,8 +91,9 @@ test('the ready trial link lands inside the clean trial composer, which says in 
     let prevented = false;
     await React.act(async () => props(main).onClick({target:link, currentTarget:main, preventDefault:() => { prevented = true; }}));
     assert.equal(prevented, true);
-    assert.ok(shown(panel), 'the Conversation view is shown, with the composer in it');
-    assert.equal(selectedTab(c), 'Run a workflow', 'the right panel is left as it is');
+    // The prepared composer is among the conversation's tools: the reveal selects their tab, and the composer is shown.
+    assert.ok(shown(panel), 'the composer is shown');
+    assert.equal(selectedTab(c), 'Conversation tools', 'the right panel shows the tab that holds it');
     assert.equal(panel.getAttribute('tabindex'), '-1', 'focus lands on the composer itself, not the conversation select above it');
     main.removeChild(link);
     assert.deepEqual(calls.filter(cmd => !['host_status', 'decision_view', 'native_confirmation_content', 'request_answer_companions'].includes(cmd)), [], 'following the link issues no action');

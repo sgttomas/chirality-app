@@ -277,13 +277,17 @@ test('the place is present whichever tab is selected, at the top of the conversa
       assert.ok(here, `${item.label}: the place is in the document`);
       assert.ok(shownIn(here, c), `${item.label}: the place is shown`);
       assert.match(nodes(here, 'summary')[0].textContent, /^Waiting on you: \d+( observed now)?( \(\d+ requests? from Codex\))?(; status incomplete)?$/);
+      const classes = node => (node.getAttribute('class') ?? '').split(' ');
       const sticky = here.parentNode;
-      assert.equal(sticky.getAttribute('class'), 'workspace-sticky', 'it stays in view while the conversation scrolls');
-      const centre = sticky.parentNode;
-      assert.equal(centre.getAttribute('class'), 'daily-workspace', 'a direct child of the element that scrolls, so it sticks while the conversation scrolls');
-      assert.equal(centre.parentNode.getAttribute('aria-label'), 'Conversation', 'in the centre region');
-      assert.ok(centre.contains(c.querySelectorAll(n => n.getAttribute('id') === 'view-conversation')[0]), 'which holds the conversation');
-      assert.equal(centre.childNodes[0], sticky, 'at the top of the centre');
+      assert.ok(classes(sticky).includes('workspace-sticky'), 'it stays in view while the conversation scrolls');
+      // The element that scrolls is the conversation's transcript (3.0.1's chat-transcript).
+      const scroller = sticky.parentNode;
+      assert.ok(classes(scroller).includes('chat-transcript'), 'a direct child of the element that scrolls, so it sticks while the conversation scrolls');
+      const centre = c.querySelectorAll(n => n.getAttribute('id') === 'view-conversation')[0];
+      assert.ok(centre.contains(scroller), 'in the conversation');
+      let region = centre; while (region && region.getAttribute?.('aria-label') !== 'Conversation') region = region.parentNode;
+      assert.ok(region, 'in the centre region');
+      assert.equal(scroller.childNodes[0], sticky, 'at the top of the transcript');
     }
     assert.equal(c.querySelectorAll(n => n.getAttribute('aria-label') === 'Requests waiting for your answer').length, 1, 'the waiting count is inside the place, once');
     assert.ok(place(c).contains(c.querySelectorAll(n => n.getAttribute('aria-label') === 'Requests waiting for your answer')[0]));
