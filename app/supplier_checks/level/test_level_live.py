@@ -1714,6 +1714,47 @@ class QuestionThatDoesNotWait(unittest.TestCase):
             self.assertIn('Invented yes', json.dumps(first))
             self.assertEqual(questions_in(read), [(asked_turn, 'call_resumeask', [ASYNC_QUESTION])])
 
+    def test_a_turn_summary_holds_the_persons_messages_and_the_question_as_the_full_read_does(self):
+        """PROPOSED (written by the App lane's builder; not yet run): what the App's own history reads see. The App
+        reads turns with `itemsView` `summary` after a restart; whether such a turn can establish that a question is
+        waiting, or that a message from the person follows it, rests on the summary keeping those items in order."""
+        with L.Run(SCRATCH, BINARY) as run:
+            client = run.start()
+            thread = client.start_thread(model=CATALOGUE_MODEL)['thread']['id']
+
+            def ask(body, outputs, stub):
+                if 'call_sumask' in outputs:
+                    return [L.message('Carried on.', 'msg_sumask')]
+                return [{'type': 'function_call', 'name': 'request_user_input_async', 'call_id': 'call_sumask',
+                         'id': 'fc_sumask', 'arguments': json.dumps({'questions': [ASYNC_QUESTION]})}]
+            run.stub.scripts['sumask'] = ask
+            run.stub.scripts['sumreply'] = lambda body, outputs, stub: [L.message('Thank you.', 'msg_sumreply')]
+            asked_turn, done = client.turn(thread, 'LEVEL[sumask] go')
+            self.assertEqual(done['turn']['status'], 'completed')
+            reply_turn, done = client.turn(thread, 'LEVEL[sumreply] Invented yes')
+            self.assertEqual(done['turn']['status'], 'completed')
+            client.kill()
+            client.drain()
+
+            def decisive(items):
+                # The items a reading decides on: the person's messages, and questions by their id.
+                return [('userMessage', None) if i.get('type') == 'userMessage' else ('question', i['id'])
+                        for i in items or [] if i.get('type') == 'userMessage'
+                        or (i.get('type') == 'agentMessage' and i.get('delivery') == 'async' and i.get('questions'))]
+            again = run.start()
+            again.result('thread/resume', {'threadId': thread, 'excludeTurns': True})
+            # As the App's recovery and history reads ask: newest first, item summaries.
+            summary = again.result('thread/turns/list', {'threadId': thread, 'sortDirection': 'desc', 'itemsView': 'summary'})['data']
+            full = again.result('thread/read', {'threadId': thread, 'includeTurns': True})['thread']['turns']
+            views = [(t['id'], t.get('itemsView')) for t in summary]
+            self.assertEqual([t['id'] for t in summary], [reply_turn, asked_turn], views)
+            self.assertEqual([decisive(t.get('items')) for t in full],
+                             [[('userMessage', None), ('question', 'call_sumask')], [('userMessage', None)]])
+            by_turn = {t['id']: decisive(t.get('items')) for t in full}
+            for turn in summary:
+                self.assertEqual(decisive(turn.get('items')), by_turn[turn['id']],
+                                 'turn %s (itemsView %r) holds other decisive items than the full read' % (turn['id'], turn.get('itemsView')))
+
     def test_on_a_model_the_catalogue_does_not_list_it_for_the_same_call_is_unsupported(self):
         """The control: the fixture's invented model has no catalogue entry."""
         with L.Run(SCRATCH, BINARY) as run:
