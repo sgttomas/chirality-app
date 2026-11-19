@@ -494,6 +494,11 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
   // A new pick, or a Remove, starts afresh; a pick the App dropped keeps what its last press came to.
   useEffect(() => { if (pick || !pickDropped) setPickOutcome(null); }, [pick]); // eslint-disable-line react-hooks/exhaustive-deps
   const pickCurrent = !!pick && pick.scope === pickScope(host);
+  // The open conversation's workflow selection, where the host holds one and no run of that conversation.
+  const chosenHere = selected ? chatWorkflow(workflowRoot, workflowRoot?.context?.sourceRef, selected.threadId) : undefined;
+  const chosenUnstarted: string | null = chosenHere && chosenHere.state !== "not-selected" && typeof chosenHere.identity?.name === "string" && chosenHere.identity.name
+    && !(Array.isArray(workflowRoot?.runs) ? workflowRoot.runs : []).some((run: Json) => run.conversation === selected?.threadId)
+    ? chosenHere.identity.name : null;
   const pickStop = pick && pickCurrent ? pickLimit(pick, host) : null;
   const pickRuns = pick && selected ? conversationRuns(host, selected.threadId) : null;
   const pickHeld = !!pickRuns?.unresolvedStart && checkedRun !== pickRuns.holdKey;
@@ -530,7 +535,7 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
     if (outcome.state === "started") {
       if (textRevision.current === revision) setText(current => current === draft ? "" : current);
       clearPick?.(picked);
-    } else if (outcome.state === "review") setPickOutcome({ owner: outcome.opened ?? owner, kind: "status", words: "Chosen for this conversation. Nothing has been sent: read what it needs, then press Start run." });
+    } else if (outcome.state === "review") setPickOutcome({ owner: outcome.opened ?? owner, kind: "status", words: "Read what it needs, then press Start run. Nothing has been sent." });
     else if (outcome.state === "stopped") setPickOutcome({ owner: outcome.opened ?? owner, kind: "alert", words: outcome.words });
   };
   const sendReadiness = !sourceReady ? "Connect to Codex before sending. Your draft stays here."
@@ -651,6 +656,9 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
       <div className="panel-body chat-transcript">
         <div className="chat-transcript-content daily-workspace v4-in-chat">
           {before}
+          {/* A workflow chosen for this conversation with no run of it started (the first press of Start run, left
+              there): said as that, so the conversation is not taken for a run. */}
+          {chosenUnstarted && <p className="panel-empty" role="note" aria-label="Workflow chosen, not started"><strong>{chosenUnstarted}</strong> is chosen for this conversation. No run has been started.</p>}
           {selected ? <NativeActivityView navigationRef={activityNavigationRef} key={`activity:${JSON.stringify([selected?.generation, selected?.threadId])}`} view={host?.nativeView} threadId={selected?.threadId} runs={runs} offers={offers}
             trialTurns={workflowRoot?.trialTurns} trialChildren={workflowRoot?.trialChildren} delegation={selected?.delegation} appRole={selected?.appRole} waiting={requests.some(answerable)}
             stopLabelFor={(thread, turn) => stopLabel(host?.codexStops, thread, turn, host?.stopRequests, appHome(host?.homeRouting?.activeModeHomeClass))}

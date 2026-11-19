@@ -313,7 +313,7 @@ export function PickChip({ pick, host, thread, disabled, remove }: { pick: Workf
     </ul>
     {tools ? <p className="v4-pick-note">{tools.words}{tools.missing.map((tool, index) => <span key={index}>{index ? "," : ""} <strong>{tool}</strong></span>)}{tools.missing.length ? "." : ""}
       {inputs.length > 0 && <> It asks for: {inputs.map((input: Json, index: number) => <span key={index}>{index ? ", " : ""}<strong>{text(input.name)}</strong>{input.necessity === "optional" ? " (optional)" : ""}</span>)}.</>}</p>
-      : <p className="v4-pick-note">The first press chooses it and shows the tools it needs; nothing is sent until you press again.</p>}
+      : <p className="v4-pick-note">Press Start run to see the tools it needs. Nothing is sent until you press again.</p>}
     <details className="v4-pick-details"><summary>Details</summary>
       {inputs.length > 0 && <ul aria-label="What this workflow needs">{inputs.map((input: Json, index: number) => <li key={index}>
         <strong>{text(input.name)}</strong> ({input.necessity === "optional" ? "optional" : "required"}; {INPUT_KIND[text(input.kind)] ?? text(input.kind)}): {text(input.meaning)}{input.absence_effect ? ` If you leave it out: ${text(input.absence_effect)}` : ""}</li>)}</ul>}
