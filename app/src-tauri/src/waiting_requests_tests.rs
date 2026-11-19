@@ -106,6 +106,34 @@ fn actual_two_home_waiting_overview_dto() {
     println!("WAITING_REQUESTS_DTO:{}", json!({"account":account,"api-key":key,"navigation":{"account":open_account,"api-key":open_key,"unnamed":open_unnamed},"native":{"entries":entries,"intents":intents}}));
 }
 
+/// A question raised in an ordinary conversation, as the pinned Codex sends it with the question feature on
+/// (`isBlocking` false): counted for its conversation while it waits, at whatever moment it is read, not counted
+/// once the person has answered, and not counted once its Codex has stopped with it unanswered.
+#[test]
+fn an_ordinary_conversations_question_is_counted_until_answered_or_until_its_codex_stops() {
+    let mut f = Fixture::new();
+    let ordinary = |id: &str| { let mut q = question(json!(id), Some("shared-thread")); q["params"]["isBlocking"] = json!(false); q["params"]["questions"][0]["isOther"] = json!(true); q };
+    f.emit(HomeClass::Account, vec![ordinary("answered"), ordinary("left")]);
+    let count = |f: &mut Fixture| { let status = f.status(HomeClass::Account); status["waitingRequests"]["groups"].as_array().unwrap().iter().filter(|g| g["threadId"] == "shared-thread" && g["modeHomeClass"] == "account").filter_map(|g| g["count"].as_u64()).sum::<u64>() };
+    let deadline = Instant::now() + Duration::from_secs(2);
+    while count(&mut f) != 2 && Instant::now() < deadline { std::thread::sleep(Duration::from_millis(5)); }
+    assert_eq!(count(&mut f), 2);
+    std::thread::sleep(Duration::from_millis(300));
+    assert_eq!(count(&mut f), 2, "time passing answers nothing");
+    let host = Arc::clone(&f.router.entry(HomeClass::Account).unwrap().host);
+    let generation = host.snapshot()["generation"].clone();
+    let given = json!({"answers":{"q":{"answers":["An answer in the person's own words"]}}});
+    let reply = host.answer_server_request(&generation, &json!("answered"), &given, "person-via-interaction", Some("person:synthetic (identity not verified)")).unwrap();
+    assert_eq!(reply["replyWriteResult"], "written");
+    assert_eq!(count(&mut f), 1, "the answered question no longer waits; the other still does");
+    let entry = |id: &str| host.snapshot()["serverRequests"].as_array().unwrap().iter().find(|r| r["requestIdentity"] == id).cloned().unwrap();
+    assert_eq!((entry("answered")["state"].as_str(), entry("left")["state"].as_str()), (Some("answered"), Some("outstanding")));
+    host.stop("person:fixture", "codex-stop").unwrap();
+    assert_eq!(count(&mut f), 0, "a question whose Codex has stopped is not waiting on the person");
+    assert_eq!(entry("left")["state"], "ended-unanswered");
+    assert!(host.answer_server_request(&generation, &json!("left"), &given, "person-via-interaction", Some("person:synthetic (identity not verified)")).is_err(), "and takes no answer");
+}
+
 #[test]
 fn only_current_person_waiting_groups_are_counted_and_opened() {
     let mut f = Fixture::new();

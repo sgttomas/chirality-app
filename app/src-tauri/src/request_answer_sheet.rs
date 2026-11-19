@@ -770,6 +770,8 @@ mod tests {
             {"id":"omitted","header":"Omitted","question":"Invented omitted question","isOther":true,"isSecret":false}]}),
         );
         let answer = json!({"answers":{"ordinary":{"answers":[""]},"secret":{"answers":["INVENTED-SECRET-DO-NOT-ECHO"]}}});
+        // The command sends a question's answers with no native confirmation (DEL-01-04 REQ-001), and
+        // the writer is handed the answer unchanged, the empty and the secret value included.
         let wrote = Cell::new(false);
         answer_with_choice(
             &g,
@@ -777,17 +779,7 @@ mod tests {
             &answer,
             Some("question-answers"),
             || (s.clone(), actor.clone()),
-            |statement| {
-                assert!(statement
-                    .text
-                    .contains("Your answer: Send current question answers…"));
-                assert!(statement.text.contains("answers for 2"));
-                let content = statement.in_app.as_ref().unwrap().content.to_string();
-                assert!(!content.contains("INVENTED-SECRET-DO-NOT-ECHO"));
-                assert!(content.contains("[secret value masked]"));
-                assert!(content.contains("No answer is sent for this question."));
-                Ok(MessageDialogResult::Custom(ns::SEND_ANSWER.into()))
-            },
+            |_| panic!("a question's answer opened a native confirmation"),
             |_| {
                 wrote.set(true);
                 assert_eq!(answer["answers"]["ordinary"]["answers"][0], "");
@@ -800,6 +792,16 @@ mod tests {
         )
         .unwrap();
         assert!(wrote.get());
+        // The sheet's own words for a question are kept, unused by the command while that holds.
+        let person = crate::runtime_session::actor_reference(actor["displayName"].as_str(), actor["osAccount"].as_str(), actor["codexAccount"].as_str());
+        let masked = crate::runtime_session::answer_preview(&s, &g, &id, &answer, &person).unwrap();
+        let statement = prepare(&s, &g, &id, &masked, Some("question-answers")).unwrap().statement;
+        assert!(statement.text.contains("Your answer: Send answers"));
+        assert!(statement.text.contains("answers for 2"));
+        let content = statement.in_app.as_ref().unwrap().content.to_string();
+        assert!(!content.contains("INVENTED-SECRET-DO-NOT-ECHO"));
+        assert!(content.contains("[secret value masked]"));
+        assert!(content.contains("No answer is sent for this question."));
         for choice in ["question-answers", "question-decline"] {
             let selected = words("questionChoices", choice).unwrap();
             let prepared =

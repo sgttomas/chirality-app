@@ -129,7 +129,8 @@ test('questions and input requests say they are conversation input and offer the
   const html=render(q);
   assert.match(html,/Your answer goes to the agent as conversation input; it is not a recorded act\./);
   assert.match(html,/<a href="#file-acts">Open the App act control<\/a>/);
-  assert.match(html,/Not blocking the turn/);assert.match(html,/Decline to answer/);
+  assert.doesNotMatch(html,/Not blocking the turn/,'Codex\'s mark that a question need not block is not shown: at the pin the turn waits all the same');assert.match(html,/<button>Send answers<\/button>/);assert.match(html,/<button>Decline to answer; the agent continues without one<\/button>/);
+  assert.match(html,/Send answers and the decline each send at once, with no further confirmation\. Closing this card leaves the request waiting; the App never answers it by itself\./);assert.doesNotMatch(html,/native confirmation/);
   const e=request('mcpServer/elicitation/request',{threadId:'T',turnId:'u',serverName:'srv',mode:'url',message:'Open this',url:'https://example.invalid/x',elicitationId:'e'});
   const eh=render(e);
   assert.match(eh,/<h3>Input request from an MCP server or the agent \(not established\)<\/h3><p>MCP server, as named in the request: ⟦Server name: srv⟧<\/p>/,'the server name is below the heading, in its own box');
@@ -247,7 +248,7 @@ async function withReplyObserver(check, {outcome='written',failRefresh=true,perm
   });
   const props=node=>node[Object.keys(node).find(key=>key.startsWith('__reactProps$'))];
   const button=label=>container.querySelectorAll(node=>node.localName==='button'&&node.textContent===label)[0];
-  const send=()=>permission?container.querySelectorAll(node=>node.localName==='button'&&node.textContent.startsWith("Don't allow; the agent continues the turn"))[0]:button('Send current question answers…');
+  const send=()=>permission?container.querySelectorAll(node=>node.localName==='button'&&node.textContent.startsWith("Don't allow; the agent continues the turn"))[0]:button('Send answers');
   const render=()=>React.act(async()=>root.render(React.createElement(App)));
   try {
     await render();

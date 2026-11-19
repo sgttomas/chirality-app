@@ -105,9 +105,10 @@ export type RequestPresentationChoice = "question-answers" | "question-decline";
 export type RequestAnswer = (request: Json, answer: Json, presentationChoice?: RequestPresentationChoice) => Promise<RequestReplyObservation | void>;
 export type ReadRequestCustody = (request: Json) => Promise<RequestCustodyObservation>;
 
-function replyObservationWords(observation: RequestReplyObservation): string {
+function replyObservationWords(observation: RequestReplyObservation, question = false): string {
   switch (observation.command.kind) {
-    case "pending": return "Answer command in progress; waiting for native confirmation or a reply write result.";
+    // A question's answers are sent with no native confirmation (DEL-01-04 REQ-001: conversation input).
+    case "pending": return question ? "Answer being sent; waiting for a reply write result." : "Answer command in progress; waiting for native confirmation or a reply write result.";
     case "written": return "The reply was written locally. Codex receipt or action is not confirmed by that write.";
     case "dismissed": return "Native confirmation dismissed; no reply write was attempted.";
     case "rejected": return "The native answer command reported an error (shown below). A complete local reply write is not established by this error alone.";
@@ -158,8 +159,8 @@ export const DECISION_WORDS = {
   "abort": "Don't allow; the agent waits for your next message"
 } as const;
 export const QUESTION_CHOICE_WORDS = {
-  "question-answers": "Send current question answers…",
-  "question-decline": "Decline to answer"
+  "question-answers": "Send answers",
+  "question-decline": "Decline to answer; the agent continues without one"
 } as const;
 // END GENERATED REQUEST ANSWER WORDS
 export function decisionWords(decision: Json): string {
@@ -465,7 +466,9 @@ function Subject({ request, item, place }: { request: Json; item: Json; place?: 
         })}</div>;
     }
     case QUESTION:
-      return p.isBlocking === false ? <div>Not blocking the turn: the agent continues while this waits.</div> : null;
+      // Codex marks an ordinary conversation's question `isBlocking: false`; at the pin the turn waits
+      // for the answer all the same (supplier_checks/level), so the card says nothing of it.
+      return null;
     case ELICITATION:
       return <div>
         {text(p.message ?? p.description) !== "" && <div>Message: <AgentText value={text(p.message ?? p.description)} label="Sent with the request:" name={ELICITATION_TEXT} /></div>}
@@ -606,7 +609,7 @@ export function NativeRequestCard({ request, view, answer, readRequest, observat
     <p><b>{unreconciled ? reply?.command.kind === "pending" ? "Answer command in progress" : "Current request state unavailable or not reconciled" : cardState(request)}</b>{unreconciled && <>. Last observed: {cardState(request)}</>}</p>
     {request?.settlement?.origin?.class === "app-rule" && <p><small>App rule: <SuppliedId value={request.settlement.origin.ruleName} label="Rule:" name="The App rule's name as recorded" /></small></p>}
     {reply && <section aria-label="Native reply observation">
-      <p>{replyObservationWords(reply)}</p>
+      <p>{replyObservationWords(reply, method === QUESTION)}</p>
       {reply.command.kind === "rejected" && <p><AgentText value={text(reply.command.reason)} source="codex" label="Reported:" name="What the native answer command reported, not the App's words" /></p>}
       {reply.command.kind === "unconfirmed" && <p>Write result: <SuppliedId value={reply.command.writeResult} label="Write result:" name="The reply write result as recorded" /></p>}
       {!reply.custody.available && reply.command.kind !== "pending" && <p role="alert">Request state unavailable: {reply.custody.reason ? <AgentText value={text(reply.custody.reason)} source="codex" label="Reported:" name="Why the request state could not be read, as reported; it may not be the App's words" /> : "the original request custody could not be read"}</p>}
@@ -654,7 +657,7 @@ export function NativeRequestCard({ request, view, answer, readRequest, observat
         <button disabled={busy} onClick={() => send({ action: "decline", content: null, _meta: null })}>Decline <code>decline</code></button>
         <button disabled={busy} onClick={() => send({ action: "cancel", content: null, _meta: null })}>Cancel <code>cancel</code></button>
       </>}
-      <p>Sending opens a native confirmation. Closing this card leaves the request waiting; the App never answers it by itself.</p>
+      <p>{method === QUESTION ? "Send answers and the decline each send at once, with no further confirmation." : "Sending opens a native confirmation."} Closing this card leaves the request waiting; the App never answers it by itself.</p>
     </div>}
     {error && <ErrorLine kind={error.kind} reported={error.reported} />}
     <p><small>Register: state <SuppliedId value={request.state} label="State:" name={REGISTER} /> · reply <SuppliedId value={request.replyWriteResult} label="Reply:" name={REGISTER} /> · Codex confirmation <SuppliedId value={request.acknowledgmentObservation?.status ?? "not-observed"} label="Confirmation:" name={REGISTER} />{request.settlement && <> · settled by <AgentText value={text(request.settlement.origin)} source="codex" label="Origin:" name={REGISTER} /> as <SuppliedId value={request.settlement.kind} label="Kind:" name={REGISTER} /></>}</small></p>

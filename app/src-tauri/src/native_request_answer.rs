@@ -1,4 +1,5 @@
-//! Only the native request-answer confirmation and its original-source checks.
+//! The request-answer command: the native confirmation and its original-source checks, and the
+//! one kind sent without it, an answer to the agent's question.
 use crate::{act_control::native_statement as ns, runtime_session};
 use raw_window_handle::{
     DisplayHandle, HandleError, HasDisplayHandle, HasWindowHandle, WindowHandle,
@@ -44,6 +45,20 @@ pub(crate) fn answer_with_choice(
     );
     let preview =
         runtime_session::answer_preview(&snapshot, generation, request_id, answer, &actor)?;
+    // DEL-01-04 REQ-001: an answer to the agent's question is conversation input, never act evidence,
+    // as the person's own message is, so it is sent from the card with no native confirmation. It is
+    // still checked against the question here, attributed to the person, and written through the
+    // register, which checks it again and refuses a question that is no longer waiting. The host
+    // cannot tell a press on the card from the web view calling this command, as for a sent message.
+    // Every other request kind keeps its confirmation below.
+    if preview["method"] == crate::request_answer_presentation::QUESTION {
+        match presentation_choice {
+            Some("question-answers") => {}
+            Some("question-decline") if answer["answers"].as_object().is_some_and(|o| o.is_empty()) => {}
+            _ => return Err("The question button and answer do not agree; nothing sent".into()),
+        }
+        return write_original(&actor);
+    }
     let prepared = if crate::request_answer_presentation::supported(&preview["method"]) {
         Some(crate::request_answer_sheet::prepare(
             &snapshot,

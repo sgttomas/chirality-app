@@ -34,6 +34,28 @@ stays here; reconnect or inspect History rather than repeatedly pressing Send.
 Attachment submissions keep the entire selected order and never fall back to a
 text-only send after a refusal.
 
+## When the agent asks you a question
+
+An agent that needs an answer from you can put a question to you as a request,
+in any conversation and at any permission level. The question appears in the
+conversation with the choices the agent offers and room for an answer in your
+own words, and the conversation is counted among what is waiting on you until
+you answer or decline. Nothing answers for you: the turn waits, however long
+you take, and closing the window answers nothing.
+
+Three limits apply:
+
+- Only the conversation's own agent can ask this way. An agent it delegated
+  work to cannot; it has to return its question to the agent you are talking
+  with.
+- A question that is still waiting when Codex stops (you stop or restart
+  Codex, quit the App, or Codex ends unexpectedly) is not asked again
+  afterwards. The turn shows as interrupted and the question is shown as a
+  past request. Send a message to continue.
+- An agent may still ask in its message instead of through a request. The App
+  cannot tell such a message from any other: the conversation shows that the
+  turn ended, and is not marked as needing an answer.
+
 ## Interrupt one observed live turn
 
 1. Choose the conversation whose work you intend to interrupt.
