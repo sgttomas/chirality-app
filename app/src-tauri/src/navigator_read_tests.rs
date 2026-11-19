@@ -791,3 +791,17 @@ fn the_navigator_names_no_reader_of_the_stores_records() {
     calls.sort();
     assert_eq!(calls, ["listed_folders", "status"], "{calls:?}");
 }
+
+// Point 8: with no store configured or opened in this process, the registry
+// is not read and no store is configured, created or opened by asking.
+#[test]
+fn the_registry_read_configures_no_store_on_a_cold_path() {
+    let saved = crate::records_store::configured_for_test();
+    crate::records_store::use_store_not_started_for_test(None);
+    crate::records_store::restore_configured_for_test(None);
+    let read = crate::records_store::listed_folders();
+    let after = crate::records_store::configured_for_test().is_none();
+    crate::records_store::restore_configured_for_test(saved);
+    assert!(read.unwrap_err().contains("has not been opened"));
+    assert!(after, "the read configured the process store");
+}

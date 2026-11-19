@@ -1205,9 +1205,16 @@ pub(crate) struct ListedFolders {
 /// registry reading (`ROOTS`) as it was. No folder is examined, attached or
 /// remembered. `Err` when the registry cannot be read at all.
 pub(crate) fn listed_folders() -> Result<ListedFolders, String> {
-    let store = current()?;
-    let bound = OPENED.lock().unwrap_or_else(|p| p.into_inner()).clone().filter(|b| b.configured == store.root)
-        .ok_or("the records store has not been opened by this App, so its list of project folders was not read")?;
+    const NOT_OPENED: &str = "the records store has not been opened by this App, so its list of project folders was not read";
+    // The store this process already configured and opened, if any: this read
+    // configures, creates and opens nothing (no `current()` on a cold path).
+    let bound = OPENED.lock().unwrap_or_else(|p| p.into_inner()).clone().ok_or(NOT_OPENED)?;
+    #[cfg(test)]
+    let configured = TEST_STORE.with(|s| s.borrow().clone()).or_else(|| STORE.read().unwrap_or_else(|p| p.into_inner()).clone());
+    #[cfg(not(test))]
+    let configured = STORE.read().unwrap_or_else(|p| p.into_inner()).clone();
+    let store = configured.ok_or(NOT_OPENED)??;
+    if bound.configured != store.root { return Err(NOT_OPENED.into()); }
     let (root, _) = still_bound(&bound)?;
     let path = root.join("roots.jsonl");
     let bytes = match std::fs::symlink_metadata(&path) {

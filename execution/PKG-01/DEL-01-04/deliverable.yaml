@@ -102,17 +102,20 @@ needs:
 - from: DEL-04-03
   condition: The registry of project folders can be read to its last complete line, with what
     was not read stated, without opening, attaching, remembering or examining any folder; and for
-    the launched project, its attachment (identity, fault and the acts that resolve it) is given
-    as the store's status gives it, with the store's routing before and after a reading of its
-    records and its notice that originals not yet imported may be missing.
+    the launched project, its status as host status takes it (the workspace as given), giving its
+    attachment (identity, fault, refusal and the acts that resolve it) and whether the project is
+    unavailable, with its error.
   gating: true
   when: The navigator's read of every project
 - from: DEL-02-03
-  condition: The launched project's recorded runs can be read with each run's conversation,
-    workflow identity, recorded lifecycle (open, ended with who and why, start not confirmed,
-    unknown with its reason), when its start was recorded, and the reader's limits, writing
-    nothing; and for a run this process holds in force, whether the run guide is offered the
-    agent's finished report.
+  condition: The workflow root holds its latest reading of the launched project's recorded runs
+    (made at launch, on the person's Reopen and after a recorded run is ended), with when it
+    began, its limits and history notices, or why it did not read, and for each run its
+    conversation, workflow identity, recorded lifecycle (open, ended with who and why, start not
+    confirmed, unknown with its reason) and when its start was recorded; it holds the runs this
+    process has prepared, each with its home, conversation, workflow and state; and all of this
+    is given from memory, without a file read or waiting on a run; and for a run this process
+    holds in force, whether the run guide is offered the agent's finished report.
   gating: true
   when: The navigator's read of every project
 - from: DEL-01-02
@@ -189,9 +192,9 @@ code_paths:
 - app/src-tauri/src/request_answer_sheet.rs
 - app/src-tauri/src/waiting_requests.rs
 - app/src-tauri/src/native_waiting.rs
-# The navigator's read: every project of the records store, with its conversations and the
-# workflow runs they carry, and how each conversation is opened by the existing paths. A read
-# only; the panel that shows it is the interface lane's.
+# The navigator's read: every project of the records store, with its conversations, for the
+# open project each conversation's latest run and a count, and how each conversation is opened
+# by the existing paths. A read only, from what the App holds; the panel is the interface lane's.
 - app/src-tauri/src/navigator_read.rs
 - app/src-tauri/src/attachments.rs
 - app/src-tauri/src/attachment_custody.rs

@@ -2054,9 +2054,10 @@ fn history_action(
     Ok(snapshot)
 }
 /// The navigator's one read: every project of the records store, with its
-/// conversations and the workflow runs they carry. A read only: it writes,
-/// starts and sends nothing, so the interface may call it on a timer
-/// (`navigator_read`).
+/// conversations, and for the open project each conversation's latest
+/// workflow run and how many it carries. A read only, from what the App
+/// holds: it writes, starts and sends nothing, so the interface may call it
+/// on a timer (`navigator_read`).
 #[tauri::command(async)]
 fn navigator_read(state: State<'_, AppState>) -> navigator_read::NavigatorRead {
     navigator_read::read(&state)
