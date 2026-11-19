@@ -708,3 +708,147 @@ fn in_a_freshly_set_up_project_the_start_runs_with_nothing_to_end_and_no_limit()
     assert!(status.get("limit").is_none(), "{status}");
     assert!(crate::records_inspect::presence(&fleet).unwrap().is_none(), "and nothing written");
 }
+
+/// Every path below `root`, relative to it.
+fn tree(root: &Path) -> BTreeSet<PathBuf> {
+    fn walk(root: &Path, at: &Path, out: &mut BTreeSet<PathBuf>) {
+        let Ok(entries) = std::fs::read_dir(at) else { return };
+        for entry in entries {
+            let path = entry.unwrap().path();
+            out.insert(path.strip_prefix(root).unwrap().to_owned());
+            walk(root, &path, out);
+        }
+    }
+    let mut out = BTreeSet::new();
+    walk(root, root, &mut out);
+    out
+}
+fn fleet_read(f: &Fixture) -> Value {
+    crate::read_fleet_records_for_workspace(Some(&f.project)).unwrap()
+}
+fn reasons(view: &Value) -> Vec<String> {
+    view["limits"].as_array().unwrap().iter().map(|l| l["reason"].as_str().unwrap().to_owned()).collect()
+}
+/// The limits on `path` (relative to its home), each saying it is a missing record.
+fn missing_records_at(view: &Value, path: &str) -> Vec<String> {
+    view["limits"].as_array().unwrap().iter().filter(|l| l["source"]["path"] == path)
+        .map(|l| l["reason"].as_str().unwrap().to_owned()).filter(|r| r.contains("a missing record")).collect()
+}
+/// A project set up as the App sets one up, then the App's own first fleet
+/// write through the record tick's writer, from a spawn received live.
+fn first_write(prompt: Option<Option<&str>>, brief: bool) -> (Fixture, Vec<Value>) {
+    let f = Fixture::new();
+    crate::records_store::recover_at_startup().unwrap();
+    let digest = brief.then(|| f.brief("W1.json"));
+    let referenced = digest.map(|digest| format!("Count the invented files.\n{BRIEF_REFERENCE} briefs/W1.json sha256:{digest}"));
+    let g = generation("first");
+    let s = spawn(&g, referenced.as_deref().map(Some).or(prompt));
+    f.observe(&mut Session::default(), &[handed(&s, &g, &f.project)], None);
+    let rows = f.rows();
+    (f, rows)
+}
+
+/// The App's own first fleet write makes each side's fleet folder and its
+/// log, and neither a briefs nor a graphs folder. The read then is whole, with
+/// the written records counted as App observations as before.
+#[test]
+fn after_the_apps_first_fleet_write_the_project_reads_whole_with_the_record_counted() {
+    let f = Fixture::new();
+    crate::records_store::recover_at_startup().unwrap();
+    assert_eq!(fleet_read(&f)["limits"], json!([]), "whole before the write");
+    let before = tree(&f.root);
+    let g = generation("first");
+    let s = spawn(&g, None);
+    f.observe(&mut Session::default(), &[handed(&s, &g, &f.project)], None);
+    let made: BTreeSet<PathBuf> = tree(&f.root).difference(&before).cloned().collect();
+    let store_dir = f.scope.dir.path.strip_prefix(&f.root).unwrap().to_owned();
+    let log = published_at(&f.scope, 0).file_name().unwrap().to_owned();
+    let expected: BTreeSet<PathBuf> = [
+        PathBuf::from("project/.chirality/fleet"),
+        PathBuf::from("project/.chirality/fleet").join(&log),
+        store_dir.join("fleet"),
+        store_dir.join("fleet").join(&log),
+        store_dir.join(".writer.lock"),
+        PathBuf::from("store/administration").join(store_dir.file_name().unwrap()).join(".activity.lock"),
+    ].into_iter().collect();
+    assert_eq!(made, expected, "the first write makes each side's fleet folder and its log, no briefs or graphs folder");
+    let view = fleet_read(&f);
+    assert_eq!(view["limits"], json!([]), "{}", view["limits"]);
+    assert_eq!((view["coordination"]["project"]["status"].as_str(), view["coordination"]["project"]["complete"].as_bool()), (Some("read"), Some(true)));
+    assert_eq!((view["coordination"]["protectedLog"]["status"].as_str(), view["coordination"]["protectedLog"]["complete"].as_bool()), (Some("read"), Some(true)));
+    let written = f.rows();
+    assert_eq!(written.len(), 2, "a dispatch and the child's status");
+    let observations = view["coordination"]["appObservations"].as_array().unwrap();
+    assert_eq!(observations.iter().map(|o| o["record"].clone()).collect::<Vec<_>>(), written);
+    assert!(observations.iter().all(|o| o["protectedOrder"].is_u64() && o["projectCounterparts"].as_array().unwrap().len() == 1), "{observations:?}");
+    assert_eq!(view["coordination"]["nativeDelegation"].as_array().unwrap().len(), 2);
+    assert!(view["coordination"]["projectRecords"].as_array().unwrap().iter().all(|r| r["reconciliation"] == "exact protected counterpart; protected order governs"));
+    assert_eq!((view["briefs"].clone(), view["graphs"].clone(), view["workspace"]["undertakings"].clone()), (json!([]), json!([]), json!([])));
+    println!("FIRST_WRITE_FLEET_DTO:{}", serde_json::to_string(&view).unwrap());
+    // The other readings the line uses, after the write: whole, with no entries.
+    let decisions = crate::runtime_session::read_decision_packages(&f.project);
+    for key in ["rows", "limits", "historyNotices", "unresolvedRecords"] { assert_eq!(decisions[key], json!([]), "decisions {key}"); }
+    println!("FIRST_WRITE_DECISIONS_DTO:{}", serde_json::to_string(&decisions).unwrap());
+    let workflows = std::sync::Mutex::new(crate::runtime_session::WorkflowRootSession::default());
+    crate::runtime_session::read_reopened_history(&workflows, &f.project, &[], &[]).unwrap();
+    let root = workflows.lock().unwrap().snapshot();
+    for key in ["runs", "limits", "historyNotices"] { assert_eq!(root["reopened"][key], json!([]), "reopened {key}"); }
+    println!("FIRST_WRITE_WORKFLOW_ROOT_DTO:{}", serde_json::to_string(&json!({"runs":root["runs"],"reopened":root["reopened"]})).unwrap());
+}
+
+/// Records written through the App's writer, then the project's fleet folder
+/// removed: the store's log names records written there, so each of its
+/// sources is a missing record, with its limit, never an empty queue.
+#[test]
+fn the_projects_fleet_folder_removed_after_the_apps_write_is_a_missing_record() {
+    let (f, _) = first_write(None, false);
+    std::fs::remove_dir_all(f.project.join(FLEET)).unwrap();
+    let view = fleet_read(&f);
+    for path in [".chirality/fleet/briefs", ".chirality/fleet/graphs", ".chirality/fleet/coordination.fleet.jsonl"] {
+        assert_eq!(missing_records_at(&view, path).len(), 1, "{path}: {}", view["limits"]);
+    }
+    assert_eq!((view["coordination"]["project"]["status"].as_str(), view["coordination"]["project"]["complete"].as_bool()), (Some("missing"), Some(false)));
+}
+
+/// Records written through the App's writer, then the store's fleet folder
+/// removed: the project's copy names records written there, so the store's
+/// log is a missing record, never read as empty.
+#[test]
+fn the_stores_fleet_folder_removed_after_the_apps_write_is_a_missing_record() {
+    let (f, _) = first_write(None, false);
+    std::fs::remove_dir_all(published_at(&f.scope, 0).parent().unwrap()).unwrap();
+    let view = fleet_read(&f);
+    assert_eq!(missing_records_at(&view, "fleet/coordination.fleet.jsonl").len(), 1, "{}", view["limits"]);
+    assert_eq!((view["coordination"]["protectedLog"]["status"].as_str(), view["coordination"]["protectedLog"]["complete"].as_bool()), (Some("missing"), Some(false)));
+    assert!(view["coordination"]["appObservations"].as_array().unwrap().is_empty());
+}
+
+/// Both fleet folders removed after the App's write: nothing that remains
+/// names a record written there, so the reader cannot tell it from a project
+/// never written to. In the same App session the accepted history still
+/// refuses it; after a restart nothing would.
+#[test]
+fn both_fleet_folders_removed_are_refused_only_by_the_sessions_accepted_history() {
+    let (f, _) = first_write(None, false);
+    std::fs::remove_dir_all(published_at(&f.scope, 0).parent().unwrap()).unwrap();
+    std::fs::remove_dir_all(f.project.join(FLEET)).unwrap();
+    let view = fleet_read(&f);
+    assert_eq!(reasons(&view).len(), 1, "{}", view["limits"]);
+    assert!(reasons(&view)[0].contains("previously accepted protected fleet history changed or disappeared"));
+}
+
+/// A dispatch that read a brief file, recorded through the App's writer, then
+/// the briefs folder removed: the store names a brief that was there, so its
+/// absence is a missing record. The graphs folder, which nothing in the store
+/// names, reads as holding nothing.
+#[test]
+fn a_briefs_folder_removed_after_a_dispatch_read_a_brief_in_it_is_a_missing_record() {
+    let (f, rows) = first_write(None, true);
+    assert_eq!(rows[0]["body"]["association"]["state"], "brief referenced");
+    let view = fleet_read(&f);
+    assert_eq!(view["limits"].as_array().unwrap().iter().filter(|l| l["source"]["path"] == ".chirality/fleet/briefs").count(), 0, "the brief is there: {}", view["limits"]);
+    std::fs::remove_dir_all(f.project.join(FLEET).join("briefs")).unwrap();
+    let view = fleet_read(&f);
+    assert_eq!(missing_records_at(&view, ".chirality/fleet/briefs").len(), 1, "{}", view["limits"]);
+    assert!(view["limits"].as_array().unwrap().iter().all(|l| l["source"]["path"] != ".chirality/fleet/graphs"));
+}
