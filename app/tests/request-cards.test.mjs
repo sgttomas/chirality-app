@@ -129,7 +129,8 @@ test('questions and input requests say they are conversation input and offer the
   const html=render(q);
   assert.match(html,/Your answer goes to the agent as conversation input; it is not a recorded act\./);
   assert.match(html,/<a href="#file-acts">Open the App act control<\/a>/);
-  assert.match(html,/Not blocking the turn/);assert.match(html,/Decline to answer/);
+  assert.doesNotMatch(html,/Not blocking the turn/,'Codex\'s mark that a question need not block is not shown: at the pin the turn waits all the same');assert.match(html,/<button disabled="">Send answers<\/button>/,'with nothing entered, Send answers would send an empty reply, which is a decline: it is not offered');assert.match(html,/<button>Decline to answer; the agent continues without one<\/button>/);
+  assert.match(html,/Both buttons submit directly from this card\. Closing this card leaves the request waiting; the App never answers it by itself\./);assert.doesNotMatch(html,/native confirmation/);
   const e=request('mcpServer/elicitation/request',{threadId:'T',turnId:'u',serverName:'srv',mode:'url',message:'Open this',url:'https://example.invalid/x',elicitationId:'e'});
   const eh=render(e);
   assert.match(eh,/<h3>Input request from an MCP server or the agent \(not established\)<\/h3><p>MCP server, as named in the request: ⟦Server name: srv⟧<\/p>/,'the server name is below the heading, in its own box');
@@ -247,7 +248,7 @@ async function withReplyObserver(check, {outcome='written',failRefresh=true,perm
   });
   const props=node=>node[Object.keys(node).find(key=>key.startsWith('__reactProps$'))];
   const button=label=>container.querySelectorAll(node=>node.localName==='button'&&node.textContent===label)[0];
-  const send=()=>permission?container.querySelectorAll(node=>node.localName==='button'&&node.textContent.startsWith("Don't allow; the agent continues the turn"))[0]:button('Send current question answers…');
+  const send=()=>permission?container.querySelectorAll(node=>node.localName==='button'&&node.textContent.startsWith("Don't allow; the agent continues the turn"))[0]:button('Send answers');
   const render=()=>React.act(async()=>root.render(React.createElement(App)));
   try {
     await render();
@@ -279,6 +280,21 @@ test('a written native answer remains written when its observer refresh fails, w
   });
 });
 
+test('a question\'s decline goes through the App bridge with empty answers and its own choice, and Send answers is not offered until an answer is entered',async()=>{
+  await withReplyObserver(async ui=>{
+    assert.equal(ui.props(ui.send()).disabled,true,'nothing entered: Send answers would be a decline');
+    await React.act(async()=>ui.props(ui.button('Decline to answer; the agent continues without one')).onClick());
+    assert.deepEqual(ui.calls.filter(call=>call.command==='answer_native_request'),[{command:'answer_native_request',args:{generation:g,requestId:'original-question',answer:{answers:{}},presentationChoice:'question-decline'}}]);
+    assert.doesNotMatch(ui.container.textContent,/Native confirmation dismissed/);
+  });
+  await withReplyObserver(async ui=>{
+    await ui.choose();assert.equal(ui.props(ui.send()).disabled,false);
+    await React.act(()=>ui.props(ui.button('Leave unanswered')).onClick());
+    assert.equal(ui.props(ui.send()).disabled,true,'left unanswered again, there is nothing to send');
+    assert.equal(ui.calls.filter(call=>call.command==='answer_native_request').length,0);
+  });
+});
+
 test('moving the same original card between the request list and conversation keeps its written-reply guard',async()=>{
   await withReplyObserver(async ui=>{
     await ui.answer();assert.equal(!!ui.send(),false);
@@ -297,6 +313,8 @@ test('moving a pending original request keeps its command latch without issuing 
     await React.act(()=>{pending=ui.props(ui.send()).onClick();});
     await ui.selectConversation('T');assert.equal(!!ui.send(),false);
     assert.match(ui.container.textContent,/Answer command in progress/);
+    assert.match(ui.container.textContent,/Answer being sent; waiting for a reply write result\./,'a question is sent with no confirmation, and its pending words say so');
+    assert.doesNotMatch(ui.container.textContent,/waiting for native confirmation/);
     await ui.selectConversation('');assert.equal(!!ui.send(),false);
     assert.equal(ui.calls.filter(call=>call.command==='answer_native_request').length,1);
     release();await React.act(async()=>{await pending;});
@@ -324,9 +342,11 @@ test('dismissed native confirmation stays not-attempted and retry requires curre
     ui.allowRefresh();await ui.read();assert.ok(ui.send());
     assert.equal(ui.calls.filter(call=>call.command==='answer_native_request').length,1,'a custody read is never an answer or retry');
     ui.replyAs('written');await ui.answer();
-    assert.equal(ui.custody.state,'answered');assert.equal(ui.send(),undefined);
+    assert.equal(ui.custody.state,'declined');assert.equal(ui.send(),undefined);
     assert.equal(ui.calls.filter(call=>call.command==='answer_native_request').length,2,'only the next explicit answer press retries');
-  },{outcome:'dismissed'});
+    // A tool permission keeps the confirmation and travels with no question choice.
+    assert.ok(ui.calls.filter(call=>call.command==='answer_native_request').every(call=>!('presentationChoice' in call.args)||call.args.presentationChoice==null));
+  },{outcome:'dismissed',permission:true});
 });
 
 test('supplier resolution after interruption remains a supplier resolution and its native refusal survives observer failure',async()=>{
@@ -403,7 +423,8 @@ test('late reply refresh completion cannot attach its observation to another sou
       await ready;await ui.swapSource(next);
       assert.ok(ui.send(),'the other original request remains independently answerable');
       release();await React.act(async()=>{await pending;});
-      assert.ok(ui.send());assert.equal(ui.props(ui.send()).disabled,false);
+      // The other card is not latched by the earlier command: its decline can be pressed. (Its Send answers is off only because it has no question to answer.)
+      assert.ok(ui.send());assert.equal(ui.props(ui.button('Decline to answer; the agent continues without one')).disabled,false);
       const native=ui.container.querySelectorAll(node=>node.getAttribute('aria-label')==='Native reply observation');
       assert.equal(native.length,0,'the completed earlier command supplies no local result to the other card');
       assert.equal(ui.calls.filter(call=>call.command==='answer_native_request').length,1);
@@ -420,10 +441,10 @@ test('an older custody reread cannot replace the safe observation of a newer exp
     // The read is still held in the first card. Move to the same original
     // request's other location and obtain a newer current custody observation.
     await ui.selectConversation('T');await ui.read();assert.ok(ui.send());
-    ui.replyAs('written');await ui.answer();assert.equal(ui.custody.state,'answered');
+    ui.replyAs('written');await ui.answer();assert.equal(ui.custody.state,'declined');
     release();await React.act(async()=>{await new Promise(resolve=>setImmediate(resolve));});
     assert.equal(ui.send(),undefined,'the stale outstanding page cannot erase the newer written observation');
     assert.match(ui.container.textContent,/The reply was written locally/);
     assert.equal(ui.calls.filter(call=>call.command==='answer_native_request').length,2,'only the two person-directed replies were invoked');
-  },{outcome:'dismissed',withConversation:true,afterCommandRead:async snapshot=>{reads++;if(reads===2){reached();await held;return snapshot;}}});
+  },{outcome:'dismissed',permission:true,withConversation:true,afterCommandRead:async snapshot=>{reads++;if(reads===2){reached();await held;return snapshot;}}});
 });

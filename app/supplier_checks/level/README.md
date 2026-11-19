@@ -27,6 +27,18 @@ reaches Codex:**
   name may differ, and only in the one test that needs it (`project_name`).
   Every path in a command is quoted for the shell.
 
+**The project's files in the trusted-project rows are not checked at run
+time.** What they contain rests on the fixture's builders, as reviewed, and
+on the stub-only tests that check the builders' output:
+- At run time, the write helpers allow only the names in `TRUST_FILES` (or,
+  for a control, `HOME_FILES`). Nothing checks what a test passes them to
+  write.
+- The builders name only marker commands (`Run.marker_command`, one per
+  `PROJECT_MARKERS` entry) and only the run's second loopback stub as an
+  address. The stub-only tests check each builder's output for those
+  commands and that address by comparing values and counting occurrences.
+  They do not reject every other command or address a file could hold.
+
 **The faults the suite has been shown to reject.** Each class below was
 introduced on purpose, and the tests concerned then failed or were
 inconclusive. The second independent reading did this by hand across the suite
@@ -68,7 +80,8 @@ every possible false pass is excluded.
 ## Files
 
 - `level_fixture.py`: the stub, a fresh root per run (with, where a test asks,
-  a second project folder), the App side of the JSON-RPC exchange, and
+  a second project folder, or a project's own files with their marker commands
+  and a second loopback stub), the App side of the JSON-RPC exchange, and
   `judge`. Every approval request the fixture receives is declined.
 - `test_level_live.py`: one fact per test.
   - It needs `CHIRALITY_CODEX_BIN` set to the pinned binary, whose digest is
@@ -89,7 +102,9 @@ From `app/`: `CHIRALITY_CODEX_BIN=/abs/codex python3 supplier_checks/level/test_
 
 The app server is started as the App starts it on an account home
 (`-c analytics.enabled=false -c model_provider="openai" -c openai_base_url=…
-app-server`), with an environment built whole:
+app-server`), with an environment built whole. The default fixture start omits
+the question feature. The feature tests add the same session flag the App
+supplies. The environment:
 - `PATH`, with the package's `codex-path` first;
 - `HOME`, `CODEX_HOME` and `TMPDIR`, all inside the run's root;
 - `TZ` and `LANG`;
@@ -107,6 +122,17 @@ invented `.codex/config.toml` naming a writable root of its own under
 exists, makes itself, and removes afterwards; the case that writes to
 `/private/var/tmp` uses `/private/var/tmp/chirality-level-<run>/` on the same
 terms.
+
+The run's cleanup also covers the failure paths:
+- **The app server.** If setting up a started app server fails before it is
+  handed back (`Client.__init__`), its process group is ended and its pipes
+  are closed before the error is raised.
+- **The second stub.** It is registered with the run before it starts
+  serving, so the run's cleanup closes it even if serving never starts.
+- **Open connections.** Closing a stub ends every connection a handler still
+  holds.
+
+The stub-only tests show each of these.
 
 "Edits" below is `on-request` with `workspaceWrite`; "supervised" is
 `untrusted` with `readOnly`; "full access" is `never` with `dangerFullAccess`.
@@ -184,6 +210,13 @@ control.
 | **Observation:** after the restart, the call outstanding when the server ended, and the interrupted one, were never raised again in the second server's whole life, read to its end (from resume to its stop, 10 s and more). | New calls on the same client were raised. | same test |
 | A child is not offered the App-supplied tool, and Codex answers its call as unsupported; nothing reaches the client. | The parent's own call reaches the client. | `AppTool.test_a_child_is_not_given_the_app_tool` |
 | `request_user_input` is listed in an ordinary conversation, but a call to it is refused in Default mode, and nothing reaches the client. In plan mode the call reaches the client as `item/tool/requestUserInput`. | Each mode, on one client, is the other's. | `Question.test_refused_in_default_mode_and_reaches_the_client_in_plan_mode` |
+| **A question in an ordinary conversation, with the feature.** Codex is started with `-c features.default_mode_request_user_input=true` (a feature the supplier marks under development, off by default) and no collaboration mode is sent on any turn. At each row of the App's table, sent as the App sends it, a `request_user_input` call reaches the client as `item/tool/requestUserInput` on its thread and turn, with the question's id, header, wording and options unchanged, `isOther` true, `isBlocking` false and no automatic resolution timeout, and it is the only request raised in that server's whole life, read to the end of its output after the turn completed. Until it is answered the turn does not complete; the answer given reaches the agent as given. | Without the feature, the same start at full access refuses the call ("unavailable in Default mode") and raises nothing. | `QuestionInAnOrdinaryConversation.test_at_every_level_of_the_apps_table_the_question_reaches_the_client_and_its_answer_reaches_the_agent`, `QuestionInAnOrdinaryConversation.test_without_the_feature_the_same_start_refuses_the_question` |
+| **The feature named off in the home's own settings.** With `[features] default_mode_request_user_input = false` in the home's `config.toml` and the same session flag given, the question still reaches the client and its answer the agent, and the file is unchanged afterwards. | A fresh home with the same settings, started without the flag, refuses the call and raises no question request. | `QuestionInAnOrdinaryConversation.test_with_the_feature_off_in_the_homes_own_settings_the_session_flag_still_raises_the_question` |
+| **A question left waiting, declined, interrupted, and outstanding when Codex ends.** At full access with the feature. Unanswered for `LEVEL_HOLD_SECONDS`, the turn does not end, the server stays up and the agent is told nothing; then a free answer reaches the agent as given. An answer with no answers reaches the agent as `{"answers":{}}`. `turn/interrupt` ends the turn as interrupted and the call is not answered. After the server is ended with a question outstanding and the conversation is resumed on a new server, that turn reads interrupted; a new question on the resumed conversation, and one on a fork of it, are raised and answered. | The answers completing the held turns; the new questions on the restarted server. | `QuestionInAnOrdinaryConversation.test_held_declined_interrupted_relaunched_resumed_and_forked` |
+| **Observation:** after the restart, the question outstanding when the server ended, and the interrupted one, were never raised again in the second server's whole life, read to its end. | New questions on the same client were raised. | same test |
+| **A child's question.** With the feature, a child spawned by `spawn_agent` that calls `request_user_input` is answered "request_user_input can only be used by the root thread"; nothing reaches the client on the child's thread. | The parent's own question reaches the client. | `QuestionInAnOrdinaryConversation.test_a_childs_question_is_refused_and_reaches_no_one` |
+| **What a catalogue model is told.** For a model with an entry in Codex's bundled catalogue (`gpt-6.1-sol`), the request to the provider carries no `tools`. With the feature, the request holds the tool's description "This tool is only available in Default or Plan mode" and the catalogue's own Default-mode words: to use the tool "only for optional questions where the answer would materially improve" the work and, with no answers, to "continue with best judgment instead of asking again". A call is raised and answered. Not shown: what any model does with those words. | Without the feature, the request does not hold that description and the call is refused. | `QuestionInAnOrdinaryConversation.test_what_a_catalogue_model_is_told_about_the_tool_with_and_without_the_feature` |
+| **The question that does not wait.** With no feature set and no collaboration mode sent, on a model whose catalogue entry lists it (`gpt-6.1-sol`), a `request_user_input_async` call returns `{"accepted":true}` without waiting for a person's answer and raises no request. The turn completes with no answer from anyone. The question arrives as an `agentMessage` item whose id is the call's, with `delivery` `async` and `questions` as given (a title and option strings). After the server is ended and the conversation resumed, `thread/read` with its turns still holds that item and its questions. Not shown: how a reply is tied to the question; the source says it arrives as an ordinary next message. | On the fixture's invented model, which has no catalogue entry, the same call is answered as unsupported and no such item arrives. | `QuestionThatDoesNotWait.test_the_question_arrives_as_an_agent_message_item_and_the_turn_does_not_wait`, `QuestionThatDoesNotWait.test_on_a_model_the_catalogue_does_not_list_it_for_the_same_call_is_unsupported` |
 
 ### One app server, a folder per conversation
 
@@ -208,6 +241,135 @@ fails, its message names the folder observed.
 | **The App's own start against a trusted project's writable root.** The App's start at edits, whole, with its `config.sandbox_workspace_write` (`writable_roots = []`) beside a `trusted` entry for B, whose own settings name root-b. The reply lists neither of the two roots and the write in root-b is refused by the sandbox; the write in B succeeds. | The row above: the same trusted start without that one field lists root-b, and the write there succeeds. | `FolderPerConversation.test_with_the_apps_own_start_a_trusted_projects_writable_root_is_not_added` |
 | **The trust mark written.** As the trust-mark rows: at full access, in the App's layout with the home's new, empty settings, with A and B both git projects. A start in B with no trust entry writes `[projects."<B>"] trust_level = "trusted"` into the home's `config.toml`, and nothing for A. With one entry for B, `untrusted`, as the App sends it, nothing is written. As in the trust-mark rows, the file is read once, two seconds after the start. | Each start is the other's control. | `FolderPerConversation.test_a_start_in_b_marks_b_in_the_settings_unless_an_entry_for_b_is_sent` |
 | **Continued in B after a restart.** A conversation started in B and saved; the server stopped; a second server started, again in A; the conversation resumed as the App's Continue resumes it: the thread, `excludeTurns`, B as its folder, the level and the one entry. The reply is for that thread and its `cwd` and its thread's `cwd` are B; `/bin/pwd -P` prints B; the relative write lands in B; the write in B succeeds; the write in A runs and is refused by the sandbox. The folder sent is the folder saved, as it always is from the App: the row shows the conversation continuing in B, not which of the two Codex took it from. | The write in B, against the write in A. | `FolderPerConversation.test_resumed_with_b_in_a_new_server_started_in_a_the_thread_is_governed_by_b` |
+
+### A trusted project's own files
+
+What a `trusted` entry for a project turns on at the pinned Codex beyond the
+rows above (its `AGENTS.md` and its writable root), what the project's own
+files can do that the App's level does not override, what the App's own start
+can keep off while the entry stays `trusted`, and what an `untrusted` entry
+with the App handing over the instructions gives instead. The project is A, the
+folder the app server is started in. Unless its row says otherwise, each start
+carries what the App sends at the edits level for a conversation in A (the
+folder, the level's approval, reviewer, mode name and workspace options) and
+the one trust entry for A's root, `untrusted` or `trusted`; each turn sends the
+level. The App never sends `bypass_hook_trust` or `hooks.state`, and no row
+sends them. The project's files are written by the fixture
+(`Run(trusted_project=True)`, `write_trust_file`, one of `TRUST_FILES`), and
+every program they name is the fixture's marker command: `/usr/bin/printf`
+appending one line to its own file under `outside`, run through `/bin/sh -c`
+where a setting takes a program and its arguments. A destination they name is
+a second loopback stub made and closed by the run (`Run.other`). The stub
+counts every connection it accepts: a count is an accepted socket, not a
+completed exchange.
+
+**What a row says.** Each row says only what its test asserts. What a test
+records and prints without asserting is given apart, after "Recorded". Each row
+names its own controls in the Control column. Most rows compare the two
+entries; some add a positive control in the person's own settings (the Codex
+home). The three rows under "kept off while trusted" and the resume row compare
+cases within one trust state. Every test records all its observations before
+it asserts anything. It prints them to standard error under `OBSERVED`
+whatever its outcome, and a failure states them all.
+
+**What rests on the source.** Some statements here rest on reading the public
+source at `rust-v0.169.0` and on no test. Each is marked *(read from the
+source)* where it is made. The files read were:
+- `.codex/hooks.json` and the hook trust check
+  (`codex-rs/hooks/src/engine/discovery.rs`, `config_rules.rs`);
+- the project layer, its trust gate and its denylist
+  (`codex-rs/config/src/loader/mod.rs`, `PROJECT_LOCAL_CONFIG_DENYLIST`);
+- the session layer (`codex-rs/app-server/src/config_manager.rs`) and the
+  merging of layers (`codex-rs/config/src/merge.rs`);
+- MCP servers (`codex-rs/config/src/mcp_types.rs`,
+  `codex-rs/rmcp-client/src/http_headers.rs`) and providers
+  (`codex-rs/model-provider-info/src/lib.rs`);
+- exec-policy rules (`codex-rs/core/src/exec_policy.rs`,
+  `codex-rs/core/src/tools/sandboxing.rs`);
+- the shell environment (`codex-rs/protocol/src/shell_environment.rs`) and the
+  instruction fields (`codex-rs/core/src/config/mod.rs`).
+
+| Fact | Control | Test |
+| --- | --- | --- |
+| **The project layer.** The project's `.codex/config.toml` names developer instructions (a marker line), approval, sandbox, network, reviewer, another provider and model, the built-in provider's address and a notify program. Each case is a fresh run. The home's settings either hold Codex's own trust mark for A ("marked") or are absent ("not marked"), and their state is asserted before the start. `config/read` for A with layers, as the App reads it, before any start. Marked: one project layer, enabled, with the keys approval, reviewer, developer instructions, model, sandbox mode and workspace options. The marker is the effective developer instructions; the project's approval (`never`), sandbox (full access), reviewer (automatic) and model are the effective values; the provider is still the built-in one. None of the four keys this file supplies that the source's denylist names *(read from the source)* is present: `model_provider`, `model_providers`, `notify` and `openai_base_url`. Not marked: the same keys in one layer, disabled with a reason, and the marker not effective. Then one start. Marked: the turn carries the marker with no entry and with a `trusted` entry, not with an `untrusted` entry, and the settings stay the mark. Not marked: with **no entry** the marker is carried and Codex writes `[projects."<A>"] trust_level = "trusted"` into the settings; with a `trusted` entry the marker is carried and the settings stay absent; with an `untrusted` entry, neither. Recorded: the wording of the reason. | Marked against not marked; each entry against the others. | `TrustedProject.test_a_project_layer_loads_with_a_trusted_mark_or_entry_and_with_no_entry_but_not_with_an_untrusted_entry` |
+| **Hooks.** A command hook in the project's `.codex/hooks.json` for each of five events: session start, user prompt submitted, before and after a tool call, and stop. One turn whose command (the project write) succeeds; then the server is stopped and its output drained. With either entry, for each event, its marker has not run and no `hook/started` names it. With the `trusted` entry, `hooks/list` for the thread lists the five: from the source `project`, enabled, with the trust status `untrusted`. | The person's own approval of each hook as Codex listed it (key and current hash, in `hooks.state` in the Codex home), with the `trusted` entry: for each of the five events, its marker runs and a `hook/started` names it, and the command succeeds. | `TrustedProject.test_a_projects_own_hooks_do_not_run_and_are_listed_untrusted` |
+| **A project approving its own hooks.** The same hooks. With the `trusted` entry, `hooks/list` gives a key and current hash for each of the five events, and the test requires all five. The project's own `.codex/config.toml` then approves each, in the form the person's approval takes (`hooks.state.<key>.trusted_hash`). On a fresh server with the `trusted` entry, each is still listed `untrusted`; for each event its marker does not run and no `hook/started` names it; the command succeeds. | In the same test: the project's file emptied and the same approvals written into the person's settings. For each of the five events, its marker runs and a `hook/started` names it. | `TrustedProject.test_a_projects_own_hook_state_does_not_approve_its_hooks` |
+| **MCP servers** (a finding). Two servers in the project's `.codex/config.toml`. One's command is the marker command, writing its marker under `outside`, outside the project; the other is at the second stub's loopback address. Each case on a fresh server at edits. With the `trusted` entry: nothing has run and no connection was accepted before the thread starts. By thread start, the marker has run and the second stub has accepted a connection; by the end of the first turn both counts have risen. The startup notifications, as an unordered set, are `starting` and `failed` for each of the two (the fixture's programs are not MCP servers). None of their tools is offered; `mcpServerStatus/list` for the thread lists neither. On the same thread, a command's plain write under `outside` is refused by the sandbox, where the server's marker landed. With the `untrusted` entry: no marker run and no connection at any sample, through the listing and the stop; no notification; nothing listed; the same refusal. Recorded: the counts. | The same two servers in the person's settings, with the `untrusted` entry: nothing before the thread starts, both started at thread start and risen by the turn, the same notifications, and the listing names both. | `TrustedProject.test_a_trusted_projects_own_mcp_servers_are_started_and_an_untrusted_ones_are_not` |
+| **A notify program.** `notify` in the project's `.codex/config.toml` names the marker command. With either entry, a turn completes, and the marker has not run when read 3 s later with the server stopped and drained. | The same `notify` in the person's settings, with the `untrusted` entry: the marker runs. | `TrustedProject.test_a_projects_own_notify_program_does_not_run` |
+| **Approval, sandbox, network and reviewer.** The project's `.codex/config.toml` names approval `never`, full access, `sandbox_workspace_write.network_access = true` and the automatic reviewer. At the App's edits level, with either entry: the reply reports `on-request`, reviewer `user`, workspace write and network off. A write outside the project and the network probe each run and are refused by the sandbox; an escalation raises a request for that call, declined. At the supervised level, with either entry: the reply reports `untrusted`, reviewer `user` and read-only, and the project write is put to the client first and declined. | Each entry against the other; on each thread, the refused and the asked operations. | `TrustedProject.test_a_projects_approval_sandbox_network_and_reviewer_do_not_move_the_apps_level` |
+| **A permissions profile.** The project's `.codex/config.toml` selects `default_permissions = ":danger-full-access"`. At edits, with either entry: the reply reports workspace write with network off and no active permissions profile. A write outside the project and the network probe each run and are refused by the sandbox. No case selects a profile, so the row shows the App's frame kept, not what the setting does where it applies. | Each entry against the other. | `TrustedProject.test_a_projects_default_permissions_do_not_move_the_apps_level` |
+| **The model's destination.** The project's `.codex/config.toml` names another provider, defined there at the second stub's address, another model, and `openai_base_url` at that address. The App's start sends the model and provider on the frame; the process is started with `model_provider="openai"` and its own `openai_base_url`. With either entry, each on a fresh server: the reply reports the App's model and the built-in provider. The turn's requests reach the stub, and each names the App's model. The second stub has accepted no connection when read after the server is stopped and drained. | Each entry against the other; the stub's requests for the turn. | `TrustedProject.test_a_projects_provider_and_model_do_not_move_the_turn` |
+| **A settings file Codex cannot load.** Two causes, each the project's whole `.codex/config.toml`, each on a fresh server. First, a key Codex no longer supports, `experimental_thread_store_endpoint`, named at the second stub's address. The `trusted` entry's start is refused, "failed to load configuration: `experimental_thread_store_endpoint` is no longer supported; remove it from config.toml", and the second stub accepts no connection. Second, a file that is not TOML. The `trusted` entry's start is refused with a message holding "failed to load configuration: Error parsing project config file ", the project's `.codex/config.toml`, "TOML parse error at line 1, column 6" and "key with no value, expected `=`". With the `untrusted` entry, each start succeeds and a turn completes. *(Read from the source:* `experimental_thread_store` takes only a local or in-memory store, and no supported key found points saved conversations at an address.*)* | Each entry against the other. | `TrustedProject.test_a_trusted_projects_settings_file_codex_cannot_load_refuses_the_start` |
+| **Instructions from settings.** The project's `.codex/config.toml` sets `developer_instructions` to a marker line. With the `trusted` entry and no `developerInstructions` from the App, the turn carries the project's marker. With the App's own `developerInstructions` (another marker line), it carries the App's and not the project's. With the `untrusted` entry, never the project's. The App's marker is carried whenever the App sends it. | Each entry against the other; each start with and without the App's own. | `TrustedProject.test_a_trusted_projects_developer_instructions_are_carried_and_the_apps_own_are_kept` |
+| **The trust mark with a `trusted` entry.** As the trust-mark rows: at full access, in the App's layout with the home's new, empty settings, in a git project, each case on a fresh run. With one `trusted` entry for the project's root, the home's `config.toml` is still empty when read two seconds after the start. | With no entry, the trust mark is written. | `TrustedProject.test_a_trusted_entry_writes_nothing_into_the_settings` |
+| **An exec-policy rule** (a finding). The project's `.codex/rules/invented.rules` allows `/usr/bin/touch`, by its path and by its name. Each entry runs on a fresh server, at edits and at supervised. Each thread runs a `touch` of a file outside the project and a plain write outside the project that the rule does not match. With the `trusted` entry: at edits, the `touch` succeeds with no request and its file appears, while the plain write is refused by the sandbox. At supervised, the `touch` succeeds with no request, while the plain write is put to the client first and declined. With the `untrusted` entry: at edits both are refused by the sandbox; at supervised both are put to the client first and declined. | The same rule in the person's own rules (`rules/default.rules` in the Codex home), with the `untrusted` entry, at edits: the `touch` succeeds, while a plain write outside the project is refused by the sandbox. | `TrustedProject.test_a_trusted_projects_allow_rule_takes_a_command_out_of_the_sandbox_and_past_the_person` |
+| **A shell environment** (a finding). The project's `.codex/config.toml` sets, through `shell_environment_policy.set`, three variables. One is the fixture's own. `ZDOTDIR` names a folder whose `.zshenv` exports `LEVEL_INVENTED_STARTUP=ran` (a shell builtin, starting no program and writing nothing) and then runs the marker command, writing under `outside`. `BASH_ENV` names a file that is the marker command. At edits and at full access, each entry on a fresh server, with two commands on the thread, each printing the start-up file's variable and the project's. With the `trusted` entry, at both levels, each command sees the project's variable and the start-up file's: the start-up file runs inside each command. At edits it runs under that command's sandbox: the marker's runs do not rise across either command, its write outside the project being refused there. At full access its write succeeds, and the marker's runs rise across each of the two commands. With the `untrusted` entry, at both levels, each command sees both variables unset and the marker never runs. The `BASH_ENV` marker never runs. Recorded: the marker's counts, and each command's other output lines (at edits, the start-up file's refused write). | The same policy in the person's settings, with the `untrusted` entry, at full access: each command sees both variables and the marker's runs rise across each. | `TrustedProject.test_a_trusted_projects_shell_environment_reaches_commands_and_runs_its_zdotdir` |
+| **Kept off while trusted: MCP servers by name.** The person's own settings name two servers. One has the same name as the project's stdio server and its own marker command; the other is the person's own. Every case has the `trusted` entry and the App's start at edits, on a fresh server. Every turn completes. When the project names no server, the person's two servers have run by the end of the turn, and the second stub accepts no connection through the stop. When the project names its two servers, with no override, by the end of the turn the project's definition of the shared name has run and the person's has not. The person's other server has run, and the second stub has accepted a connection. `mcpServerStatus/list` lists the person's other server and the shared name, not the project's HTTP server. When `mcp_servers.<name>.enabled = false` is sent in the start's `config` for each server the project names, neither the project's nor the person's definition of the shared name runs through the stop, and the second stub accepts no connection. No notification names either of the project's names; the person's other server has run by the end of the turn. In this configuration `mcpServerStatus/list` for the conversation fails with "failed to reload config: invalid transport", naming `mcp_servers.<the project's HTTP server>`. Recorded: every marker's runs just before the listing, as it returns, a second after it and after the stop. In one run, with the project naming both and no override, the person's own definition of the shared name ran once after the listing was asked for, and the person's other server once more; this is a record, not a rule. *(A possibility, read from the source and not observed: the listing reloads the settings without the project's layer, and starts what it finds.)* Untested: whether `config/read` gives the App the names of a trusted project's servers. | The three cases against each other, all `trusted`. | `TrustedProject.test_with_a_trusted_entry_enabled_false_on_the_start_keeps_each_named_project_mcp_server_off` |
+| **Kept off while trusted: the shell environment.** The project's policy of the row above, with the `trusted` entry. Each case uses the App's start at full access, one command and a fresh server, with the override in the start's `config.shell_environment_policy`. Of the forms exercised, two keep it out. First, each key the project sets given an empty value: the project's start-up file does not run (the `ZDOTDIR` marker), and the command sees the variable empty, not unset. Second, `include_only` listing the names of the environment Codex is given: the variable is unset and the marker does not run. Three forms do not keep it out: `exclude` of each key, `inherit = "none"`, and the whole table sent again with an empty `set`. After each, the command still sees the project's variable and the marker still runs. | The case with no override: the variable and the marker; all cases `trusted`. | `TrustedProject.test_with_a_trusted_entry_only_an_empty_value_or_include_only_on_the_start_keeps_a_projects_shell_environment_out` |
+| **Kept off while trusted: an allow rule, by a profile that denies a read.** The project's rule of the rules row, with the `trusted` entry, on one server. In place of the mode name and workspace options, a permissions profile is sent in the start's `config` and named by `permissions` on the start and on each turn. The profile is `extends = ":workspace"`, with one invented folder under `outside` denied for reading. The reply reports `on-request`, reviewer `user`, workspace write and network off, and the profile as active. The allowed `touch` outside the project runs and is refused by the sandbox; a plain write outside is refused by the sandbox; the project write succeeds; an escalation raises a request for that call, which the client declines. With the same profile without the denied read, everything is the same except that the allowed `touch` outside the project succeeds with no request. Between those two profiles, the denied read is the difference. *(Read from the source: an allow rule's command runs without the sandbox unless the file-system policy denies some read, `sandbox_override_for_first_attempt` and `unsandboxed_execution_allowed`; such a denial comes only from a permissions profile.)* | The App's own start with the same entry: `touch` outside the project succeeds, with no request. The matched profile without the denied read. | `TrustedProject.test_with_a_trusted_entry_a_profile_denying_a_read_keeps_an_allow_rules_command_in_the_sandbox` |
+| **Handing over the project's instructions.** The project's `AGENTS.md` and the App's own developer instructions each carry a marker line. A marker is placed by the text of the request's messages: the roles of the messages holding it, how many times, and how many more times it appears anywhere else in the request. With the `trusted` entry and the App's instructions, the start names the project's `AGENTS.md` by its full path and no other file. The turn carries both markers, each once and nowhere else: the App's in a developer message, the file's in a user message after it. With the `untrusted` entry, the file's text follows the App's instructions in `developerInstructions`. The start names no file, and the turn carries both markers, each once and nowhere else, in the same developer message. *(Read from the source: `developerInstructions` takes the place of the settings' `developer_instructions`; `baseInstructions` and the `instructions` setting replace Codex's base instructions; no start field carries the text Codex reads from `AGENTS.md`.)* | Each route against the other. | `TrustedProject.test_with_an_untrusted_entry_agents_md_text_handed_over_in_developer_instructions_reaches_the_model` |
+| **A nested `AGENTS.md`.** A git project with its own `AGENTS.md` and `sub/AGENTS.md`, each with a marker line. The conversation's folder is `sub`, and the one entry is for the project's root. With the `trusted` entry, the start names both files by their full paths and no other, and the turn carries both markers. With the `untrusted` entry, neither file is named and neither marker is carried. | Each entry against the other. | `TrustedProject.test_a_nested_agents_md_is_named_and_carried_with_a_trusted_entry_and_neither_file_with_an_untrusted_one` |
+| **Handed-over instructions after a resume.** Two conversations are started with the `untrusted` entry, the App's instructions (a marker line) followed by the file's text (another), and one turn each. The server is stopped and a second server started. Each conversation is resumed as the App's Continue resumes it: the first without `developerInstructions`, the second sending the text again; one turn each. Every turn completes. Every turn, before and after the resume, carries both markers, each once and nowhere else, in the same developer message. The text is carried after a resume without being sent again, and sending it again does not carry it twice. Recorded: the instruction files each resume reply names. | The first turns and the two resumes against each other, all `untrusted`. | `TrustedProject.test_handed_over_instructions_after_a_resume` |
+| **What else a trusted project's settings start.** `mcp_servers.<name>.http_headers_helper` on an HTTP server at the second stub *(read from the source: Codex runs the helper as `sh -c <command>`)*. With the `trusted` entry: the helper has not run before the thread starts, and has run by thread start and by the end of the first turn. The startup notifications, as an unordered set, are `starting` and `failed` for the server; `mcpServerStatus/list` lists nothing of it. The second stub has accepted no connection at any sample, from before the thread starts through the stop. With the `untrusted` entry: the helper never runs, no notification names the server, nothing is listed, and no connection. Recorded: how many times the helper ran. | Each entry against the other. | `TrustedProject.test_what_else_a_trusted_projects_settings_start` |
+
+**What the start can and cannot switch off** *(read from the source, not
+tested)*.
+- A project's exec-policy rules load from every enabled project layer
+  (`policy_files` in `codex-rs/core/src/exec_policy.rs`). The only switch is
+  `LoaderOverrides::ignore_user_and_project_exec_policy_rules`
+  (`codex-rs/config/src/state.rs`), which the app server sets only in its test
+  helpers (`codex-rs/app-server/src/main.rs`). It is no setting, feature or
+  start field.
+- Only the trust entry switches the project layer off for one thread.
+  `LoaderOverrides::ignore_project_config` skips project layers but cannot be
+  reached from a request. `project_root_markers` from the start only moves the
+  root, and `.codex` in the conversation's own folder is still read
+  (`discover_project_layers` in `codex-rs/config/src/loader/mod.rs`).
+- The start's `config` becomes the session layer, above the project's
+  (`load_with_validation` in `codex-rs/app-server/src/config_manager.rs`).
+  Layers merge key by key, tables merging and lists replacing
+  (`merge_toml_values` in `codex-rs/config/src/merge.rs`).
+  - So for MCP servers there is no whole-table replacement and no feature
+    switch. An allow-list exists only in managed requirements, which a request
+    cannot set, so a server can be turned off only by its name.
+  - So for the shell environment, a key the project's `set` names cannot be
+    removed, only given another value. Codex builds a command's environment in
+    this order (`populate_env` in
+    `codex-rs/protocol/src/shell_environment.rs`): `inherit`, the default
+    excludes, `exclude`, then `set`, then `include_only`. Patterns are `*` and
+    `?` wildcards only.
+
+**Keys a project's settings may still set that this section does not test.**
+The reason given for each is a choice of scope, or a finding read from the
+public source *(read from the source)*. The list is not a survey of every
+setting. The keys:
+- `mcp_oauth_callback_url` and `mcp_oauth_callback_port` (an OAuth sign-in);
+- MCP `auth`, `oauth`, `bearer_token_env_var`, `env_http_headers`
+  (credentials);
+- `apps`, `plugins.*`, `marketplaces.*`, `orchestrator.*`, `cloud.*` (an
+  account or a plugin install);
+- `analytics` and `feedback` (sent only when signed in; the App's own
+  `analytics.enabled=false` flag is the higher layer);
+- `web_search`, `tools.web_search`, `tools.client_search_provider` (run by the
+  provider);
+- `memories`, `auto_review`, `realtime`, `audio` (a model's work);
+- `agents.<role>.config_file` (read only for instructions, model and feature
+  switch-offs, in `codex-rs/core/src/agent/role.rs`);
+- `computer_use` and `browser_use` (access policies, no program);
+- `permissions.<name>.network.proxy_url` (used only by a selected profile, and
+  the App names a mode);
+- `features.network_proxy` (experimental, off by default);
+- `js_repl_node_path` (its feature is removed);
+- `file_opener` (links, not run);
+- `model_catalog_json`, `model_instructions_file`, `log_dir`, `sqlite_home`,
+  `history` (files, not processes or connections);
+- `oss_provider` (used only with the command line's own option).
+
+The source's denylist for a project's settings also names `openai_base_url`,
+`chatgpt_base_url`, `model_provider`, `model_providers`, `notify`, `profile`,
+`profiles`, `otel`, `apps_mcp_product_sku`, `responses_api_metadata` and the
+two realtime addresses. Of these, only the four the project-layer row supplies
+are tested.
 
 One further observation about the supplier is held out of this folder pending
 the owner's decision.

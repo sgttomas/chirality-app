@@ -219,7 +219,9 @@ supplier direction as though it were unanswered.
   there, or one the account home's settings mark trusted; untrusted where
   those settings mark the root untrusted or cannot be read, and otherwise.
   A trusted entry lets the project's own Codex files act: among other
-  things its MCP servers start with a conversation (LIM-037). The
+  things its MCP servers start with a conversation (LIM-038). The
+  App also enables Codex's Default-mode question feature in each
+  conversation home it offers. The
   dedicated local home uses the App-owned
   configuration specified by DEL-01-05, with analytics and plugin traffic
   off. Every session setting the App applies is listed for the person with

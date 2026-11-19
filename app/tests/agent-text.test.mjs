@@ -120,7 +120,7 @@ const injected = [
   request('mcpServer/elicitation/request', {threadId: 'T', turnId: 'u', serverName: `srv${LOOKALIKE}`, mode: 'url', message: `Open${LOOKALIKE}`, url: `https://example.invalid/${LOOKALIKE}`, elicitationId: 'e'}),
 ];
 // The App's own words on a control: anything an answer button may say.
-const APP_BUTTON = /^(Allow once|Allow for this session|Allow, and add a lasting rule \(see below\)|Don't allow[^"]*|Choose option \d+|Leave unanswered|Send current question answers…|Decline to answer|Send this input|Decline|Cancel)( ?("[^"]*"|accept|decline|cancel))?…?$/;
+const APP_BUTTON = /^(Allow once|Allow for this session|Allow, and add a lasting rule \(see below\)|Don't allow[^"]*|Choose option \d+|Leave unanswered|Send answers|Decline to answer; the agent continues without one|Send this input|Decline|Cancel)( ?("[^"]*"|accept|decline|cancel))?…?$/;
 
 test('agent text shaped like a control stays in the agent\'s box, escaped and marked, in what is seen', () => {
   for (const r of injected) {
@@ -424,14 +424,14 @@ test('choosing an option never puts its label in the free-answer field; the fiel
     assert.match(selected.textContent, /^Selected: option 1 Its label: UNTRUSTED/, 'the choice is said by number, its label beside it');
     assert.ok(selected.querySelectorAll(n => n.getAttribute?.('role') === 'group' && /agent-text/.test(n.getAttribute('class') ?? '')).length === 1, 'the label is boxed');
     assert.ok(!selected.textContent.includes(RLO), 'its direction override is a mark');
-    await React.act(() => props(button('Send current question answers…')).onClick());
+    await React.act(() => props(button('Send answers')).onClick());
     assert.deepEqual(sent.at(-1), {answers: {q: {answers: [label]}}}, 'the option is sent with its label exactly as offered');
     // Typing replaces the choice; the field holds the person's text and that is what is sent.
     await React.act(() => props(button('Choose option 2')).onClick());
     await React.act(() => props(field()).onChange({target: {value: 'my own'}}));
     assert.equal(props(field()).value, 'my own');
     assert.match(container.querySelectorAll(n => n.localName === 'p' && n.textContent.startsWith('Selected:'))[0].textContent, /^Selected: your own answer, in the field above$/);
-    await React.act(() => props(button('Send current question answers…')).onClick());
+    await React.act(() => props(button('Send answers')).onClick());
     assert.deepEqual(sent.at(-1), {answers: {q: {answers: ['my own']}}});
   } finally { await React.act(() => root.unmount()); document.body.removeChild(container); }
 });

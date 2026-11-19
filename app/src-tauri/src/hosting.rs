@@ -386,6 +386,11 @@ pub(crate) const TRUST_SETTINGS_CHANGED: &str = "refused-not-sent: the Codex set
 pub(crate) const SAVED_IN_APP_DATA_UNKNOWN: &str = "Chirality could not establish where this conversation works, so it was not continued or copied: it might be Chirality's own data folder. Nothing was sent to it.";
 /// The account home's provider, as a session setting (see `HostConfig::new`).
 pub(crate) const ACCOUNT_PROVIDER_FLAG: &str = "model_provider=\"openai\"";
+/// DEL-01-04 REQ-001: at the pin, Codex refuses its own question request in an ordinary conversation
+/// unless this feature is on, so the agent could ask the person only in its prose and the App was told
+/// nothing. The supplier marks the feature under development; `supplier_checks/level` asserts what it
+/// does at the pin (`QuestionInAnOrdinaryConversation`). Given to both homes' Codex at start.
+pub(crate) const QUESTION_FEATURE_FLAG: &str = "features.default_mode_request_user_input=true";
 /// DEL-01-05 REQ-010: every setting the App applies to its own Codex when it
 /// starts it, each with its reason, for the person to read. A setting with no
 /// reason here is still listed, marked as such, never left out.
@@ -396,6 +401,7 @@ pub(crate) fn applied_session_settings(flags: &[String]) -> Value {
             "analytics.enabled" => "Turns off Codex's analytics traffic.",
             "features.plugins" => "Turns off Codex's plugin traffic in the local model home, which shares nothing with your Codex settings.",
             "features.api_key_model_discovery" => "Stops Codex sending the local server's key to a model catalogue address.",
+            "features.default_mode_request_user_input" => "Enables the question tool in Default mode when Codex makes the tool available. Chirality shows the request and returns your answer. Codex marks this feature as under development.",
             "cli_auth_credentials_store" => "Keeps the local server's key in this home's own Codex file, not your keychain or your own Codex home.",
             "model_provider" if flag == ACCOUNT_PROVIDER_FLAG => "Codex runs a conversation only on the provider it was started with, so this home's Codex is started on its built-in OpenAI provider, whatever default your Codex settings name. Your files are not changed.",
             "model_provider" => "Starts this home's Codex on the local model server's provider.",
@@ -425,7 +431,7 @@ impl HostConfig {
             // the provider its process was started with, so this home's Codex is
             // started on the built-in provider whatever default the person's
             // settings name. Nothing is written to the person's files.
-            session_flags: vec!["analytics.enabled=false".into(), ACCOUNT_PROVIDER_FLAG.into()],
+            session_flags: vec!["analytics.enabled=false".into(), ACCOUNT_PROVIDER_FLAG.into(), QUESTION_FEATURE_FLAG.into()],
             wait_limit: Duration::from_secs(20),
             probe_wait_limit: Duration::from_secs(20),
             distribution: None,
