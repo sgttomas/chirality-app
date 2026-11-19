@@ -168,7 +168,7 @@ test('mounted: the status strip speaks only for the conversation chosen in the c
     const status = () => strip(c).querySelectorAll(n => n.getAttribute('role') === 'status')[0];
     assert.equal(status().textContent, '', 'no conversation chosen: nothing');
     assert.equal(strip(c).getAttribute('data-turn-phase'), null);
-    for (const [id, words, phase] of [['T2', 'Working', 'working'], ['T1', 'Idle', 'idle'], ['T3', 'Waiting for you', 'waiting']]) {
+    for (const [id, words, phase] of [['T2', 'Working', 'working'], ['T1', 'Idle', 'idle'], ['T3', 'Needs answer', 'waiting']]) {
       await React.act(async () => props(row(c, id)).onClick());
       assert.equal(status().textContent, words, id); assert.equal(strip(c).getAttribute('data-turn-phase'), phase);
     }
@@ -178,10 +178,10 @@ test('mounted: the status strip speaks only for the conversation chosen in the c
 
 test('mounted: the right panel\'s tabs show the App\'s other views and the conversation\'s tools, all mounted; a reveal selects the tab that holds its target', async () => {
   await mountApp(baseHost(), async ({c, calls}) => {
-    assert.deepEqual(tabs(c).map(t => t.textContent), ['Run a workflow', 'Workflows', 'Make a workflow', 'History', 'Settings & tools', 'Conversation tools']);
+    assert.deepEqual(tabs(c).map(t => t.textContent), ['Run', 'Run a workflow', 'Workflows', 'Make a workflow', 'History', 'Settings & tools', 'Conversation tools']);
     assert.deepEqual(RIGHT_PANEL_TABS.map(t => t.label), tabs(c).map(t => t.textContent));
     assert.equal(selectedTab(c), 'Run a workflow', 'at launch, with nothing to move for');
-    const views = {'Run a workflow':'view-run', 'Workflows':'view-library', 'Make a workflow':'view-make', 'History':'view-history', 'Settings & tools':'workspace-tools', 'Conversation tools':'view-conversation-tools'};
+    const views = {'Run':'view-current-run', 'Run a workflow':'view-run', 'Workflows':'view-library', 'Make a workflow':'view-make', 'History':'view-history', 'Settings & tools':'workspace-tools', 'Conversation tools':'view-conversation-tools'};
     for (const tab of tabs(c)) {
       await React.act(async () => props(tab).onClick());
       assert.equal(selectedTab(c), tab.textContent);
@@ -204,7 +204,7 @@ test('mounted: the right panel\'s tabs show the App\'s other views and the conve
     await React.act(async () => props(tablist).onKeyDown({key:'ArrowRight', preventDefault() {}}));
     assert.equal(selectedTab(c), 'Settings & tools');
     await React.act(async () => props(tablist).onKeyDown({key:'Home', preventDefault() {}}));
-    assert.equal(selectedTab(c), 'Run a workflow');
+    assert.equal(selectedTab(c), 'Run', 'the first tab');
     // Revealing the new conversation shows the empty conversation, whose settings are the new conversation's: with Codex
     // ready the App reads the model list itself, once (a catalogue read; nothing is chosen or started).
     assert.deepEqual(calls.filter(x => x.command === 'read_available_models').map(x => x.args.atPersonPress), [false]);
@@ -304,7 +304,7 @@ test('mounted: a delegated agent\'s request marks the conversation it descends f
   await mountApp(host, async ({c, calls}) => {
     assert.ok(needsAnswer(c, 'T1'), 'marked on the root, as "Waiting on you" groups it');
     await React.act(async () => chooseIn(choiceLists(conversationView(c))[0], key('T1')));
-    assert.equal(strip(c).textContent, 'Waiting for you', 'the strip speaks for the root conversation shown');
+    assert.equal(strip(c).textContent, 'Needs answer', 'the strip speaks for the root conversation shown');
     const before = calls.length;
     await React.act(async () => { await props(needsAnswer(c, 'T1')).onClick(); });
     assert.deepEqual(calls.slice(before).find(x => x.command === 'open_waiting_requests')?.args, {modeHomeClass:'account', generation:g, threadId:'C1'}, 'the request\'s own conversation is the one opened');
@@ -386,7 +386,7 @@ test('mounted: a request marks the conversation it is on as well as the one it d
   await mountApp(host, async ({c, calls}) => {
     assert.ok(needsAnswer(c, 'C1'), 'the loaded child keeps its mark though its parent is not loaded');
     await React.act(async () => chooseIn(choiceLists(conversationView(c))[0], key('C1')));
-    assert.equal(strip(c).textContent, 'Waiting for you', 'the strip speaks for the child\'s own request');
+    assert.equal(strip(c).textContent, 'Needs answer', 'the strip speaks for the child\'s own request');
     const before = calls.length;
     await React.act(async () => { await props(needsAnswer(c, 'C1')).onClick(); });
     assert.deepEqual(calls.slice(before).find(x => x.command === 'open_waiting_requests')?.args, {modeHomeClass:'account', generation:g, threadId:'C1'});

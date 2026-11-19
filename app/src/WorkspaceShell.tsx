@@ -6,6 +6,7 @@ type Json = any;
  * person lands on when they select it; the last holds the conversation's own tools that its centre view does not
  * show (its role and continuation options, trials, the detailed panels). */
 export const RIGHT_PANEL_TABS = [
+  { id: "current-run", label: "Run", target: "view-current-run" },
   { id: "run", label: "Run a workflow", target: "view-run" },
   { id: "workflows", label: "Workflows", target: "view-library" },
   { id: "make", label: "Make a workflow", target: "view-make" },
@@ -28,11 +29,13 @@ export function turnPhase(row: Json | null | undefined, waitingForAnswer: boolea
   const type = row?.status?.type;
   return type === "active" ? "working" : type === "idle" ? "idle" : null;
 }
-const PHASE_WORDS: Record<Exclude<TurnPhase, null>, string> = { working: "Working", waiting: "Waiting for you", idle: "Idle" };
+const PHASE_WORDS: Record<Exclude<TurnPhase, null>, string> = { working: "Working", waiting: "Needs answer", idle: "Idle" };
+/** The open conversation's run as the strip names it: the workflow's name and the Run tab's word for its state (stripRun). */
+export type StripRun = { name: string; word: string; mark: string };
 
-export function ActivityStrip({ phase }: { phase: TurnPhase }) {
+export function ActivityStrip({ phase, run = null }: { phase: TurnPhase; run?: StripRun | null }) {
   return <div className="woven-activity-strip" aria-label="Activity status" data-turn-phase={phase ?? undefined}>
-    <span role="status">{phase ? PHASE_WORDS[phase] : ""}</span>
+    <span role="status">{run ? <><span className="v4-strip-run"><span className={`v4-dot v4-dot--${run.mark}`} aria-hidden="true"/>{run.name}</span> · {run.word}</> : phase ? PHASE_WORDS[phase] : ""}</span>
   </div>;
 }
 
