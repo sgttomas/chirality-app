@@ -266,22 +266,24 @@ const {App} = loadSrc('App');
 const place = c => c.querySelectorAll(n => n.getAttribute('aria-label') === 'Waiting on you')[0];
 const shownIn = (el, c) => { for (let n = el; n && n !== c; n = n.parentNode) if (props(n)?.hidden) return false; return true; };
 
-test('the place is present on every view, directly under the navigation, inside the part that stays in view', async () => {
-  const {WORKSPACE_VIEWS} = loadSrc('DailyWorkspace');
+test('the place is present whichever tab is selected, at the top of the conversation, inside the part that stays in view', async () => {
+  const {RIGHT_PANEL_TABS} = loadSrc('WorkspaceShell');
   await mountApp(async ({c}) => {
-    const main = nodes(c, 'main')[0];
-    for (const item of WORKSPACE_VIEWS) {
-      const link = nodes(c, 'a').find(a => a.textContent === item.label && a.parentNode.localName === 'nav');
-      await React.act(async () => props(main).onClick({target:link, currentTarget:main, preventDefault:() => {}}));
-      assert.equal(link.getAttribute('aria-current'), 'page', item.label);
+    for (const item of RIGHT_PANEL_TABS) {
+      const tab = nodes(c, 'button').find(b => b.getAttribute('role') === 'tab' && b.textContent === item.label);
+      await React.act(async () => props(tab).onClick());
+      assert.equal(tab.getAttribute('aria-selected'), 'true', item.label);
       const here = place(c);
       assert.ok(here, `${item.label}: the place is in the document`);
       assert.ok(shownIn(here, c), `${item.label}: the place is shown`);
       assert.match(nodes(here, 'summary')[0].textContent, /^Waiting on you: \d+( observed now)?( \(\d+ requests? from Codex\))?(; status incomplete)?$/);
       const sticky = here.parentNode;
-      assert.equal(sticky.getAttribute('class'), 'workspace-sticky', 'it stays in view with the navigation');
-      assert.equal(sticky.parentNode, main, 'a direct child of the workspace that holds every view, so it sticks while any of them scrolls');
-      assert.equal(sticky.childNodes[0].localName, 'nav'); assert.equal(sticky.childNodes[1], here, 'directly under the navigation');
+      assert.equal(sticky.getAttribute('class'), 'workspace-sticky', 'it stays in view while the conversation scrolls');
+      const centre = sticky.parentNode;
+      assert.equal(centre.getAttribute('class'), 'daily-workspace', 'a direct child of the element that scrolls, so it sticks while the conversation scrolls');
+      assert.equal(centre.parentNode.getAttribute('aria-label'), 'Conversation', 'in the centre region');
+      assert.ok(centre.contains(c.querySelectorAll(n => n.getAttribute('id') === 'view-conversation')[0]), 'which holds the conversation');
+      assert.equal(centre.childNodes[0], sticky, 'at the top of the centre');
     }
     assert.equal(c.querySelectorAll(n => n.getAttribute('aria-label') === 'Requests waiting for your answer').length, 1, 'the waiting count is inside the place, once');
     assert.ok(place(c).contains(c.querySelectorAll(n => n.getAttribute('aria-label') === 'Requests waiting for your answer')[0]));

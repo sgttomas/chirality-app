@@ -238,8 +238,9 @@ test('an admitted Continue shows the Conversation view with its message box focu
    const previousLookup=document.getElementById;document.getElementById=id=>ui.c.querySelectorAll(n=>n.getAttribute('id')===id)[0]??null;
    try{await ui.press('Continue selected conversation');}finally{document.getElementById=previousLookup;}
    assert.equal(ui.selected(),key('stored'));
-   const active=ui.c.querySelectorAll(n=>n.localName==='a'&&n.getAttribute('aria-current')==='page').map(n=>n.textContent);
-   assert.deepEqual(active,['Conversation'],'the Conversation view is shown');
+   const composer=ui.c.querySelectorAll(n=>n.getAttribute('id')==='ordinary-composer-text')[0];
+   const shown=e=>{for(let n=e;n;n=n.parentNode)if(props(n)?.hidden)return false;return true;};
+   assert.ok(composer&&shown(composer),'the Conversation view is shown, with its message box');
    assert.equal(focused.at(-1)?.getAttribute('id'),'ordinary-composer-text','its message box has the focus');
    assert.equal(scrolled.at(-1)?.getAttribute('id'),'ordinary-composer-text','and is the last thing scrolled into view, so it is on screen');
    assert.match(ui.c.textContent,/Continue admission confirmed; opened Conversation \d[^.]*in Conversation\. Nothing was sent\./,'the notice names the conversation in the person\'s words');
