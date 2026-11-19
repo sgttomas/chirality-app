@@ -674,10 +674,11 @@ An entry is added in the same pull request that makes the limitation standing.
   an agent asks without waiting, on the models Codex gives that form:
   Chirality lists it under "Waiting on you" only for a conversation of your
   own with the agent (not a delegated agent's) that it has read since it last
-  started Codex. A conversation continued from History is not read for this
-  until it receives a message; until then "Waiting on you" names it as not
-  read and says its status is incomplete. Nothing about such a question is
-  kept across a relaunch, and any later message from you ends the listing,
+  started Codex. Continuing from History does not itself establish the
+  question reading. While the conversation is unread, "Waiting on you" names
+  it and says its status is incomplete. Chirality can show the question again
+  from Codex history after relaunch. It does not restore its previous reading
+  or unsent card answers. Any later message from you ends the listing,
   whatever it says.
 - **Why:** the question is Codex's own request, which belongs to the running
   turn and is not kept across a stop, and which Codex allows only to the
@@ -686,11 +687,11 @@ An entry is added in the same pull request that makes the limitation standing.
   its own Codex and lists among the settings it applies. The shipped guidance
   uses the request for optional questions in Default mode and directs
   questions whose answers are needed to the form that does not wait, when
-  Codex offers it. Which an agent uses is the model's choice, and the App does
-  not guess from the wording of a message. The question asked without waiting is an item of the conversation,
-  not a request: the App reads it from the items Codex sends while it runs,
-  and Codex's summary of an earlier turn, which is what the App reads from
-  history, leaves items out.
+  Codex offers it and the current mode permits its use. Which an agent uses is the model's choice, and the App does
+  not guess from the wording of a message. The question asked without waiting is a
+  conversation item. Chirality can receive it live or see it in items supplied
+  by Codex. A turn summary may omit items, so it cannot establish whether a
+  later message follows the question.
 - **What the person does instead:** after a stop, send a message to continue.
   Read a completed turn's last message for a question. For a conversation
   continued from History, open the stored turn's items to read any question

@@ -481,8 +481,10 @@ For the owner and an agent fleet, in the Chirality App (D-09, option B).
   list: a view over what the App already keeps (the harness's requests,
   arrivals at checkpoints, returns awaiting review under V4-PM-03 and
   decision packages under V4-PM-04), never a second queue or a second source
-  of status. The same list includes the agent's question that does not wait
-  when the App has read it and no message from the person follows it. One request has one disposition wherever it is seen. Each card
+  of status. The same list includes the latest question that the conversation's own
+  agent asked without waiting, for each admitted top-level conversation of the
+  home in use whose reading establishes that no message from the person
+  follows that question. One request has one disposition wherever it is seen. Each card
   stands out from the agents' activity and names who asks (for a delegated
   agent, its role and name as Codex reports them), who must respond, what it
   concerns and who integrates the result. The App draws each card on a path

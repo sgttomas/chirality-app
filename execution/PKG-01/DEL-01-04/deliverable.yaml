@@ -222,6 +222,7 @@ code_paths:
 # message composed from the answers.
 - app/src-tauri/src/native_items.rs
 - app/src/AskedQuestionCard.tsx
+- app/src/NativeActivity.tsx
 - app/tests/asked-question-card.test.mjs
 - app/src/RequestAnswerCompanion.tsx
 - app/src/hostReads.ts

@@ -1756,7 +1756,7 @@ class QuestionThatDoesNotWait(unittest.TestCase):
     def test_a_turn_summary_leaves_items_out_so_it_cannot_say_whether_a_question_waits(self):
         """What the App's own history reads see. After a restart the App reads turns with `itemsView` `summary`. A
         summary holds fewer items than the turn has, so a question, or a message from the person after it, can be
-        among those left out: the App reads nothing about a question from a summary. The control is the full read
+        among those left out: the App can display a question found in a summary; it needs other evidence to establish the question's standing. The control is the full read
         of the same conversation, which holds every item."""
         with L.Run(SCRATCH, BINARY) as run:
             client = run.start()
