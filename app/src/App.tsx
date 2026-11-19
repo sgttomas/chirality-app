@@ -51,7 +51,7 @@ import { AccountStatus, DIDNT_SAY, accountReadError, accountReading, reportedPla
 import { registeredRevisionAnchor, runEvidenceAnchor, stripRun } from "./RunJourney";
 import { RunTab } from "./RunTab";
 import { WorkflowLibrary } from "./WorkflowLibrary";
-import { PICK_STEPS, PickChip, conversationRuns, pickLimit, pickScope, runPickedWorkflow, type PickRunOutcome, type WorkflowPick } from "./WorkflowPick";
+import { PICK_STEPS, PartsLine, PickChip, Supplied, chosenNotStarted, conversationRuns, pickHold, pickLimit, pickMemory, pickScope, pickedSelection, reviewKey, runPickedWorkflow, type Part, type PickRunOutcome, type WorkflowPick } from "./WorkflowPick";
 import { LevelChoiceShare, PermissionLevel, PermissionLevelActions, PermissionLevelAsk, PermissionLevelSummary, levelInForce, levelOwner } from "./PermissionLevel";
 import { MakeWorkflowGuide } from "./MakeJourney";
 import { acknowledgeBringBackDoubt, beginBringBack, bringBackRefusal, doubtDestination, endBringBack, noteBringBackDoubt, resetBringBackDoubts, sendKey, useBringBackDoubts, type BringBackDoubt } from "./bringBackDoubts";
@@ -179,18 +179,39 @@ export type StartSettings = { role: string; model: string; blocked: string; role
   /** The person's choices as they stand now, read after an await (StartIntent). */
   intent?: () => StartIntent };
 
-// The host's refusals of a start that are made before anything is dispatched, so nothing started
-// (lib.rs start_conversation: start_source/check_start_source, runtime_session.rs:2803, 2806, 2933; access.rs:160,
-// 198 and runtime_session.rs:1742 claim_start, all before dispatch_invoked). Each is the App's own sentence, at the
-// start of the message the host returns; a start refused at a configuration reading is readingRefusal's. Every
-// other rejection, including one whose words resemble these elsewhere in the message, leaves the start's effect
-// unknown to the renderer.
-const START_REFUSED_BEFORE_DISPATCH = [
-  "The selected Codex home changed since you chose it (a different or replaced source); nothing started.",
-  "The selected Codex home is not running that source now (closed or not ready); nothing started",
-  "The start names no complete Codex home source (full generation required); nothing started",
-  "The access entry's origin contradicts this start's control; nothing started",
-  "thread start in progress",
+// The host's refusals of a start that are made before anything is dispatched, so nothing started. thread_start
+// (lib.rs start_conversation) returns every error raised before it sets dispatch_invoked as this reason, alone when it
+// carries a reading sentence (readingRefusal's) and otherwise followed by "; role supply observation: …"; an error raised
+// after dispatch carries the same suffix, so the suffix marks nothing and the renderer can tell a refusal only by its
+// sentence. Each entry is one literal sentence the host returns, with the host file and function it is written in;
+// thread-start-refusals.test.mjs reads the host source for each: the sentence is in that function and nowhere else in
+// the host, the function runs only before dispatch, and every literal refusal those functions can return is listed
+// here. A changed sentence fails that test. A refusal whose words the host composes at run time (a configuration or
+// file reading, the role composition, the provider reading), or whose sentence the host also writes in a function that
+// is not listed (start_params' "not started — no model selected", endpoint_checkpoint's "Endpoint controller busy"),
+// is not listed: it reads as a start not confirmed.
+export const START_REFUSED_BEFORE_DISPATCH: readonly { sentence: string; at: string }[] = [
+  { sentence: "The selected Codex home changed since you chose it (a different or replaced source); nothing started. Read models again or choose again", at: "runtime_session.rs check_start_source" },
+  { sentence: "The selected Codex home is not running that source now (closed or not ready); nothing started", at: "runtime_session.rs check_start_source" },
+  { sentence: "The start names no complete Codex home source (full generation required); nothing started", at: "runtime_session.rs start_source" },
+  { sentence: "Unknown active home class; no default/fallback", at: "lib.rs home_class" },
+  { sentence: "Separate key entry is not configured; no account fallback", at: "runtime_session.rs entry" },
+  { sentence: "Local provider source is not prepared; no fallback", at: "runtime_session.rs entry" },
+  { sentence: "Probe is not a conversation entry", at: "runtime_session.rs entry" },
+  { sentence: "Native working directory is not Unicode; thread/start cannot carry a lossless JSON cwd, no request sent", at: "lib.rs start_conversation_inner" },
+  { sentence: "Access entry differs from the selected actual home class; no native transfer/fallback", at: "lib.rs start_conversation_inner" },
+  { sentence: "Explicit key source binding is unavailable", at: "lib.rs start_conversation_inner" },
+  { sentence: "conversation/nonempty explicit project required", at: "access.rs new_explicit" },
+  { sentence: "The access entry's origin contradicts this start's control; nothing started", at: "access.rs choose_start_entry" },
+  { sentence: "start a new conversation for another access mode", at: "access.rs choose" },
+  { sentence: "thread start in progress", at: "access.rs choose" },
+  { sentence: "explicit entry, provider and model required", at: "access.rs choose" },
+  { sentence: "offered choice differs", at: "access.rs choose" },
+  { sentence: "selection is not ready to start", at: "access.rs start_params" },
+  { sentence: "full owning home generation required", at: "access.rs start_params" },
+  { sentence: "API-key entry requires its own home", at: "access.rs start_params" },
+  { sentence: "ChatGPT entry requires account home", at: "access.rs start_params" },
+  { sentence: "thread start in progress", at: "runtime_session.rs claim_start" },
 ];
 /** Whether a rejected start is a definite refusal (nothing started), as the host's message establishes it. */
 export const startRefusedBeforeDispatch = (error: unknown): boolean => {
@@ -198,7 +219,7 @@ export const startRefusedBeforeDispatch = (error: unknown): boolean => {
   const message = hostMessage(error);
   // The sentence, then the end of the message or what the host appends after it (its next sentence, or "; role
   // supply observation: …").
-  return START_REFUSED_BEFORE_DISPATCH.some(sentence => message.startsWith(sentence) && ["", ";", ".", " "].includes(message.charAt(sentence.length)));
+  return START_REFUSED_BEFORE_DISPATCH.some(({ sentence }) => message.startsWith(sentence) && ["", ";", ".", " "].includes(message.charAt(sentence.length)));
 };
 
 /** The top of Settings & tools: the account, the access level, and where the model and effort are chosen, each in one
@@ -222,7 +243,7 @@ function StepDetails({ line }: { line: string | null }) {
   return <details className="v4-step-details"><summary>Details</summary><AgentText block value={line} source="record" label={STEP_LINE.label} name={STEP_LINE.name} /></details>;
 }
 
-export function ConversationPanel({ reportChooser, localRoute = null, focusComposer, startAct, composerOffer, host, threadKey, setThreadKey, answer, readRequest, replyObservations, runAct, trialRunAct, send, observeOrdinaryView, steer, submitAttachments, observeAttachmentView, interrupt, checkPlanMode, codexBusy, forkConversation, handoffSend, handoffRead, activityNavigationRef, activityLink, preparedReveal, toolsHost = null, showTools, before, attachments, actionOutcome, startNew, pick = null, setPick, clearPick, pickDropped = false, showWorkflows, onRunStarted, readStatus }: { /** Receives the view's own choice of a conversation while the view takes a choice, else null. */
+export function ConversationPanel({ reportChooser, localRoute = null, focusComposer, startAct, composerOffer, host, threadKey, setThreadKey, answer, readRequest, replyObservations, runAct, trialRunAct, send, observeOrdinaryView, steer, submitAttachments, observeAttachmentView, interrupt, checkPlanMode, codexBusy, forkConversation, handoffSend, handoffRead, activityNavigationRef, activityLink, preparedReveal, toolsHost = null, showTools, before, attachments, actionOutcome, startNew, pick = null, setPick, clearPick, pickDropped = false, showWorkflows, onRunStarted, readStatus, latest }: { /** Receives the view's own choice of a conversation while the view takes a choice, else null. */
   reportChooser?: (choose: ((key: string) => void) | null) => void; localRoute?: LocalView | null; focusComposer?: number; startAct?: RunAct; composerOffer?: ComposerOffer | null; preparedReveal?: PreparedComposerReveal | null; activityNavigationRef?: Ref<NativeActivityHandle>; activityLink?: RequestActivityLink; forkConversation?: (generation: Json, sourceThread: string) => Promise<void>; handoffSend?: (id: string, text: string) => Promise<HandoffSendOutcome>; handoffRead?: (id: string) => Promise<HandoffSendOutcome>; codexBusy: boolean; host: Json; threadKey: string; setThreadKey: (key: string) => void; trialRunAct?: RunAct; answer: RequestAnswer; readRequest?: ReadRequestCustody; replyObservations?: Record<string, RequestReplyObservation>; runAct: RunAct; checkPlanMode: (generation: Json) => Promise<void>; submitAttachments: (generation: Json, thread: string, expected: string | null, text: string, owner: string, revision: number, refs: string[]) => Promise<Json>; observeAttachmentView?: (request: AttachmentRequest) => Promise<void>; send: (generation: Json, thread: string, text: string, mode?: "plan" | "default", model?: string, effort?: string) => Promise<Json>; observeOrdinaryView?: (request: OrdinaryTextRequest, isCurrent: () => boolean) => Promise<void>; steer: (generation: Json, thread: string, expected: string, text: string) => Promise<boolean | void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<boolean | void>;
   /** The right panel's "Conversation tools" element, where the conversation's other tools are drawn; without it they are drawn after the transcript. */
   toolsHost?: HTMLElement | null;
@@ -246,8 +267,11 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
   showWorkflows?: () => void;
   /** Start run has started a run: the App shows the Run tab (App.tsx moveToRun). */
   onRunStarted?: () => void;
-  /** Reads host_status and applies it, resolving to the snapshot read. */
-  readStatus?: () => Promise<Json> }) {
+  /** Reads host_status and applies it, resolving to the latest status the App has accepted (this read's, or a newer one's). */
+  readStatus?: () => Promise<Json>;
+  /** Now, without waiting for the view to draw: the latest status the App has accepted, the key of the conversation the
+   * person has chosen, and the workflow picked. A press checks them after every step (WorkflowPick.tsx). */
+  latest?: () => { host: Json; threadKey: string; pick: WorkflowPick | null } }) {
   const [turnId, setTurnId] = useState<string>("");
   const [offerBusy, setOfferBusy] = useState(false);
   const [text, setText] = useState<string>("");
@@ -652,40 +676,49 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
   // 2026-10-10 D-1). Each per-conversation child keys on its own prefix.
   // ---- A picked workflow: Send is "Start run", which runs the Run guide's steps in order (WorkflowPick.tsx) ----
   // The last press's outcome, for the conversation it concerns ("" for a new chat that was not started).
-  const [pickOutcomeHeld, setPickOutcome] = useState<{ owner: string; kind: "alert" | "status"; words: string } | null>(null);
+  const [pickOutcomeHeld, setPickOutcome] = useState<{ owner: string; kind: "alert" | "status"; parts: readonly Part[] } | null>(null);
   // The host's line for the last press of Start run or of the first message's Send: shown only with that press's own
   // App sentence beside the message box, behind its Details, so a failed step is said once in view.
   const [stepLine, setStepLine] = useState<string | null>(null);
   const pickOutcome = pickOutcomeHeld && pickOutcomeHeld.owner === (selected ? threadKey : "") ? pickOutcomeHeld : null;
-  // The guide's acknowledgement of a start whose outcome is unknown names those runs; a later one starts unacknowledged.
+  // The person's acknowledgement of a hold (the guide's starts of unknown outcome and this composer's own doubts, by
+  // pickHold's key): a later hold starts unacknowledged.
   const [checkedRun, setCheckedRun] = useState<string | null>(null);
-  const pickPrepared = useRef(new Map<string, { reference: string; text: string }>());
-  const pickAttempted = useRef(new Set<string>());
+  // What the composer keeps between presses for this App session: its preparations, its sends, and the commands whose
+  // outcome it has not established (WorkflowPick.tsx PickMemory).
+  const pickKept = useRef(pickMemory());
+  // The draft as it is now, for a press that checks it after each step.
+  const draftNow = useRef(text);
+  draftNow.current = text;
   // A new pick, or a Remove, starts afresh; a pick the App dropped keeps what its last press came to.
   useEffect(() => { if (pick || !pickDropped) setPickOutcome(null); }, [pick]); // eslint-disable-line react-hooks/exhaustive-deps
   const pickCurrent = !!pick && pick.scope === pickScope(host);
-  // The open conversation's workflow selection, where the host holds one and no run of that conversation.
-  const chosenHere = selected ? chatWorkflow(workflowRoot, workflowRoot?.context?.sourceRef, selected.threadId) : undefined;
-  const chosenUnstarted: string | null = chosenHere && chosenHere.state !== "not-selected" && typeof chosenHere.identity?.name === "string" && chosenHere.identity.name
-    && !(Array.isArray(workflowRoot?.runs) ? workflowRoot.runs : []).some((run: Json) => run.conversation === selected?.threadId)
-    ? chosenHere.identity.name : null;
+  // The note that a workflow is chosen and nothing run, only where the App establishes both (WorkflowPick.tsx chosenNotStarted).
+  const chosenUnstarted: string | null = selected ? chosenNotStarted(host, selected.threadId, pickKept.current.doubts.get(selected.threadId)?.kind === "send") : null;
   const pickStop = pick && pickCurrent ? pickLimit(pick, host) : null;
   const pickRuns = pick && selected ? conversationRuns(host, selected.threadId) : null;
-  const pickHeld = !!pickRuns?.unresolvedStart && checkedRun !== pickRuns.holdKey;
+  const hold = pick && selected ? pickHold(host, selected.threadId, pickKept.current) : null;
+  // A start that may have sent the workflow holds Start run until the person says they read the conversation; a step
+  // whose outcome is not established is read again at the next press, which says when it can't establish it.
+  const pickHeld = !!hold?.sent && checkedRun !== hold.key;
+  // What the composer shows as chosen for this conversation, with its requirement reading: a press sends only this.
+  const shownSelection = pick && selected ? pickedSelection(host, selected.threadId, pick) : undefined;
+  const shownReview = shownSelection && selected ? reviewKey(shownSelection, selected.threadId) : null;
   const projectMissing = !!pick && host?.workflowRoot?.projectLibraryAvailable !== true;
   const heldHereNow = !!selected && unconfirmed.some(row => !row.acknowledged && row.request.threadId === selected.threadId);
   const pickReadiness: ReactNode = !pick ? null
     : !sourceReady ? "Connect to Codex before starting a run. Your draft stays here."
     : busy ? (Object.values(PICK_STEPS).includes(busy as never) ? busy : "An operation is pending. New messages are paused until its result is received.")
     : !pickCurrent ? "Codex or the workflow source changed. Pick the workflow again under Workflows."
-    : pickStop ? pickStop
+    : pickStop ? <PartsLine parts={pickStop}/>
     : projectMissing ? <>A run needs a project folder. <a href="#desktop-setup">Choose one in Desktop setup</a>; it applies the next time you open the App.</>
     : !selected && !newChat ? "The conversation chosen is not available now. Choose a conversation or press New chat. Your draft stays here."
     : !selected ? (startNew?.blocked ? `${startNew.blocked}${text ? " Your draft stays here." : ""}` : startHeld ? "A conversation may already have started. Choose it on the left, or say to start another. Your draft stays here." : !text ? "Say what the workflow should work on." : "Ready to start a new conversation and run the workflow.")
     : heldHereNow ? "An earlier message to this conversation wasn't confirmed and may have been sent. Read the conversation, then confirm below before sending again. Your text is kept."
     : pickRuns?.inProgress ? "A workflow run is still open in this conversation. End it with End run in the Run tab before starting another."
-    : pickHeld ? (pickRuns?.latest ? "Read the conversation: the last start's outcome is unknown and it may have run."
-      : "Read the conversation: a start here has an unknown outcome and may have run; the App can't tell which run is latest.")
+    : pickHeld ? (pickRuns?.unresolvedStart ? pickRuns?.latest ? "Read the conversation: the last start's outcome is unknown and it may have run."
+      : "Read the conversation: a start here has an unknown outcome and may have run; the App can't tell which run is latest."
+      : "Read the conversation: the App couldn't confirm the last start and it may have run.")
     : !text ? "Say what the workflow should work on."
     : "Ready to start the run in this conversation.";
   const pickReady = !!pick && sourceReady && !busy && pickCurrent && !pickStop && !projectMissing && !!text
@@ -695,20 +728,25 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
     const picked = pick, draft = text, revision = textRevision.current, owner = selected ? threadKey : "", pressedIn = host?.generation;
     turnActionPending.current = true;
     setError(""); setStartOutcome(null); setPickOutcome(null); setStepLine(null);
+    // Busy from the press itself: no other conversation or pick is offered while it reads.
+    setBusy(selected ? PICK_STEPS.read : PICK_STEPS.start);
     let outcome: PickRunOutcome;
     try {
-      outcome = await runPickedWorkflow({ pick: picked, text: draft, thread: selected?.threadId ?? null, host,
+      outcome = await runPickedWorkflow({ pick: picked, text: draft, thread: selected?.threadId ?? null, threadKey: selected ? threadKey : "", host, shown: shownReview,
+        now: () => { const now = latest?.(); return { host: now?.host ?? host, thread: now ? now.threadKey : threadKeyNow.current, pick: now ? now.pick : picked, text: textRevision.current === revision ? draftNow.current : `${draftNow.current}\u0000` }; },
         start: () => startNew ? startNew.start(setStepLine) : Promise.resolve(null),
         act: (command, args) => (startAct ?? runAct)(command, args, setStepLine),
         read: () => readStatus ? readStatus() : Promise.reject(Error("The App can't read its state here.")),
-        step: words => setBusy(words), prepared: pickPrepared.current, attempted: pickAttempted.current, acknowledged: checkedRun });
+        step: words => setBusy(words), memory: pickKept.current, acknowledged: checkedRun });
     } finally { turnActionPending.current = false; setBusy(""); }
     if (outcome.state === "started") {
       if (textRevision.current === revision) setText(current => current === draft ? "" : current);
       clearPick?.(picked);
       onRunStarted?.();
-    } else if (outcome.state === "review") setPickOutcome({ owner: outcome.opened ?? owner, kind: "status", words: "Read what it needs, then press Start run. Nothing has been sent." });
-    else if (outcome.state === "stopped") { if (outcome.startUnknown) holdStart(pressedIn); setPickOutcome({ owner: outcome.opened ?? owner, kind: "alert", words: outcome.words }); }
+    } else if (outcome.state === "review") setPickOutcome({ owner: outcome.opened ?? owner, kind: "status", parts: [outcome.changed
+      ? "What the workflow needs has changed since it was shown. Read it, then press Start run. Nothing has been sent."
+      : "Read what it needs, then press Start run. Nothing has been sent."] });
+    else if (outcome.state === "stopped") { if (outcome.startUnknown) holdStart(pressedIn); setPickOutcome({ owner: outcome.opened ?? owner, kind: "alert", parts: outcome.parts }); }
   };
   const sendReadiness = !sourceReady ? "Connect to Codex before sending. Your draft stays here."
     : newChat && startNew ? (busy ? "An operation is pending. New messages are paused until its result is received."
@@ -866,7 +904,7 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
           {before}
           {/* A workflow chosen for this conversation with no run of it started (the first press of Start run, left
               there): said as that, so the conversation is not taken for a run. */}
-          {chosenUnstarted && <p className="panel-empty" role="note" aria-label="Workflow chosen, not started"><strong>{chosenUnstarted}</strong> is chosen for this conversation. No run has been started.</p>}
+          {chosenUnstarted && <p className="panel-empty" role="note" aria-label="Workflow chosen, not started">Workflow chosen for this conversation: <Supplied value={chosenUnstarted} of="name"/>. No run has been started.</p>}
           {selected ? <NativeActivityView navigationRef={activityNavigationRef} key={`activity:${JSON.stringify([selected?.generation, selected?.threadId])}`} view={host?.nativeView} threadId={selected?.threadId} runs={runs} offers={offers}
             trialTurns={workflowRoot?.trialTurns} trialChildren={workflowRoot?.trialChildren} delegation={selected?.delegation} appRole={selected?.appRole} waiting={waitingUnplaced} waitingTurns={waitingTurns}
             threadSource={selected?.threadSource} appSentTurns={appSentTurns}
@@ -874,7 +912,7 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
             offerControls={{ generation: host?.generation, ready: host?.state === "ready", busy: offerBusy, act: offerAct }} />
             : threadKey ? <p className="panel-empty">Selected conversation is no longer available in this generation; choose a current conversation or press New chat.</p>
             : !sourceReady ? <p className="panel-empty">Connect to Codex before sending. Your draft stays here. <a href="#workspace-connection">Open connection controls</a></p>
-            : <>{startNew?.notice}{pick ? <p className="panel-empty"><strong>{pick.title}</strong> is picked. Say what it should work on.</p>
+            : <>{startNew?.notice}{pick ? <p className="panel-empty">Workflow picked: <Supplied value={pick.title} of="title"/>. Say what it should work on.</p>
               : <p className="panel-empty">{startNew?.noAccount ? "Sign in with your ChatGPT account, then write your first message here." : "Write your first message below. Sending starts a new conversation with the settings under it."}</p>}</>}
           {selected && ordered.length > 0 && <section id="conversation-requests" className="permission-card-list" aria-label="Requests from Codex in this conversation" aria-live="polite">
             {/* One mounted owner per request through its change of state: the same wrapper while it waits and after, so
@@ -956,9 +994,9 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
       {attachmentsSelected && !attachOpen && newChat && <p className="v4-composer-status" aria-label="Selected attachments">Your first message is sent without the selected attachments.</p>}
       {running && !stopTarget && <p className="v4-composer-status" aria-label="Which turn Stop stops">Several turns are running here. Choose the one to stop under Conversation tools, in “Interrupt a live turn”.</p>}
       {pickDropped && !pick && <p role="status">The workflow you picked was removed: Codex or the workflow source changed. Pick it again under Workflows.</p>}
-      {pickOutcome && (pickOutcome.kind === "alert" ? <div className="v4-step-outcome"><p role="alert">{pickOutcome.words}</p><StepDetails line={stepLine} /></div> : <p role="status">{pickOutcome.words}</p>)}
-      {pick && pickRuns?.unresolvedStart && <p><label><input type="checkbox" checked={checkedRun === pickRuns.holdKey} disabled={!!busy} onChange={event => setCheckedRun(event.target.checked ? pickRuns.holdKey : null)}/> I read the conversation and want to prepare a new run anyway</label>{" "}
-        <small>The earlier start may have run; a new run sends the workflow again.</small></p>}
+      {pickOutcome && (pickOutcome.kind === "alert" ? <div className="v4-step-outcome"><p role="alert"><PartsLine parts={pickOutcome.parts}/></p><StepDetails line={stepLine} /></div> : <p role="status"><PartsLine parts={pickOutcome.parts}/></p>)}
+      {pick && hold && <p><label><input type="checkbox" checked={checkedRun === hold.key} disabled={!!busy} onChange={event => setCheckedRun(event.target.checked ? hold.key : null)}/> {hold.sent ? "I read the conversation and want to prepare a new run anyway" : "I read the Run tab and want to go on anyway"}</label>{" "}
+        <small>{hold.sent ? "The earlier start may have run; a new run sends the workflow again." : "The App couldn't tell whether its last step here took effect; going on may do it again. Nothing is sent until the run is started."}</small></p>}
       {ownBusy && !Object.values(PICK_STEPS).includes(ownBusy as never) && <p>{ownBusy}: waiting for protocol response; no automatic retry.</p>}
       {!ownBusy && codexBusy && <p>Stop or Restart Codex is in progress: sending text, steering and attachments is paused; interrupting a live turn stays available.</p>}
       {error && <p role="alert">{error} No automatic retry.</p>}
@@ -966,7 +1004,8 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
       <PermissionLevelAsk host={host} threadId={selected?.threadId} missing={levelMissing}/>
     </div>
     <form className="chat-input-row" onSubmit={event => { event.preventDefault(); submit(); }}>
-      {pick && <PickChip pick={pick} host={host} thread={selected?.threadId ?? ""} disabled={!!busy} remove={() => setPick?.(null)}
+      {/* Remove unmounts the chip and its button: the focus goes to the message box first, so it is not lost to the page. */}
+      {pick && <PickChip pick={pick} host={host} thread={selected?.threadId ?? ""} disabled={!!busy} remove={() => { composerField.current?.focus?.(); setPick?.(null); }}
         follow={{ act: (command, args) => (startAct ?? runAct)(command, args), read: readStatus, step: setBusy, repick: next => setPick?.(next) }}/>}
       <div className="chat-composer-line">
         <textarea id="ordinary-composer-text" ref={composerField} rows={1} aria-label="Chat input" aria-describedby="ordinary-send-readiness" disabled={!!busy} value={text}
@@ -2611,7 +2650,13 @@ export function App() {
   // The workflow picked in the Workflows tab for the next message (WorkflowPick.tsx): the renderer's alone, nothing
   // sent or stored. It is dropped when the workflow source, the Codex generation or the home changes, since its name
   // may then no longer name the same workflow; the composer says so in one line.
-  const [pick, setPickState] = useState<WorkflowPick | null>(null);
+  const [pick, setPickNow] = useState<WorkflowPick | null>(null);
+  // The pick as it is now, for a press that checks it after each step: set with the state, before the view draws it.
+  const pickNow = useRef<WorkflowPick | null>(null);
+  const setPickState = (next: WorkflowPick | null | ((current: WorkflowPick | null) => WorkflowPick | null)) => {
+    pickNow.current = typeof next === "function" ? next(pickNow.current) : next;
+    setPickNow(pickNow.current);
+  };
   const [pickDropped, setPickDropped] = useState(false);
   const pickScopeNow = pickScope(host);
   useEffect(() => { if (pick && pick.scope !== pickScopeNow) { setPickState(null); setPickDropped(true); } }, [pick, pickScopeNow]);
@@ -3686,7 +3731,7 @@ export function App() {
             run={statusCurrent && !shownBeforePress(hostReads) && selectedThread ? stripRun(host?.workflowRoot, host, selectedThread) : null}/>}
           centre={<div id="view-conversation" data-workspace-view="conversation" className="v4-centre" onFocus={enterConversation} onPointerDown={enterConversation}>
             <ConversationPanel pick={pick} setPick={setPick} clearPick={done => setPickState(current => current === done ? null : current)} pickDropped={pickDropped} showWorkflows={() => showView("workflows")} onRunStarted={moveToRun}
-              readStatus={async () => { const read = await readHost(invoke<Json>("host_status")); applyHost(read); return read.snapshot; }} toolsHost={toolsHost} showTools={showToolsTarget} before={centreNotices} attachments={attachmentPanel} actionOutcome={actionOutcome} startNew={startNew} reportChooser={choose => setConversationChooser({ choose })} localRoute={fixedLocal} focusComposer={conversationReveal?.target === "ordinary-composer-text" ? conversationReveal.sequence : undefined} composerOffer={composerOffer} preparedReveal={preparedReveal} activityNavigationRef={activityNavigationRef} activityLink={activityLink} forkConversation={forkConversation} handoffSend={(id, text) => handoffAction("continue_as_send", { id, text })} handoffRead={id => handoffAction("continue_as_send_read", { id })} codexBusy={processBusy} host={host} threadKey={threadKey} setThreadKey={setThreadKey} answer={answerRequest} readRequest={readRequestCustody} replyObservations={replyObservations} runAct={runAct} trialRunAct={trialRunAct} startAct={startRunAct} send={ordinarySend} observeOrdinaryView={observeOrdinaryView} checkPlanMode={async (generation) => {
+              readStatus={async () => { const read = await readHost(invoke<Json>("host_status")); applyHost(read); return accepted(); }} latest={() => ({ host: accepted() ?? currentHost.current, threadKey: threadKeyNow.current, pick: pickNow.current })} toolsHost={toolsHost} showTools={showToolsTarget} before={centreNotices} attachments={attachmentPanel} actionOutcome={actionOutcome} startNew={startNew} reportChooser={choose => setConversationChooser({ choose })} localRoute={fixedLocal} focusComposer={conversationReveal?.target === "ordinary-composer-text" ? conversationReveal.sequence : undefined} composerOffer={composerOffer} preparedReveal={preparedReveal} activityNavigationRef={activityNavigationRef} activityLink={activityLink} forkConversation={forkConversation} handoffSend={(id, text) => handoffAction("continue_as_send", { id, text })} handoffRead={id => handoffAction("continue_as_send_read", { id })} codexBusy={processBusy} host={host} threadKey={threadKey} setThreadKey={setThreadKey} answer={answerRequest} readRequest={readRequestCustody} replyObservations={replyObservations} runAct={runAct} trialRunAct={trialRunAct} startAct={startRunAct} send={ordinarySend} observeOrdinaryView={observeOrdinaryView} checkPlanMode={async (generation) => {
           // The check's own failure stands, with the fixed line after it when the refresh failed too.
           // A completed check whose refresh fails rejects with the fixed line alone: its result is
           // visible only through the refreshed status, and that line says the status was not read.

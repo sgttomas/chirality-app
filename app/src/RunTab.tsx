@@ -5,6 +5,7 @@ import { GuideResult, RunResult, VIEW_NOT_REFRESHED, conversationRun, orderRuns,
   type GuideOutcome, type RunWordAction } from "./RunJourney";
 import { appProjectFolder } from "./WorkflowContext";
 import { chatWorkflow } from "./workflowSelection";
+import { chosenNotStarted } from "./WorkflowPick";
 
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 type Act = (command: string, args: Record<string, unknown>) => Promise<Json>;
@@ -92,8 +93,10 @@ export function RunTab({ data, host, thread, act, busy, outcome, showConversatio
   if (!word) {
     // As the conversation says it: a workflow chosen for it, and no run of this conversation recorded at all.
     const held = chatWorkflow(data, data?.context?.sourceRef, thread);
+    // Only where the App establishes both, by the conversation's own rule (WorkflowPick.tsx chosenNotStarted): a row the
+    // host gave only in part may be this conversation's run, and then nothing is said of "no run".
     const chosenName = held && held.state !== "not-selected" && typeof held.identity?.name === "string" && held.identity.name
-      && !list(data?.runs).some((run: Json) => run.conversation === thread) ? held.identity.name : null;
+      && !list(data?.runs).some((run: Json) => run.conversation === thread) && chosenNotStarted({ ...host, workflowRoot: data }, thread, false) !== null ? held.identity.name : null;
     return <section className="v4-runview run-tab" aria-label="Run">
       {failure}
       {chosenName ? <p className="run-tab-chosen" role="note" aria-label="Workflow chosen, not started"><strong>{chosenName}</strong>{CHOSEN_NO_RUN}</p>

@@ -191,7 +191,7 @@ test('a registered revision to re-confirm links from Workflows to its own row in
     assert.ok(row, 'the studio row has its own place');
     assert.match(row.textContent, /re-confirmation/);
     assert.ok(nodes(row, 'button').some(b => b.textContent === 'Refine from the revision store…'));
-    const link = nodes(c, 'a').find(a => a.textContent === 'Re-confirm load-check in the workflow studio');
+    const link = nodes(c, 'a').find(a => a.textContent === 'Re-confirm it in the workflow studio');
     assert.ok(link, 'the Workflows tab offers the re-confirmation route');
     assert.equal(link.getAttribute('href'), `#${anchor}`);
     const main = nodes(c, 'main')[0];

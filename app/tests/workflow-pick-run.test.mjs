@@ -24,8 +24,8 @@ const fieldAfter = (c, words) => nodes(c, 'input').find(n => n.parentNode.textCo
 const ROOT = 'invented-library:library-v9.9.9', METHOD = 'invented.package.sha256/v1', PROJECT = '/invented/project', LIB = 'workflow-library:invented';
 const undeclared = {raw: null, reading: 'undeclared', categories: {checkpoints: 'undeclared', expected_inputs: 'undeclared', required_tools: 'undeclared', returned_evidence: 'undeclared', returned_outputs: 'undeclared'}, elements: {}, findings: []};
 const identity = (name, over = {}) => ({kind: 'workflow', origin: 'bundled', source_root: ROOT, name, revision: `${name}-revision-0123456789abcdef`, revision_method: METHOD, ...over});
-const entry = name => ({name, revision: `${name}-revision-0123456789abcdef`, origin: 'bundled', sourceRoot: ROOT, revisionMethod: METHOD, identity: identity(name), runnable: true, runLimit: null,
-  description: `Invented description of ${name}.`, roles: ['HELP_HUMAN'], navigation: {category: 'core', tier: 'primary', order: 1, displayName: 'Plan the work'}, libraryPathsNamed: []});
+const entry = (name, displayName = 'Plan the work', order = 1) => ({name, revision: `${name}-revision-0123456789abcdef`, origin: 'bundled', sourceRoot: ROOT, revisionMethod: METHOD, identity: identity(name), runnable: true, runLimit: null,
+  description: `Invented description of ${name}.`, roles: ['HELP_HUMAN'], navigation: {category: 'core', tier: 'primary', order, displayName}, libraryPathsNamed: []});
 const registered = {name: 'site-check', sequence: 2, revision: 'site-check-2-rev-0123456789abcdef', label: 'registered — approved in this App session (native A15)', evidence: 'in-process A15', selectable: true, reconfirm: false};
 const library = {reference: LIB, root: {encoding: 'unix_bytes', bytes: [...new TextEncoder().encode(PROJECT)]}, origin: 'project', sourceRoot: PROJECT, registered: [registered],
   entryListing: {state: 'not observed', entries: [], limits: []}};
@@ -33,21 +33,25 @@ const thread = id => ({generation: g, threadId: id, appRole: {standing: 'app-obs
 const OPEN = 'open (live); only the person\'s explicit end ends it';
 const PREPARED = 'prepared; not a run until its start turn is observed';
 
-/** The stand-in host. `fail` names a step to refuse (with the host's message) or to leave without its effect. */
-function standIn({threads = [], selections = [], runs = [], projectLibraryAvailable = true, fail = {}} = {}) {
-  const state = {calls: [], prepared: 0, sel: 0, snapshot: null, fail};
-  const root = {context: {sourceRef: 'src', generation: g, historyEpoch: 3}, projectLibraryAvailable, productionCatalog: {standing: 'invented', source: {tag: 'library-v9.9.9'}, entries: [entry('plan-work')]},
+/** The stand-in host. `fail` names a step to refuse (with the host's message) or to leave without its effect; `lost`
+ * does the step and loses its reply. `state.view`, when set, changes what a status read returns (a row given in part, a
+ * list not readable); `state.before` runs before each command; `declaration` and `compatibility` are a selection's. */
+function standIn({threads = [], selections = [], runs = [], projectLibraryAvailable = true, fail = {}, declaration = undeclared, compatibility = undefined} = {}) {
+  const state = {calls: [], prepared: 0, sel: 0, snapshot: null, fail, view: null, before: null};
+  const root = {context: {sourceRef: 'src', generation: g, historyEpoch: 3}, projectLibraryAvailable, productionCatalog: {standing: 'invented', source: {tag: 'library-v9.9.9'}, entries: [entry('plan-work'), entry('tidy-notes', 'Tidy the notes', 2)]},
     activeLibrary: LIB, libraries: [library], selections, runs, reviews: [], offers: [], reopened: {runs: []}};
   state.snapshot = {state: 'ready', generation: g, homeRouting: {activeModeHomeClass: 'account'}, roleLimits: {account: {roles: []}},
     roleSet: {available: true, defaultRole: 'HELP_HUMAN', roles: [{name: 'HELP_HUMAN', meaning: 'fixture role', default_for_new_chat: true}]},
     threads: threads.map(thread), workflowRoot: root};
   const select = (threadId, id) => { state.sel += 1; root.selections = [...root.selections.filter(row => row.threadId !== threadId),
-    {sourceRef: 'src', threadId, selection: {reference: `sel-${state.sel}`, identity: id, runnable: true, runLimit: null, currentLimit: null, newerRevision: null, assurance: null, declaration: undeclared}}]; };
+    {sourceRef: 'src', threadId, selection: {reference: `sel-${state.sel}`, identity: id, runnable: true, runLimit: null, currentLimit: null, newerRevision: null, assurance: null, declaration, ...(compatibility ? {compatibility} : {})}}]; };
   const run = ref => root.runs.find(row => row.reference === ref);
   state.invoke = async (command, args) => {
     const fail = state.fail;
     state.calls.push({command, args: structuredClone(args)});
-    if (command === 'host_status') { if (fail.status && state.calls.some(c => c.command === fail.status.after)) throw Error('status unavailable'); return structuredClone(state.snapshot); }
+    state.before?.(command, args);
+    if (command === 'host_status') { if (fail.status && state.calls.some(c => c.command === fail.status.after)) throw Error('status unavailable');
+      const read = structuredClone(state.snapshot); return state.view ? state.view(read) ?? read : read; }
     if (command === 'decision_view') return {rows: []};
     if (command === 'native_confirmation_content') return [];
     if (command === 'read_available_models') return {state: 'observed', generation: args.generation, modeHomeClass: args.modeHomeClass, serverProvider: 'openai', serverProviderState: 'named', complete: true, limits: [], models: []};
@@ -60,19 +64,22 @@ function standIn({threads = [], selections = [], runs = [], projectLibraryAvaila
       return {startGeneration: g, result: {thread: {id: 'created'}}};
     }
     if (command === 'workflow_select_production_bundle') {
-      if (fail.select) throw Error(fail.select);
-      select(args.context.threadId, identity(args.name)); return {choiceChat: {sourceRef: 'src', threadId: args.context.threadId}};
+      if (fail.select && fail.select !== 'lost') throw Error(fail.select);
+      select(args.context.threadId, identity(args.name));
+      if (fail.select === 'lost') throw Error('no reply');
+      return {choiceChat: {sourceRef: 'src', threadId: args.context.threadId}};
     }
     if (command === 'workflow_select_listed') {
       if (fail.select) throw Error(fail.select);
       select(args.context.threadId, identity(args.name, {origin: 'project', source_root: PROJECT, revision: args.revision})); return {choiceChat: {sourceRef: 'src', threadId: args.context.threadId}};
     }
     if (command === 'workflow_prepare_run') {
-      if (fail.prepare) throw Error(fail.prepare);
+      if (fail.prepare && fail.prepare !== 'lost') throw Error(fail.prepare);
       state.prepared += 1;
       const reference = `run:workflow:${state.prepared}`;
       root.runs = [...root.runs, {reference, conversation: args.threadId, home: g.home, generation: g, source: null, lifecycle: {state: PREPARED}, preparationOrder: root.runs.length,
         status: {state: 'prepared; WR records pending; not sent', sent: false}, publication: fail.admission ? {admissionRefusal: fail.admission} : {state: 'pending; not recorded'}, workflow: {name: 'plan-work'}}];
+      if (fail.prepare === 'lost') throw Error('no reply');
       return {reference, state: 'original registered selection prepared; WR records pending; not sent'};
     }
     if (command === 'conversation_send_text') return {result: {}};
@@ -155,7 +162,7 @@ test('the message box takes the height of its draft, measured again as the draft
   } finally { delete proto.scrollHeight; }
 });
 
-test('picking a workflow lands in the message box; removing the pick moves nothing', async () => {
+test('picking a workflow lands in the message box; removing the pick returns the focus to the message box', async () => {
   const proto = Object.getPrototypeOf(document.createElement('textarea')); const focused = [], scrolled = [];
   const previous = {focus: proto.focus, scroll: proto.scrollIntoView};
   proto.focus = function () { focused.push(this); }; proto.scrollIntoView = function () { scrolled.push(this); };
@@ -167,10 +174,13 @@ test('picking a workflow lands in the message box; removing the pick moves nothi
       assert.ok(focused.length === 1 && focused[0].getAttribute('id') === 'ordinary-composer-text', 'the message box takes the focus once');
       assert.ok(scrolled.length === 1 && scrolled[0] === focused[0], 'and is brought into view');
       focused.length = 0; scrolled.length = 0;
-      const remove = ui.composer().querySelectorAll(n => n.localName === 'button' && /^Remove /.test(n.getAttribute('aria-label') ?? ''))[0];
-      assert.ok(!!remove, 'the chip offers its removal');
+      const remove = buttonIn(ui.composer(), 'Remove the picked workflow');
+      assert.ok(!!remove, 'the chip offers its removal, named in the App\'s words');
       await React.act(async () => props(remove).onClick());
-      assert.ok(focused.length === 0 && scrolled.length === 0, 'removing the pick moves neither focus nor the view');
+      // The Remove button is unmounted with the chip: the focus goes to the message box rather than to the page.
+      assert.ok(!buttonIn(ui.composer(), 'Remove the picked workflow'), 'the chip and its button are gone');
+      assert.ok(focused.length === 1 && focused[0] === chatInput(ui.c), 'the message box takes the focus');
+      assert.ok(scrolled.length === 0, 'and the view does not move');
     });
   } finally { proto.focus = previous.focus; proto.scrollIntoView = previous.scroll; }
 });
@@ -210,7 +220,7 @@ test('a new chat: the first press starts the conversation and chooses the includ
     assert.match(labelled(ui.c, 'Workflow for this message').textContent, /Required tools: not declared, so the App can't check them\./, 'the check is shown before anything is sent');
     assert.equal(props(chatInput(ui.c)).value, TEXT, 'the text is kept');
     // Left here, the conversation reads as what it is: a workflow chosen and no run started, not a run.
-    assert.equal(labelled(ui.c, 'Workflow chosen, not started')?.textContent, 'plan-work is chosen for this conversation. No run has been started.');
+    assert.equal(labelled(ui.c, 'Workflow chosen, not started')?.textContent, 'Workflow chosen for this conversation: plan-work. No run has been started.');
     await ui.press();
     assert.ok(!labelled(ui.c, 'Workflow chosen, not started'), 'once a run of the conversation exists, the note is gone');
     assert.deepEqual(ui.names(), ['thread_start', 'workflow_select_production_bundle', 'workflow_prepare_run', 'workflow_send_run']);
@@ -406,7 +416,7 @@ test('a selection the host does not admit stops the press with the host\'s reaso
   await mounted(host, async ui => {
     await ui.choose('T1'); await ui.pick(); await ui.write(TEXT); await ui.press();
     assert.deepEqual(ui.names(), ['workflow_select_production_bundle']);
-    assert.match(ui.alert(), /Plan the work can't run: the bundled copy differs from the release\. Nothing was sent\./);
+    assert.match(ui.alert(), /The workflow can't run: the bundled copy differs from the release\. Nothing was sent\./);
     await ui.press();
     assert.deepEqual(ui.names(), ['workflow_select_production_bundle'], 'a second press prepares nothing either');
   });
@@ -482,7 +492,7 @@ test('a change of workflow source or generation drops the pick, says so in one l
   await mounted(under, async ui => {
     await ui.choose('T1'); await ui.pick(); await ui.write(TEXT); await ui.press();
     assert.deepEqual(ui.names(), ['workflow_select_production_bundle']);
-    assert.match(ui.alert(), /Codex or the workflow source changed, so the App stopped\. Nothing was sent\./);
+    assert.match(ui.alert(), /Codex or the workflow source changed, so the App stopped\. The workflow was chosen for it\. Nothing was sent\./);
     assert.match(ui.c.textContent, /The workflow you picked was removed: Codex or the workflow source changed\./);
     assert.equal(props(chatInput(ui.c)).value, TEXT);
   });
@@ -501,7 +511,7 @@ test('the pick survives switching tabs; the Workflows button shows the tab; with
     await React.act(async () => props(tab('right-tab-more')).onClick?.());
     assert.ok(labelled(ui.c, 'Workflow for this message'), 'the pick is kept while another tab is shown');
     // Remove at the chip: the composer is the ordinary one, and its Send issues the ordinary send only.
-    await React.act(async () => props(buttonIn(ui.composer(), 'Remove plan-work')).onClick());
+    await React.act(async () => props(buttonIn(ui.composer(), 'Remove the picked workflow')).onClick());
     assert.equal(labelled(ui.c, 'Workflow for this message'), undefined);
     assert.equal(props(chatInput(ui.c)).placeholder, 'Message HELP_HUMAN…');
     await ui.write('An ordinary message');
@@ -676,9 +686,296 @@ test('a required tool reported missing is said at the chip and never blocks Star
   const chosen = [{sourceRef:'src', threadId:'T1', selection:{reference:'sel-0', identity:identity('plan-work'), runnable:true, currentLimit:null, declaration, compatibility}}];
   await mounted(standIn({threads:['T1'], selections:chosen}), async ui => {
     await ui.choose('T1'); await ui.pick(); await ui.write(TEXT);
-    assert.match(labelled(ui.c, 'Workflow for this message').textContent, /missing: delegate\./);
+    assert.match(labelled(ui.c, 'Workflow for this message').textContent, /delegate missing\./);
     assert.equal(!!props(ui.send()).disabled, false, 'Start run is offered');
     await ui.press();
     assert.deepEqual(ui.names(), ['workflow_prepare_run', 'workflow_send_run']);
+  });
+});
+
+// ---- What a press may reuse, repeat and send, and what it holds back on (review round 1) ----
+const {runPickedWorkflow, pickMemory, pickScope} = loadSrc('WorkflowPick');
+const partialRow = reference => ({reference, state: 'original run operation pending', preparationOrder: null});
+const checkbox = c => c.querySelectorAll(n => n.localName === 'input' && props(n)?.type === 'checkbox')[0];
+const prepares = ui => ui.names().filter(name => name === 'workflow_prepare_run').length;
+const sentRefs = ui => ui.issued().filter(call => call.command === 'workflow_send_run').map(call => call.args.runRef);
+
+test('a preparation is reused only for what it was prepared for: another pick in the same conversation, with the same text, prepares anew', async () => {
+  const host = standIn({threads: ['T1'], fail: {status: {after: 'workflow_prepare_run'}}});
+  await mounted(host, async ui => {
+    await ui.choose('T1'); await ui.pick(); await ui.write(TEXT);
+    await ui.press(); await ui.press();
+    assert.deepEqual(ui.names(), ['workflow_select_production_bundle', 'workflow_prepare_run']);
+    assert.match(ui.alert(), /The run was prepared, but the App couldn't read its state afterwards, so it wasn't started\. Nothing was sent\./);
+    // The reads come back; another workflow is picked and the draft is kept.
+    host.fail = {}; await ui.tick();
+    await ui.pick('Included workflow tidy-notes');
+    assert.equal(props(chatInput(ui.c)).value, TEXT);
+    await ui.press();
+    assert.deepEqual(ui.names().slice(2), ['workflow_select_production_bundle'], 'the new pick is chosen, then shown');
+    await ui.press();
+    assert.deepEqual(ui.names().slice(3), ['workflow_prepare_run', 'workflow_send_run'], 'prepared anew for the new pick');
+    assert.deepEqual(sentRefs(ui), ['run:workflow:2'], 'the run prepared for the first pick is never sent for the second');
+    assert.equal(ui.issued()[3].args.context.selectionRef, 'sel-2');
+  });
+});
+
+test('a send the host shows only in part is not confirmed: never "Nothing was sent", held until the person acknowledges, never sent again', async () => {
+  const host = standIn({threads: ['T1']});
+  let hidden = null, gone = false;
+  host.before = command => { if (command === 'workflow_send_run') hidden = 'run:workflow:1'; };
+  host.view = read => { read.workflowRoot.runs = read.workflowRoot.runs.filter(r => !(gone && r.reference === hidden)).map(r => r.reference === hidden ? partialRow(r.reference) : r); };
+  await mounted(host, async ui => {
+    await ui.choose('T1'); await ui.pick(); await ui.write(TEXT);
+    await ui.press(); await ui.press();
+    assert.deepEqual(ui.names(), ['workflow_select_production_bundle', 'workflow_prepare_run', 'workflow_send_run']);
+    assert.match(ui.alert(), /Start not confirmed — outcome unknown\. The App could not confirm whether Codex received the starting message\. It may have run\. The App will not resend it\./);
+    assert.doesNotMatch(ui.alert(), /Nothing was sent|wasn't started/);
+    assert.equal(props(chatInput(ui.c)).value, TEXT, 'the draft is kept');
+    assert.ok(labelled(ui.c, 'Workflow for this message'), 'and the pick');
+    const held = () => props(ui.send()).disabled === true;
+    assert.ok(held(), 'Start run is held');
+    assert.ok(!labelled(ui.c, 'Workflow chosen, not started'), 'the conversation is not said to have no run');
+    // Later reads give the row in part again, then not at all: the hold stands.
+    await ui.tick();
+    assert.ok(held(), 'held while the row is given in part');
+    gone = true; await ui.tick();
+    assert.ok(held(), 'held while the row is missing');
+    assert.match(ui.composer().textContent, /Read the conversation: the App couldn't confirm the last start and it may have run\./);
+    // The person says they read the conversation: a new run is prepared and sent; the first is never sent again.
+    assert.match(checkbox(ui.c).parentNode.textContent, /I read the conversation and want to prepare a new run anyway/);
+    await React.act(async () => props(checkbox(ui.c)).onChange({target: {checked: true}}));
+    assert.ok(!held(), 'offered once acknowledged');
+    await ui.press();
+    assert.deepEqual(sentRefs(ui), ['run:workflow:1', 'run:workflow:2']);
+    assert.equal(prepares(ui), 2);
+  });
+});
+
+test('a choice or a preparation whose reply was lost is read for before it is repeated; one the host confirmed is not prepared again', async () => {
+  // The choice's reply is lost and the selections cannot be read: the choice is not made again until a read shows them.
+  const chooser = standIn({threads: ['T1'], fail: {select: 'lost'}});
+  let unreadable = true;
+  chooser.view = read => { if (unreadable) delete read.workflowRoot.selections; };
+  await mounted(chooser, async ui => {
+    await ui.choose('T1'); await ui.pick(); await ui.write(TEXT);
+    await ui.press();
+    assert.match(ui.alert(), /The App couldn't read whether the workflow was chosen\. Nothing was sent\./);
+    await ui.press();
+    assert.deepEqual(ui.names(), ['workflow_select_production_bundle'], 'not chosen again while the outcome is not established');
+    assert.match(ui.alert(), /The App couldn't establish whether the workflow was chosen, so it didn't choose it again\./);
+    unreadable = false; chooser.fail = {};
+    await ui.press();
+    assert.deepEqual(ui.names(), ['workflow_select_production_bundle'], 'the read shows it chosen: shown, not chosen again');
+    assert.match(ui.c.textContent, /Read what it needs, then press Start run\. Nothing has been sent\./);
+    await ui.press();
+    assert.deepEqual(ui.names(), ['workflow_select_production_bundle', 'workflow_prepare_run', 'workflow_send_run']);
+  });
+  // The preparation's reply is lost: the run it made is found and sent; it is prepared once.
+  await mounted(standIn({threads: ['T1'], fail: {prepare: 'lost'}}), async ui => {
+    await ui.choose('T1'); await ui.pick(); await ui.write(TEXT);
+    await ui.press(); await ui.press();
+    assert.deepEqual(ui.names(), ['workflow_select_production_bundle', 'workflow_prepare_run', 'workflow_send_run']);
+    assert.deepEqual(sentRefs(ui), ['run:workflow:1']);
+  });
+  // Lost, and the runs are given in part: nothing is established, so nothing is prepared again until the person says.
+  const lost = standIn({threads: ['T1'], fail: {prepare: 'lost'}});
+  let part = false;
+  lost.before = command => { if (command === 'workflow_prepare_run') part = true; };
+  lost.view = read => { if (part) read.workflowRoot.runs = read.workflowRoot.runs.map(r => partialRow(r.reference)); };
+  await mounted(lost, async ui => {
+    await ui.choose('T1'); await ui.pick(); await ui.write(TEXT);
+    await ui.press(); await ui.press();
+    assert.match(ui.alert(), /The App couldn't establish whether the run was prepared: no reply\. Nothing was sent\./);
+    assert.doesNotMatch(ui.alert(), /wasn't prepared/);
+    await ui.press();
+    assert.equal(prepares(ui), 1, 'not prepared again');
+    assert.match(ui.alert(), /The App couldn't establish whether the run was prepared, so it didn't prepare it again\./);
+    await React.act(async () => props(checkbox(ui.c)).onChange({target: {checked: true}}));
+    lost.fail = {};
+    await ui.press();
+    assert.equal(prepares(ui), 2, 'prepared again only after the person said to go on');
+    assert.deepEqual(sentRefs(ui), [], 'and nothing sent while its row cannot be read');
+  });
+  // Confirmed with its reference, then given in part on the reads after: kept, not prepared again, sent once readable.
+  const confirmed = standIn({threads: ['T1']});
+  let reads = 0;
+  confirmed.before = command => { if (command === 'workflow_prepare_run') reads = 3; };
+  confirmed.view = read => { if (reads > 0) { reads -= 1; read.workflowRoot.runs = read.workflowRoot.runs.map(r => partialRow(r.reference)); } };
+  await mounted(confirmed, async ui => {
+    await ui.choose('T1'); await ui.pick(); await ui.write(TEXT);
+    await ui.press(); await ui.press();
+    assert.match(ui.alert(), /The run was prepared, but the App can't read it as ready to start now, so it wasn't started\./);
+    await ui.press();
+    assert.equal(prepares(ui), 1, 'a row given in part on a later read does not discard the preparation');
+    reads = 0;
+    await ui.press();
+    assert.deepEqual(sentRefs(ui), ['run:workflow:1']);
+    assert.equal(prepares(ui), 1);
+  });
+});
+
+test('a press is bound to its conversation: another chosen during the first read stops it before anything is prepared or sent', async () => {
+  const chosen = [{sourceRef: 'src', threadId: 'T1', selection: {reference: 'sel-0', identity: identity('plan-work'), runnable: true, currentLimit: null, declaration: undeclared}}];
+  const host = standIn({threads: ['T1', 'T2'], selections: chosen});
+  await mounted(host, async ui => {
+    await ui.choose('T1'); await ui.pick(); await ui.write(TEXT);
+    let armed = true;
+    host.before = command => {
+      if (command !== 'host_status' || !armed) return;
+      armed = false;
+      // The person chooses T2 while the press reads.
+      const radio = ui.c.querySelectorAll(n => n.localName === 'input' && props(n)?.name === 'current-conversation' && props(n)?.value === key('T2'))[0];
+      props(radio).onChange({target: {checked: true}});
+    };
+    await ui.press();
+    assert.deepEqual(ui.issued(), [], 'nothing prepared or sent, in either conversation');
+    await ui.choose('T1');
+    assert.match(ui.alert(), /Another conversation was chosen while the App was working, so it stopped\. Nothing was sent\./);
+  });
+});
+
+test('a press acts on the latest status the App accepted, not on a reply it discarded, and stops when the library in use changes', async () => {
+  const pick = {kind: 'included', name: 'plan-work', revision: 'plan-work-revision-0123456789abcdef', title: 'Plan the work', from: '', scope: ''};
+  const base = standIn({threads: ['T1']}).snapshot;
+  base.workflowRoot.selections = [{sourceRef: 'src', threadId: 'T1', selection: {reference: 'sel-0', identity: identity('plan-work'), runnable: true, currentLimit: null, declaration: undeclared}}];
+  pick.scope = pickScope(base);
+  const {reviewKey} = loadSrc('WorkflowPick');
+  const shown = reviewKey(base.workflowRoot.selections[0].selection, 'T1');
+  const press = async latest => {
+    const acts = [];
+    const outcome = await runPickedWorkflow({pick, text: TEXT, thread: 'T1', threadKey: key('T1'), host: base, shown, memory: pickMemory(), acknowledged: null,
+      // The read's own reply is the view pressed on; the App had meanwhile accepted a newer one.
+      read: async () => base, now: () => ({host: latest, thread: key('T1'), pick, text: TEXT}),
+      start: async () => null, step: () => {},
+      act: async command => {
+        acts.push(command);
+        if (command !== 'workflow_prepare_run') return {};
+        base.workflowRoot.runs = [{reference: 'run:u', conversation: 'T1', home: g.home, generation: g, source: null, lifecycle: {state: PREPARED}, preparationOrder: 0, status: {sent: false}, publication: {}}];
+        return {reference: 'run:u'};
+      }});
+    return {outcome, acts};
+  };
+  const newer = structuredClone(base); newer.workflowRoot.context.sourceRef = 'src-2';
+  let r = await press(newer);
+  assert.deepEqual(r.acts, []);
+  assert.match(r.outcome.parts.join(''), /Codex or the workflow source changed, so the App stopped\. Nothing was sent\./);
+  const library = structuredClone(base); library.workflowRoot.activeLibrary = 'workflow-library:another';
+  r = await press(library);
+  assert.deepEqual(r.acts, []);
+  assert.match(r.outcome.parts.join(''), /The workflow library in use changed, so the App stopped\. Nothing was sent\./);
+  r = await press(base);
+  assert.deepEqual(r.acts, ['workflow_prepare_run', 'workflow_send_run'], 'unchanged, the same press goes on');
+});
+
+test('the stop to show what the workflow needs depends on what was shown: a choice made elsewhere is shown before anything is prepared', async () => {
+  const host = standIn({threads: ['T1']});
+  await mounted(host, async ui => {
+    await ui.choose('T1'); await ui.pick(); await ui.write(TEXT);
+    assert.match(labelled(ui.c, 'Workflow for this message').textContent, /Press Start run to see the tools it needs\./);
+    // The Run guide (or anything else) chooses the workflow for T1; the composer has not drawn it.
+    host.snapshot.workflowRoot.selections = [{sourceRef: 'src', threadId: 'T1', selection: {reference: 'sel-guide', identity: identity('plan-work'), runnable: true, currentLimit: null, declaration: undeclared}}];
+    await ui.press();
+    assert.deepEqual(ui.issued(), [], 'nothing chosen, prepared or sent');
+    assert.match(ui.c.textContent, /Read what it needs, then press Start run\. Nothing has been sent\./);
+    assert.match(labelled(ui.c, 'Workflow for this message').textContent, /Required tools: not declared/);
+    await ui.press();
+    assert.deepEqual(ui.names(), ['workflow_prepare_run', 'workflow_send_run']);
+  });
+});
+
+test('two presses with declared tools: before the second, each required tool is named in view as available, unavailable now or missing', async () => {
+  const tool = (name, over = {}) => ({value: {name, purpose: `Use ${name}.`, necessity: 'required', stages: ['Method'], class: 'harness_capability', capability: 'shell-command', ...over}, reading: 'recognized', findings: []});
+  const declaration = {reading: 'recognized', findings: [], categories: {required_tools: 'recognized', expected_inputs: 'recognized'},
+    elements: {required_tools: [tool('read-notes'), tool('write-summary'), tool('delegate', {capability: 'agent-delegation'})],
+      expected_inputs: [{value: {name: 'notes folder', necessity: 'required', kind: 'host_read', meaning: 'Where the notes are.'}}]}};
+  const compatibility = {preparation: {declaration, requirements: [{outcome: 'present', reason: ''}, {outcome: 'present_currently_unavailable', reason: 'host reported unavailable'},
+    {outcome: 'missing', reason: 'agents.enabled is false with neither delegation feature set'}], check: {result: 'compatible', tools: []}, basis: {acting_pin: 'App Codex 0.169.0', surface: 'X'}}};
+  await mounted(standIn({declaration, compatibility}), async ui => {
+    await ui.newChat(); await ui.pick(); await ui.write(TEXT);
+    await ui.press();
+    assert.deepEqual(ui.names(), ['thread_start', 'workflow_select_production_bundle']);
+    const line = labelled(ui.c, 'What it needs');
+    assert.ok(line && !line.closest?.('details'), 'the reading is in view, not inside Details');
+    let inside = false; for (let n = line.parentNode; n; n = n.parentNode) if (n.localName === 'details') inside = true;
+    assert.ok(!inside, 'no disclosure holds it');
+    assert.equal(line.textContent, 'Required tools: read-notes available, write-summary unavailable now, delegate missing. It asks for: notes folder.');
+    // Each tool's and input's name is the workflow's text, marked.
+    assert.equal(line.querySelectorAll(n => n.getAttribute('role') === 'group' && n.getAttribute('aria-label') === "A tool as the workflow names it, not the App's words").length, 3);
+    // The guide's check says the same in Details, and does not call the unavailable tool available.
+    const check = labelled(ui.c, 'Tools this workflow needs');
+    assert.match(check.textContent, /Requirement check not passed: one required tool is missing\./);
+    assert.match(check.textContent, /write-summary — Use write-summary\. Present, but not available at the moment\./);
+    await ui.press();
+    assert.deepEqual(ui.names(), ['thread_start', 'workflow_select_production_bundle', 'workflow_prepare_run', 'workflow_send_run']);
+  });
+});
+
+test('the guide\'s check never reads a tool present but unavailable now as passing', async () => {
+  const {RequirementCheck} = loadSrc('RequirementCheck');
+  const declaration = {reading: 'recognized', findings: [], categories: {required_tools: 'recognized'}, elements: {required_tools: [{value: {name: 'write-summary', purpose: 'Write.', necessity: 'required', class: 'harness_capability', capability: 'shell-command'}, reading: 'recognized', findings: []}]}};
+  const c = document.createElement('div'); const root = createRoot(c);
+  await React.act(async () => root.render(React.createElement(RequirementCheck, {selection: {compatibility: {preparation: {declaration, requirements: [{outcome: 'present_currently_unavailable', reason: 'x'}], check: {result: 'compatible'}, basis: {}}}}})));
+  assert.match(c.textContent, /Requirement check not passed now: one required tool is present but not available at the moment\./);
+  assert.doesNotMatch(c.textContent, /Requirement check passed/);
+  await React.act(async () => root.unmount());
+});
+
+test('a start the host refused before dispatch pauses nothing; one whose outcome is unknown pauses the new chat', async () => {
+  const paused = ui => labelled(ui.c, 'Starting is paused');
+  const SUFFIX = '; role supply observation: {"state":"written","observationId":"obs-1"}';
+  for (const message of ['Native working directory is not Unicode; thread/start cannot carry a lossless JSON cwd, no request sent', 'thread start in progress']) {
+    const host = standIn(); const invoke = host.invoke;
+    host.invoke = async (command, args) => { if (command === 'thread_start') { host.calls.push({command, args}); throw Error(`${message}${SUFFIX}`); } return invoke(command, args); };
+    await mounted(host, async ui => {
+      await ui.newChat(); await ui.pick(); await ui.write(TEXT); await ui.press();
+      assert.match(ui.alert(), /Couldn't start the conversation: /);
+      assert.ok(!paused(ui), `no pause after "${message}"`);
+      assert.ok(props(ui.send()).disabled !== true, 'Start run is offered again');
+    });
+  }
+  await mounted(standIn({fail: {start: 'rejected'}}), async ui => {
+    await ui.newChat(); await ui.pick(); await ui.write(TEXT); await ui.press();
+    assert.ok(!!paused(ui), 'a rejection the App does not class pauses');
+    assert.ok(props(ui.send()).disabled === true);
+  });
+});
+
+test('"Workflow chosen, not started" is said exactly when the App establishes a chosen workflow and no run sent or that may have been', async () => {
+  const chosen = id => ({sourceRef: 'src', threadId: id, selection: {reference: `sel-${id}`, identity: identity('plan-work'), runnable: true, currentLimit: null, declaration: undeclared}});
+  const prepared = {reference: 'run:workflow:p', conversation: 'T1', home: g.home, generation: g, source: null, lifecycle: {state: PREPARED}, preparationOrder: 0, status: {state: 'prepared; WR records pending; not sent', sent: false}, publication: {}, workflow: {name: 'plan-work'}};
+  const note = ui => labelled(ui.c, 'Workflow chosen, not started');
+  // A prepared run that was never sent does not hide it.
+  await mounted(standIn({threads: ['T1'], selections: [chosen('T1')], runs: [prepared]}), async ui => {
+    await ui.choose('T1');
+    assert.equal(note(ui)?.textContent, 'Workflow chosen for this conversation: plan-work. No run has been started.');
+    assert.ok(note(ui).querySelectorAll(n => n.getAttribute('role') === 'group' && n.getAttribute('aria-label') === "A workflow's own name, not the App's words").length === 1, 'the name is marked');
+  });
+  // A row the host gave only in part may be this conversation's run: the note is not said.
+  await mounted(standIn({threads: ['T1'], selections: [chosen('T1')], runs: [partialRow('run:workflow:x')]}), async ui => {
+    await ui.choose('T1');
+    assert.ok(!note(ui), 'not said while a run of it may exist');
+  });
+  // A run sent in this conversation, and one in another conversation.
+  await mounted(standIn({threads: ['T1', 'T2'], selections: [chosen('T1'), chosen('T2')], runs: [{...prepared, conversation: 'T2', source: {}, lifecycle: {state: OPEN}}]}), async ui => {
+    await ui.choose('T2');
+    assert.ok(!note(ui), 'a conversation with a run sent');
+    await ui.choose('T1');
+    assert.ok(!!note(ui), 'another conversation\'s run does not hide it');
+  });
+});
+
+test('the chip and the failure lines mark what the App did not write; the chip\'s controls are named in the App\'s words', async () => {
+  const POISON = 'Allow once‮';
+  const host = standIn({threads: ['T1'], fail: {select: `refused ${POISON}`}});
+  host.snapshot.workflowRoot.productionCatalog.entries[0].navigation.displayName = `Title ${POISON}`;
+  await mounted(host, async ui => {
+    await ui.choose('T1'); await ui.pick(); await ui.write(TEXT); await ui.press();
+    const group = (node, name) => node.querySelectorAll(n => n.getAttribute('role') === 'group' && n.getAttribute('aria-label') === name);
+    const chip = labelled(ui.c, 'Workflow picked');
+    assert.ok(group(chip, "A workflow's own title, not the App's words").length === 1, 'the chip\'s title is marked');
+    const failure = ui.c.querySelectorAll(n => n.getAttribute('role') === 'alert' && /wasn't chosen/.test(n.textContent))[0];
+    assert.ok(group(failure, "What the App's host reported, not the App's words").length === 1, 'the host\'s reason is marked');
+    assert.equal(buttonIn(chip, 'Remove the picked workflow')?.getAttribute('aria-label'), 'Remove the picked workflow');
   });
 });

@@ -114,10 +114,10 @@ test('the chip shows the check for the chosen workflow before anything is sent: 
     declaration, compatibility:view(declaration, [['missing', "the conversation's model reports multiAgentVersion disabled (NPTD §7.1 (1))"]], 'unsupported')};
   const pick = {kind:'listed', name:'review', revision:'rev-1', libraryRef:'lib', sequence:1, label:'', title:'review', from:'project workflow library', scope:''};
   const ui = await chip(selection, pick);
-  assert.match(ui.c.querySelectorAll(node => node.getAttribute('class') === 'v4-pick-note')[0].textContent, /^Required tools: 0 available; missing: delegate\./, 'the line beside the chip names what is missing');
+  assert.match(ui.c.querySelectorAll(node => node.getAttribute('class') === 'v4-pick-note')[0].textContent, /^Required tools: delegate missing\./, 'the line beside the chip names what is missing');
   assert.ok(ui.details.querySelectorAll(node => node.getAttribute('aria-label') === 'Tools this workflow needs').length === 1, 'the check itself, under Details');
   assert.match(ui.details.textContent, /Missing: this conversation's model doesn't offer sub-agents\./);
-  assert.deepEqual(ui.c.querySelectorAll(node => node.localName === 'button').map(b => b.getAttribute('aria-label')), ['Remove review'], 'the chip offers no control the check could disable');
+  assert.deepEqual(ui.c.querySelectorAll(node => node.localName === 'button').map(b => b.getAttribute('aria-label')), ['Remove the picked workflow'], 'the chip offers no control the check could disable');
   await ui.close();
 });
 

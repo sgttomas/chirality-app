@@ -3830,3 +3830,10 @@ div.woven-chat-section-heading--folder:hover { background:transparent; }
 .v4-run-line-details { flex: 0 1 auto; }
 .v4-run-line-details > summary { cursor: pointer; }
 .v4-run-line-details[open] { flex-basis: 100%; }
+/* v4: text the App did not write, drawn plain where it stands (WorkflowPick.tsx Supplied): a workflow's title,
+   description or name, a tool's or input's name, a host's reason. AgentText's named group says whose text it is to
+   assistive technology and its marks still show control and direction characters; its dashed box and visible label are
+   not drawn, so a card's title reads as 3.0.1's plain title. */
+.v4-supplied > .agent-text { border:0 !important; background:none !important; padding:0 !important; color:inherit !important; }
+.v4-supplied > .agent-text > .agent-text-label { display:none; }
+.v4-supplied > .agent-text > .agent-text-value { font-family:inherit !important; white-space:normal !important; }
