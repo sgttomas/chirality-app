@@ -112,8 +112,12 @@ code_paths:
 # the supplier reported. Writing them as the run record's model entries is DEL-04-03's.
 - app/src-tauri/src/model_turn_recorder.rs
 # desktop_startup.rs is shared with DEL-01-05, which owns home preparation and the saved
-# request. Here: the supplier selection and standing reported at start.
+# request. Here: the supplier selection and standing reported at start, and the project-trust
+# lines of setup's review and statement for a route that names a project.
 - app/src-tauri/src/desktop_startup.rs
+# desktop_setup_confirmation.rs is DEL-01-05's. Here: how its native confirmation carries the
+# project-trust lines, whole or naming the effects text the App shows beside it.
+- app/src-tauri/src/desktop_setup_confirmation.rs
 - app/supplier_checks/recorded_replay.py
 # intake.py checks and inventories a supplier release archive of a pin of its table and runs
 # the supplier's generators.
