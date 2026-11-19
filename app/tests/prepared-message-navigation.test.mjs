@@ -17,6 +17,7 @@ const deferred=()=>{let resolve,reject;return {promise:new Promise((yes,no)=>{re
 const document=installMiniDom();
 const React=(await import('react')).default;
 const {createRoot}=await import('react-dom/client');
+const {flushSync}=await import('react-dom');
 const {App}=loadSrc('App');
 const props=e=>e[Object.keys(e).find(k=>k.startsWith('__reactProps$'))];
 const elements=(c,tag)=>c.querySelectorAll(e=>e.localName===tag);
@@ -104,10 +105,14 @@ async function mounted(options,check){
   if(chosenIn(select)===value)return false;
   await change(select,value);return true;
  };
- // Like a person, reach a control in another task view through the workspace
- // navigation first; this never unhides a hidden composer or disclosure owner.
+ // Like a person, reach a control in another task view through the right panel's
+ // tabs first (the conversation is always shown); this never unhides a hidden
+ // composer or disclosure owner.
  const viewOf=e=>{for(let n=e;n;n=n.parentNode){const v=n.getAttribute?.('data-workspace-view');if(v)return v;}return null;};
- const navigate=v=>{const a=elements(elements(c,'nav')[0],'a').find(e=>({run:'Run a workflow',make:'Make a workflow',conversation:'Conversation',history:'History',settings:'Settings & tools'})[v]===e.textContent);assert.ok(a,`view ${v}`);const main=elements(c,'main')[0];props(main).onClick({target:a,currentTarget:main,preventDefault(){}});};
+ const navigate=v=>{
+  // Going to the conversation is following a link to it, through the workspace's own reveal.
+  if(v==='conversation'){const a=document.createElement('a');a.setAttribute('href','#conversation');const main=elements(c,'main')[0];main.appendChild(a);try{props(main).onClick({target:a,currentTarget:main,preventDefault(){}});}finally{main.removeChild(a);}return;}
+  const t=elements(c,'button').find(e=>e.getAttribute('role')==='tab'&&({run:'Run a workflow',make:'Make a workflow',history:'History',settings:'Settings & tools'})[v]===e.textContent);assert.ok(t,`view ${v}`);flushSync(()=>props(t).onClick());};
  const press=async(label,within=c)=>React.act(()=>{
   let e=button(within,label);
   if(!e){const hidden=elements(within,'button').find(b=>b.textContent===label);const v=hidden&&viewOf(hidden);if(v){navigate(v);e=button(within,label);}}
@@ -471,6 +476,15 @@ const byId=(c,id)=>c.querySelectorAll(e=>e.getAttribute('id')===id)[0];
 const disclosureOpen=e=>e.open??e.hasAttribute('open');
 const displayed=e=>{for(let n=e;n;n=n.parentNode){if(props(n)?.hidden)return false;if(n!==e&&n.localName==='details'&&!disclosureOpen(n))return false;}return true;};
 async function toggleDisclosure(c,id,open){await React.act(()=>{const e=byId(c,id);assert.equal(e?.localName,'details',id);e.open=open;});}
+// The person selects a right panel tab.
+async function selectTab(c,label){
+ const tab=elements(c,'button').find(e=>e.getAttribute('role')==='tab'&&e.textContent===label);assert.ok(tab,label);await React.act(()=>props(tab).onClick());
+}
+// A "#target" link followed through the workspace root's own handler.
+async function followLinkTo(c,target){
+ const a=document.createElement('a');a.setAttribute('href',`#${target}`);const main=elements(c,'main')[0];main.appendChild(a);
+ try{await React.act(()=>props(main).onClick({target:a,currentTarget:main,preventDefault(){}}));}finally{main.removeChild(a);}
+}
 async function followWorkspaceLink(c,label){
  const anchor=elements(c,'a').find(e=>e.textContent===label);assert.ok(anchor,label);assert.ok(displayed(anchor),label);
  const main=elements(c,'main')[0];await React.act(()=>props(main).onClick({target:anchor,currentTarget:main}));
@@ -485,11 +499,12 @@ test('daily workspace keeps A/C/B/D, exact composer, chooser, global draft and l
   await toggleDisclosure(ui.c,'workspace-evidence',true);await ui.change(name,'Unsent local name');const before=ui.calls.length;
   for(const panel of panels){await toggleDisclosure(ui.c,panel.getAttribute('id'),true);await toggleDisclosure(ui.c,panel.getAttribute('id'),false);}
   assert.equal(ui.calls.length,before,'disclosure navigation performs no RPC');assert.equal(ui.composer(),original);assert.equal(byId(ui.c,'file-acts'),filePanel);assert.equal(props(scope).value,'Unsent file-review scope','the secondary child retains its own local state');assert.equal(props(name).value,'Unsent local name');assert.equal(ui.model(),'Unsent new-conversation model');ui.assertIndependent();assert.ok(displayed(review),'native confirmation is outside secondary disclosures');
-  // Task views: leaving the conversation hides it without unmounting anything.
-  await followWorkspaceLink(ui.c,'Run a workflow');assert.equal(displayed(original),false);assert.ok(displayed(region(ui.c,'Run a workflow')));
-  assert.equal(ui.composer(),original,'the hidden composer stays mounted');assert.equal(props(elements(original,'textarea')[0]).value,'Edited daily-workspace message');
+  // Right panel tabs: the conversation stays shown beside each; a tab not selected is hidden without unmounting anything.
+  const composerShown=displayed(original);await selectTab(ui.c,'Run a workflow');assert.equal(displayed(original),composerShown,'selecting a tab leaves the conversation beside it as it was');assert.ok(displayed(region(ui.c,'Run a workflow')));
+  assert.equal(ui.composer(),original,'the composer stays mounted');assert.equal(props(elements(original,'textarea')[0]).value,'Edited daily-workspace message');
   assert.ok(displayed(review),'native confirmation content stays visible in every view');
-  await followWorkspaceLink(ui.c,'Settings & tools');await toggleDisclosure(ui.c,'workspace-records',true);assert.equal(displayed(byId(ui.c,'workspace-start')),false);
+  await selectTab(ui.c,'Settings & tools');await toggleDisclosure(ui.c,'workspace-records',true);assert.equal(displayed(region(ui.c,'Run a workflow')),false,'the tab not selected is hidden');
+  assert.ok(byId(ui.c,'view-run'),'and stays mounted');assert.ok(displayed(byId(ui.c,'workspace-records')));assert.ok(displayed(byId(ui.c,'workspace-start')),'the conversation stays shown');
   const reveal=[];original.parentNode.scrollIntoView=()=>{assert.ok(displayed(original));reveal.push(original);};await ui.open();
   assert.deepEqual(reveal,[original]);assert.equal(ui.selected(),key('B'));assert.equal(ui.composer(),original);assert.equal(props(elements(original,'textarea')[0]).value,'Edited daily-workspace message');assert.equal(chosenIn(choiceList(original,'Send to')),key('D'));ui.assertIndependent();
   await ui.press('Send',original);assert.match(original.textContent,/Sending; waiting/);const pendingCalls=ui.calls.length;
@@ -520,7 +535,7 @@ for(const state of ['absent','ready'])test(`first use with Codex ${state} expose
 test('file-act anchors reveal the same mounted secondary panel with no command or source selection',async()=>{
  await mounted({},async ui=>{
   const panel=byId(ui.c,'file-acts');assert.ok(panel);const disclosure=byId(ui.c,'workspace-files');assert.equal(disclosureOpen(disclosure),false);const before=ui.calls.length;
-  await followWorkspaceLink(ui.c,'Make a workflow');await toggleDisclosure(ui.c,'workflow-studio',true);
+  await selectTab(ui.c,'Make a workflow');await toggleDisclosure(ui.c,'workflow-studio',true);
   await followWorkspaceLink(ui.c,'Review a workspace draft file for a separate standing act');assert.equal(disclosureOpen(disclosure),true);assert.ok(displayed(panel),'the link shows the settings view that holds the panel');assert.equal(byId(ui.c,'file-acts'),panel);assert.equal(ui.calls.length,before);ui.assertIndependent();
  });
 });
@@ -564,7 +579,7 @@ test('workspace links reveal and focus existing destinations without changing ch
   const before=ui.calls.length;await toggleDisclosure(ui.c,'workspace-start',true);await followWorkspaceLink(ui.c,'Set up access or start Codex');
   assert.equal(disclosureOpen(connection),true);assert.deepEqual(focused,[summary]);assert.ok(displayed(connection),'the settings view is shown');
   const target=byId(ui.c,'conversation');target.focus=()=>focused.push(target);
-  await followWorkspaceLink(ui.c,'Conversation');assert.equal(focused.at(-1),target);assert.equal(target.getAttribute('tabindex'),'-1');
+  await followLinkTo(ui.c,'conversation');assert.equal(focused.at(-1),target);assert.equal(target.getAttribute('tabindex'),'-1');
   assert.equal(ui.calls.length,before);ui.assertIndependent();
  });
 });
@@ -619,7 +634,11 @@ test('History navigation reveals and focuses existing history without reading or
  await mounted({},async ui=>{
   const history=byId(ui.c,'workspace-history');const summary=history.childNodes.find(n=>n.localName==='summary');let focused=0;summary.focus=()=>focused++;
   await toggleDisclosure(ui.c,'workspace-history',false);const before=ui.calls.length;
-  await followWorkspaceLink(ui.c,'History');assert.equal(disclosureOpen(history),true);assert.equal(focused,1);
+  await selectTab(ui.c,'History');assert.ok(displayed(history),'the History tab shows it');assert.equal(ui.calls.length,before,'selecting the tab reads nothing');
+  await selectTab(ui.c,'Run a workflow');assert.equal(displayed(history),false);
+  // A link to it, followed through the workspace root, selects its tab, opens and focuses it.
+  await followLinkTo(ui.c,'workspace-history');assert.equal(disclosureOpen(history),true);assert.equal(focused,1);assert.ok(displayed(history));
+  assert.equal(elements(ui.c,'button').find(b=>b.getAttribute('role')==='tab'&&b.getAttribute('aria-selected')==='true')?.textContent,'History');
   assert.equal(ui.calls.length,before);ui.assertIndependent();
  });
 });

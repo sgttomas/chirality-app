@@ -88,9 +88,11 @@ test('a listed model is offered only for a confirmed or explicitly unconfirmed b
 // DEL-01-05 REQ-004 as decided: in this version the account home has exactly one access entry, a fact of the
 // configuration, shown as the connection in use without asking; the model stays the person's choice, with no default.
 const IN_USE = 'Connects with your ChatGPT account (built-in OpenAI) — the only connection this version offers.';
-const go = async (ui, label) => {
-  const anchor = nodes(ui.c, 'a').find(node => node.textContent === label); assert.ok(anchor, label);
-  const main = nodes(ui.c, 'main')[0]; await React.act(async () => props(main).onClick({target:anchor, currentTarget:main}));
+// The person goes to the conversation: it is always shown in the centre, and going there is following a link to it
+// through the workspace root, as the App's own links do.
+const goToConversation = async ui => {
+  const main = nodes(ui.c, 'main')[0]; const anchor = document.createElement('a'); anchor.setAttribute('href', '#conversation'); main.appendChild(anchor);
+  try { await React.act(async () => props(main).onClick({target:anchor, currentTarget:main, preventDefault() {}})); } finally { main.removeChild(anchor); }
 };
 test('a first-time account user meets the only connection in use and the model list the App reads, chooses a reported model, then Start sends exactly that', async () => {
   let reply;
@@ -103,8 +105,8 @@ test('a first-time account user meets the only connection in use and the model l
     assert.equal(region(ui.c, 'Connection in use').textContent, IN_USE, 'shown as in use, where the toggle was');
     assert.equal(button(ui.c, 'Use my ChatGPT account (built-in OpenAI)'), undefined, 'nothing to choose');
     assert.doesNotMatch(region(ui.c, 'How this conversation connects').textContent, /signed in|sign-in|sign in/i, 'the connection line says nothing of sign-in');
-    assert.deepEqual(ui.issued(), [], 'nothing is read while New conversation is not shown');
-    await go(ui, 'Conversation');
+    assert.deepEqual(ui.issued(), [], 'nothing is read before the person goes to the conversation');
+    await goToConversation(ui);
     // New conversation opens with the connection in use and Codex ready: the App reads the list itself.
     assert.deepEqual(ui.issued(), [{command:'read_available_models', args:{generation:g, modeHomeClass:'account', atPersonPress:false}}]);
     assert.match(region(ui.c, 'Available models').textContent, /Reading the models Codex offers…/, 'never just empty while it is read');
@@ -134,7 +136,7 @@ test('with two access entries available the choice returns as before: nothing is
     const route = button(ui.c, 'Use my ChatGPT account (built-in OpenAI)');
     assert.ok(route); assert.equal(props(route)['aria-pressed'], false, 'not chosen for the person');
     assert.match(ui.c.textContent, /Choose how this conversation connects \(step 1\)/);
-    await go(ui, 'Conversation');
+    await goToConversation(ui);
     assert.deepEqual(ui.issued(), [], 'the list is read at the person\'s press here');
     await ui.press('Use my ChatGPT account (built-in OpenAI)');
     assert.equal(props(button(ui.c, 'Use my ChatGPT account (built-in OpenAI)'))['aria-pressed'], true);
@@ -166,7 +168,7 @@ test('the connection in use is for new conversations only: an existing conversat
     if (command === 'conversation_send_text') return {result:{}};
     throw Error(`unexpected ${command}`);
   }, async ui => {
-    await go(ui, 'Conversation');
+    await goToConversation(ui);
     const list = choiceLists(region(ui.c, 'Conversation workspace') ?? ui.c)[0];
     await React.act(() => chooseIn(list, JSON.stringify([g, 'existing'])));
     const text = nodes(ui.c, 'textarea').find(node => props(node).id === 'ordinary-composer-text');

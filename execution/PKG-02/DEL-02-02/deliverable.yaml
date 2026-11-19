@@ -153,6 +153,14 @@ code_paths:
 - app/src/RunPanel.tsx
 - app/src/DailyWorkspace.tsx
 - app/src/App.tsx
+# The frame the views sit in (AX-004): the three regions and status strip, the navigator, and the
+# stylesheet, which holds v3.0.1's interface rules and then the App's own. Shared with DEL-01-04.
+- app/src/WorkspaceShell.tsx
+- app/src/Navigator.tsx
+- app/src/workspace.css
+# Development tooling for looking at the views without running the App: a stand-in host that
+# answers from one constructed state. Not in the product build and not evidence for a criterion.
+- app/examination/visual_preview/**
 checks:
 - app/src-tauri/src/workflow_library_tests.rs
 - app/src-tauri/src/workflow_library_entries_tests.rs
