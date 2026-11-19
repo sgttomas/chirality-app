@@ -140,6 +140,11 @@ export function levelInForce(host: Json, threadId?: string, missing = false): { 
   return { name: level ? name(level.id) : "No permission level reported", ask };
 }
 
+/** Where the App names levels with none in force, so no host sentence on reading comes with one (an ask, a chooser),
+ * it says what the host's READING_SENTENCE says, in the same words (PRD V4-AUT-06: wherever else the App shows a level,
+ * it says there that reading is not limited). */
+export const READING_NOT_LIMITED = "Reading is not limited at any permission level.";
+
 /** What the level panel reads for one conversation (or, with none, for new conversations). */
 function levelReading(host: Json, threadId?: string) {
   const row = threadId ? list(host?.threads).find(t => t.threadId === threadId && JSON.stringify(t.generation) === JSON.stringify(host?.generation)) : null;
@@ -169,6 +174,7 @@ function LevelInForce({ host, threadId, level }: { host: Json; threadId?: string
       {level.id === "full" && <p>At full access commands and file changes are not asked about.</p>}
       {level.sessionOnly?.detail?.text && <ReportedValue value={level.sessionOnly.detail.text}/>}
     </>}
+    {!level && <p>{READING_NOT_LIMITED}</p>}
     {typeof host?.levelLaunchRead?.reason === "string" && <p>{host.levelLaunchRead.reason}</p>}
     {host?.levelSessionOnlyOffered?.detail?.text && <ReportedValue value={host.levelSessionOnlyOffered.detail.text}/>}
     {host?.levelLaunchRead?.homeState?.state === "unknown" && host.levelLaunchRead.homeState.detail?.text && <ReportedValue value={host.levelLaunchRead.homeState.detail.text}/>}
@@ -304,6 +310,7 @@ function LevelPanel({ host, threadId, askOnly = false }: { host: Json; threadId?
   if (askOnly) return ask ? <section className="v4-level-ask" aria-label="Choose a permission level to continue">
     {reading}
     {asking}
+    <p>{READING_NOT_LIMITED}</p>
     {typeof host?.levelRecordsUnread === "string" && <p>{host.levelRecordsUnread}</p>}
     {scope === "default" && <ScopeWords host={host} scope={scope}/>}
     <LevelRefusal cause={cause}/>
