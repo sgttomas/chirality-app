@@ -58,6 +58,35 @@ Three limits apply:
   Codex's reported turn status. Only a request makes the question count as
   waiting for your answer.
 
+### A question the agent asks and goes on from
+
+On some models Codex gives the agent a second way to ask, which does not wait:
+the agent asks, its turn goes on, and nothing is held for your answer. The
+question appears as a card at the agent's message, with the choices it offers
+and room for your own answer. Choose or type, read the message the card shows
+(each question you answered, with your answer beneath it), and press **Send
+answers**: it is sent as your own next message in that conversation, exactly
+as shown. Nothing is sent until you press, and you can as well answer by
+writing a message yourself.
+
+"Waiting on you" lists such a question as "the agent asked a question and went
+on" until a message from you follows it. It is counted in the line's number
+and not among the requests from Codex.
+
+Its limits:
+
+- Chirality knows of such a question only in a conversation it has read since
+  it last started Codex: one started or forked since then, or one that has
+  received a message since then. A conversation continued from history is
+  not read for this until you send it a message; until then the card says so
+  and still takes your answer, and "Waiting on you" names the conversation as
+  not read and says its status is incomplete.
+- Nothing about such a question is kept across a relaunch.
+- Sending from the card follows the rules of the message box's own Send: one
+  operation at a time, the conversation open in front of you, and no earlier
+  message to it left unconfirmed. The model and effort chosen in the message
+  box do not go with it.
+
 ## Interrupt one observed live turn
 
 1. Choose the conversation whose work you intend to interrupt.

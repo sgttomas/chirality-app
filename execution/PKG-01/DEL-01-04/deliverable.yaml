@@ -18,7 +18,9 @@ needs:
     reason, or no model selected, and a native item can be referred to by an item anchor. For a
     request card to name who asks, the host's view of a Codex process gives its descendants, each
     with its thread, its parent and, once its thread has been read, the role and nickname Codex
-    reports for it.
+    reports for it. For the agent's question that does not wait, the host's native view reports,
+    for the home in use, which conversations it has read since it started its Codex and, for
+    each, the latest such question that no message from the person follows.
   gating: true
 - from: DEL-01-05
   condition: For a conversation, whether a model is selected, which, and the person's last explicit
@@ -180,6 +182,9 @@ code_paths:
 - app/src-tauri/src/runtime_session.rs
 - app/src-tauri/src/lib.rs
 - app/src/RequestCards.tsx
+# The agent's question that does not wait: its card, and the message composed from the answers.
+- app/src/AskedQuestionCard.tsx
+- app/tests/asked-question-card.test.mjs
 - app/src/RequestAnswerCompanion.tsx
 - app/src/hostReads.ts
 - app/src/requestAnswerWords.json

@@ -662,7 +662,7 @@ An entry is added in the same pull request that makes the limitation standing.
 - **Id:** LIM-037
 - **Exit criteria:** 4
 - **What is unavailable:** three things about a question an agent puts to you
-  as a request. A question still waiting when Codex stops (you stop or restart
+  as a request, and one about a question it asks without waiting. A question still waiting when Codex stops (you stop or restart
   Codex, quit the App, or Codex ends unexpectedly) is not asked again when the
   conversation is continued: Chirality shows the question as a past request
   when its record is available. It shows the turn status Codex reports, or an
@@ -670,7 +670,13 @@ An entry is added in the same pull request that makes the limitation standing.
   status is available. An agent that was delegated work cannot ask
   this way at all. And an agent may also ask in a message. Chirality shows the
   message and uses Codex's reported turn status. Only a request makes the
-  question count as waiting for your answer.
+  question count as waiting for your answer. A fourth concerns the question
+  an agent asks without waiting, on the models Codex gives that form:
+  Chirality shows it and lists it under "Waiting on you" only in a
+  conversation it has read since it last started Codex. A conversation
+  continued from history is not read for this until it receives a message;
+  until then "Waiting on you" names it as not read and says its status is
+  incomplete, and nothing about such a question is kept across a relaunch.
 - **Why:** the question is Codex's own request, which belongs to the running
   turn and is not kept across a stop, and which Codex allows only to the
   conversation's own agent. Codex allows it in an ordinary conversation only
@@ -678,9 +684,14 @@ An entry is added in the same pull request that makes the limitation standing.
   its own Codex and lists among the settings it applies. Whether an agent uses
   the request when it needs an answer is the model's choice; the App's
   guidance asks it to, and the App does not guess from the wording of a
-  message.
+  message. The question asked without waiting is an item of the conversation,
+  not a request: the App reads it from the items Codex sends while it runs,
+  and Codex's summary of an earlier turn, which is what the App reads from
+  history, leaves items out.
 - **What the person does instead:** after a stop, send a message to continue.
-  Read a completed turn's last message for a question. The agent you are
+  Read a completed turn's last message for a question. For a conversation
+  continued from history, read its last turn for a question the agent asked
+  and answer on its card or by a message. The agent you are
   talking with can relay a delegated agent's question.
 - **Basis:** DEL-01-04 REQ-001 (requests and their answers); DEL-01-05 (the
   settings the App gives its Codex); DEL-02-04 (the guidance). The level

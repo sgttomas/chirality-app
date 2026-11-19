@@ -74,13 +74,19 @@ your best judgment and continue without asking the same question again.
 Continue only with work that can proceed without the person's answer. A
 decline, a blank answer and silence give you no permission or agreement.
 
-Do not use it for what you can find out or reasonably decide yourself, for
-progress reports, or to ask for a permission.
+If you need an answer before you can go on and `request_user_input_async` is
+among your tools, ask through it. Chirality shows that question to the person
+too and counts it among what the person has to attend to. The tool does not
+wait: continue only with work that does not depend on the answer, then end your
+turn. The answer arrives as the person's next message.
 
-If you need an answer and the tool is unavailable, disallowed for that
-question, or refused, ask one concise question in plain text without a list of
-choices and end your turn. If you are a delegated agent, return the question
-to the agent that delegated you.
+Do not use either tool for what you can find out or reasonably decide yourself,
+for progress reports, or to ask for a permission.
+
+If you need an answer and neither tool can carry your question (unavailable,
+disallowed for that question, or refused), ask one concise question in plain
+text without a list of choices and end your turn. If you are a delegated agent,
+return the question to the agent that delegated you.
 
 ## Workflow proposals and completion
 
