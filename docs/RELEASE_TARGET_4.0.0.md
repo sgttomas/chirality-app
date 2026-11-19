@@ -143,10 +143,13 @@ the actors their own texts state. Criterion 8's witness on the installed,
 signed candidate needs the person's protection act and the person's
 confirmation of a lowered policy (DEL-01-04 AC-009), which the owner performs
 as bounded acts, like sign-in, apart from and before the evaluation of
-criterion 13. The first human evaluation of the product is the owner's own use
-of the candidate, which begins once Agent 0 has recommended that it is ready
-(criterion 13); the owner's bounded acts before it (sign-in and the keychain
-acts) are not that evaluation. Agents' testing and the owner's own use
+criterion 13. The owner may use a development build at any time, before
+agents' testing is complete (owner, 19 November 2026). What the owner meets
+then becomes work that Agent 0 gives a disposition; that use meets no
+criterion and is not the verdict. The evaluation that criterion 13 counts is
+the owner's own use of the candidate once Agent 0 has recommended that it is
+ready; the owner's bounded acts before it (sign-in and the keychain acts) are
+not that evaluation. Agents' testing and the owner's own use
 are different things: agents' testing verifies behaviour, and only the owner's
 own use judges whether the product is fit for real work (DEL-09-12). A control
 operated by an agent establishes no act of the owner.
