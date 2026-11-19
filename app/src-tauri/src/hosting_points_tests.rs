@@ -345,6 +345,24 @@ fn a_reading_older_than_the_refresh_limit_is_not_whole_until_it_is_read_again() 
     assert_eq!(Fixture::view(&f.host, "thread")["reading"]["whole"], true);
 }
 
+/// A reading past half the refresh limit is still shown whole, and the status
+/// read that finds it so starts the reread that replaces it before it expires.
+#[test]
+fn a_reading_past_half_the_refresh_limit_stays_shown_and_is_read_again_ahead_of_the_limit() {
+    let f = Fixture::new();
+    f.place("1", "thread", "call-1", &full_terms());
+    let project = f.project.to_str().unwrap().to_owned();
+    let aged = std::time::Instant::now() - REFRESH / 2 - std::time::Duration::from_secs(1);
+    f.hooks().points.published.get_mut(&project).unwrap().at = aged;
+    let row = f.host.snapshot()["points"].as_array().unwrap().iter().find(|v| v["threadId"] == "thread").cloned().unwrap();
+    assert_eq!(row["reading"]["whole"], true, "{row}");
+    assert_eq!(row["points"].as_array().unwrap().len(), 1, "the point stays shown while the log is read again");
+    f.host.drain_points_for_test();
+    assert!(f.hooks().points.published[&project].at > aged, "the reread published a new reading");
+    assert!(f.hooks().points.rereading.is_empty());
+    assert_eq!(Fixture::view(&f.host, "thread")["points"].as_array().unwrap().len(), 1);
+}
+
 /// Where no worker can be created the call is placed inline, as the records
 /// capability answers a read it cannot hand to a worker: answered, never lost.
 #[test]

@@ -50,7 +50,9 @@ fn one_at_a_time() -> std::sync::MutexGuard<'static, ()> {
 }
 /// How long a published reading is used before the log is read again even
 /// with its stamps unchanged: past it, the reading is not whole until a new
-/// one is published.
+/// one is published. A status read that finds the reading past half of it
+/// starts the reread while the reading is still used, so that a conversation
+/// being watched does not lose its points for the length of a reread.
 pub(crate) const REFRESH: std::time::Duration = std::time::Duration::from_secs(60);
 
 /// A conversation offered the point tool in a generation.
@@ -822,7 +824,9 @@ impl super::Host {
                             Some(p) => match (stamp(&p.log), stamp(&p.link)) {
                                 (Ok(log), Ok(link)) if (log, link) != p.stamps => { reread.push(project.clone()); Err(READING_AGAIN.into()) }
                                 (Ok(_), Ok(_)) if p.at.elapsed() >= REFRESH => { reread.push(project.clone()); Err(EXPIRED.into()) }
-                                (Ok(_), Ok(_)) => Ok(p.clone()),
+                                // Read again ahead of the limit, so that a reading in use is
+                                // replaced before it expires and the points stay shown.
+                                (Ok(_), Ok(_)) => { if p.at.elapsed() >= REFRESH / 2 { reread.push(project.clone()); } Ok(p.clone()) }
                                 _ => { reread.push(project.clone()); Err(READING_AGAIN.into()) }
                             },
                         }
