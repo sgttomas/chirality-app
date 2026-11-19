@@ -288,9 +288,18 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
   // Each choice of a mode, counted at the choice: a first message whose mode was changed after its press is not sent.
   const modeRevision = useRef(0);
   const setModeChoice = (choice: { owner: string; mode: "chat" | "plan" }) => { modeRevision.current++; setModeChoiceState(choice); };
-  const modeChosen: "chat" | "plan" | null = modeChoice && modeChoice.owner === ordinaryOwner ? modeChoice.mode : null;
+  // A mode chosen in a new chat belongs to that new chat and to nothing else: each entry into a new chat, and each first
+  // message sent from one, begins another, so a choice made before any conversation existed never reaches a later one.
+  const newChatEpoch = useRef(0);
+  const lastThreadKey = useRef(threadKey);
+  if (lastThreadKey.current !== threadKey) { if (threadKey === "") newChatEpoch.current++; lastThreadKey.current = threadKey; }
+  const modeOwner = selected ? ordinaryOwner : threadKey === "" ? `new-chat:${newChatEpoch.current}` : "conversation-not-available";
+  const modeChosen: "chat" | "plan" | null = modeChoice && modeChoice.owner === modeOwner ? modeChoice.mode : null;
   const lastPlan = requestedMode?.mode === "plan";
-  const modeShown: "chat" | "plan" = modeChosen ?? (lastPlan ? "plan" : "chat");
+  // The mode Send uses: the choice only while Codex offers plan mode (else Send sends none, and the conversation keeps
+  // the mode last requested for it). A choice the current reading no longer offers is shown as not available.
+  const modeShown: "chat" | "plan" = (planOffered ? modeChosen : null) ?? (lastPlan ? "plan" : "chat");
+  const modeUnavailable = !planOffered && modeChosen !== null && modeChosen !== (lastPlan ? "plan" : "chat");
   const sendMode: "plan" | "default" | undefined = !planOffered ? undefined : modeChosen === "plan" && !lastPlan ? "plan" : modeChosen === "chat" && lastPlan ? "default" : undefined;
   // What the last first-message press came to, when it did not send: a definite refusal (the host's reason), a start the
   // App could not confirm (the host's reason, where given), or a start whose view changed before the send.
@@ -405,6 +414,8 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
       const owner = ordinaryConversationRef(generation, threadId);
       const request: OrdinaryTextRequest = { generation: { ...generation }, threadId, text: press.draft, ...(press.mode ? { mode: press.mode } : {}) };
       setBusy(press.mode ? `sending in ${press.mode} mode` : "sending");
+      // The new chat's mode went with its first message: the next new chat begins without it.
+      newChatEpoch.current++; setModeChoiceState(null);
       await dispatchOrdinary(request, () => ordinaryView.current.ready && (ordinaryView.current.owner === owner || ordinaryView.current.owner === ""), press.revision,
         { owner: "", value: "", effort: "", effortModel: "", revision: -1 }, owner, true);
     } finally { turnActionPending.current = false; setBusy(""); }
@@ -459,8 +470,8 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
   // NIR §4.1/§4.8: this conversation's request cards sit beside its activity, waiting ones first.
   const requests: Json[] = hostRequests(host).filter((request: Json) => selected && requestThread(request) === selected.threadId);
   const ordered = [...requests.filter(answerable), ...requests.filter((request: Json) => !answerable(request))];
-  // The turns a waiting request names: only those are marked "Waiting for you". A request that names no turn marks a
-  // turn only when the conversation has exactly one live turn (NativeActivityView).
+  // The turns a waiting request names: only those are marked "Waiting for you". A request that names no turn marks no
+  // turn; the conversation says a request waits (NativeActivityView).
   const requestTurn = (request: Json): string | null => typeof request?.nativeParameters?.turnId === "string" && request.nativeParameters.turnId ? request.nativeParameters.turnId : null;
   const waitingTurns = requests.filter(answerable).map(requestTurn).filter((turn): turn is string => turn !== null);
   const waitingUnplaced = requests.some(request => answerable(request) && requestTurn(request) === null);
@@ -786,7 +797,7 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
       {startOutcome && <p role="alert">{startOutcome.kind === "failed"
         ? <>The conversation was not started: <AgentText value={startOutcome.message} source="codex" label="Reported:" name={START_REASON_NAME} /> Your draft stays here; nothing was sent.</>
         : startOutcome.kind === "view-changed" ? "The conversation started, but the view changed before your message was sent. Nothing was sent; your draft stays here."
-        : <>The App could not confirm that a new conversation started{startOutcome.message ? <>: <AgentText value={startOutcome.message} source="codex" label="Reported:" name={START_REASON_NAME} /></> : "."} If it did start, it is listed on the left. Your message was not sent; your draft stays here.</>}</p>}
+        : <>The App could not confirm that a new conversation started{startOutcome.message ? <>: <AgentText value={startOutcome.message} source="codex" label="Reported:" name={START_REASON_NAME} /></> : "."} Look for it in the list on the left; it may not be there. Your message was not sent; your draft stays here.</>}</p>}
       {attachmentOutcome && <div aria-label="Attachment submission outcome">
         <p>Original {attachmentOutcome.request.expectedTurnId === null ? "Send" : "Steer"} with ordered attachments · conversation {attachmentOutcome.request.threadId} · Home {attachmentOutcome.request.generation?.home}{attachmentOutcome.request.expectedTurnId !== null && ` · expected turn ${attachmentOutcome.request.expectedTurnId}`}.</p>
         {attachmentOutcome.result.acknowledged
@@ -801,7 +812,8 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
       {actionOutcome}
       {text && selected && textWrittenFor.current && textWrittenFor.current !== threadKey && <p role="note" aria-label="Where your text goes">Your unsent text was written while another conversation was shown. It is kept; if you send it now it goes to {conversationLabel(host, selected)}.</p>}
       {text && newChat && textWrittenFor.current && <p role="note" aria-label="Where your text goes">Your unsent text was written while another conversation was shown. It is kept; if you send it now it starts a new conversation.</p>}
-      {attachmentsSelected && !attachOpen && <p className="v4-composer-status" aria-label="Selected attachments">Send sends your text without the selected attachments. To send them, open the attachments (⊕) and use “Send text and ordered attachments”.</p>}
+      {attachmentsSelected && !attachOpen && selected && <p className="v4-composer-status" aria-label="Selected attachments">Send sends your text without the selected attachments. To send them, open the attachments (⊕) and use “Send text and ordered attachments”.</p>}
+      {attachmentsSelected && !attachOpen && newChat && <p className="v4-composer-status" aria-label="Selected attachments">Your first message is sent without the selected attachments.</p>}
       {running && !stopTarget && <p className="v4-composer-status" aria-label="Which turn Stop stops">Several turns are running here. Choose the one to stop under Conversation tools, in “Interrupt a live turn”.</p>}
       {ownBusy && <p>{ownBusy}: waiting for protocol response; no automatic retry.</p>}
       {!ownBusy && codexBusy && <p>Stop or Restart Codex is in progress: sending text, steering and attachments is paused; interrupting a live turn stays available.</p>}
@@ -831,8 +843,11 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
     </form>
     <div ref={contextLine} id={newChat ? "workspace-start" : undefined} className="chat-context" role="group" aria-label="Chat context">
       <span>{newChat ? "Start in" : "Working in"}</span>
-      {selected && folder !== null && !inAppFolder
-        ? <span className="chat-folder-fixed">{rowFolder === null ? "folder not reported by Codex" : <>Codex reports another folder: <AgentText value={rowFolder} source="codex" label="Folder:" name="The folder Codex reports for this conversation, not the App's words" /></>}</span>
+      {/* The conversation's own folder as Codex reports it, marked, whenever the row reports one and it is not the App's
+          project; the App's project by name where it is that folder. */}
+      {selected && rowFolder !== null && !inAppFolder
+        ? <span className="chat-folder-fixed">{folder !== null && "Codex reports another folder: "}<AgentText value={rowFolder} source="codex" label="Folder:" name="The folder Codex reports for this conversation, not the App's words" /></span>
+        : selected && rowFolder === null && folder !== null ? <span className="chat-folder-fixed">folder not reported by Codex</span>
         : <span className="chat-folder-fixed">{!selected && !newChat ? "no conversation available" : folder !== null ? <><span aria-hidden="true">▱ </span>{folderName(folder)}</> : "project folder not established"}</span>}
       <span aria-hidden="true">·</span>
       {selected ? <span className="v4-context-fixed">{roleWord}</span>
@@ -843,14 +858,16 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
         </span>}
       <span aria-hidden="true">·</span>
       <span className="v4-level chat-mode-selector">
-        <button type="button" aria-expanded={contextOpen === "mode"} aria-label={`Mode: ${modeShown === "plan" ? "Plan" : "Chat"}`} onClick={() => toggleContext("mode")}>{modeShown === "plan" ? "Plan" : "Chat"}</button>
+        <button type="button" aria-expanded={contextOpen === "mode"} aria-label={`Mode: ${modeUnavailable ? modeChosen === "plan" ? "Plan not available" : "Chat not available" : modeShown === "plan" ? "Plan" : "Chat"}`} onClick={() => toggleContext("mode")}>{modeUnavailable ? modeChosen === "plan" ? "Plan not available" : "Chat not available" : modeShown === "plan" ? "Plan" : "Chat"}</button>
         <div className={`v4-level-pop${contextOpen === "mode" ? " open" : ""}`} role="dialog" aria-label="Mode" hidden={contextOpen !== "mode"}><div className="daily-workspace v4-in-chat">
           {planOffered ? <fieldset className="v4-mode-choice"><legend>Mode for your next message</legend>
-            <label><input type="radio" name="conversation-mode" checked={modeShown === "chat"} onChange={() => setModeChoice({ owner: ordinaryOwner, mode: "chat" })} /> Chat{requestedMode?.mode === "plan" ? " (sends default mode, which leaves plan mode)" : ""}</label>
-            <label><input type="radio" name="conversation-mode" checked={modeShown === "plan"} onChange={() => setModeChoice({ owner: ordinaryOwner, mode: "plan" })} /> Plan (experimental)</label>
+            <label><input type="radio" name="conversation-mode" checked={modeShown === "chat"} onChange={() => setModeChoice({ owner: modeOwner, mode: "chat" })} /> Chat{requestedMode?.mode === "plan" ? " (sends default mode, which leaves plan mode)" : ""}</label>
+            <label><input type="radio" name="conversation-mode" checked={modeShown === "plan"} onChange={() => setModeChoice({ owner: modeOwner, mode: "plan" })} /> Plan (experimental)</label>
           </fieldset> : <p>Plan mode: {(host?.planMode?.state ?? "not-checked") === "not-checked" ? "not checked for this Codex connection" : `not offered — ${host?.planMode?.reason ?? "reason not reported"}`}.</p>}
           {planOffered && <p><small>Plan mode stays on until you leave it. Asking Codex to carry out a plan is ordinary input, not an approval.</small></p>}
-          {(host?.planMode?.state ?? "not-checked") === "not-checked" && <p><button type="button" disabled={!sourceReady || !!busy || !host?.generation} onClick={() => { setError(""); checkPlanMode(selected?.generation ?? host?.generation).catch(e => setError(String(e))); }}>Check plan mode availability</button></p>}
+          {modeUnavailable && <p>Your choice of {modeChosen === "plan" ? "Plan" : "Chat"} is not sent: plan mode is not offered now. Send uses the mode shown.</p>}
+          {/* The availability read is issued only for a conversation chosen, as the Conversation view always did. */}
+          {selected && (host?.planMode?.state ?? "not-checked") === "not-checked" && <p><button type="button" disabled={!sourceReady || !!busy} onClick={() => { setError(""); checkPlanMode(selected.generation).catch(e => setError(String(e))); }}>Check plan mode availability</button></p>}
           {requestedMode && <p>Last mode this App requested for this conversation: <b>{String(requestedMode.mode)}</b> ({String(requestedMode.standing)}).</p>}
         </div></div>
       </span>

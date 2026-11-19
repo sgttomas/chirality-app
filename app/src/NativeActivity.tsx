@@ -601,12 +601,14 @@ export function turnSegments(items: Json[]): { segments: TurnSegment[]; folded: 
 /** Whether a turn is under way as the activity view reads it: Codex reported it in progress and the App still receives from that process. */
 export const turnLive = (turn: ActivityTurn, observationEnded: boolean) => turn.native?.status === "inProgress" && !observationEnded;
 const IN_PROGRESS = new Set(["in-progress", "waiting-on-request"]);
+/** A turn's observed outcome on its visible details line: only an outcome Codex reported; anything else is not observed. */
+const TURN_OUTCOME = { completed: "completed", interrupted: "interrupted", failed: "failed" } as const;
 /** The folded activity line: while the turn runs, its latest item in progress (or "Working"); after, "Turn details". Counts are observed rows, never work done. */
 function TurnActivity({ turn, folded, messages, live, plans, ownRuns, turnIds, offersFor }: { turn: ActivityTurn; folded: Json[]; messages: Json[]; live: boolean; plans: Json[]; ownRuns: Json[]; turnIds: string[]; offersFor: (row: Json) => ReactNode }) {
   const count = folded.length;
   const latest = live ? [...folded].reverse().find(row => IN_PROGRESS.has(row?.displayState)) : undefined;
   return <details className={live ? "turn-activity turn-activity--live" : "turn-activity"}>
-    <summary><span className="turn-activity-summary">{!live ? "Turn details" : latest?.displayState === "waiting-on-request" ? "Waiting on a request" : (latest ? wordOf(ITEM_IN_PROGRESS, latest.native?.type) : null) ?? "Working"}
+    <summary><span className="turn-activity-summary">{!live ? `Turn details · ${wordOf(TURN_OUTCOME, turn.native?.status) ?? (turn.native ? "outcome not observed" : "status unknown")}` : latest?.displayState === "waiting-on-request" ? "Waiting on a request" : (latest ? wordOf(ITEM_IN_PROGRESS, latest.native?.type) : null) ?? "Working"}
       {count > 0 && ` · ${numberWords(count)} ${count === 1 ? "action" : "actions"}`}</span></summary>
     <div className="v4-turn-activity-body">
       <details><summary>Turn source and timing</summary><small>Turn <SuppliedId value={turn.turnId} label="Turn:" name="Turn identity as Codex reported it, not the App's words" /> · {turn.native ? <>native status <Word value={turn.native.status} words={TURN_STATUS} name="A turn status Codex sent that the App does not recognise, not the App's words" /></> : "turn status not observed"}{turn.native?.durationMs != null && <> · <Num value={turn.native.durationMs} /> ms</>}</small></details>
@@ -660,8 +662,8 @@ function TurnEnd({ turn, observationEnded, stop, live }: { turn: ActivityTurn; o
 export function NativeActivityView({ view, threadId, offers, offerControls, runs, stopLabelFor, trialTurns, trialChildren, delegation, navigationRef, appRole, waiting = false, waitingTurns = [], threadSource, appSentTurns = [] }: { view: Json; threadId: string | null | undefined; offers?: Json[]; offerControls?: OfferControls; runs?: Json[]; stopLabelFor?: (threadId: string, turnId: string) => Json | null; trialTurns?: Json[]; trialChildren?: Json[]; delegation?: Json; navigationRef?: Ref<NativeActivityHandle>;
   /** The conversation's role as the App bound it (the host's thread row `appRole`), for its agent's label. */
   appRole?: Json;
-  /** A request of this conversation that names no turn waits for the person's answer: a turn is marked for it only
-   * when the conversation has exactly one live turn. */
+  /** A request of this conversation that names no turn waits for the person's answer: no turn is marked for it; the
+   * conversation says a request waits. */
   waiting?: boolean;
   /** The turns that waiting requests of this conversation name: each, while live, is marked "Waiting for you". */
   waitingTurns?: readonly string[];
@@ -734,8 +736,8 @@ export function NativeActivityView({ view, threadId, offers, offerControls, runs
   // the delegated agent's input.
   const voiceOf = (row: Json): "person" | "delegated" | "input" | "app" => target === threadId && appSentTurns.includes(text(row.turnId)) ? "app"
     : !personal ? "delegated" : inputHasText(row.native?.content) ? "person" : "input";
-  const liveCount = model.turns.filter(turn => turnLive(turn, observationEnded)).length;
-  const waitingAt = (turnId: string) => target === threadId && (waitingTurns.includes(turnId) || (waiting && liveCount === 1));
+  // A request marks a turn only where it names that turn; one that names none is said at the conversation's level.
+  const waitingAt = (turnId: string) => target === threadId && waitingTurns.includes(turnId);
   return <div ref={container} className="v4-transcript" aria-label="Native activity">
     {descendants.length > 0 && <p className="v4-transcript-scope"><label>Show <select value={target} onChange={e => {
       revision.current++; setPending(null);
@@ -786,6 +788,7 @@ export function NativeActivityView({ view, threadId, offers, offerControls, runs
         {ownRuns.filter((run: Json) => run.lifecycle?.end && run.endedAfterTurn === turn.turnId).map((run: Json) => <RunEndMarker key={text(run.reference)} run={run} />)}
       </section>;
     })}
+    {waiting && target === threadId && <p className="chat-runtime-status" data-turn-phase="waiting" role="status">A request in this conversation is waiting for you.</p>}
     <DelegationLine delegation={target === threadId ? delegation : null} descendants={model.children.length} />
     {model.children.length > 0 && <section className="v4-descendants" aria-label="Descendants"><h4>Descendants</h4><p>A completed turn here says nothing about these descendants.</p><ul>{model.children.map((c: Json, i: number) => <li key={text(c?.threadId) || `child-${i}`}><RowBoundary value={c} label="descendant"><Child child={c} trialLabel={childLabel(c?.threadId)} /></RowBoundary></li>)}</ul></section>}
     <details className="v4-transcript-source"><summary>Activity source and limits</summary><p>This view shows what the App received live in this generation and what it has read from Codex history; earlier generations' observations remain under the native JSON in Host diagnostics.</p><p>Codex types {view?.typesPin ? <SuppliedId value={view.typesPin} label="Types:" name="The pinned Codex types, as recorded; the App does not vouch for its words" /> : "not reported"} · supplier standing {view?.supplierStanding === undefined || view?.supplierStanding === null ? "not established" : <AgentText value={text(view.supplierStanding)} source="codex" label="Standing:" name="The supplier's standing, as recorded; the App does not vouch for its words" />}.</p>{list(view?.limits).length > 0 && <AgentText block value={list(view?.limits).map(text).join("\n")} source="codex" label="Limits:" name="The activity view's limits, as recorded; the App does not vouch for its words" />}</details>

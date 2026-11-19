@@ -176,7 +176,7 @@ test('the transcript draws "You" and the role the App established, folds the act
   assert.match(html, /<article class="chat-bubble chat-bubble--assistant" data-role="assistant" aria-label="HELP_HUMAN reply"><p class="chat-speaker">HELP_HUMAN<\/p>/);
   // Ended: the fold says "Turn details" and how many items it holds; the turn's error and failed item are outside it.
   const fold = html.match(/<details class="turn-activity">[\s\S]*$/)[0];
-  assert.match(fold, /^<details class="turn-activity"><summary><span class="turn-activity-summary">Turn details · 2 actions<\/span><\/summary>/);
+  assert.match(fold, /^<details class="turn-activity"><summary><span class="turn-activity-summary">Turn details · failed · 2 actions<\/span><\/summary>/);
   const beforeFold = html.slice(0, html.indexOf('<details class="turn-activity">'));
   assert.match(beforeFold, /<p class="chat-turn-status" role="status" data-turn-outcome="failed">Turn failed<\/p>/);
   assert.match(beforeFold, /<p role="alert">Turn error: ⟦Codex sent: Codex ended the turn with an error⟧<\/p>/);
@@ -191,10 +191,15 @@ test('a running turn says what it is doing, and "waiting" only while a request o
   assert.match(running, /data-turn-live="true"/);
   assert.match(running, /<details class="turn-activity turn-activity--live"><summary><span class="turn-activity-summary">Working · 2 actions<\/span>/);
   assert.doesNotMatch(running, /Waiting for you|chat-turn-status/, 'no wait and no end claimed');
-  assert.match(transcript(view('inProgress'), {waiting: true}), /<p class="chat-runtime-status" data-turn-phase="waiting" role="status">Waiting for you<\/p>/);
+  // A request that names the turn marks it; one that names no turn marks none, and the conversation says a request waits.
+  assert.match(transcript(view('inProgress'), {waitingTurns: ['turn-1']}), /<p class="chat-runtime-status" data-turn-phase="waiting" role="status">Waiting for you<\/p>/);
+  const unplaced = transcript(view('inProgress'), {waiting: true});
+  assert.doesNotMatch(unplaced, /Waiting for you/, 'no turn is marked for a request whose turn is unknown');
+  assert.match(unplaced, /<p class="chat-runtime-status" data-turn-phase="waiting" role="status">A request in this conversation is waiting for you\.<\/p>/);
   // A completed turn claims no end beyond what the host status says: no status line, the fold says Turn details.
   const done = transcript(view('completed'));
   assert.doesNotMatch(done, /data-turn-live|chat-turn-status|Waiting for you|Working/);
+  assert.match(done, /<span class="turn-activity-summary">Turn details · completed · 2 actions<\/span>/, 'its observed outcome is on the visible details line');
   // Once the App stops receiving from that Codex process, an in-progress turn is not drawn as running.
   const ended = transcript({...view('inProgress'), observationEnded: true});
   assert.doesNotMatch(ended, /data-turn-live/);
@@ -405,7 +410,7 @@ test('the first message is sent only while the press is still current: start con
     await ui.type('Hello'); await ui.press();
     await ui.answer(0, opened(g2));
     assert.deepEqual(ui.sends, []);
-    assert.ok(ui.alerts().includes('The App could not confirm that a new conversation started. If it did start, it is listed on the left. Your message was not sent; your draft stays here.'));
+    assert.ok(ui.alerts().includes('The App could not confirm that a new conversation started. Look for it in the list on the left; it may not be there. Your message was not sent; your draft stays here.'));
   });
 });
 
@@ -462,7 +467,7 @@ test('a definite refusal says nothing started; any other rejection says only wha
     await ui.press();
     assert.equal(ui.starts.length, 2, 'a second start is the person\'s retry, not held');
     await ui.answer(1, {notConfirmed: true, reason: 'unknown-words'});
-    assert.ok(ui.alerts().includes('The App could not confirm that a new conversation started: Reported: unknown-words If it did start, it is listed on the left. Your message was not sent; your draft stays here.'));
+    assert.ok(ui.alerts().includes('The App could not confirm that a new conversation started: Reported: unknown-words Look for it in the list on the left; it may not be there. Your message was not sent; your draft stays here.'));
     assert.deepEqual(ui.sends, []);
   });
 });
@@ -564,6 +569,83 @@ test('with attachments selected and their panel closed, the composer says Send s
   });
 });
 
+test('in a new chat the closed attachment hint points at no action unavailable there', async () => {
+  await mounted(host({attachmentSelections: {...host().attachmentSelections, selections: [{selection: {selectionRef: 'sel-1'}}]}}), async ({container}) => {
+    const note = container.querySelectorAll(n => n.getAttribute('aria-label') === 'Selected attachments')[0];
+    assert.equal(note?.textContent, 'Your first message is sent without the selected attachments.');
+    assert.doesNotMatch(container.textContent, /use “Send text and ordered attachments”/);
+  }, {threadKey: '', startNew: startSettings({start: async () => null})});
+});
+
+test('"Working in" shows the conversation\'s own reported folder, marked, whenever the row reports one, with or without an App project', async () => {
+  const folderBox = line => line.querySelectorAll(n => n.getAttribute('aria-label') === 'The folder Codex reports for this conversation, not the App\'s words')[0];
+  await mounted(host({currentAppProjectContext: null, attachmentSelections: null, threads: [{...host().threads[0], cwd: '/invented/own-folder'}]}), async ({container}) => {
+    const line = settingsLine(container);
+    assert.ok(folderBox(line), 'the row\'s folder, marked');
+    assert.match(folderBox(line).textContent, /\/invented\/own-folder/);
+    assert.doesNotMatch(line.textContent, /project folder not established/);
+  });
+  await mounted(host({threads: [{...host().threads[0], cwd: '/invented/own-folder'}]}), async ({container}) => {
+    assert.match(settingsLine(container).textContent, /^Working inCodex reports another folder: /);
+    assert.ok(folderBox(settingsLine(container)));
+  });
+});
+
+test('the mode shown is the mode Send uses: a Plan choice the current reading no longer offers is shown as not available, with the reason', async () => {
+  const container = document.createElement('div'); document.body.appendChild(container); const root = createRoot(container);
+  const sends = [];
+  const draw = h => React.createElement(ConversationPanel, {host: h, threadKey: key('T'), setThreadKey: () => {}, answer: noop, runAct: noop, steer: noop, submitAttachments: noop, interrupt: noop, checkPlanMode: noop, codexBusy: false,
+    send: async (...args) => { sends.push(args); return {result: {}}; }});
+  try {
+    await React.act(async () => root.render(draw(host({planMode: {state: 'offered'}}))));
+    const plan = container.querySelectorAll(n => n.localName === 'input' && props(n).type === 'radio' && n.parentNode.textContent.includes('Plan (experimental)'))[0];
+    await React.act(async () => props(plan).onChange());
+    assert.equal(settingButton(container, 'Mode').textContent, 'Plan');
+    // The capability reading changes: Plan is no longer offered.
+    await React.act(async () => root.render(draw(host({planMode: {state: 'not-offered', reason: 'invented-reason'}}))));
+    assert.equal(settingButton(container, 'Mode').textContent, 'Plan not available');
+    assert.equal(props(settingButton(container, 'Mode'))['aria-label'], 'Mode: Plan not available');
+    const panel = container.querySelectorAll(n => n.getAttribute('aria-label') === 'Mode' && n.getAttribute('role') === 'dialog')[0];
+    assert.match(panel.textContent, /not offered — invented-reason/);
+    assert.match(panel.textContent, /Your choice of Plan is not sent: plan mode is not offered now\. Send uses the mode shown\./);
+    await React.act(async () => props(chatInput(container)).onChange({target: {value: 'Hello'}}));
+    await React.act(async () => { await props(sendButton(container)).onClick(); });
+    assert.equal(sends.length, 1);
+    assert.equal(sends[0][3], undefined, 'Send sends no mode, as the line says');
+  } finally { await React.act(() => root.unmount()); document.body.removeChild(container); }
+});
+
+test('a mode chosen in a new chat belongs to that new chat only, and the availability read is not issued before a conversation exists', async () => {
+  // No conversation chosen and plan mode not checked: no read is offered (the Conversation view issued it only for a
+  // conversation chosen).
+  const checks = [];
+  await mounted(host(), async ({container}) => {
+    assert.ok(!nodes(container, 'button').some(b => b.textContent === 'Check plan mode availability'), 'not offered in a new chat');
+  }, {threadKey: '', startNew: startSettings({start: async () => null}), checkPlanMode: async g => { checks.push(g); }});
+  await mounted(host(), async ({container}) => {
+    const check = nodes(container, 'button').find(b => b.textContent === 'Check plan mode availability');
+    assert.ok(check, 'offered for a conversation chosen');
+    await React.act(async () => props(check).onClick());
+    assert.deepEqual(checks, [g], 'for its own generation');
+  }, {checkPlanMode: async gen => { checks.push(gen); }});
+  // Plan chosen in a new chat: leaving it and coming back to a new chat begins a new one, without that choice.
+  await newChatPanel(async ui => {
+    const planRadio = () => ui.container.querySelectorAll(n => n.localName === 'input' && props(n).type === 'radio' && n.parentNode.textContent.includes('Plan (experimental)'))[0];
+    await React.act(async () => props(planRadio()).onChange());
+    assert.equal(settingButton(ui.container, 'Mode').textContent, 'Plan');
+    await ui.render({threadKey: key('T')});
+    assert.equal(settingButton(ui.container, 'Mode').textContent, 'Chat', 'not the chosen conversation\'s');
+    await ui.render({threadKey: ''});
+    assert.equal(settingButton(ui.container, 'Mode').textContent, 'Chat', 'not a later new chat\'s');
+    // Chosen again and sent with the first message: the next new chat begins without it.
+    await React.act(async () => props(planRadio()).onChange());
+    await ui.type('Hello'); await ui.press();
+    await ui.answer(0, opened());
+    assert.deepEqual(ui.sends.map(s => s.args[3]), ['plan'], 'the first message carried the new chat\'s mode');
+    assert.equal(settingButton(ui.container, 'Mode').textContent, 'Chat', 'the next new chat begins without it');
+  }, {h: host({planMode: {state: 'offered'}})});
+});
+
 // ---- Landing and reading ----
 test('"Working in" names the App\'s folder only where the conversation\'s row reports that folder', async () => {
   await mounted(host({threads: [{...host().threads[0], cwd: '/somewhere/else'}]}), async ({container}) => {
@@ -590,13 +672,15 @@ test('the model help says where the mode is chosen', async () => {
   });
 });
 
-test('"Waiting for you" marks only the turn a waiting request names, or the one live turn when the request names none', () => {
+test('"Waiting for you" marks only the turn a waiting request names; a request that names none marks no turn and is said at the conversation\'s level', () => {
   const two = {...view('inProgress'), items: [...items, row('turn-2', 7, {id: 'a3', type: 'agentMessage', text: 'Second'})],
     turns: [{id: 'turn-1', status: 'inProgress', startedAt: 1, items: []}, {id: 'turn-2', status: 'inProgress', startedAt: 2, items: []}], turnRecords: [{threadId: 'T', turnId: 'turn-1'}, {threadId: 'T', turnId: 'turn-2'}]};
   const marked = html => [...html.matchAll(/aria-label="Conversation turn (\d)"[\s\S]*?<\/section>/g)].filter(m => m[0].includes('Waiting for you')).map(m => m[1]);
   assert.deepEqual(marked(transcript(two, {waitingTurns: ['turn-2']})), ['2'], 'only the turn the request names');
   assert.deepEqual(marked(transcript(two, {waiting: true})), [], 'a request naming no turn marks none of two live turns');
-  assert.deepEqual(marked(transcript(view('inProgress'), {waiting: true})), ['1'], 'a request naming no turn marks the one live turn');
+  const one = transcript(view('inProgress'), {waiting: true});
+  assert.deepEqual(marked(one), [], 'a request naming no turn marks not even the one live turn: its association is unknown');
+  assert.match(one, /A request in this conversation is waiting for you\./, 'the conversation says a request waits');
 });
 
 test('the transcript follows the latest while the person is at or near its end, and stays where they scrolled to', async () => {

@@ -146,8 +146,8 @@ async function ordinaryStartCase({initialThread = false, startGeneration = g, ou
       // A definite refusal says nothing started, with the host's reason boxed beside the App's words; anything else
       // says only what is established.
       if (outcome === 'refused') assert.match(said, /^The conversation was not started: Reported: The selected Codex home changed since you chose it .*Your draft stays here; nothing was sent\.$/);
-      else if (outcome === 'failed') assert.match(said, /^The App could not confirm that a new conversation started: Reported: Native start remains "pending" \(write "written"\); no automatic retry If it did start, it is listed on the left\. Your message was not sent; your draft stays here\.$/);
-      else assert.equal(said, 'The App could not confirm that a new conversation started. If it did start, it is listed on the left. Your message was not sent; your draft stays here.');
+      else if (outcome === 'failed') assert.match(said, /^The App could not confirm that a new conversation started: Reported: Native start remains "pending" \(write "written"\); no automatic retry Look for it in the list on the left; it may not be there\. Your message was not sent; your draft stays here\.$/);
+      else assert.equal(said, 'The App could not confirm that a new conversation started. Look for it in the list on the left; it may not be there. Your message was not sent; your draft stays here.');
       assert.doesNotMatch(container.textContent, outcome === 'refused' ? /could not confirm/ : /was not started/);
     }
   } finally {
