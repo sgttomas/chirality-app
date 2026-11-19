@@ -1222,7 +1222,7 @@ test('a delegated agent\'s question is not listed: only a top-level conversation
   // A top-level conversation of another generation of the status is not listed either.
   const stale = askedView(emptySources(withAsked({read:['T1', 'T2'], waiting:[askedRow('T2')]}, h => { h.threads = [thread('T1'), {...thread('T2'), generation:other}]; })));
   assert.deepEqual(stale.shown.observed, []);
-  assert.match(child.html, /in a top-level conversation of the home in use that the App has read since that Codex started \(a question in a delegated agent&#x27;s conversation is not listed\)/);
+  assert.match(child.html, /in a conversation of the home in use that the App has read since that Codex started \(a question in a delegated agent&#x27;s conversation is not listed\)/);
 });
 
 test('a row whose questions the host refused to show is still listed: a question was asked', () => {
