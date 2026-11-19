@@ -2,7 +2,7 @@ import { PermissionLevel } from "./PermissionLevel";
 import { AgentText, ConversationChoices, idWords, safeName, wordOf } from "./AgentText";
 import { nativePathText, threadChoices } from "./presentation";
 import { hostRequests, requestThread } from "./RequestCards";
-import { errorWords } from "./NativeActivity";
+import { activityModel, errorWords } from "./NativeActivity";
 import { chatWorkflow, workflowAssurance, workflowContext } from "./workflowSelection";
 import { WorkflowTextControl, useWorkflowTexts } from "./WorkflowText";
 import { ProjectFolderSummary, appProjectFolder } from "./WorkflowContext";
@@ -175,6 +175,120 @@ export function runReading(run: Json, host: Json): RunReading {
   return { tone: "idle", title: "Ready to start", detail: "The run is prepared and has not been sent. Start it when your inputs are ready." };
 }
 
+/**
+ * What the App holds about the agents a conversation delegated work to (the host's `nativeView.descendants`, the
+ * whole subtree under the conversation), each read on its own:
+ *   - active: Codex's status row for that agent's own conversation (`threads`, this Codex session, observation not
+ *     ended) is "active"; or, with no such row, the delegating item's last report of it
+ *     (`lastObservedStatus.status` from `collabAgentToolCall.agentsStates`, observation not ended) is "running" or
+ *     "pendingInit", which is what the host itself counts as an observed active child (runtime_session.rs);
+ *   - idle: its own status row is "idle", and no delegating item's report says it is running or starting;
+ *   - unreadable: anything else (no row and no running report, a row that is neither active nor idle, a row and a
+ *     report that disagree, an observation that ended).
+ * `viewReadable` is false where the App holds no native view of this Codex session to read descendants from: then it
+ * cannot tell whether the conversation delegated anything.
+ */
+export type DelegatedReading = { viewReadable: boolean; active: number; idle: number; unreadable: number };
+export function delegatedReading(conversation: Json, host: Json): DelegatedReading {
+  const view = host?.nativeView;
+  if (!view || !same(view.generation, host?.generation) || host?.nativeViewObservationEnded === true || view.observationEnded === true)
+    return { viewReadable: false, active: 0, idle: 0, unreadable: 0 };
+  const reading = { viewReadable: true, active: 0, idle: 0, unreadable: 0 };
+  for (const child of activityModel(view, text(conversation)).subtree) {
+    const row = list(host?.threads).find((t: Json) => t?.threadId === child?.threadId && same(t?.generation, host?.generation) && t?.statusObservationEnded !== true);
+    const reported = child?.lastObservedStatus;
+    const reportedStatus = reported && typeof reported === "object" ? reported.status : reported;
+    const reportedRunning = child?.observationEnded !== true && (reportedStatus === "running" || reportedStatus === "pendingInit");
+    if (row?.status?.type === "active" || (!row && reportedRunning)) reading.active += 1;
+    else if (row?.status?.type === "idle" && !reportedRunning) reading.idle += 1;
+    else reading.unreadable += 1;
+  }
+  return reading;
+}
+
+/** The actions a run's state offers in the Run tab, each the present guide's own act or navigation. */
+export type RunWordAction = "answer" | "show" | "reply" | "end" | "end-completed";
+/** The mark beside a state's word: one shape for each, so the state never rests on colour alone. */
+export type RunMark = "you" | "move" | "work" | "said" | "ended" | "quiet" | "unknown" | "failed";
+/** A run's state in a word, one short sentence, and what it offers. */
+export type RunWord = { word: string; sentence: string; mark: RunMark; actions: RunWordAction[] };
+/** Said where a conversation has several runs and the App cannot tell which is latest. */
+export const ORDER_UNKNOWN_WORD: RunWord = { word: "Order unknown", sentence: "This conversation has several runs, and the App can't tell which is the latest. Each is under Details.", mark: "unknown", actions: [] };
+
+/**
+ * The Run tab's and the status strip's shorter reading of a run: over exactly the conditions `runReading` decides,
+ * in the same order, never saying more than its branch establishes. `finishedOffer` is the host's finished offer for
+ * this run, as the guide finds it. Where a run is open in this Codex session and Codex reports its conversation idle,
+ * the agents it delegated to are read too (delegatedReading), since an idle conversation says nothing of them.
+ */
+export function runWord(run: Json, host: Json, finishedOffer?: Json): RunWord {
+  const lifecycle = text(run?.lifecycle?.state);
+  const status = run?.status ?? {};
+  if (starts(lifecycle, "ended")) {
+    const cause = text(run.lifecycle?.end?.cause);
+    if (cause === "completed") return { word: "Ended", sentence: "You ended it as completed, on the agent's report.", mark: "ended", actions: [] };
+    if (cause === "ended by the person") return { word: "Ended", sentence: "You ended it.", mark: "ended", actions: [] };
+    if (starts(cause, "ended to start ")) return { word: "Ended", sentence: "It ended so that another workflow could start.", mark: "ended", actions: [] };
+    return { word: "Ended", sentence: "The run ended. Its recorded cause is under Details.", mark: "ended", actions: [] };
+  }
+  if (starts(lifecycle, "start not confirmed")) {
+    if (startRefused(run)) return { word: "Start refused", sentence: "Codex refused the starting message, so this workflow did not run.", mark: "failed", actions: [] };
+    return { word: "Start unknown", sentence: "The App can't tell whether Codex received the starting message. It may have run, and the App will not resend it. Read the conversation first.", mark: "unknown", actions: ["show"] };
+  }
+  if (starts(lifecycle, "open")) {
+    // As runReading: a run recorded open in an earlier Codex session is never read against this session's activity.
+    if (!same(run?.generation, host?.generation) || run?.home !== host?.generation?.home)
+      return { word: "Earlier session", sentence: "Open in a Codex session that isn't the current one, so the App can't see what it is doing. Find its conversation in History.", mark: "unknown", actions: [] };
+    const offered: RunWordAction[] = finishedOffer ? ["end-completed", "end"] : ["end"];
+    const waiting = hostRequests(host).filter((request: Json) => requestThread(request) === run.conversation && request.state === "outstanding" && (request.generation === undefined || same(request.generation, run.generation))).length;
+    if (waiting > 0) return { word: "Needs answer", sentence: waiting === 1 ? "Codex is asking a question or approval in the conversation." : `Codex is asking ${waiting} questions or approvals in the conversation.`, mark: "you", actions: ["answer", ...offered] };
+    const thread = list(host?.threads).find((row: Json) => row.threadId === run.conversation && same(row.generation, host?.generation));
+    if (host?.generationClosed === true || thread?.statusObservationEnded === true)
+      return { word: "Not receiving", sentence: "The App is no longer receiving from Codex for this run, so what it was doing is not known.", mark: "unknown", actions: ["show", ...offered] };
+    if (thread?.status?.type === "active") {
+      const flags = list(thread.status.activeFlags);
+      if (flags.includes("waitingOnApproval") || flags.includes("waitingOnUserInput"))
+        return { word: "Waiting", sentence: "Codex reports it is waiting for an approval or your answer. The request shows in the conversation once the App receives it.", mark: "you", actions: ["show", ...offered] };
+      return { word: "Working", sentence: "Codex reports this conversation active.", mark: "work", actions: ["show", ...offered] };
+    }
+    if (thread?.status?.type === "systemError") return { word: "Error", sentence: "Codex reported a system error. The run is still open; read the conversation first.", mark: "failed", actions: ["show", ...offered] };
+    if (thread?.status?.type === "idle") {
+      const delegated = delegatedReading(run.conversation, host);
+      if (delegated.active > 0) return { word: "Working", sentence: "The agent's turn has ended, and an agent it delegated work to is reported active.", mark: "work", actions: ["show", ...offered] };
+      const unseen = !delegated.viewReadable || delegated.unreadable > 0;
+      if (finishedOffer) return { word: "Agent says finished", sentence: `That is the agent's word. Ending the run is yours.${unseen ? " The App can't see whether agents it delegated to are still working." : ""}`, mark: "said", actions: offered };
+      if (unseen) return { word: "Turn ended", sentence: delegated.viewReadable ? "The agent's turn has ended. The App can't see whether the agents it delegated to are still working." : "The agent's turn has ended. The App can't see whether it delegated work to other agents.", mark: "unknown", actions: ["reply", ...offered] };
+      return { word: "Your move", sentence: "The agent's turn has ended. The run is open.", mark: "move", actions: ["reply", ...offered] };
+    }
+    return { word: "State unknown", sentence: "The App can't tell what Codex is doing in this conversation. Read it before deciding what to do.", mark: "unknown", actions: ["show", ...offered] };
+  }
+  if (run?.source) return { word: "Starting", sentence: "The App has issued the starting message and is waiting for Codex's reply.", mark: "work", actions: [] };
+  if (status.sent === false && status.limit) return { word: "Not started", sentence: `${NOT_SENT[text(status.state)] ? "Nothing was sent." : "The App reports this run was not sent."} Details say why.`, mark: "failed", actions: [] };
+  return { word: "Not started", sentence: "The run is prepared. Nothing has been sent.", mark: "quiet", actions: [] };
+}
+
+/**
+ * The run of one conversation, as the Run guide chooses it: this conversation's runs in the exact current Codex
+ * session and home, the latest by the host's `preparationOrder` (or the only one), none where several runs' order is
+ * unknown; the host's finished offer for the latest open run; and its state in a word. One function, so the Run tab
+ * and the status strip never disagree.
+ */
+export function conversationRun(data: Json, host: Json, thread: string) {
+  const runs = thread ? list(data?.runs).filter((run: Json) => run.conversation === thread && run.home === host?.generation?.home && same(run.generation, host?.generation)) : [];
+  const order = orderRuns(runs);
+  const latest: Json = order.unordered.length === 0 ? order.ordered[0] : runs.length === 1 ? runs[0] : undefined;
+  const orderUnknown = !latest && runs.length > 1;
+  const finishedOffer: Json = latest && starts(latest.lifecycle?.state, "open") ? list(data?.offers).find((offer: Json) => offer?.finished?.run === latest.reference) : undefined;
+  const word: RunWord | null = latest ? runWord(latest, host, finishedOffer) : orderUnknown ? ORDER_UNKNOWN_WORD : null;
+  return { runs, latest, orderUnknown, finishedOffer, word };
+}
+/** What the status strip names for a conversation's run: the workflow's name and the Run tab's word; null with no run. */
+export function stripRun(data: Json, host: Json, thread: string): { name: string; word: string; mark: RunMark } | null {
+  const { latest, word } = conversationRun(data, host, thread);
+  if (!word) return null;
+  return { name: latest ? text(latest.workflow?.name) || "Workflow run" : "Workflow runs", word: word.word, mark: word.mark };
+}
+
 /** One turn's latest error notice, as the Run guide says it: attributed to its turn, with what the App holds of that turn. */
 export type HeldTurnNotice = { turnId: string; words: string; retry: string; count: number; turnStatus: string | null };
 
@@ -246,7 +360,7 @@ const INPUT_KIND: Record<string, string> = { host_read: "read by Codex from the 
  * selection, registration or filesystem write.
  */
 /** One run under Results. Navigation only for a run of the exact current source; others are read only. */
-function RunResult({ run, host, loaded, showConversation }: { run: Json; host: Json; loaded: boolean; showConversation?: (threadId: string, target?: string) => void }) {
+export function RunResult({ run, host, loaded, showConversation }: { run: Json; host: Json; loaded: boolean; showConversation?: (threadId: string, target?: string) => void }) {
   const reading = runReading(run, host);
   const outputs = declaredRows(list(run?.compatibility).find((c: Json) => c?.preparation?.declaration)?.preparation?.declaration, "returned_outputs");
   return <li aria-label={`Run ${idWords(run.reference)}`}>

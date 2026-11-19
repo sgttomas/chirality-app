@@ -45,7 +45,8 @@ import { readingAfterWrite, readingSentence } from "./readingSentences";
 import { REFRESH_FAILED, commandThenRefresh, observationLine, observationText, refreshAfterAction, withRefreshFailure } from "./statusRefresh";
 import { FirstUseSetup } from "./FirstUse";
 import { AccountStatus, DIDNT_SAY, accountReadError, accountReadRef, accountReading, reportedPlan, signInCompletion, type ReadAccountStatus } from "./AccountStatus";
-import { RunWorkflowGuide, registeredRevisionAnchor, runEvidenceAnchor } from "./RunJourney";
+import { RunWorkflowGuide, registeredRevisionAnchor, runEvidenceAnchor, stripRun } from "./RunJourney";
+import { RunTab } from "./RunTab";
 import { WorkflowLibrary } from "./WorkflowLibrary";
 import { PermissionLevel, PermissionLevelActions, levelOwner } from "./PermissionLevel";
 import { MakeWorkflowGuide } from "./MakeJourney";
@@ -1135,6 +1136,9 @@ export function WorkflowRootPanel({ viewStale = false, readFailure = null, data,
     : !selected ? "Inspect bundled content or a development copy, or choose content for the Workflow chat."
     : !name.trim() ? "Enter a name for your new draft. The App will check the exact name and destination."
     : "Ready to create a draft from the displayed content in the opened library. This does not register or run it.";
+  // The conversation open in the centre, where it is loaded in the current Codex session.
+  const openThread: string = operationalReference && JSON.stringify(operationalReference.generation) === JSON.stringify(host?.generation)
+    && conversations.some((row: Json) => row.threadId === operationalReference.threadId) ? operationalReference.threadId : "";
   const guideOutcome = outcome ? { command: outcome.relation.command, message: outcome.message, failed: outcome.failed === true, settled: outcome.settled === true } : null;
   const unsavedRecords: {reference:string;limit:string}[] = [];
   for (const run of data?.runs??[]) {
@@ -1150,6 +1154,10 @@ export function WorkflowRootPanel({ viewStale = false, readFailure = null, data,
   return <section aria-label="Workflow studio controls" aria-busy={busy}>
     {busy && <p role="status" aria-live="polite">{progress} No automatic retry.</p>}
     {unsavedRecords.length>0&&<aside aria-label="Workflow records not saved">{unsavedRecords.map((record,index)=><p role="alert" key={`${record.reference}:${index}`}>{record.reference}: {record.limit}</p>)}</aside>}
+    {/* The Run tab reads the run of the conversation open in the centre (operationalReference), through the same press and state. */}
+    {view !== undefined && <div id="view-current-run" data-workspace-view="current-run" hidden={view !== "current-run"}>
+    <RunTab data={data} host={host} thread={openThread} act={action} busy={busy} outcome={guideOutcome} showConversation={showConversation} viewStale={viewStale} readFailure={readFailure}/>
+    </div>}
     <div id="view-run" data-workspace-view="run" hidden={view !== undefined && view !== "run"}>
     <RunWorkflowGuide data={data} host={host} thread={thread} chooseThread={chooseWorkflowChat} act={action} busy={busy} text={text} setText={setText}
       outcome={guideOutcome} showConversation={showConversation} viewStale={viewStale} readFailure={readFailure}/>
@@ -1162,7 +1170,7 @@ export function WorkflowRootPanel({ viewStale = false, readFailure = null, data,
     {offerComposer && <MakeWorkflowGuide data={data} host={host} act={action} busy={busy} outcome={guideOutcome} viewStale={viewStale} readFailure={readFailure} offerComposer={offerComposer} openPreparedMessage={openPreparedMessage} showConversation={showConversation} findInHistory={findInHistory}/>}
     </div>
     {/* The detailed studio follows the guides, collapsed, in both workflow views. */}
-    <details id="workflow-studio" className="workspace-disclosure workspace-advanced" data-workspace-view="make" open={view === undefined ? true : undefined} hidden={view === "workflows"}>
+    <details id="workflow-studio" className="workspace-disclosure workspace-advanced" data-workspace-view="make" open={view === undefined ? true : undefined} hidden={view === "workflows" || view === "current-run"}>
     <summary><strong>Advanced: workflow studio</strong><span>Every selection, library, draft, trial, review, registration and run control in detail</span></summary>
     <div className="workspace-disclosure-content">
     <h2>Workflow selection and native registration</h2>
@@ -2938,7 +2946,8 @@ export function App() {
             <button type="button" aria-label="New chat" onClick={newChat}>＋</button>
             <div className="woven-collapsed-settings"><AccountRow open={openSettings}/></div>
           </div>}
-          strip={<ActivityStrip phase={statusCurrent ? turnPhase(shownRow, !!shownRow && waitingThreads.has(shownRow.threadId)) : null}/>}
+          strip={<ActivityStrip phase={statusCurrent ? turnPhase(shownRow, !!shownRow && waitingThreads.has(shownRow.threadId)) : null}
+            run={statusCurrent && !shownBeforePress(hostReads) && selectedThread ? stripRun(host?.workflowRoot, host, selectedThread) : null}/>}
           centre={<div className="daily-workspace">
         <WorkspaceConnectionStatus state={host?.state} setupRequired={host?.desktopSetup?.launch?.state === "setup-required"} savedSetup={!!host?.desktopSetup?.pending} generationClosed={host?.generationClosed} startRefusal={host?.lastStartRefusal} codexHome={host?.codexHome} refusalCause={host?.startRefusalCause} build={host?.build} signIn={signInReading}
           plan={reportedPlan(host)} codexError={accountReadError(host)}
@@ -3041,7 +3050,7 @@ export function App() {
         </div>
         </div>}
           right={<div className="daily-workspace">
-        <div id="view-workflows" className="workspace-view workspace-view-narrow" hidden={rightTab !== "run" && rightTab !== "make" && rightTab !== "workflows"}>
+        <div id="view-workflows" className="workspace-view workspace-view-narrow" hidden={rightTab !== "current-run" && rightTab !== "run" && rightTab !== "make" && rightTab !== "workflows"}>
           <div className="workspace-primary-column" aria-label="Workflow studio">
             <WorkflowRootPanel viewStale={shownBeforePress(hostReads)} readFailure={hostReads.failure} findInHistory={findInHistory} view={rightTab} showConversation={showConversation} offerComposer={offerComposer} data={host?.workflowRoot} host={host} operationalReference={threadKey ? conversationFromKey(threadKey) ?? undefined : null} openFileAct={openArrivalFileAct} fileActBusy={fileActBusy} act={(command, args) => { const refusal = bringBackRefusal(command, args, currentHost.current); return refusal ? Promise.reject(Error(refusal)) : invoke<Json>(command, args); }} observeView={refresh} openPreparedMessage={item => { void openPreparedMessage(item); }}/>
         {preparedNotice && <p role="status">{preparedNotice}</p>}
