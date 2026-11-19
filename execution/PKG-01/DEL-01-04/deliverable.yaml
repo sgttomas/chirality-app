@@ -23,7 +23,9 @@ needs:
 - from: DEL-01-05
   condition: For a conversation, whether a model is selected, which, and the person's last explicit
     choice for the project are reported, and the Codex account is reported as Codex reports it
-    or as not reported.
+    or as not reported. For an agent's question to arrive as a request in an ordinary
+    conversation, the Codex of each conversation home the App offers is started with the
+    question feature on.
   gating: true
 - from: DEL-02-02
   condition: A draft is named by its location and name, with the content identity of its content,
