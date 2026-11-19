@@ -640,7 +640,7 @@
   "component": "ConversationPanel",
   "count": 1,
   "basis": "an App-owned literal vocabulary",
-  "reason": "The same control. requestStateWords (RequestCards.tsx) returns only literal sentences, one for each register state and outcome the host reports, with nothing interpolated (for a request Codex resolved, \"Resolved by Codex before you answered\"); the supplier's cause stays on the card, in cardState's own line. The guard does not follow an imported function's return."
+  "reason": "The same control. requestStateWords (RequestCards.tsx) returns only literal sentences, one for each register state and outcome the host reports, with nothing interpolated (for a request Codex resolved, \"Resolved by Codex before you answered\"); the supplier's cause stays on the card, beside its closed state words, marked (SupplierCause). The guard does not follow an imported function's return."
  },
  {
   "file": "App.tsx",

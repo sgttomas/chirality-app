@@ -3,7 +3,11 @@
 // rejects, as an unavailable host command would, and is named in the console.
 import { states } from "./states/index.js";
 
-const name = new URLSearchParams(location.search).get("state") ?? "starting";
+const params = new URLSearchParams(location.search);
+const name = params.get("state") ?? "starting";
+// ?open=<words>: once the view is drawn, press the one button whose accessible name begins with those words (a
+// settings-line panel, for a picture of it opened).
+const open = params.get("open");
 const state = states[name];
 if (!state) throw new Error(`preview: no state "${name}"; known: ${Object.keys(states).join(", ")}`);
 const clone = value => (value === undefined ? undefined : structuredClone(value));
@@ -29,3 +33,7 @@ window.__TAURI_INTERNALS__ = {
 };
 window.__PREVIEW__ = { state: name, states: Object.keys(states), unanswered };
 await import("/src/main.tsx");
+if (open) {
+  const press = () => { const button = [...document.querySelectorAll("button")].find(b => (b.getAttribute("aria-label") ?? "").startsWith(open)); if (button) button.click(); else setTimeout(press, 100); };
+  setTimeout(press, 300);
+}

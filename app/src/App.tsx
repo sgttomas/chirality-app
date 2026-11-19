@@ -52,7 +52,7 @@ import { registeredRevisionAnchor, runEvidenceAnchor, stripRun } from "./RunJour
 import { RunTab } from "./RunTab";
 import { WorkflowLibrary } from "./WorkflowLibrary";
 import { PICK_STEPS, PickChip, conversationRuns, pickLimit, pickScope, runPickedWorkflow, type PickRunOutcome, type WorkflowPick } from "./WorkflowPick";
-import { PermissionLevel, PermissionLevelActions, PermissionLevelAsk, PermissionLevelSummary, levelInForce, levelOwner } from "./PermissionLevel";
+import { LevelChoiceShare, PermissionLevel, PermissionLevelActions, PermissionLevelAsk, PermissionLevelSummary, levelInForce, levelOwner } from "./PermissionLevel";
 import { MakeWorkflowGuide } from "./MakeJourney";
 import { acknowledgeBringBackDoubt, beginBringBack, bringBackRefusal, doubtDestination, endBringBack, noteBringBackDoubt, resetBringBackDoubts, sendKey, useBringBackDoubts, type BringBackDoubt } from "./bringBackDoubts";
 import { AccessRouteChoice, AvailableModels, ENTRY_SOURCE_WORDS, MODEL_ID_PAUSE_MS, OfferedEffortChoice, SHOWN_ROUTE, entrySourceReading, modelMatch, onlyAccessEntry, validModelPacket } from "./ModelChoice";
@@ -162,13 +162,22 @@ type PreparedComposerReveal = { sequence: number; item: PreparedMessage; isCurre
  * confirmed in the generation it was issued for); a definite refusal, nothing started (`failed`, the host's message);
  * or an outcome the App could not confirm (`notConfirmed`, with the host's message where it gave one). Null when
  * nothing was sent. */
-export type StartOutcome = { opened: string } | { failed: string } | { notConfirmed: true; reason?: string };
+export type StartOutcome = { opened: string; own?: StartIntentChange } | { failed: string } | { notConfirmed: true; reason?: string };
+/** What the person has chosen for a new conversation, counted synchronously at each change: the settings a start
+ * sends (model, provider, entry, role), the conversation chosen (each navigation, so away and back is a change), and
+ * the home (its epoch, and whether a change of home is still pending). */
+export type StartIntent = { settings: number; navigation: number; home: number; homePending: boolean };
+/** The changes a confirmed start made itself: its selection of the new conversation and its consumption of the
+ * chooser. They are not the person's. */
+export type StartIntentChange = { settings: number; navigation: number };
 /** The new conversation's own settings, which the App holds: its role and model, with their panels. `binding`
  * changes whenever the settings a start would send change (the chooser's edits, role, source and home): a Send
  * captured before such a change starts nothing. */
 export type StartSettings = { role: string; model: string; blocked: string; rolePanel: ReactNode; modelPanel: ReactNode; notice?: ReactNode; binding?: string; /** Codex reports no account: the empty conversation says to sign in, and invites no first message. */ noAccount?: boolean;
   /** Starts the conversation; with `report`, the host's result line goes to it instead of the App's response line (RunAct). */
-  start: (report?: (line: string) => void) => Promise<StartOutcome | null> };
+  start: (report?: (line: string) => void) => Promise<StartOutcome | null>;
+  /** The person's choices as they stand now, read after an await (StartIntent). */
+  intent?: () => StartIntent };
 
 // The host's refusals of a start that are made before anything is dispatched, so nothing started
 // (lib.rs start_conversation: start_source/check_start_source, runtime_session.rs:2803, 2806, 2933; access.rs:160,
@@ -334,10 +343,22 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
   // only while Codex offers plan mode. The word shown is the person's choice where they made one, else the last mode.
   const requestedMode = selected ? (host?.requestedModes ?? []).find((r: Json) => JSON.stringify(r.generation) === generationKey && r.threadId === selected.threadId) ?? null : null;
   const planOffered = host?.planMode?.state === "offered";
-  const [modeChoice, setModeChoice] = useState<{ owner: string; mode: "chat" | "plan" } | null>(null);
-  const modeChosen: "chat" | "plan" | null = modeChoice && modeChoice.owner === ordinaryOwner ? modeChoice.mode : null;
+  const [modeChoice, setModeChoiceState] = useState<{ owner: string; mode: "chat" | "plan" } | null>(null);
+  // Each choice of a mode, counted at the choice: a first message whose mode was changed after its press is not sent.
+  const modeRevision = useRef(0);
+  const setModeChoice = (choice: { owner: string; mode: "chat" | "plan" }) => { modeRevision.current++; setModeChoiceState(choice); };
+  // A mode chosen in a new chat belongs to that new chat and to nothing else: each entry into a new chat, and each first
+  // message sent from one, begins another, so a choice made before any conversation existed never reaches a later one.
+  const newChatEpoch = useRef(0);
+  const lastThreadKey = useRef(threadKey);
+  if (lastThreadKey.current !== threadKey) { if (threadKey === "") newChatEpoch.current++; lastThreadKey.current = threadKey; }
+  const modeOwner = selected ? ordinaryOwner : threadKey === "" ? `new-chat:${newChatEpoch.current}` : "conversation-not-available";
+  const modeChosen: "chat" | "plan" | null = modeChoice && modeChoice.owner === modeOwner ? modeChoice.mode : null;
   const lastPlan = requestedMode?.mode === "plan";
-  const modeShown: "chat" | "plan" = modeChosen ?? (lastPlan ? "plan" : "chat");
+  // The mode Send uses: the choice only while Codex offers plan mode (else Send sends none, and the conversation keeps
+  // the mode last requested for it). A choice the current reading no longer offers is shown as not available.
+  const modeShown: "chat" | "plan" = (planOffered ? modeChosen : null) ?? (lastPlan ? "plan" : "chat");
+  const modeUnavailable = !planOffered && modeChosen !== null && modeChosen !== (lastPlan ? "plan" : "chat");
   const sendMode: "plan" | "default" | undefined = !planOffered ? undefined : modeChosen === "plan" && !lastPlan ? "plan" : modeChosen === "chat" && lastPlan ? "default" : undefined;
   // What the last first-message press came to, when it did not send: a definite refusal (the host's reason), a start the
   // App could not confirm (the host's reason, where given), or a start whose view changed before the send.
@@ -427,7 +448,17 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
     if (!pressCurrent() || threadKeyNow.current !== "") {
       setError("Not started: that Send belonged to an earlier view, text or choice of settings for the new conversation. Check them and press Send again."); return;
     }
-    const press = { generation: host?.generation, home: host?.homeRouting?.activeModeHomeClass ?? null, revision: textRevision.current, draft: text, mode: sendMode };
+    const press = { generation: host?.generation, home: host?.homeRouting?.activeModeHomeClass ?? null, revision: textRevision.current, draft: text, mode: sendMode,
+      modeRevision: modeRevision.current, intent: startNew.intent?.() ?? null };
+    // After the last await: nothing the person chose has changed since the press. The start's own selection of the
+    // new conversation and its consumption of the chooser (`own`) are not changes.
+    const unchanged = (own: StartIntentChange | undefined) => {
+      if (textRevision.current !== press.revision || modeRevision.current !== press.modeRevision) return false;
+      if (!press.intent) return true;
+      const now = startNew.intent?.();
+      return !!now && !now.homePending && now.home === press.intent.home
+        && now.settings === press.intent.settings + (own?.settings ?? 0) && now.navigation === press.intent.navigation + (own?.navigation ?? 0);
+    };
     // What is current after the start returns, read from the view as last rendered.
     const sourceCurrent = () => {
       const now = hostNow.current;
@@ -446,10 +477,12 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
       // The native start binds the generation it was dispatched with and returns that same one: another is no success.
       if (!sameActivityGeneration(generation, press.generation) || typeof threadId !== "string" || !threadId) { holdStart(press.generation); setStartOutcome({ kind: "not-confirmed" }); return; }
       const shown = threadKeyNow.current;
-      if (!sourceCurrent() || (shown !== "" && shown !== outcome.opened) || textRevision.current !== press.revision) { setStartOutcome({ kind: "view-changed" }); return; }
+      if (!sourceCurrent() || (shown !== "" && shown !== outcome.opened) || !unchanged(outcome.own)) { setStartOutcome({ kind: "view-changed" }); return; }
       const owner = ordinaryConversationRef(generation, threadId);
       const request: OrdinaryTextRequest = { generation: { ...generation }, threadId, text: press.draft, ...(press.mode ? { mode: press.mode } : {}) };
       setBusy(press.mode ? `sending in ${press.mode} mode` : "sending");
+      // The new chat's mode went with its first message: the next new chat begins without it.
+      newChatEpoch.current++; setModeChoiceState(null);
       await dispatchOrdinary(request, () => ordinaryView.current.ready && (ordinaryView.current.owner === owner || ordinaryView.current.owner === ""), press.revision,
         { owner: "", value: "", effort: "", effortModel: "", revision: -1 }, owner, true);
     } finally { turnActionPending.current = false; setBusy(""); }
@@ -504,8 +537,8 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
   // NIR §4.1/§4.8: this conversation's request cards sit beside its activity, waiting ones first.
   const requests: Json[] = hostRequests(host).filter((request: Json) => selected && requestThread(request) === selected.threadId);
   const ordered = [...requests.filter(answerable), ...requests.filter((request: Json) => !answerable(request))];
-  // The turns a waiting request names: only those are marked "Waiting for you". A request that names no turn marks a
-  // turn only when the conversation has exactly one live turn (NativeActivityView).
+  // The turns a waiting request names: only those are marked "Waiting for you". A request that names no turn marks no
+  // turn; the conversation says a request waits (NativeActivityView).
   const requestTurn = (request: Json): string | null => typeof request?.nativeParameters?.turnId === "string" && request.nativeParameters.turnId ? request.nativeParameters.turnId : null;
   const waitingTurns = requests.filter(answerable).map(requestTurn).filter((turn): turn is string => turn !== null);
   const waitingUnplaced = requests.some(request => answerable(request) && requestTurn(request) === null);
@@ -541,6 +574,10 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
     finally { forking.current = false; setForkBusy(false); }
   };
   const handoffs: Json[] = host?.continueAs ?? [];
+  // The turns of the selected conversation the App started itself for a handoff summary (Continue as): named by each
+  // open handoff's own record of its request, in this conversation and generation; never read from a message's text.
+  const appSentTurns: string[] = selected ? handoffs.filter((handoff: Json) => handoff?.sourceThread === selected.threadId && sameActivityGeneration(handoff?.generation, selected.generation)
+    && handoff?.request?.state === "sent" && typeof handoff.request.turnId === "string" && handoff.request.turnId).map((handoff: Json) => handoff.request.turnId) : [];
   // WR TT-3a, TT-3b, TT-10: what the host pre-filled for the person to send.
   // Every send below happens only on the person's Send press.
   // A trial or bring-back command rejects with the host's message as given, so
@@ -711,7 +748,9 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
   // navigator's rule, Navigator.tsx navigatorProjects); otherwise the folder Codex reports, as its text.
   const rowFolder: string | null = typeof selected?.cwd === "string" && selected.cwd ? selected.cwd : null;
   const inAppFolder = folder !== null && rowFolder !== null && samePath(folder, rowFolder);
-  const level = levelInForce(host, selected?.threadId);
+  // A conversation chosen whose row is missing is not an empty selection: nothing of the default is shown as its level.
+  const levelMissing = !selected && threadKey !== "";
+  const level = levelInForce(host, selected?.threadId, levelMissing);
   // The settings line's panels: one open at a time; Escape or a press outside closes it.
   const [contextOpen, setContextOpen] = useState<"role" | "mode" | "level" | "model" | "effort" | null>(null);
   const [attachOpen, setAttachOpen] = useState(false);
@@ -756,7 +795,7 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
   const tools = <section id="conversation-tools-content" className="v4-conversation-tools" aria-label="Conversation tools">
     <ConversationChoices legend="Current-generation conversation" group="current-conversation" disabled={!!ownBusy} chosen={threadKey} none="No conversation chosen"
       value={threadChoices(currentThreads, (thread: Json) => JSON.stringify([thread.generation, thread.threadId]))} onChoose={chooseConversation} />
-    <div id="conversation-level"><PermissionLevel host={host} threadId={selected?.threadId}/></div>
+    <div id="conversation-level"><PermissionLevel host={host} threadId={selected?.threadId} missing={levelMissing}/></div>
     {/* The conversation's identifier and its whole title, which the navigator's entry shows only on one line, shortened. */}
     {selected && <details className="conversation-identity"><summary>Exact conversation ID and title</summary><p>Conversation ID: <code>{selected.threadId}</code></p>
       {suppliedTitle(selected) !== null ? <p><AgentText value={suppliedTitle(selected)} source="codex" label="Title, supplied by Codex:" name="The conversation's whole title as Codex supplied it, not the App's words" /></p> : <p>Codex supplies no title for this conversation.</p>}</details>}
@@ -819,7 +858,7 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
     <details><summary>Observed native turns, steering and interrupt request state</summary><RecordedData value={{ turns: host?.conversationTurns, steeringTargets: host?.steeringTargets, steeringRequests: (host?.clientRequests ?? []).filter((request: Json) => request.method === "turn/steer"), interrupts: host?.turnInterruptRequests, protocolEvidence: host?.modelTurnEvidence }} /></details>
   </section>;
 
-  return <div className="woven-primary-dialogue" data-primary-dialogue-mounted="true">
+  return <LevelChoiceShare><div className="woven-primary-dialogue" data-primary-dialogue-mounted="true">
   <aside id="conversation" className="panel panel--chat chat-panel--woven" aria-label="Conversation">
     <div className="chat-conversation-stage">
       <div className="panel-body chat-transcript" ref={transcriptNode} onScroll={readTranscriptEnd}>
@@ -830,6 +869,7 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
           {chosenUnstarted && <p className="panel-empty" role="note" aria-label="Workflow chosen, not started"><strong>{chosenUnstarted}</strong> is chosen for this conversation. No run has been started.</p>}
           {selected ? <NativeActivityView navigationRef={activityNavigationRef} key={`activity:${JSON.stringify([selected?.generation, selected?.threadId])}`} view={host?.nativeView} threadId={selected?.threadId} runs={runs} offers={offers}
             trialTurns={workflowRoot?.trialTurns} trialChildren={workflowRoot?.trialChildren} delegation={selected?.delegation} appRole={selected?.appRole} waiting={waitingUnplaced} waitingTurns={waitingTurns}
+            threadSource={selected?.threadSource} appSentTurns={appSentTurns}
             stopLabelFor={(thread, turn) => stopLabel(host?.codexStops, thread, turn, host?.stopRequests, appHome(host?.homeRouting?.activeModeHomeClass))}
             offerControls={{ generation: host?.generation, ready: host?.state === "ready", busy: offerBusy, act: offerAct }} />
             : threadKey ? <p className="panel-empty">Selected conversation is no longer available in this generation; choose a current conversation or press New chat.</p>
@@ -896,7 +936,7 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
       {startOutcome && <div className="v4-step-outcome"><p role="alert">{startOutcome.kind === "failed"
         ? <>The conversation was not started: <AgentText value={startOutcome.message} source="codex" label="Reported:" name={START_REASON_NAME} /> Your draft stays here; nothing was sent.</>
         : startOutcome.kind === "view-changed" ? "The conversation started, but the view changed before your message was sent. Nothing was sent; your draft stays here."
-        : <>The App could not confirm that a new conversation started{startOutcome.message ? <>: <AgentText value={startOutcome.message} source="codex" label="Reported:" name={START_REASON_NAME} /></> : "."} If it did start, it is listed on the left. Your message was not sent; your draft stays here.</>}</p>
+        : <>The App could not confirm that a new conversation started{startOutcome.message ? <>: <AgentText value={startOutcome.message} source="codex" label="Reported:" name={START_REASON_NAME} /></> : "."} Look for it in the list on the left; it may not be there. Your message was not sent; your draft stays here.</>}</p>
         <StepDetails line={stepLine} /></div>}
       {attachmentOutcome && <div aria-label="Attachment submission outcome">
         <p>Original {attachmentOutcome.request.expectedTurnId === null ? "Send" : "Steer"} with ordered attachments · conversation {attachmentOutcome.request.threadId} · Home {attachmentOutcome.request.generation?.home}{attachmentOutcome.request.expectedTurnId !== null && ` · expected turn ${attachmentOutcome.request.expectedTurnId}`}.</p>
@@ -912,7 +952,8 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
       {actionOutcome}
       {text && selected && textWrittenFor.current && textWrittenFor.current !== threadKey && <p role="note" aria-label="Where your text goes">Your unsent text was written while another conversation was shown. It is kept; if you send it now it goes to {conversationLabel(host, selected)}.</p>}
       {text && newChat && textWrittenFor.current && <p role="note" aria-label="Where your text goes">Your unsent text was written while another conversation was shown. It is kept; if you send it now it starts a new conversation.</p>}
-      {attachmentsSelected && !attachOpen && <p className="v4-composer-status" aria-label="Selected attachments">Send sends your text without the selected attachments. To send them, open the attachments (⊕) and use “Send text and ordered attachments”.</p>}
+      {attachmentsSelected && !attachOpen && selected && <p className="v4-composer-status" aria-label="Selected attachments">Send sends your text without the selected attachments. To send them, open the attachments (⊕) and use “Send text and ordered attachments”.</p>}
+      {attachmentsSelected && !attachOpen && newChat && <p className="v4-composer-status" aria-label="Selected attachments">Your first message is sent without the selected attachments.</p>}
       {running && !stopTarget && <p className="v4-composer-status" aria-label="Which turn Stop stops">Several turns are running here. Choose the one to stop under Conversation tools, in “Interrupt a live turn”.</p>}
       {pickDropped && !pick && <p role="status">The workflow you picked was removed: Codex or the workflow source changed. Pick it again under Workflows.</p>}
       {pickOutcome && (pickOutcome.kind === "alert" ? <div className="v4-step-outcome"><p role="alert">{pickOutcome.words}</p><StepDetails line={stepLine} /></div> : <p role="status">{pickOutcome.words}</p>)}
@@ -922,7 +963,7 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
       {!ownBusy && codexBusy && <p>Stop or Restart Codex is in progress: sending text, steering and attachments is paused; interrupting a live turn stays available.</p>}
       {error && <p role="alert">{error} No automatic retry.</p>}
       {/* Where the App asks the person to choose a level, the ask is in view here, its default preselected. */}
-      <PermissionLevelAsk host={host} threadId={selected?.threadId}/>
+      <PermissionLevelAsk host={host} threadId={selected?.threadId} missing={levelMissing}/>
     </div>
     <form className="chat-input-row" onSubmit={event => { event.preventDefault(); submit(); }}>
       {pick && <PickChip pick={pick} host={host} thread={selected?.threadId ?? ""} disabled={!!busy} remove={() => setPick?.(null)}
@@ -950,8 +991,11 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
     <div ref={contextLine} id={newChat ? "workspace-start" : undefined} className="chat-context" role="group" aria-label="Chat context">
       {/* Heard, not shown: the folder's words stay in what a screen reader reads, so the line keeps to fewer rows. */}
       <span className="visually-hidden">{newChat ? "Start in " : "Working in "}</span>
-      {selected && folder !== null && !inAppFolder
-        ? <span className="chat-folder-fixed">{rowFolder === null ? "folder not reported by Codex" : <>Codex reports another folder: <AgentText value={rowFolder} source="codex" label="Folder:" name="The folder Codex reports for this conversation, not the App's words" /></>}</span>
+      {/* The conversation's own folder as Codex reports it, marked, whenever the row reports one and it is not the App's
+          project; the App's project by name where it is that folder. */}
+      {selected && rowFolder !== null && !inAppFolder
+        ? <span className="chat-folder-fixed">{folder !== null && "Codex reports another folder: "}<AgentText value={rowFolder} source="codex" label="Folder:" name="The folder Codex reports for this conversation, not the App's words" /></span>
+        : selected && rowFolder === null && folder !== null ? <span className="chat-folder-fixed">folder not reported by Codex</span>
         : <span className="chat-folder-fixed">{!selected && !newChat ? "no conversation available" : folder !== null ? <><span aria-hidden="true">▱ </span>{folderName(folder)}</> : "project folder not established"}</span>}
       <span aria-hidden="true">·</span>
       {selected ? <span className="v4-context-fixed">{roleWord}</span>
@@ -962,14 +1006,16 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
         </span>}
       <span aria-hidden="true">·</span>
       <span className="v4-level chat-mode-selector">
-        <button type="button" aria-expanded={contextOpen === "mode"} aria-label={`Mode: ${modeShown === "plan" ? "Plan" : "Chat"}`} onClick={() => toggleContext("mode")}>{modeShown === "plan" ? "Plan" : "Chat"}</button>
+        <button type="button" aria-expanded={contextOpen === "mode"} aria-label={`Mode: ${modeUnavailable ? modeChosen === "plan" ? "Plan not available" : "Chat not available" : modeShown === "plan" ? "Plan" : "Chat"}`} onClick={() => toggleContext("mode")}>{modeUnavailable ? modeChosen === "plan" ? "Plan not available" : "Chat not available" : modeShown === "plan" ? "Plan" : "Chat"}</button>
         <div className={`v4-level-pop${contextOpen === "mode" ? " open" : ""}`} role={contextOpen === "mode" ? "dialog" : undefined} aria-label="Mode" hidden={contextOpen !== "mode"}><div className="daily-workspace v4-in-chat">
           {planOffered ? <fieldset className="v4-mode-choice"><legend>Mode for your next message</legend>
-            <label><input type="radio" name="conversation-mode" checked={modeShown === "chat"} onChange={() => setModeChoice({ owner: ordinaryOwner, mode: "chat" })} /> Chat{requestedMode?.mode === "plan" ? " (sends default mode, which leaves plan mode)" : ""}</label>
-            <label><input type="radio" name="conversation-mode" checked={modeShown === "plan"} onChange={() => setModeChoice({ owner: ordinaryOwner, mode: "plan" })} /> Plan (experimental)</label>
+            <label><input type="radio" name="conversation-mode" checked={modeShown === "chat"} onChange={() => setModeChoice({ owner: modeOwner, mode: "chat" })} /> Chat{requestedMode?.mode === "plan" ? " (sends default mode, which leaves plan mode)" : ""}</label>
+            <label><input type="radio" name="conversation-mode" checked={modeShown === "plan"} onChange={() => setModeChoice({ owner: modeOwner, mode: "plan" })} /> Plan (experimental)</label>
           </fieldset> : <p>Plan mode: {(host?.planMode?.state ?? "not-checked") === "not-checked" ? "not checked for this Codex connection" : `not offered — ${host?.planMode?.reason ?? "reason not reported"}`}.</p>}
           {planOffered && <p><small>Plan mode stays on until you leave it. Asking Codex to carry out a plan is ordinary input, not an approval.</small></p>}
-          {(host?.planMode?.state ?? "not-checked") === "not-checked" && <p><button type="button" disabled={!sourceReady || !!busy || !host?.generation} onClick={() => { setError(""); checkPlanMode(selected?.generation ?? host?.generation).catch(e => setError(String(e))); }}>Check plan mode availability</button></p>}
+          {modeUnavailable && <p>Your choice of {modeChosen === "plan" ? "Plan" : "Chat"} is not sent: plan mode is not offered now. Send uses the mode shown.</p>}
+          {/* The availability read is issued only for a conversation chosen, as the Conversation view always did. */}
+          {selected && (host?.planMode?.state ?? "not-checked") === "not-checked" && <p><button type="button" disabled={!sourceReady || !!busy} onClick={() => { setError(""); checkPlanMode(selected.generation).catch(e => setError(String(e))); }}>Check plan mode availability</button></p>}
           {requestedMode && <p>Last mode this App requested for this conversation: <b>{String(requestedMode.mode)}</b> ({String(requestedMode.standing)}).</p>}
         </div></div>
       </span>
@@ -977,7 +1023,7 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
       <span className="v4-level chat-mode-selector">
         <button type="button" aria-expanded={contextOpen === "level"} aria-label={`Access level: ${level.name}. Opens what it allows.`} onClick={() => toggleContext("level")}>{level.ask ? `${level.name} — choose to continue` : level.name}</button>
         <div className={`v4-level-pop${contextOpen === "level" ? " open" : ""}`} role={contextOpen === "level" ? "dialog" : undefined} aria-label="Access level" hidden={contextOpen !== "level"}><div className="daily-workspace v4-in-chat">
-          <PermissionLevelSummary host={host} threadId={selected?.threadId} change={() => openTools("conversation-level")} />
+          <PermissionLevelSummary host={host} threadId={selected?.threadId} missing={levelMissing} change={() => openTools("conversation-level")} />
         </div></div>
       </span>
       <span aria-hidden="true">·</span>
@@ -1008,7 +1054,7 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
     </div>
   </aside>
   {toolsHost && createPortal(tools, toolsHost)}
-  </div>;
+  </div></LevelChoiceShare>;
 }
 
 type ContinueNavigation = { isCurrent: () => boolean; observe: () => Promise<Json> };
@@ -2227,6 +2273,8 @@ export function App() {
     chooserHome.current = { mode: homeClass, epoch: chooserHome.current.epoch + 1 };
   }
   const editRevision = useRef(0);
+  // The settings a new conversation's start sends (model, provider, entry and role), counted at each change.
+  const startSettingsRevision = useRef(0);
   const providerReadSequence = useRef(0);
   const providerReadPending = useRef(false);
   const [providerReading, setProviderReading] = useState(false);
@@ -2239,6 +2287,7 @@ export function App() {
     if (Object.hasOwn(patch, "modelProvider") || Object.hasOwn(patch, "entryId")) providerRowChoice.current = null;
     expireEndpointPreview();
     editRevision.current++;
+    startSettingsRevision.current++;
     const previous = choiceRef.current.homeEpoch === chooserHome.current.epoch ? choiceRef.current : emptyConversationChoice;
     const next = { ...previous, ...patch, homeEpoch: chooserHome.current.epoch };
     choiceRef.current = next;
@@ -2951,14 +3000,16 @@ export function App() {
       // dispatched with and returns that same one, so a reply naming another is not a success.
       const opened = startedConversationKey(response) !== null && sameActivityGeneration(response?.startGeneration, source.generation) ? startedConversationKey(response) : null;
       if (opened) {
+        // The changes the start makes itself, which the first message's send does not count as the person's.
+        const own: StartIntentChange = { settings: 0, navigation: 0 };
         // The new conversation is shown only while no conversation is chosen and the source is still the one the
         // start was issued for: a newer choice by the person is kept, never replaced.
-        if (threadKeyNow.current === "" && sameActivityGeneration(currentHost.current?.generation, source.generation)) setThreadKey(opened);
+        if (threadKeyNow.current === "" && sameActivityGeneration(currentHost.current?.generation, source.generation)) { setThreadKey(opened); own.navigation++; }
         // Consume only the submitted edit, before the independent refresh.
         // Even an edit away and back is a newer choice and must survive.
-        if (editRevision.current === revision && chooserHome.current.epoch === epoch) reviseChoice(emptyConversationChoice);
+        if (editRevision.current === revision && chooserHome.current.epoch === epoch) { reviseChoice(emptyConversationChoice); own.settings++; }
         setSignedInNotice(false);
-        outcome = { opened };
+        outcome = { opened, own };
       } else outcome = { notConfirmed: true };
       said(`thread_start: ${JSON.stringify(response)}`, !opened);
     } catch (error) {
@@ -3567,10 +3618,11 @@ export function App() {
   // The empty conversation's own settings: the present start's role and model choices, in compact form; the
   // conversation is started with its first message.
   const startNew: StartSettings = { role, model, blocked: startBlocked, start: startConversation,
+    intent: () => ({ settings: startSettingsRevision.current, navigation: threadChoiceRevision.current, home: chooserHome.current.epoch, homePending: homePendingRef.current }),
     binding: JSON.stringify([editRevision.current, chooserHome.current.epoch, model, modelProvider, entryId, role, roleTouched, host?.generation ?? null, host?.homeRouting?.activeModeHomeClass ?? null]),
     noAccount: signInReading === "no-account" && !account.awaiting,
     notice: signedInNotice && !account.awaiting ? <p role="status" aria-label="Signed in">You're signed in. Choose a model to start a conversation.</p> : undefined,
-    rolePanel: <RoleChoice group="start-thread-role" roleSet={host?.roleSet} limits={host?.roleLimits} role={role} preselected={!roleTouched && !!role && role === host?.roleSet?.defaultRole} setRole={next => { expireEndpointPreview(); roleInitialized.current = true; setRoleTouched(true); setRole(next); }}/>,
+    rolePanel: <RoleChoice group="start-thread-role" roleSet={host?.roleSet} limits={host?.roleLimits} role={role} preselected={!roleTouched && !!role && role === host?.roleSet?.defaultRole} setRole={next => { expireEndpointPreview(); startSettingsRevision.current++; roleInitialized.current = true; setRoleTouched(true); setRole(next); }}/>,
     modelPanel: <div className="workspace-start-fields">
       <p><strong>How it connects</strong></p>
       <AccessRouteChoice homeClass={homeClass} modelProvider={modelProvider} entryId={entryId} model={model} disabled={startPending || homePending || providerReading || endpointBusy}
@@ -3589,7 +3641,7 @@ export function App() {
       <p aria-label="New conversation choice">{!model.trim() || !modelProvider.trim() ? "not started — no model selected" : entryCompatible ? `New conversation choice: ${model} via ${modelProvider} (${entryId})` : "Choose how this conversation connects."}</p>
       <a href="#workspace-connection">Set up access or start Codex</a>
     </div> };
-  return (<UnsentWork.Provider value={reportUnsent}><PermissionLevelActions.Provider value={{ host, change: changePermissionLevel, unavailable: homePending, stale: shownBeforePress(hostReads), readFailed: !!hostReads.failure }}>
+  return (<UnsentWork.Provider value={reportUnsent}><PermissionLevelActions.Provider value={{ host, change: changePermissionLevel, unavailable: homePending, stale: shownBeforePress(hostReads), readFailed: !!hostReads.failure }}><LevelChoiceShare>
       <main className={`shell${workspaceShown ? " shell--workspace" : ""} shell--stone`} onClick={event => {
         // "Start a new conversation" links lead to the empty conversation (New chat); every other known target is revealed.
         const link = (event.target as HTMLElement | null)?.closest?.("a[href='#workspace-start']");
@@ -3773,5 +3825,5 @@ export function App() {
           </WorkspaceDisclosure>
         </section>
         </div>}/>}
-      </main></PermissionLevelActions.Provider></UnsentWork.Provider>);
+      </main></LevelChoiceShare></PermissionLevelActions.Provider></UnsentWork.Provider>);
 }
