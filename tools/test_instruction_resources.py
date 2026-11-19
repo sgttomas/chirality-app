@@ -25,10 +25,10 @@ class PackagedInstructionTests(unittest.TestCase):
             self.assertTrue(stat.S_ISREG(meta.st_mode) and meta.st_nlink == 1, path)
         source = {name: (INSTRUCTIONS / name).read_bytes() for name in FILES}
         lines = b"".join(f"{hashlib.sha256(source[p]).hexdigest()}  {p}\n".encode() for p in sorted(source))
-        self.assertEqual(hashlib.sha256(lines).hexdigest(), "327f3b94e765e7d31346b1405539699eaa9087b36da74ddf348a1ea63f0b8eb4")
+        self.assertEqual(hashlib.sha256(lines).hexdigest(), "98b8719ce2d919afc696c800f8c86767a83c2225853732db5ea83dcf7a5d40b8")
         binding = json.loads(source["ROLE_SET_SOURCE_BINDING.json"])
         self.assertEqual(binding["basisCommit"], "89acac6a3983c605820496d0d121c73bb2297706")
-        self.assertEqual(hashlib.sha256(source["ROLE_SET_SOURCE_BINDING.json"]).hexdigest(), "62311e84459b42868439a186acd176f904a568cb944067086a0437fbca974e76")
+        self.assertEqual(hashlib.sha256(source["ROLE_SET_SOURCE_BINDING.json"]).hexdigest(), "bdee8f2d9d01aecd52bb157c59dae0b05c62798b6d856949d44b575bdcf77870")
         roles = json.loads(source["roles.json"])["roles"]
         self.assertEqual([r["name"] for r in roles], ["HELP_HUMAN", "HELPS_HUMANS", "WORKING_ITEMS", "TASK"])
         # DEL-02-04 TBD-004: for 4.0.0 a new conversation preselects HELP_HUMAN, and only it.

@@ -55,6 +55,12 @@ fn validators() -> Result<&'static HashMap<String, jsonschema::Validator>, Strin
         .map_err(Clone::clone)
 }
 pub fn negative(method: &str, answer: &Value) -> bool {
+    // A question's reply is a decline exactly when its answers map is empty, which is how Codex reads it. It is
+    // classified by that map alone: no other field of the reply, such as another request kind's `action` or
+    // `decision`, can make the register record a decline for a reply that carries answers.
+    if method == "item/tool/requestUserInput" {
+        return answer.get("answers").and_then(Value::as_object).is_some_and(|answers| answers.is_empty());
+    }
     let decision = answer.get("decision").unwrap_or(answer);
     matches!(
         decision.as_str(),
@@ -64,7 +70,6 @@ pub fn negative(method: &str, answer: &Value) -> bool {
             answer.get("action").and_then(Value::as_str),
             Some("decline" | "cancel")
         )
-        || (method == "item/tool/requestUserInput" && answer.get("answers") == Some(&json!({})))
         || (method == "item/permissions/requestApproval"
             && answer.get("permissions") == Some(&json!({})))
 }
@@ -847,6 +852,26 @@ mod tests {
         assert_eq!(wire["result"],json!({"answers":{}}));
         declined.begin_reply_write(&gen(),&json!("opaque")).unwrap().complete(true);declined.observe_completed_reply_writes();
         assert_eq!((declined.entries()[0]["state"].as_str(),declined.records()[0]["settlement"]["kind"].as_str()),(Some("declined"),Some("decline")));
+        // Fields a question's reply does not have cannot change how it is recorded: with answers it is an answer,
+        // whatever another request kind's decline words say beside them, and Codex is sent what was given.
+        for extra in [json!({"action":"decline"}),json!({"action":"cancel"}),json!({"decision":"decline"}),json!({"decision":"cancel"}),json!({"decision":{"denied":{"rejection":""}}}),json!({"permissions":{}})] {
+            let mut reply=given.clone();
+            for (k,v) in extra.as_object().unwrap() { reply[k]=v.clone(); }
+            assert!(!negative("item/tool/requestUserInput",&reply),"{reply}");
+            let mut tampered=RequestRegister::default();
+            receive(&mut tampered,"item/tool/requestUserInput",question(false));
+            match tampered.prepare(&gen(),&json!("opaque"),&reply,"person-via-interaction",Some(ACTOR)) {
+                Ok(wire)=>{
+                    assert_eq!(wire["result"],reply);
+                    tampered.begin_reply_write(&gen(),&json!("opaque")).unwrap().complete(true);tampered.observe_completed_reply_writes();
+                    assert_eq!((tampered.entries()[0]["state"].as_str(),tampered.records()[0]["settlement"]["kind"].as_str()),(Some("answered"),Some("answer")),"{reply}");
+                }
+                Err(_)=>assert_eq!(tampered.entries()[0]["state"],"outstanding","a refused reply leaves the question waiting"),
+            }
+        }
+        // And an empty answers map is a decline whatever else the reply holds.
+        assert!(negative("item/tool/requestUserInput",&json!({"answers":{},"action":"accept"})));
+        assert!(!negative("item/tool/requestUserInput",&json!({"action":"decline"})),"no answers map is not a decline; the reply is refused by its shape");
         // Left unanswered until Codex's process ends, it ends unanswered: nothing answered it.
         let mut left=RequestRegister::default();
         receive(&mut left,"item/tool/requestUserInput",question(false));

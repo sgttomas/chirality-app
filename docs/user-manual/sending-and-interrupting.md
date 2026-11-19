@@ -36,8 +36,8 @@ text-only send after a refusal.
 
 ## When the agent asks you a question
 
-An agent that needs an answer from you can put a question to you as a request,
-in any conversation and at any permission level. The question appears in the
+When Codex offers the conversation's agent the question tool, the agent can
+ask you through a request at any permission level. The question appears in the
 conversation with the choices the agent offers and room for an answer in your
 own words, and the conversation is counted among what is waiting on you until
 you answer or decline. Nothing answers for you: the turn waits, however long
@@ -50,11 +50,13 @@ Three limits apply:
   with.
 - A question that is still waiting when Codex stops (you stop or restart
   Codex, quit the App, or Codex ends unexpectedly) is not asked again
-  afterwards. The turn shows as interrupted and the question is shown as a
-  past request. Send a message to continue.
-- An agent may still ask in its message instead of through a request. The App
-  cannot tell such a message from any other: the conversation shows that the
-  turn ended, and is not marked as needing an answer.
+  afterwards. Chirality shows the question as a past request when its record
+  is available and shows the turn status Codex reports. If the turn was last
+  observed in progress and no later status is available, its outcome is
+  unknown. Send a message to continue.
+- An agent may also ask in a message. Chirality shows the message and uses
+  Codex's reported turn status. Only a request makes the question count as
+  waiting for your answer.
 
 ## Interrupt one observed live turn
 

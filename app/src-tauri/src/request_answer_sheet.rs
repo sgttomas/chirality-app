@@ -167,9 +167,6 @@ pub(crate) fn prepare(
         let count = parameters["questions"].as_array().map_or(0, Vec::len);
         let answers = answer["answers"].as_object().map_or(0, |o| o.len());
         head.push(format!("Codex asks {count} question(s). This sends answers for {answers}; omitted questions stay unanswered. Entered empty answers are sent as empty answers."));
-        if parameters["isBlocking"] == false {
-            head.push("Not blocking the turn: the agent continues while this waits.".into());
-        }
         for (i, q) in parameters["questions"]
             .as_array()
             .into_iter()

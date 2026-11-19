@@ -398,7 +398,7 @@ pub(crate) fn applied_session_settings(flags: &[String]) -> Value {
             "analytics.enabled" => "Turns off Codex's analytics traffic.",
             "features.plugins" => "Turns off Codex's plugin traffic in the local model home, which shares nothing with your Codex settings.",
             "features.api_key_model_discovery" => "Stops Codex sending the local server's key to a model catalogue address.",
-            "features.default_mode_request_user_input" => "Lets the agent put a question to you as a request in an ordinary conversation, at any permission level, so that Chirality can show it and return your answer. Without it Codex refuses that request outside plan mode and the agent can ask only in its message. Codex marks this feature as under development.",
+            "features.default_mode_request_user_input" => "Enables the question tool in Default mode when Codex makes the tool available. Chirality shows the request and returns your answer. Codex marks this feature as under development.",
             "cli_auth_credentials_store" => "Keeps the local server's key in this home's own Codex file, not your keychain or your own Codex home.",
             "model_provider" if flag == ACCOUNT_PROVIDER_FLAG => "Codex runs a conversation only on the provider it was started with, so this home's Codex is started on its built-in OpenAI provider, whatever default your Codex settings name. Your files are not changed.",
             "model_provider" => "Starts this home's Codex on the local model server's provider.",

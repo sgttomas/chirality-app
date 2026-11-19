@@ -53,7 +53,9 @@ pub(crate) fn answer_with_choice(
     // Every other request kind keeps its confirmation below.
     if preview["method"] == crate::request_answer_presentation::QUESTION {
         match presentation_choice {
-            Some("question-answers") => {}
+            // "Send answers" with no answer entered would reach Codex as an empty reply, which is a decline;
+            // only the decline button sends that.
+            Some("question-answers") if answer["answers"].as_object().is_some_and(|o| !o.is_empty()) => {}
             Some("question-decline") if answer["answers"].as_object().is_some_and(|o| o.is_empty()) => {}
             _ => return Err("The question button and answer do not agree; nothing sent".into()),
         }
