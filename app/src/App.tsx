@@ -48,7 +48,7 @@ import { REFRESH_FAILED, commandThenRefresh, observationLine, observationText, r
 import { FirstUseSetup } from "./FirstUse";
 import { AccountStatus, DIDNT_SAY, accountReadError, accountReadRef, accountReading, reportedPlan, signInCompletion, type ReadAccountStatus } from "./AccountStatus";
 import { RunWorkflowGuide, registeredRevisionAnchor, runEvidenceAnchor } from "./RunJourney";
-import { PermissionLevel, PermissionLevelActions, PermissionLevelSummary, levelInForce, levelOwner } from "./PermissionLevel";
+import { PermissionLevel, PermissionLevelActions, PermissionLevelAsk, PermissionLevelSummary, levelInForce, levelOwner } from "./PermissionLevel";
 import { MakeWorkflowGuide } from "./MakeJourney";
 import { acknowledgeBringBackDoubt, beginBringBack, bringBackRefusal, doubtDestination, endBringBack, noteBringBackDoubt, resetBringBackDoubts, sendKey, useBringBackDoubts, type BringBackDoubt } from "./bringBackDoubts";
 import { AccessRouteChoice, AvailableModels, ENTRY_SOURCE_WORDS, MODEL_ID_PAUSE_MS, OfferedEffortChoice, SHOWN_ROUTE, entrySourceReading, modelMatch, onlyAccessEntry, validModelPacket } from "./ModelChoice";
@@ -662,6 +662,8 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
       {ownBusy && <p>{ownBusy}: waiting for protocol response; no automatic retry.</p>}
       {!ownBusy && codexBusy && <p>Stop or Restart Codex is in progress: sending text, steering and attachments is paused; interrupting a live turn stays available.</p>}
       {error && <p role="alert">{error} No automatic retry.</p>}
+      {/* Where the App asks the person to choose a level, the ask is in view here, its default preselected. */}
+      <PermissionLevelAsk host={host} threadId={selected?.threadId}/>
     </div>
     <form className="chat-input-row" onSubmit={event => { event.preventDefault(); submit(); }}>
       <div className="chat-composer-line">

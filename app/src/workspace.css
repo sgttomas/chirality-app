@@ -3628,6 +3628,9 @@ div.woven-chat-section-heading--folder:hover { background:transparent; }
 .v4-level-pop .daily-workspace.v4-in-chat { font-size:12.5px; }
 .v4-level-pop p { margin:4px 0 0; }
 .v4-level-pop .v4-faint { color:var(--ink-faint); font-size:11.5px; }
+.v4-level-ask { margin:6px 0 2px; padding:10px 12px; border:1px solid var(--rule-strong, var(--rule)); border-radius:10px; background:var(--surface, #fff); font-size:13px; }
+.v4-level-ask p { margin:0 0 6px; }
+.v4-level-ask p:last-child { margin-bottom:0; }
 .v4-level-pop .v4-level-sent { margin-top:8px; padding-top:8px; border-top:1px solid var(--rule); font-size:11.5px; color:var(--ink-soft); }
 .v4-level-pop .v4-level-summary > details { font-size:11.5px; color:var(--ink-soft); }
 .v4-level-pop ul { list-style:none; margin:10px -8px 0; padding:6px 0 0; border-top:1px solid var(--rule); }

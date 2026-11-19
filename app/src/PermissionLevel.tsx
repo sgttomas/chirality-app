@@ -84,6 +84,14 @@ export function PermissionLevel({ host, threadId }: { host: Json; threadId?: str
   return <LevelPanel key={JSON.stringify([levelOwner(host), threadId])} host={host} threadId={threadId}/>;
 }
 
+/** The App's ask to choose a level before a conversation runs, in view above the composer without a press: the
+ * host's sentence saying why, the level preselected, and the one button that continues. It is the full panel's own
+ * choice (the same state, conditions and command), drawn without the rest of the panel; nothing when the App is not
+ * asking. */
+export function PermissionLevelAsk({ host, threadId }: { host: Json; threadId?: string }) {
+  return <LevelPanel key={JSON.stringify([levelOwner(host), threadId])} host={host} threadId={threadId} askOnly/>;
+}
+
 /** The level in force for a conversation (its own level) or, with no conversation, for new conversations, and
  * whether the App asks the person to choose one: what the settings line names. */
 export function levelInForce(host: Json, threadId?: string): { name: string; ask: boolean } {
@@ -137,7 +145,7 @@ export function StartPermissionLevel({ threadId, generation }: { threadId?: stri
   return actions?.host ? <PermissionLevel host={actions.host} threadId={threadId}/> : null;
 }
 
-function LevelPanel({ host, threadId }: { host: Json; threadId?: string }) {
+function LevelPanel({ host, threadId, askOnly = false }: { host: Json; threadId?: string; askOnly?: boolean }) {
   const actions = useContext(PermissionLevelActions);
   const row = threadId ? list(host?.threads).find(t => t.threadId === threadId && JSON.stringify(t.generation) === JSON.stringify(host?.generation)) : null;
   // A selected conversation never borrows the default when its own projection is absent or asked about.
@@ -175,9 +183,42 @@ function LevelPanel({ host, threadId }: { host: Json; threadId?: string }) {
     } catch (error) { if (mounted.current) setOutcome({ error: error instanceof Error ? error.message : String(error) }); }
     finally { pendingRef.current = false; if (mounted.current) setPending(false); }
   };
+  const reading = actions?.readFailed ? <p role="status">The last permission-level reading could not be refreshed. The level shown may be out of date.</p> : actions?.stale ? <p role="status">The App is reading the current permission level. The last reading below may be out of date.</p> : null;
+  const asking = ask && <div role="alert"><p>{ask.sentence}</p>
+    {choice !== ask.preselected && <p>Your pending choice is {name(choice)}. It takes effect only when you press “Use selected level and continue”.</p>}
+  </div>;
+  const chooser = <>
+    <label>Permission level <select aria-label="Permission level" value={choice} onChange={event => setChoice(event.target.value)} disabled={pending || !!actions?.unavailable || !!actions?.stale || !actions}>
+      {!wordOf(NAMES, choice) && <option value="">Choose a level</option>}
+      {Object.keys(NAMES).map(id => <option key={id} value={id} disabled={!allowed(id)}>{wordOf(NAMES, id)}</option>)}
+    </select></label>{" "}
+    <button onClick={() => { void change(); }} disabled={!actions || pending || actions.unavailable || actions.stale || !wordOf(NAMES, choice) || !allowed(choice)}>{ask ? "Use selected level and continue" : threadId ? "Use for this conversation" : "Use for new conversations"}</button>
+  </>;
+  const results = <>
+    {pending && <p role="status">Changing the permission level…</p>}
+    {save && <div aria-label="Latest permission-level save attempt">
+      <p>Latest choice save: {wordOf(RECORDED, save.recorded) ?? "Not established"}.</p>
+      {typeof save.sentence === "string" && <p>{save.sentence}</p>}
+      {save.writeFailure?.text && <ReportedValue value={save.writeFailure.text}/>}
+    </div>}
+    {outcome?.error && outcome.error !== save?.sentence && <div role="alert"><p>The permission level was not changed.</p><p>{outcome.error}</p></div>}
+    {outcome?.reply && <p role="status">{outcome.reply.state === "chosen" ? "The App accepted your level choice." : "The App returned a result for the level choice."}</p>}
+    {outcome?.refreshFailed && outcome?.reply?.sentence && <p>{outcome.reply.sentence}</p>}
+    {outcome?.refreshFailed && outcome?.reply?.writeFailure?.text && <ReportedValue value={outcome.reply.writeFailure.text}/>}
+    {outcome?.refreshFailed && <p role="alert">{REFRESH_FAILED}</p>}
+  </>;
+  // Above the composer: only while the App asks, and only the ask.
+  if (askOnly) return ask ? <section className="v4-level-ask" aria-label="Choose a permission level to continue">
+    {reading}
+    {asking}
+    {typeof host?.levelRecordsUnread === "string" && <p>{host.levelRecordsUnread}</p>}
+    <LevelRefusal cause={cause}/>
+    <p>{chooser}</p>
+    {results}
+  </section> : null;
   return <section className="workflow-stage" aria-label={threadId ? "Conversation permission level" : "Permission level for new conversations"}>
     <h3>Permission level</h3>
-    {actions?.readFailed ? <p role="status">The last permission-level reading could not be refreshed. The level shown may be out of date.</p> : actions?.stale ? <p role="status">The App is reading the current permission level. The last reading below may be out of date.</p> : null}
+    {reading}
     <p><strong>{level ? name(level.id) : "No permission level reported"}</strong>{threadId ? " · this conversation" : " · new conversations"}</p>
     {level && <>
       <p>{wordOf(ORIGINS, level.origin) ?? "The origin of this level was not reported."}</p>
@@ -195,31 +236,15 @@ function LevelPanel({ host, threadId }: { host: Json; threadId?: string }) {
     {host?.levelSessionOnlyOffered?.detail?.text && <ReportedValue value={host.levelSessionOnlyOffered.detail.text}/>}
     {host?.levelLaunchRead?.homeState?.state === "unknown" && host.levelLaunchRead.homeState.detail?.text && <ReportedValue value={host.levelLaunchRead.homeState.detail.text}/>}
     {typeof host?.levelRecordsUnread === "string" && <p>{host.levelRecordsUnread}</p>}
-    {ask && <div role="alert"><p>{ask.sentence}</p>
-      {choice !== ask.preselected && <p>Your pending choice is {name(choice)}. It takes effect only when you press “Use selected level and continue”.</p>}
-    </div>}
+    {asking}
     {scope === "default" && typeof host?.levelDefaultScopeSentence === "string" && <p>{host.levelDefaultScopeSentence}</p>}
     <LevelRefusal cause={cause}/>
     {host?.levelStartRefusal && <div role="alert"><p>Codex could not start with this home.</p><ReportedValue value={host.levelStartRefusal}/></div>}
     <details open={ask ? true : undefined}><summary>{ask ? "Choose a permission level to continue" : "Change permission level"}</summary>
-      <label>Permission level <select aria-label="Permission level" value={choice} onChange={event => setChoice(event.target.value)} disabled={pending || !!actions?.unavailable || !!actions?.stale || !actions}>
-        {!wordOf(NAMES, choice) && <option value="">Choose a level</option>}
-        {Object.keys(NAMES).map(id => <option key={id} value={id} disabled={!allowed(id)}>{wordOf(NAMES, id)}</option>)}
-      </select></label>{" "}
-      <button onClick={() => { void change(); }} disabled={!actions || pending || actions.unavailable || actions.stale || !wordOf(NAMES, choice) || !allowed(choice)}>{ask ? "Use selected level and continue" : threadId ? "Use for this conversation" : "Use for new conversations"}</button>
+      {chooser}
       <p>{threadId && !globalAsk ? "This choice applies to this conversation." : "This choice is the default for new conversations."}</p>
     </details>
-    {pending && <p role="status">Changing the permission level…</p>}
-    {save && <div aria-label="Latest permission-level save attempt">
-      <p>Latest choice save: {wordOf(RECORDED, save.recorded) ?? "Not established"}.</p>
-      {typeof save.sentence === "string" && <p>{save.sentence}</p>}
-      {save.writeFailure?.text && <ReportedValue value={save.writeFailure.text}/>}
-    </div>}
-    {outcome?.error && outcome.error !== save?.sentence && <div role="alert"><p>The permission level was not changed.</p><p>{outcome.error}</p></div>}
-    {outcome?.reply && <p role="status">{outcome.reply.state === "chosen" ? "The App accepted your level choice." : "The App returned a result for the level choice."}</p>}
-    {outcome?.refreshFailed && outcome?.reply?.sentence && <p>{outcome.reply.sentence}</p>}
-    {outcome?.refreshFailed && outcome?.reply?.writeFailure?.text && <ReportedValue value={outcome.reply.writeFailure.text}/>}
-    {outcome?.refreshFailed && <p role="alert">{REFRESH_FAILED}</p>}
+    {results}
     {threadId && <>
       {typeof row?.level?.scopeSentence === "string" && <p>{row.level.scopeSentence}</p>}
       <p>Last level sent: {name(row?.level?.sent?.levelId)}. {row?.level?.sent?.writeResult === "written" ? "Written to Codex." : "Writing it to Codex is not established."}</p>
