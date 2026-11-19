@@ -852,10 +852,10 @@ test('mounted: Connection and access shares the one admission with the row, the 
     await React.act(async () => { void props(inPopover(container, 'Sign out of ChatGPT…')).onClick(); });
     assert.equal(issued(calls, 'logout_home').length, 1);
     assert.equal(props(inPanel(container, 'Sign out of ChatGPT…')).disabled, true, 'shown under way in Connection and access');
-    await React.act(async () => { await props(inPanel(container, 'Sign out of ChatGPT…')).onClick(); });
+    await React.act(async () => { void props(inPanel(container, 'Sign out of ChatGPT…')).onClick(); });
     assert.equal(issued(calls, 'logout_home').length, 1, 'one sign-out');
     assert.equal(props(inPanel(container, 'Check account status')).disabled, true);
-    await React.act(async () => { await props(inPanel(container, 'Check account status')).onClick(); });
+    await React.act(async () => { void props(inPanel(container, 'Check account status')).onClick(); });
     assert.equal(issued(calls, 'read_home_access').length, 0, 'no account read beside it');
     await React.act(async () => { release(); await signOutHeld.logout_home; });
   }, new Set(), signOutHeld);
@@ -866,11 +866,11 @@ test('mounted: Connection and access shares the one admission with the row, the 
     assert.equal(issued(calls, 'oauth_start').length, 1);
     await leaveSettings(container);
     assert.equal(props(lineButton(container, SIGN_IN)).disabled, true, 'the line shows it under way');
-    await React.act(async () => { await props(lineButton(container, SIGN_IN)).onClick(); });
+    await React.act(async () => { void props(lineButton(container, SIGN_IN)).onClick(); });
     await openPopover(container);
     assert.equal(props(inPopover(container, SIGN_IN)).disabled, true, 'the popover shows it under way');
-    await React.act(async () => { await props(inPopover(container, SIGN_IN)).onClick(); });
-    await React.act(async () => { await props(inPanel(container, 'Sign in through native device code…')).onClick(); });
+    await React.act(async () => { void props(inPopover(container, SIGN_IN)).onClick(); });
+    await React.act(async () => { void props(inPanel(container, 'Sign in through native device code…')).onClick(); });
     assert.equal(issued(calls, 'oauth_start').length, 1, 'one sign-in start');
     await React.act(async () => { release(); await signInHeld.oauth_start; });
   }, new Set(), signInHeld);
