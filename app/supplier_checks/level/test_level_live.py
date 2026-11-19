@@ -1750,10 +1750,11 @@ class QuestionThatDoesNotWait(unittest.TestCase):
             self.assertIn('Invented yes', json.dumps(first))
             self.assertEqual(questions_in(read), [(asked_turn, 'call_resumeask', [ASYNC_QUESTION])])
 
-    def test_a_turn_summary_holds_the_persons_messages_and_the_question_as_the_full_read_does(self):
-        """PROPOSED (written by the App lane's builder; not yet run): what the App's own history reads see. The App
-        reads turns with `itemsView` `summary` after a restart; whether such a turn can establish that a question is
-        waiting, or that a message from the person follows it, rests on the summary keeping those items in order."""
+    def test_a_turn_summary_leaves_items_out_so_it_cannot_say_whether_a_question_waits(self):
+        """What the App's own history reads see. After a restart the App reads turns with `itemsView` `summary`. A
+        summary holds fewer items than the turn has, so a question, or a message from the person after it, can be
+        among those left out: the App reads nothing about a question from a summary. The control is the full read
+        of the same conversation, which holds every item."""
         with L.Run(SCRATCH, BINARY) as run:
             client = run.start()
             thread = client.start_thread(model=CATALOGUE_MODEL)['thread']['id']
@@ -1772,24 +1773,27 @@ class QuestionThatDoesNotWait(unittest.TestCase):
             client.kill()
             client.drain()
 
-            def decisive(items):
-                # The items a reading decides on: the person's messages, and questions by their id.
-                return [('userMessage', None) if i.get('type') == 'userMessage' else ('question', i['id'])
-                        for i in items or [] if i.get('type') == 'userMessage'
-                        or (i.get('type') == 'agentMessage' and i.get('delivery') == 'async' and i.get('questions'))]
             again = run.start()
             again.result('thread/resume', {'threadId': thread, 'excludeTurns': True})
             # As the App's recovery and history reads ask: newest first, item summaries.
-            summary = again.result('thread/turns/list', {'threadId': thread, 'sortDirection': 'desc', 'itemsView': 'summary'})['data']
+            summary = again.result('thread/turns/list',
+                                   {'threadId': thread, 'sortDirection': 'desc', 'itemsView': 'summary'})['data']
             full = again.result('thread/read', {'threadId': thread, 'includeTurns': True})['thread']['turns']
-            views = [(t['id'], t.get('itemsView')) for t in summary]
-            self.assertEqual([t['id'] for t in summary], [reply_turn, asked_turn], views)
-            self.assertEqual([decisive(t.get('items')) for t in full],
-                             [[('userMessage', None), ('question', 'call_sumask')], [('userMessage', None)]])
-            by_turn = {t['id']: decisive(t.get('items')) for t in full}
-            for turn in summary:
-                self.assertEqual(decisive(turn.get('items')), by_turn[turn['id']],
-                                 'turn %s (itemsView %r) holds other decisive items than the full read' % (turn['id'], turn.get('itemsView')))
+            self.assertEqual([(t['id'], t.get('itemsView')) for t in summary],
+                             [(reply_turn, 'summary'), (asked_turn, 'summary')])
+            kinds = lambda turn: [i.get('type') for i in turn.get('items') or []]
+            ids = lambda turn: [i.get('id') for i in turn.get('items') or []]
+            whole = {t['id']: t for t in full}
+            # The control: the full read holds the person's message, the question and the agent's closing message.
+            self.assertEqual(kinds(whole[asked_turn]), ['userMessage', 'agentMessage', 'agentMessage'])
+            self.assertEqual(ids(whole[asked_turn])[1:], ['call_sumask', 'msg_sumask'])
+            self.assertEqual(kinds(whole[reply_turn]), ['userMessage', 'agentMessage'])
+            # The summary of the turn that asked holds one message from the person and one agent message: an item
+            # of the turn is left out. Which agent message it keeps is not asserted (the source says the final one;
+            # here it kept the question and left out the closing message).
+            asked = next(t for t in summary if t['id'] == asked_turn)
+            self.assertEqual(kinds(asked), ['userMessage', 'agentMessage'])
+            self.assertTrue(set(ids(asked)) < set(ids(whole[asked_turn])))
 
     def test_on_a_model_the_catalogue_does_not_list_it_for_the_same_call_is_unsupported(self):
         """The control: the fixture's invented model has no catalogue entry."""
