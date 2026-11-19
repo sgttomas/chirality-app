@@ -287,6 +287,21 @@ fn stamp(path: &Path) -> Result<Value, String> {
         Err(e) => Err(e.to_string()),
     }
 }
+/// The most bytes the project's validated import intents say the store held
+/// at `relative` when an import began (`before`) or copied there (`copied`):
+/// 0 where none names it. Evidence that a record was there, not provenance
+/// (`quoted_prefix`). An error where the import records cannot be read, or an
+/// import is unfinished or uncertain.
+pub(crate) fn named_bytes(dir: &Path, relative: &str) -> Result<u64, String> {
+    require_complete(dir)?;
+    let mut most = 0;
+    for e in entries(dir)? {
+        for member in [e.intent.before.get(relative), e.intent.copied.get(relative)].into_iter().flatten() {
+            most = most.max(member.bytes);
+        }
+    }
+    Ok(most)
+}
 pub(crate) fn quoted_prefix(dir: &Path, relative: &str, bytes: &[u8]) -> Result<u64, String> {
     require_complete(dir)?;
     let mut prefix = 0;

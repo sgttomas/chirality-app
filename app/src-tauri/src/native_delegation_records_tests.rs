@@ -804,8 +804,12 @@ fn the_projects_fleet_folder_removed_after_the_apps_write_is_a_missing_record() 
     let (f, _) = first_write(None, false);
     std::fs::remove_dir_all(f.project.join(FLEET)).unwrap();
     let view = fleet_read(&f);
-    for path in [".chirality/fleet/briefs", ".chirality/fleet/graphs", ".chirality/fleet/coordination.fleet.jsonl"] {
-        assert_eq!(missing_records_at(&view, path).len(), 1, "{path}: {}", view["limits"]);
+    // The store's log names records written to the project's log, and only there: nothing read names a
+    // brief or a graph revision.
+    assert_eq!(missing_records_at(&view, ".chirality/fleet/coordination.fleet.jsonl"),
+        vec!["source missing; no empty-work conclusion; a missing record: the records store's fleet log holds 2 App observations recorded by this App, each also written to this log"]);
+    for path in [".chirality/fleet/briefs", ".chirality/fleet/graphs"] {
+        assert!(view["limits"].as_array().unwrap().iter().all(|l| l["source"]["path"] != path), "{path}: {}", view["limits"]);
     }
     assert_eq!((view["coordination"]["project"]["status"].as_str(), view["coordination"]["project"]["complete"].as_bool()), (Some("missing"), Some(false)));
 }
