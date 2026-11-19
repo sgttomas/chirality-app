@@ -30,6 +30,7 @@ import secrets
 import shlex
 import shutil
 import signal
+import socket
 import socketserver
 import stat
 import subprocess
@@ -206,22 +207,29 @@ def turn_view(body):
 
 
 def placements_of(body, markers):
-    """For each of `markers` that a request body carries: how many times, and where, as a list of places in the
-    body's order: 'instructions' (the request's own instructions field), or 'input[<index>]:<role or type>'
-    for each input entry that carries it. Nothing else of the body is kept."""
+    """For each of `markers` that a request body carries anywhere: where it sits in text the model reads, and how
+    much of it lies elsewhere. 'where' lists, in the body's order, 'instructions' (the request's own instructions
+    text) and 'input[<index>]:<role>' for each input message whose text carries it; 'count' is how many times it
+    appears in those texts; 'elsewhere' is how many more times it appears anywhere else in the serialised body
+    (another field of an entry, an entry that is not a message). Nothing else of the body is kept."""
     out = {}
-    entries = (body or {}).get('input') or []
+    body = body or {}
+    entries = body.get('input') or []
+    instructions = body.get('instructions') if isinstance(body.get('instructions'), str) else ''
     for marker in markers:
-        places = []
-        if marker in json.dumps((body or {}).get('instructions')):
+        places, count = [], instructions.count(marker)
+        if count:
             places.append('instructions')
         for index, entry in enumerate(entries):
-            if marker in json.dumps(entry):
-                label = (entry.get('role') or entry.get('type')) if isinstance(entry, dict) else type(entry).__name__
-                places.append('input[%d]:%s' % (index, label))
-        count = json.dumps(body).count(marker)
-        if count:
-            out[marker] = {'count': count, 'where': places}
+            if not isinstance(entry, dict) or entry.get('type', 'message') != 'message' or not entry.get('role'):
+                continue
+            n = text_of(entry.get('content')).count(marker)
+            if n:
+                places.append('input[%d]:%s' % (index, entry['role']))
+                count += n
+        total = json.dumps(body).count(marker)
+        if total:
+            out[marker] = {'count': count, 'where': places, 'elsewhere': total - count}
     return out
 
 
@@ -251,7 +259,9 @@ class ScriptedStub:
     call id that follows the last user message to the output Codex returned for it.
     """
 
-    def __init__(self):
+    def __init__(self, serve=True):
+        """With `serve` False the listener is bound but not yet served, so that its owner can register it for
+        cleanup first and then call `serve`."""
         self.scripts = {}
         self.lock = threading.Lock()
         self.count = 0
@@ -260,12 +270,15 @@ class ScriptedStub:
         self.net_probes = 0
         self.not_offered = set()  # call ids a command script could not call: no shell tool offered
         self.connections = 0  # every connection accepted, whatever it carried (counted before it is read)
+        self.active = set()  # the accepted sockets a handler still holds; ended by `close`
+        self.serving = False
         self.contacts = []  # (method, path) of every HTTP request read, in order; in memory only
         self.issued = set()  # call ids the stub put into a response as a call
         self.allowed_commands = None  # set by Run: the only commands a shell call may carry
         self.violations = []  # shell calls a script tried to issue with a command off that list
         self.unexpected = []
         self.watched = ()  # set by a test: invented marker lines whose presence in each request is noted
+        self.record_model = False  # set by a test: the model each request names is noted too
         # Aligned with `requests` while markers are watched: for each marker carried, how many times and where
         # (`placements_of`). The markers' positions alone are kept, never the text around them.
         self.placements = []
@@ -342,12 +355,28 @@ class ScriptedStub:
             def process_request(self, request, client_address):
                 with stub.lock:  # counted whatever the connection carries, even what is not HTTP/1.1
                     stub.connections += 1
+                    stub.active.add(request)
                 ThreadingHTTPServer.process_request(self, request, client_address)
+
+            def shutdown_request(self, request):
+                with stub.lock:
+                    stub.active.discard(request)
+                ThreadingHTTPServer.shutdown_request(self, request)
 
         self.server = Server(('127.0.0.1', 0), Handler)
         self.port = self.server.server_address[1]
         self.base_url = 'http://127.0.0.1:%d/v1' % self.port
-        threading.Thread(target=self.server.serve_forever, daemon=True).start()
+        if serve:
+            self.serve()
+
+    def serve(self):
+        """Start serving; if the serving thread cannot start, the listener is closed before the error is raised."""
+        try:
+            threading.Thread(target=self.server.serve_forever, daemon=True).start()
+        except BaseException:
+            self.server.server_close()
+            raise
+        self.serving = True
 
     def answer(self, body):
         text, outputs = turn_view(body)
@@ -360,6 +389,8 @@ class ScriptedStub:
         with self.lock:
             self.requests.append({'key': key, 'tools': tool_names(body), 'body_tools': body.get('tools'),
                                   'body_keys': sorted(body), 'markers': [m for m in self.watched if m in raw]})
+            if self.record_model:
+                self.requests[-1]['model'] = body.get('model')
             self.placements.append(placed)
             self.outputs.update(outputs)
         script = self.scripts.get(key)
@@ -376,9 +407,33 @@ class ScriptedStub:
             self.issued.update(i['call_id'] for i in items if i.get('call_id'))
         return items
 
-    def close(self):
-        self.server.shutdown()
+    def close(self, wait=2.0):
+        """Stop accepting, close the listener, then end every connection a handler still holds (a handler blocked
+        reading one would otherwise keep it open): each is shut down, its handler given `wait` seconds to let it
+        go, and any still held is closed."""
+        if self.serving:  # `shutdown` waits for a serving loop, so it is called only when one was started
+            self.server.shutdown()
         self.server.server_close()
+        with self.lock:
+            held = list(self.active)
+        for request in held:
+            try:
+                request.shutdown(socket.SHUT_RDWR)
+            except OSError:
+                pass
+        deadline = time.monotonic() + wait
+        while time.monotonic() < deadline:
+            with self.lock:
+                if not self.active:
+                    return
+            time.sleep(0.05)
+        with self.lock:
+            left, self.active = list(self.active), set()
+        for request in left:
+            try:
+                request.close()
+            except OSError:
+                pass
 
 
 def command_script(call_id, command, escalate=False, background=False):
@@ -821,8 +876,9 @@ class Run:
             self.stub.allowed_commands = set(self.commands().values())  # enforced before any call reaches Codex
             if self.trusted_project:
                 self.write_shell_files()
-                self.other = ScriptedStub()
+                self.other = ScriptedStub(serve=False)  # registered for cleanup before it serves
                 self.other.allowed_commands = self.stub.allowed_commands
+                self.other.serve()
         except BaseException:
             self.__exit__()
             raise
@@ -1201,30 +1257,57 @@ class Run:
 
 class Client:
     def __init__(self, run):
+        """Start the app server. Until it is returned, nobody holds it to stop it: if anything fails after it has
+        started, its whole process group is ended and its pipes closed here before the error is raised."""
         self.run = run
         self.stderr = open(run.root / ('codex-stderr-%d.log' % len(run.clients)), 'wb')
-        self.proc = subprocess.Popen(
-            [run.binary, '-c', 'analytics.enabled=false', '-c', 'model_provider="openai"',
-             '-c', 'openai_base_url="%s"' % run.stub.base_url, 'app-server'],
-            cwd=str(run.project), env=run.environment(), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-            stderr=self.stderr, start_new_session=True)
+        try:
+            self.proc = subprocess.Popen(
+                [run.binary, '-c', 'analytics.enabled=false', '-c', 'model_provider="openai"',
+                 '-c', 'openai_base_url="%s"' % run.stub.base_url, 'app-server'],
+                cwd=str(run.project), env=run.environment(), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                stderr=self.stderr, start_new_session=True)
+        except BaseException:
+            self.stderr.close()
+            raise
         self.pgid = self.proc.pid  # its own session, so its own process group
-        try:  # when it started, so that its number is not mistaken for another process's later
-            self.started_at = observe_process(self.proc.pid)[1]
-        except Unobserved:
-            self.started_at = None
-        self.lock = threading.Lock()
-        self.changed = threading.Condition(self.lock)
-        self.next_id = 0
-        self.replies = {}
-        self.notes = []
-        self.server_requests = []  # {'method', 'thread', 'id', 'params'}; params kept in memory only
-        self.tool_call_policy = 'answer'  # 'answer' or 'hold'
-        self.held = []
-        self.writer = threading.Lock()
-        self.reader_end = None  # set by read(): 'eof', or the error that stopped it
-        self.reader = threading.Thread(target=self.read, daemon=True)
-        self.reader.start()
+        try:
+            try:  # when it started, so that its number is not mistaken for another process's later
+                self.started_at = observe_process(self.proc.pid)[1]
+            except Unobserved:
+                self.started_at = None
+            self.lock = threading.Lock()
+            self.changed = threading.Condition(self.lock)
+            self.next_id = 0
+            self.replies = {}
+            self.notes = []
+            self.server_requests = []  # {'method', 'thread', 'id', 'params'}; params kept in memory only
+            self.tool_call_policy = 'answer'  # 'answer' or 'hold'
+            self.held = []
+            self.writer = threading.Lock()
+            self.reader_end = None  # set by read(): 'eof', or the error that stopped it
+            self.reader = threading.Thread(target=self.read, daemon=True)
+            self.reader.start()
+        except BaseException:
+            self.abandon()
+            raise
+
+    def abandon(self):
+        """End a server that failed to be set up: signal its whole process group, reap it, close its pipes. Each
+        step is attempted whatever the one before it did."""
+        try:
+            os.killpg(self.pgid, signal.SIGKILL)
+        except OSError:
+            pass
+        try:
+            self.proc.wait(5)
+        except Exception:  # noqa: BLE001 - the pipes are closed whatever happened here
+            pass
+        for stream in (self.proc.stdin, self.proc.stdout, self.stderr):
+            try:
+                stream.close()
+            except (OSError, ValueError, AttributeError):
+                pass
 
     def read(self):
         """Take every frame until the server's output ends. How it ended is kept: 'eof' when the output reached its

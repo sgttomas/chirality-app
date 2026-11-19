@@ -500,16 +500,80 @@ class TrustedProjectFiles(unittest.TestCase):
         self.addCleanup(stub.close)
         stub.answer(body('LEVEL[k] go'))
         self.assertEqual(stub.placements, [{}])  # nothing watched, nothing noted, still aligned
-        stub.watched = ('INVENTED-A', 'INVENTED-B')
-        carrying = body('LEVEL[k] go INVENTED-B')
+        stub.watched = ('INVENTED-A', 'INVENTED-B', 'INVENTED-C')
+        carrying = body('LEVEL[k] go INVENTED-B', outputs=[('c1', 'an output naming INVENTED-A')])
         carrying['input'][0]['content'][0]['text'] = 'invented INVENTED-A and INVENTED-A again'
+        carrying['input'][0]['id'] = 'INVENTED-C'  # in an entry's other field, not in the text the model reads
         carrying['instructions'] = 'base INVENTED-B'
+        carrying['model'] = L.MODEL
+        stub.record_model = True
         stub.answer(carrying)
         self.assertEqual(len(stub.placements), len(stub.requests))
         self.assertEqual(stub.placements[-1], {
-            'INVENTED-A': {'count': 2, 'where': ['input[0]:developer']},
-            'INVENTED-B': {'count': 2, 'where': ['instructions', 'input[1]:user']}})
+            'INVENTED-A': {'count': 2, 'where': ['input[0]:developer'], 'elsewhere': 1},  # and once in an output
+            'INVENTED-B': {'count': 2, 'where': ['instructions', 'input[1]:user'], 'elsewhere': 0},
+            'INVENTED-C': {'count': 0, 'where': [], 'elsewhere': 1}})
         self.assertNotIn('invented', json.dumps(stub.placements))  # positions only, never the text
+        self.assertEqual(stub.requests[-1]['model'], L.MODEL)  # the model each request names is kept
+
+    def test_a_client_that_fails_after_its_server_started_leaves_nothing_running(self):
+        """Between the server's start and the Client's return nobody else holds it: a failure there ends it."""
+        started = []
+        real = subprocess.Popen
+
+        def popen(argv, **kwargs):  # a stand-in that stays up until its input closes, in place of Codex
+            started.append(real(['/bin/sh', '-c', 'read unused'], **kwargs))
+            return started[-1]
+        with L.Run(self.scratch, '/nonexistent/codex', trusted_project=True) as run:
+            with mock.patch.object(L.subprocess, 'Popen', popen), \
+                    mock.patch.object(L, 'observe_process', side_effect=RuntimeError('invented failure')):
+                with self.assertRaisesRegex(RuntimeError, 'invented failure'):
+                    L.Client(run)
+            self.assertEqual((len(started), run.clients), (1, []))
+            proc = started[0]
+            self.assertIsNotNone(proc.poll())  # ended and reaped
+            self.assertFalse(L.group_has_members(proc.pid))
+            self.assertTrue(proc.stdin.closed and proc.stdout.closed)
+
+    def test_the_second_listener_is_closed_when_it_cannot_start_serving(self):
+        import socket
+        real, made = L.ScriptedStub.serve, []
+
+        def serve(stub):
+            made.append(stub)
+            if len(made) == 2:  # the second listener's
+                raise OSError('invented serving failure')
+            return real(stub)
+        run = L.Run(self.scratch, '/nonexistent/codex', trusted_project=True)
+        with mock.patch.object(L.ScriptedStub, 'serve', serve):
+            with self.assertRaisesRegex(OSError, 'invented serving failure'):
+                run.__enter__()
+        self.assertIs(run.other, made[1])  # registered before it was to serve, so the run's cleanup closed it
+        self.assertFalse(run.root.exists())
+        for stub in made:
+            self.assertEqual(stub.server.socket.fileno(), -1)
+            with self.assertRaises(OSError):
+                socket.create_connection(('127.0.0.1', stub.port), timeout=1).close()
+
+    def test_closing_a_listener_ends_a_connection_its_handler_holds(self):
+        import socket
+        stub = L.ScriptedStub()
+        self.addCleanup(stub.close)
+        raw = socket.create_connection(('127.0.0.1', stub.port), timeout=5)
+        self.addCleanup(raw.close)  # sends nothing: its handler waits for a request line that never comes
+        deadline = time.monotonic() + 3
+        while not stub.active and time.monotonic() < deadline:
+            time.sleep(0.05)
+        self.assertEqual((stub.connections, len(stub.active)), (1, 1))
+        began = time.monotonic()
+        stub.close()
+        self.assertLess(time.monotonic() - began, 5)
+        try:
+            ended = raw.recv(1) == b''
+        except ConnectionResetError:
+            ended = True
+        self.assertTrue(ended)  # the held connection was ended, not left open
+        self.assertEqual(stub.active, set())
 
     def test_the_touch_and_variable_commands(self):
         with L.Run(self.scratch, '/nonexistent/codex', trusted_project=True) as run:
