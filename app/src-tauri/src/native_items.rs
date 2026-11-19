@@ -127,34 +127,72 @@ pub struct NativeView {
     next_order: u64,
     /// What is established, per conversation, about the agent's question that
     /// does not wait (`agentMessage` with `delivery` `async` and questions).
-    /// A conversation is a key here once it has been read in this generation;
-    /// each entry is updated as an observation is consumed, never recomputed
-    /// from `observedOrder`. Nothing here is persisted.
+    /// A conversation is a key here once an observation of it has been read in
+    /// this generation; it is published as read only while its reading is
+    /// definite. Each entry is updated as an observation is consumed, never
+    /// recomputed from `observedOrder`. Nothing here is persisted.
     asked: BTreeMap<String, AskedState>,
 }
 
-/// One conversation's reading: the item that established it (its turn and
-/// id), or none where the conversation was read from its start with nothing
-/// decisive since, and the question waiting, if any.
+/// A decisive item named by its turn and item identities.
+type Anchor = (String, String);
+/// While a conversation's reading is unresolved, at most this many decisive
+/// items in conflict are kept; past it only a live decisive item resolves it.
+pub(crate) const ASKED_CONFLICT_ANCHORS: usize = 4;
+/// One conversation's reading, and the receipt position of the latest
+/// decisive item received live for it (a continuation reply received before
+/// that position is older and does not change the reading).
 #[derive(Clone, Debug, PartialEq)]
 struct AskedState {
-    anchor: Option<(String, String)>,
-    waiting: Option<Value>,
+    reading: Reading,
+    live_at: Option<u64>,
+}
+#[derive(Clone, Debug, PartialEq)]
+enum Reading {
+    /// Established: the item that established it (its turn and id), or none
+    /// where the conversation was read from its start with nothing decisive
+    /// since; the question waiting, if any; and, where none waits because a
+    /// message from the person followed a question, that question's identity.
+    Definite { anchor: Option<Anchor>, waiting: Option<Value>, followed: Option<Value> },
+    /// Readings whose order is not known disagree: published as not read. The
+    /// decisive items in conflict are kept so that a history page can restore
+    /// a definite reading only by placing every one of them; `None` where they
+    /// are not all kept (past `ASKED_CONFLICT_ANCHORS`, or a reply dropped
+    /// unread), when only a live decisive item resolves it.
+    Unresolved { anchors: Option<Vec<Anchor>> },
 }
 
 /// An item that decides the reading: a message from the person, or the
-/// agent's question that does not wait. A question counts only once it is
-/// completed: live, at its `item/completed`; from history, as an item whose
-/// status is not `inProgress` (the history reader's own completion rule).
+/// agent's question that does not wait. A question counts only where its row
+/// is shown completed (`question_completed`).
 enum Decisive {
     Person,
     Question,
 }
-fn decisive(native: &Value, completed: bool) -> Option<Decisive> {
+/// The display state a row takes for an item: the single rule for both the
+/// row and whether a question counts. `completed` is the live
+/// `item/completed`, or, from history, a status other than `inProgress`.
+fn display_state(native: &Value, completed: bool, recovered: bool) -> &str {
+    let status = native["status"].as_str();
+    if recovered && status == Some("inProgress") {
+        "unknown"
+    } else if completed {
+        status.unwrap_or("completed")
+    } else {
+        "in-progress"
+    }
+}
+/// A question counts exactly where its row's display state is `completed`:
+/// received at its completion (live) or with a status other than `inProgress`
+/// (history), and with no status string other than `completed`.
+fn question_completed(native: &Value, completed: bool, recovered: bool) -> bool {
+    display_state(native, completed, recovered) == "completed"
+}
+fn decisive(native: &Value, completed: bool, recovered: bool) -> Option<Decisive> {
     match native["type"].as_str() {
         Some("userMessage") => Some(Decisive::Person),
         Some("agentMessage")
-            if completed
+            if question_completed(native, completed, recovered)
                 && native["delivery"] == "async"
                 && native["questions"].as_array().is_some_and(|q| !q.is_empty()) =>
         {
@@ -164,7 +202,85 @@ fn decisive(native: &Value, completed: bool) -> Option<Decisive> {
     }
 }
 fn decisive_in_history(native: &Value) -> Option<Decisive> {
-    decisive(native, native["status"] != "inProgress")
+    decisive(native, native["status"] != "inProgress", true)
+}
+fn followed_entry(thread: &str, turn: &str, item: &str) -> Value {
+    json!({"threadId":thread,"turnId":turn,"itemId":item})
+}
+/// A page read newest to oldest: its turn ids, the items of its full turns
+/// with their turn's index, and the first decisive item met.
+struct AskedPage {
+    order: Vec<String>,
+    seen: Vec<(usize, String, Value)>,
+    found: Option<usize>,
+}
+impl AskedPage {
+    /// `Err` where the decisive item met lacks a turn or item identity; `Ok(None)`
+    /// where the page establishes nothing.
+    fn read(turns: Vec<(String, Vec<Value>, bool)>, whole: bool) -> Result<Option<Self>, ()> {
+        let order: Vec<String> = turns.iter().map(|(t, _, _)| t.clone()).collect();
+        let mut seen = Vec::new();
+        let mut complete = true;
+        for (index, (turn, items, full)) in turns.into_iter().enumerate() {
+            if !full {
+                complete = false;
+                break;
+            }
+            for item in items {
+                seen.push((index, turn.clone(), item));
+            }
+        }
+        let found = seen.iter().position(|(_, _, item)| decisive_in_history(item).is_some());
+        match found {
+            Some(k) if seen[k].1.is_empty() || seen[k].2["id"].as_str().is_none_or(str::is_empty) => Err(()),
+            None if !(whole && complete) => Ok(None),
+            _ => Ok(Some(Self { order, seen, found })),
+        }
+    }
+    fn anchor(&self) -> Option<Anchor> {
+        self.found.map(|k| (self.seen[k].1.clone(), self.seen[k].2["id"].as_str().unwrap_or_default().to_owned()))
+    }
+    /// The question the page establishes as waiting, with its turn.
+    fn question(&self) -> Option<(String, Value)> {
+        let (_, turn, item) = &self.seen[self.found?];
+        matches!(decisive_in_history(item), Some(Decisive::Question)).then(|| (turn.clone(), item.clone()))
+    }
+    /// Where the page's decisive item is a message from the person: the latest
+    /// question before it on the page, as (index in `seen`, turn, id).
+    fn followed(&self) -> Option<(usize, String, String)> {
+        let k = self.found?;
+        if !matches!(decisive_in_history(&self.seen[k].2), Some(Decisive::Person)) {
+            return None;
+        }
+        self.seen.iter().enumerate().skip(k + 1)
+            .find(|(_, (_, turn, item))| matches!(decisive_in_history(item), Some(Decisive::Question))
+                && !turn.is_empty() && item["id"].as_str().is_some_and(|s| !s.is_empty()))
+            .map(|(j, (_, turn, item))| (j, turn.clone(), item["id"].as_str().unwrap_or_default().to_owned()))
+    }
+    /// The order of the page's conclusion to an established decisive item:
+    /// `Some(true)` at least as new, `Some(false)` older, `None` not known.
+    /// Known where the anchor's item is on the page, or the page's decisive
+    /// item is in a turn strictly newer or older than the anchor's turn, that
+    /// turn being on the page.
+    fn place(&self, (anchor_turn, anchor_item): &Anchor) -> Option<bool> {
+        let k = self.found?;
+        let at = self.seen.iter().position(|(_, t, i)| t == anchor_turn && i["id"] == anchor_item.as_str());
+        let turn_at = self.order.iter().position(|t| t == anchor_turn);
+        match (at, turn_at) {
+            (Some(a), _) => Some(k <= a),
+            (None, Some(a)) if self.seen[k].0 < a => Some(true),
+            (None, Some(a)) if self.seen[k].0 > a => Some(false),
+            _ => None,
+        }
+    }
+    /// Whether the page shows `entry`'s item (or its turn) as newer than its own `followed` question.
+    fn shows_newer(&self, entry: &Value, followed: usize) -> bool {
+        let (turn, item) = (entry["turnId"].as_str().unwrap_or_default(), entry["itemId"].as_str().unwrap_or_default());
+        if let Some(b) = self.seen.iter().position(|(_, t, i)| t == turn && i["id"] == item) {
+            return b < followed;
+        }
+        self.order.iter().position(|t| t == turn).is_some_and(|t| t < self.seen[followed].0)
+    }
 }
 /// The waiting entry for a question item. The agent's titles and options are
 /// kept byte for byte; an entry whose questions do not have the pinned shape
@@ -361,7 +477,7 @@ impl NativeView {
                     }
                     row["receipt"][if completed { "completed" } else { "started" }] = json!(pos);
                 }
-                self.asked_live(text(p, "threadId")?, text(p, "turnId")?, &p["item"], completed);
+                self.asked_live(text(p, "threadId")?, text(p, "turnId")?, &p["item"], completed, pos);
             }
             Some("item/plan/delta") => {
                 let thread = text(p, "threadId")?;
@@ -561,14 +677,7 @@ impl NativeView {
                 }
             }
         }
-        let status = native["status"].as_str();
-        let state = if recovered && status == Some("inProgress") {
-            "unknown"
-        } else if completed {
-            status.unwrap_or("completed")
-        } else {
-            "in-progress"
-        };
+        let state = display_state(native, completed, recovered);
         let mut row = json!({"threadId":thread,"turnId":turn,"native":native,"displayState":state,
             "standing":if recovered{"recovered-from-supplier"}else{"live-observed"},"observationEnded":false});
         if let Some(old) = self.items.get(&key) {
@@ -842,23 +951,32 @@ impl NativeView {
     }
     /// A conversation is read from its start where this generation's own
     /// `thread/start` reply named it: every later item of it is received here.
+    /// A conversation already holding a reading, definite or unresolved, keeps it.
     pub(crate) fn asked_thread_started(&mut self, thread: &str) {
         if self.is_closed() || thread.is_empty() {
             return;
         }
-        self.asked.entry(thread.into()).or_insert(AskedState { anchor: None, waiting: None });
+        self.asked.entry(thread.into()).or_insert(AskedState {
+            reading: Reading::Definite { anchor: None, waiting: None, followed: None },
+            live_at: None,
+        });
     }
     /// The turns a `thread/resume` or `thread/fork` reply carries, read for
-    /// the conversation it names. The reply is the conversation's newest end;
-    /// where every turn in it carries all its items it is the whole
+    /// the conversation it names, the reply having been received at receipt
+    /// position `at`. The reply is the conversation's newest end when it was
+    /// received; where every turn in it carries all its items it is the whole
     /// conversation. A reply with no turns (as the App's own resume asks, with
-    /// `excludeTurns`) establishes nothing. Where the reading establishes a
-    /// question, that one item is added to the view as an ordinary row, so the
-    /// card is there where "Go to it" lands; nothing else of the reply is added.
-    pub(crate) fn asked_continuation_reply(&mut self, result: &Value) {
+    /// `excludeTurns`) establishes nothing. A reply received before the
+    /// conversation's latest live decisive item changes nothing of its reading.
+    /// Where the reply holds a question, that one item is added to the view as
+    /// an ordinary row, so the card is there where "Go to it" lands; nothing
+    /// else of the reply is added. A waiting question is published only with
+    /// its row: a question whose row cannot be admitted leaves the conversation
+    /// not read.
+    pub(crate) fn asked_continuation_reply(&mut self, result: &Value, at: u64) {
         let thread = &result["thread"];
         let Some(id) = thread["id"].as_str().filter(|s| !s.is_empty()) else { return };
-        if thread["turns"].as_array().is_none_or(Vec::is_empty) {
+        if self.is_closed() || thread["turns"].as_array().is_none_or(Vec::is_empty) {
             return;
         }
         // Turns and their items arrive oldest first; read them newest first.
@@ -868,9 +986,40 @@ impl NativeView {
             items.reverse();
         }
         let whole = turns.iter().all(|(_, _, full)| *full);
-        if let Some((turn, item)) = self.asked_read(id, turns, true, whole) {
-            let _ = self.item(id, &turn, &item, true, true, None);
+        let older = self.asked.get(id).and_then(|s| s.live_at).is_some_and(|live| at < live);
+        let page = match AskedPage::read(turns, whole) {
+            Ok(Some(page)) => page,
+            Ok(None) => return,
+            Err(()) => {
+                if !older {
+                    self.asked_unsettle(id);
+                }
+                return;
+            }
+        };
+        let admitted = match page.question() {
+            Some((turn, item)) => self.item(id, &turn, &item, true, true, None).is_ok(),
+            None => true,
+        };
+        if older {
+            return;
         }
+        match self.asked_decide(id, &page) {
+            Some(Reading::Definite { waiting: Some(_), .. }) if !admitted => self.asked_unsettle(id),
+            Some(reading) => self.asked_commit(id, reading),
+            None => {}
+        }
+    }
+    /// A reply naming a conversation, received at `at`, was dropped before its
+    /// request settled: unless a live decisive item received after it has
+    /// established the conversation's reading, that reading is incomplete until
+    /// a later live decisive item establishes it.
+    pub(crate) fn asked_reply_dropped(&mut self, result: &Value, at: u64) {
+        let Some(id) = result["thread"]["id"].as_str().filter(|s| !s.is_empty()) else { return };
+        if self.is_closed() || self.asked.get(id).and_then(|s| s.live_at).is_some_and(|live| at < live) {
+            return;
+        }
+        self.asked_commit(id, Reading::Unresolved { anchors: None });
     }
     fn is_closed(&self) -> bool {
         self.generation.as_ref().is_some_and(|g| self.closed.contains(g))
@@ -887,14 +1036,25 @@ impl NativeView {
             })
             .collect()
     }
-    fn asked_live(&mut self, thread: &str, turn: &str, native: &Value, completed: bool) {
+    /// A decisive item received live, at receipt position `at`, is newer by
+    /// receipt than anything established: it establishes the reading anew.
+    fn asked_live(&mut self, thread: &str, turn: &str, native: &Value, completed: bool, at: u64) {
         let id = native["id"].as_str().unwrap_or_default();
-        let waiting = match decisive(native, completed) {
-            Some(Decisive::Question) => Some(asked_entry(thread, turn, native)),
-            Some(Decisive::Person) => None,
+        let (waiting, followed) = match decisive(native, completed, false) {
+            Some(Decisive::Question) => (Some(asked_entry(thread, turn, native)), None),
+            Some(Decisive::Person) => (None, match self.asked.get(thread).map(|s| &s.reading) {
+                // The question waiting when the person's message arrived; or,
+                // where a message from the person already followed one, that one.
+                Some(Reading::Definite { waiting: Some(e), .. }) => Some(followed_entry(thread, e["turnId"].as_str().unwrap_or_default(), e["itemId"].as_str().unwrap_or_default())),
+                Some(Reading::Definite { waiting: None, followed, .. }) => followed.clone(),
+                _ => None,
+            }),
             None => return,
         };
-        self.asked.insert(thread.into(), AskedState { anchor: Some((turn.into(), id.into())), waiting });
+        self.asked.insert(thread.into(), AskedState {
+            reading: Reading::Definite { anchor: Some((turn.into(), id.into())), waiting, followed },
+            live_at: Some(at),
+        });
     }
     /// A paged history response: `turns` in the response's own order. It is
     /// the conversation's newest end when it is the first page newest first,
@@ -912,92 +1072,125 @@ impl NativeView {
             items.reverse();
         }
         if newest_end {
-            self.asked_read(thread, turns, true, first_page && last_page);
+            self.asked_read(thread, turns, first_page && last_page);
         }
     }
-    /// Read newest to oldest (`turns` and their items already in that order).
-    /// The first message from the person met means none is waiting; the first
-    /// completed question met means that one is waiting; meeting neither means
-    /// none only where the reading is the whole conversation. A turn whose items
-    /// may be incomplete ends the reading.
+    /// A history page at the conversation's newest end, read newest to oldest
+    /// (`turns` and their items already in that order). It has no receipt
+    /// position, so it is applied against what is established by order
+    /// alone (`asked_decide`).
+    fn asked_read(&mut self, thread: &str, turns: Vec<(String, Vec<Value>, bool)>, whole: bool) {
+        if self.is_closed() {
+            return;
+        }
+        match AskedPage::read(turns, whole) {
+            Ok(Some(page)) => {
+                if let Some(reading) = self.asked_decide(thread, &page) {
+                    self.asked_commit(thread, reading);
+                }
+            }
+            Ok(None) => {}
+            Err(()) => self.asked_unsettle(thread),
+        }
+    }
+    /// What a page establishes against the conversation's reading; `None` where
+    /// it changes nothing. The page's own conclusion: the first message from
+    /// the person met means none is waiting; the first completed question met
+    /// means that one is waiting; meeting neither means none only where the
+    /// page is the whole conversation. A turn whose items may be incomplete
+    /// ends the reading.
     ///
-    /// Against what is already established, a reading applies where its order
-    /// to the established item is known: the established item is on the page
-    /// (a common item id), or what the page found is in a turn strictly newer
-    /// than the established item's turn, that turn being on the page. Where the
-    /// page found something in a strictly older turn than that one, the
-    /// established reading is the newer and stays. Otherwise the order is not
-    /// known (a history read can be older than items received live, and Codex
-    /// may give the same message another id in history): a reading that agrees
-    /// with the established one leaves it, and one that differs leaves the
-    /// conversation not read until a live item or an orderable reading
-    /// establishes it again. Returns the question item a reading that applied
-    /// establishes, with its turn.
-    fn asked_read(&mut self, thread: &str, turns: Vec<(String, Vec<Value>, bool)>, newest_end: bool, whole: bool) -> Option<(String, Value)> {
-        if self.is_closed() || !newest_end {
-            return None;
-        }
-        let order: Vec<&str> = turns.iter().map(|(t, _, _)| t.as_str()).collect();
-        let mut seen: Vec<(usize, &str, &Value)> = Vec::new();
-        let mut complete = true;
-        for (index, (turn, items, full)) in turns.iter().enumerate() {
-            if !full {
-                complete = false;
-                break;
-            }
-            for item in items {
-                seen.push((index, turn.as_str(), item));
-            }
-        }
-        let found = seen.iter().position(|(_, _, item)| decisive_in_history(item).is_some());
-        let (reading, question) = match found {
-            Some(k) => {
-                let (_, turn, item) = seen[k];
-                let asked = matches!(decisive_in_history(item), Some(Decisive::Question));
-                let waiting = asked.then(|| asked_entry(thread, turn, item));
-                (AskedState { anchor: Some((turn.into(), item["id"].as_str().unwrap_or_default().into())), waiting },
-                    asked.then(|| (turn.to_owned(), item.clone())))
-            }
-            None if whole && complete => (AskedState { anchor: None, waiting: None }, None),
-            None => return None,
+    /// Against a definite reading the conclusion applies where it is known to
+    /// be at least as new as the established item (`AskedPage::place`), and is
+    /// passed over where it is known to be older. Where the order is not known
+    /// (a history read can be older than items received live, and Codex may
+    /// give the same message another id in history), a conclusion that agrees
+    /// leaves the reading, and one that differs makes the conversation
+    /// unresolved, keeping both decisive items. An unresolved conversation is
+    /// restored to a definite reading only by a page that places every kept
+    /// item, each by the same rule; a page that does not adds its own decisive
+    /// item to those kept, unless it is known to be older than one of them.
+    fn asked_decide(&self, thread: &str, page: &AskedPage) -> Option<Reading> {
+        let current = self.asked.get(thread).map(|s| &s.reading);
+        let waiting = page.question().map(|(turn, item)| asked_entry(thread, &turn, &item));
+        // The question a message from the person is known to follow: the page's
+        // own (the latest before its decisive message), or, where the page is
+        // ordered after a definite reading, the question that reading had waiting
+        // or followed, where the page does not show its own as the newer.
+        let definite = |prior: Option<Value>| {
+            let own = page.followed();
+            let followed = match (own, prior) {
+                _ if waiting.is_some() || page.found.is_none() => None,
+                (Some((j, _, _)), Some(prior)) if page.shows_newer(&prior, j) => Some(prior),
+                (Some((_, turn, item)), _) => Some(followed_entry(thread, &turn, &item)),
+                (None, prior) => prior,
+            };
+            Reading::Definite { anchor: page.anchor(), waiting: waiting.clone(), followed }
         };
-        let current = self.asked.get(thread);
-        // Some(true): the reading is at least as new; Some(false): it is older; None: not known.
-        let ordered = match current.and_then(|s| s.anchor.as_ref()) {
-            None => Some(true),
-            Some((anchor_turn, anchor_item)) => {
-                let at = seen.iter().position(|(_, t, i)| t == anchor_turn && i["id"] == anchor_item.as_str());
-                let anchor_turn_at = order.iter().position(|t| t == anchor_turn);
-                match (found, at, anchor_turn_at) {
-                    (Some(k), Some(a), _) => Some(k <= a),
-                    (Some(k), None, Some(a)) if seen[k].0 < a => Some(true),
-                    (Some(k), None, Some(a)) if seen[k].0 > a => Some(false),
-                    _ => None,
+        match current {
+            None => Some(definite(None)),
+            Some(Reading::Definite { anchor: None, .. }) => Some(definite(None)),
+            Some(Reading::Definite { anchor: Some(anchor), waiting: established, followed }) => match page.place(anchor) {
+                Some(true) => {
+                    let prior = match established {
+                        Some(e) => Some(followed_entry(thread, e["turnId"].as_str().unwrap_or_default(), e["itemId"].as_str().unwrap_or_default())),
+                        None => followed.clone(),
+                    };
+                    Some(definite(prior))
+                }
+                Some(false) => None,
+                None => {
+                    let same = match (established, &waiting) {
+                        (None, None) => true,
+                        (Some(a), Some(b)) => a["turnId"] == b["turnId"] && a["itemId"] == b["itemId"],
+                        _ => false,
+                    };
+                    (!same).then(|| Self::unresolved(vec![anchor.clone()], page.anchor()))
+                }
+            },
+            Some(Reading::Unresolved { anchors: None }) => None,
+            Some(Reading::Unresolved { anchors: Some(kept) }) => {
+                let placed: Vec<Option<bool>> = kept.iter().map(|a| page.place(a)).collect();
+                if placed.iter().all(|p| *p == Some(true)) {
+                    Some(definite(None))
+                } else if placed.contains(&Some(false)) {
+                    None
+                } else {
+                    let next = Self::unresolved(kept.clone(), page.anchor());
+                    (next != Reading::Unresolved { anchors: Some(kept.clone()) }).then_some(next)
                 }
             }
-        };
-        match ordered {
-            Some(true) => {
-                self.asked.insert(thread.into(), reading);
-                question
+        }
+    }
+    fn unresolved(mut kept: Vec<Anchor>, add: Option<Anchor>) -> Reading {
+        if let Some(add) = add {
+            if !kept.contains(&add) {
+                kept.push(add);
             }
-            Some(false) => None,
-            None => {
-                let same = |a: &Option<Value>, b: &Option<Value>| match (a, b) {
-                    (None, None) => true,
-                    (Some(a), Some(b)) => a["turnId"] == b["turnId"] && a["itemId"] == b["itemId"],
-                    _ => false,
-                };
-                if !current.is_some_and(|c| same(&c.waiting, &reading.waiting)) {
-                    self.asked.remove(thread);
-                }
-                None
+        }
+        Reading::Unresolved { anchors: (kept.len() <= ASKED_CONFLICT_ANCHORS).then_some(kept) }
+    }
+    /// Sets a conversation's reading, keeping its receipt position.
+    fn asked_commit(&mut self, thread: &str, reading: Reading) {
+        self.asked.entry(thread.into()).or_insert(AskedState { reading: Reading::Unresolved { anchors: None }, live_at: None }).reading = reading;
+    }
+    /// A conversation already read whose newest evidence cannot be shown: it
+    /// becomes unresolved, keeping the item that established it.
+    fn asked_unsettle(&mut self, thread: &str) {
+        if let Some(state) = self.asked.get_mut(thread) {
+            if let Reading::Definite { anchor, .. } = &state.reading {
+                state.reading = Reading::Unresolved { anchors: Some(anchor.iter().cloned().collect()) };
             }
         }
     }
     fn asked_snapshot(&self) -> Value {
-        json!({"read":self.asked.keys().collect::<Vec<_>>(),
-            "waiting":self.asked.values().filter_map(|s| s.waiting.clone()).collect::<Vec<_>>()})
+        let definite = || self.asked.iter().filter_map(|(thread, s)| match &s.reading {
+            Reading::Definite { waiting, followed, .. } => Some((thread, waiting, followed)),
+            Reading::Unresolved { .. } => None,
+        });
+        json!({"read":definite().map(|(thread, _, _)| thread).collect::<Vec<_>>(),
+            "waiting":definite().filter_map(|(_, waiting, _)| waiting.clone()).collect::<Vec<_>>(),
+            "followed":definite().filter_map(|(_, _, followed)| followed.clone()).collect::<Vec<_>>()})
     }
     pub fn snapshot_with_requests(&self, requests: &[Value]) -> Value {
         let mut snapshot = self.snapshot();
@@ -1034,7 +1227,8 @@ impl NativeView {
             "turnErrors":self.turn_errors,"unreadableTurnErrors":self.unreadable_turn_errors,
             // The agent's questions that do not wait: the conversations read in
             // this generation, and the latest question of each not followed by a
-            // message from the person. A conversation not listed is not read.
+            // message from the person, and, where a message from the person
+            // followed a question, which one. A conversation not listed is not read.
             "askedQuestions":self.asked_snapshot(),
             "turnRecords":self.turns.keys().map(|(thread,turn)|json!({"threadId":thread,"turnId":turn})).collect::<Vec<_>>(),"typesPin":self.types_pin,"goals":self.goals,"checklistGaps":self.checklist_gaps,
             "limits":["Tool success is not checking, acceptance or reliance.","Parent completion says nothing about children.","Child completion, return, review and integration are not inferred.","Plan item references require this receiving home namespace; standalone cross-home export remains unsupported."]})
@@ -1712,7 +1906,7 @@ mod asked_question_tests {
         let AskedQuestion::Waiting(entry) = state(&v, "t") else { panic!("not waiting") };
         assert_eq!(entry, json!({"threadId":"t","turnId":"u","itemId":"call_1",
             "questions":[{"title":title,"options":["A\u{202e}b"]},{"title":"free only","options":null}]}));
-        assert_eq!(v.snapshot()["askedQuestions"], json!({"read":["t"],"waiting":[entry]}));
+        assert_eq!(v.snapshot()["askedQuestions"], json!({"read":["t"],"waiting":[entry],"followed":[]}));
     }
     #[test]
     fn a_live_message_from_the_person_after_it_clears_it_and_marks_nothing_answered() {
@@ -1928,21 +2122,21 @@ mod asked_question_tests {
     #[test]
     fn a_continuation_reply_decides_only_from_the_turns_it_carries() {
         let mut v = view();
-        v.asked_continuation_reply(&json!({"thread":{"id":"resumed","turns":[]}}));
+        v.asked_continuation_reply(&json!({"thread":{"id":"resumed","turns":[]}}), 9);
         assert_eq!(state(&v, "resumed"), AskedQuestion::NotRead, "a resume without turns says nothing");
         let asked = question("q1", "Asked?");
         v.asked_continuation_reply(&json!({"thread":{"id":"fork","turns":[
-            {"id":"u1","status":"completed","items":[person("p1"),asked.clone(),agent("a1")]}]}}));
+            {"id":"u1","status":"completed","items":[person("p1"),asked.clone(),agent("a1")]}]}}), 9);
         assert_eq!(waiting_item(&v, "fork").as_deref(), Some("q1"));
         // The question's item is added to the view under the fork, so its card is there; nothing else of the reply is.
         let rows: Vec<Value> = v.snapshot()["items"].as_array().unwrap().iter().filter(|r| r["threadId"] == "fork").cloned().collect();
         assert_eq!(rows.len(), 1);
         assert_eq!((&rows[0]["turnId"], &rows[0]["native"], &rows[0]["displayState"]), (&json!("u1"), &asked, &json!("completed")));
         // Every turn full and nothing decisive: the whole conversation, none waiting.
-        v.asked_continuation_reply(&json!({"thread":{"id":"quiet","turns":[{"id":"u1","status":"completed","items":[agent("a1")]}]}}));
+        v.asked_continuation_reply(&json!({"thread":{"id":"quiet","turns":[{"id":"u1","status":"completed","items":[agent("a1")]}]}}), 9);
         assert_eq!(state(&v, "quiet"), AskedQuestion::None);
         // A turn whose items may be left out: nothing decisive is not "none".
-        v.asked_continuation_reply(&json!({"thread":{"id":"partial","turns":[{"id":"u1","status":"completed","itemsView":"summary","items":[agent("a1")]}]}}));
+        v.asked_continuation_reply(&json!({"thread":{"id":"partial","turns":[{"id":"u1","status":"completed","itemsView":"summary","items":[agent("a1")]}]}}), 9);
         assert_eq!(state(&v, "partial"), AskedQuestion::NotRead);
         assert!(v.snapshot()["items"].as_array().unwrap().iter().all(|r| r["threadId"] != "quiet" && r["threadId"] != "partial"));
     }
@@ -1996,7 +2190,7 @@ mod asked_question_tests {
         v.asked_thread_started("s");
         v.close(&g(1)).unwrap();
         v.ready(g(2), Value::Null, Value::Null).unwrap();
-        assert_eq!(v.snapshot()["askedQuestions"], json!({"read":[],"waiting":[]}));
+        assert_eq!(v.snapshot()["askedQuestions"], json!({"read":[],"waiting":[],"followed":[]}));
     }
     #[test]
     fn a_childs_question_is_kept_under_the_childs_own_thread() {
@@ -2019,7 +2213,7 @@ mod asked_question_tests {
         assert_eq!(waiting_item(&v, "t").as_deref(), Some("q"));
         assert!(v.consume(&json!({"generation":g(1),"position":2,"frame":{"method":"item/completed","params":{"threadId":"t","turnId":"u2","item":person("p")}}})).is_err());
         v.asked_thread_started("other");
-        v.asked_continuation_reply(&json!({"thread":{"id":"t","turns":[{"id":"u2","status":"completed","items":[person("p")]}]}}));
+        v.asked_continuation_reply(&json!({"thread":{"id":"t","turns":[{"id":"u2","status":"completed","items":[person("p")]}]}}), 9);
         assert_eq!(v.snapshot()["askedQuestions"], snapshot["askedQuestions"]);
         // The next generation's view starts with nothing read.
         let mut next = NativeView::new("h".into()).unwrap();
@@ -2033,6 +2227,248 @@ mod asked_question_tests {
         assert_eq!(asked_question(&snapshot, "a"), AskedQuestion::None);
         assert!(matches!(asked_question(&snapshot, "b"), AskedQuestion::Waiting(e) if e["itemId"] == "q"));
         assert_eq!(asked_question(&snapshot, "c"), AskedQuestion::NotRead);
+    }
+    fn followed(v: &NativeView) -> Value {
+        v.snapshot()["askedQuestions"]["followed"].clone()
+    }
+    fn page(turns: Value) -> (Value, Value) {
+        (json!({"threadId":"t"}), turns_desc(turns))
+    }
+    fn deliver(v: &mut NativeView, (params, result): &(Value, Value)) {
+        v.history("h", "thread/turns/list", params, result).unwrap();
+    }
+    // H1: an unorderable page is never a definite answer on a repeat.
+    #[test]
+    fn an_unorderable_older_page_holding_the_question_stays_not_read_however_often_it_comes() {
+        // A completed question q in turn u1, then a live message from the person p in u2: none waiting.
+        let mut v = view();
+        live(&mut v, 1, "item/completed", "t", "u1", question("q", "Asked?"));
+        live(&mut v, 2, "item/started", "t", "u2", person("p"));
+        assert_eq!(state(&v, "t"), AskedQuestion::None);
+        // An older newest-end page that holds q and omits u2 cannot be ordered against p.
+        let older = page(json!([{"id":"u1","status":"completed","items":[person("p1"),question("q","Asked?")]}]));
+        for delivery in 1..=3 {
+            deliver(&mut v, &older);
+            assert_eq!(state(&v, "t"), AskedQuestion::NotRead, "delivery {delivery}");
+        }
+        assert_eq!(followed(&v), json!([]));
+    }
+    #[test]
+    fn an_unorderable_older_page_ending_in_a_persons_message_stays_not_read_however_often_it_comes() {
+        // A live newer question, then an older page whose last decisive item is a message from the person.
+        let mut v = view();
+        live(&mut v, 1, "item/completed", "t", "u2", question("q2", "Newer?"));
+        let older = page(json!([{"id":"u1","status":"completed","items":[question("q1","Older?"),person("p1")]}]));
+        for delivery in 1..=2 {
+            deliver(&mut v, &older);
+            assert_eq!(state(&v, "t"), AskedQuestion::NotRead, "delivery {delivery}");
+        }
+    }
+    #[test]
+    fn a_page_that_places_every_kept_anchor_resolves_and_one_that_places_some_does_not() {
+        let mut v = view();
+        live(&mut v, 1, "item/completed", "t", "u1", question("q", "Asked?"));
+        live(&mut v, 2, "item/started", "t", "u2", person("p"));
+        deliver(&mut v, &page(json!([{"id":"u1","status":"completed","items":[person("p1"),question("q","Asked?")]}])));
+        assert_eq!(state(&v, "t"), AskedQuestion::NotRead);
+        // A page that places q (a message from the person after it) but holds neither p nor its turn:
+        // not every kept anchor is placed, so the conversation stays not read.
+        deliver(&mut v, &page(json!([{"id":"u1","status":"completed","items":[question("q","Asked?"),person("px")]}])));
+        assert_eq!(state(&v, "t"), AskedQuestion::NotRead);
+        // A page that holds both kept anchors in order resolves it: p follows q.
+        deliver(&mut v, &page(json!([
+            {"id":"u2","status":"completed","items":[person("p"),agent("a2")]},
+            {"id":"u1","status":"completed","items":[person("p1"),question("q","Asked?")]}])));
+        assert_eq!(state(&v, "t"), AskedQuestion::None);
+        assert_eq!(followed(&v), json!([{"threadId":"t","turnId":"u1","itemId":"q"}]));
+        // The inverse direction resolves to the newer question.
+        let mut v = view();
+        live(&mut v, 1, "item/completed", "t", "u2", question("q2", "Newer?"));
+        deliver(&mut v, &page(json!([{"id":"u1","status":"completed","items":[question("q1","Older?"),person("p1")]}])));
+        assert_eq!(state(&v, "t"), AskedQuestion::NotRead);
+        deliver(&mut v, &page(json!([
+            {"id":"u2","status":"completed","items":[person("p2"),question("q2","Newer?")]},
+            {"id":"u1","status":"completed","items":[question("q1","Older?"),person("p1")]}])));
+        assert_eq!(waiting_item(&v, "t").as_deref(), Some("q2"));
+    }
+    #[test]
+    fn a_live_decisive_item_resolves_an_unresolved_conversation() {
+        let mut v = view();
+        live(&mut v, 1, "item/completed", "t", "u2", question("q2", "Newer?"));
+        deliver(&mut v, &page(json!([{"id":"u1","status":"completed","items":[person("p1")]}])));
+        assert_eq!(state(&v, "t"), AskedQuestion::NotRead);
+        live(&mut v, 2, "item/started", "t", "u3", person("p3"));
+        assert_eq!(state(&v, "t"), AskedQuestion::None);
+        assert_eq!(followed(&v), json!([]), "no question was established as waiting when p3 arrived");
+        deliver(&mut v, &page(json!([{"id":"u0","status":"completed","items":[question("q0","Old?")]}])));
+        assert_eq!(state(&v, "t"), AskedQuestion::NotRead);
+        live(&mut v, 3, "item/completed", "t", "u4", question("q4", "Live?"));
+        assert_eq!(waiting_item(&v, "t").as_deref(), Some("q4"));
+    }
+    #[test]
+    fn past_the_kept_anchor_limit_only_a_live_item_resolves() {
+        let mut v = view();
+        live(&mut v, 1, "item/completed", "t", "u-live", question("q-live", "Live?"));
+        // Each page concludes on another question in another unplaceable turn: one new anchor each.
+        let anchors: Vec<String> = (0..=ASKED_CONFLICT_ANCHORS).map(|n| format!("old{n}")).collect();
+        for id in &anchors {
+            deliver(&mut v, &page(json!([{"id":format!("u-{id}"),"status":"completed","items":[question(id,"Old?")]}])));
+            assert_eq!(state(&v, "t"), AskedQuestion::NotRead);
+        }
+        // A page holding every anchor (the live one newest) would have placed them all; past the
+        // limit not every anchor is kept, so it does not resolve the conversation.
+        let mut turns = vec![json!({"id":"u-new","status":"completed","items":[person("p-new")]}),
+            json!({"id":"u-live","status":"completed","items":[question("q-live","Live?")]})];
+        for id in anchors.iter().rev() {
+            turns.push(json!({"id":format!("u-{id}"),"status":"completed","items":[question(id,"Old?")]}));
+        }
+        deliver(&mut v, &page(Value::Array(turns)));
+        assert_eq!(state(&v, "t"), AskedQuestion::NotRead);
+        live(&mut v, 2, "item/started", "t", "u-new2", person("p-new2"));
+        assert_eq!(state(&v, "t"), AskedQuestion::None);
+    }
+    #[test]
+    fn up_to_the_kept_anchor_limit_a_page_placing_every_anchor_resolves() {
+        let mut v = view();
+        live(&mut v, 1, "item/completed", "t", "u-live", question("q-live", "Live?"));
+        // The live anchor and the pages' anchors: exactly the limit.
+        let anchors: Vec<String> = (1..ASKED_CONFLICT_ANCHORS).map(|n| format!("old{n}")).collect();
+        for id in &anchors {
+            deliver(&mut v, &page(json!([{"id":format!("u-{id}"),"status":"completed","items":[question(id,"Old?")]}])));
+        }
+        assert_eq!(state(&v, "t"), AskedQuestion::NotRead);
+        let mut turns = vec![json!({"id":"u-new","status":"completed","items":[person("p-new")]}),
+            json!({"id":"u-live","status":"completed","items":[question("q-live","Live?")]})];
+        for id in anchors.iter().rev() {
+            turns.push(json!({"id":format!("u-{id}"),"status":"completed","items":[question(id,"Old?")]}));
+        }
+        deliver(&mut v, &page(Value::Array(turns)));
+        assert_eq!(state(&v, "t"), AskedQuestion::None);
+        assert_eq!(followed(&v), json!([{"threadId":"t","turnId":"u-live","itemId":"q-live"}]));
+    }
+    #[test]
+    fn a_late_thread_start_does_not_make_an_unresolved_conversation_definite() {
+        let mut v = view();
+        live(&mut v, 1, "item/completed", "t", "u2", question("q2", "Newer?"));
+        deliver(&mut v, &page(json!([{"id":"u1","status":"completed","items":[person("p1")]}])));
+        assert_eq!(state(&v, "t"), AskedQuestion::NotRead);
+        v.asked_thread_started("t");
+        assert_eq!(state(&v, "t"), AskedQuestion::NotRead);
+        assert_eq!(v.snapshot()["askedQuestions"]["read"], json!([]));
+    }
+    // H3: a fork's question gets its reading and its row together.
+    #[test]
+    fn a_continuation_question_whose_row_cannot_be_admitted_leaves_the_conversation_not_read() {
+        let mut v = view();
+        let mut nameless = question("q1", "Asked?");
+        nameless["id"] = json!("");
+        v.asked_continuation_reply(&json!({"thread":{"id":"fork","turns":[{"id":"u1","status":"completed","items":[nameless]}]}}), 9);
+        assert_eq!(state(&v, "fork"), AskedQuestion::NotRead);
+        v.asked_continuation_reply(&json!({"thread":{"id":"fork2","turns":[{"id":"","status":"completed","items":[question("q1","Asked?")]}]}}), 9);
+        assert_eq!(state(&v, "fork2"), AskedQuestion::NotRead);
+        assert_eq!(v.snapshot()["askedQuestions"]["waiting"], json!([]));
+        assert!(v.snapshot()["items"].as_array().unwrap().is_empty());
+        // A conversation already read is not left with its earlier reading by a newer reply it cannot show.
+        let mut v = view();
+        live(&mut v, 1, "item/completed", "t", "u1", person("p1"));
+        let mut nameless = question("q2", "Asked?");
+        nameless["id"] = json!("");
+        v.asked_continuation_reply(&json!({"thread":{"id":"t","turns":[
+            {"id":"u1","status":"completed","items":[person("p1")]},{"id":"u2","status":"completed","items":[nameless]}]}}), 9);
+        assert_eq!(state(&v, "t"), AskedQuestion::NotRead);
+    }
+    // H4: one completion rule for the reading and the row's display state.
+    #[test]
+    fn a_question_counts_only_where_its_row_is_shown_completed() {
+        for status in [Value::Null, json!("completed"), json!("failed"), json!("declined"), json!("interrupted"), json!("inventedStatus")] {
+            let counts = status.is_null() || status == "completed";
+            let mut q = question("q", "Asked?");
+            if !status.is_null() { q["status"] = status.clone(); }
+            // Live, at its completion.
+            let mut v = view();
+            live(&mut v, 1, "item/completed", "t", "u", q.clone());
+            let row = v.snapshot()["items"][0].clone();
+            assert_eq!(row["displayState"] == "completed", counts, "live {status}");
+            assert_eq!(waiting_item(&v, "t").is_some(), counts, "live {status}");
+            // From history.
+            let mut v = view();
+            deliver(&mut v, &page(json!([{"id":"u","status":"completed","items":[q.clone()]}])));
+            let row = v.snapshot()["items"][0].clone();
+            assert_eq!(row["displayState"] == "completed", counts, "history {status}");
+            assert_eq!(waiting_item(&v, "t").is_some(), counts, "history {status}");
+        }
+    }
+    // H5: which question a message from the person followed.
+    #[test]
+    fn followed_names_the_question_a_live_message_from_the_person_followed() {
+        let mut v = view();
+        live(&mut v, 1, "item/completed", "t", "u1", question("q", "Asked?"));
+        assert_eq!(followed(&v), json!([]));
+        live(&mut v, 2, "item/started", "t", "u2", person("p"));
+        assert_eq!(followed(&v), json!([{"threadId":"t","turnId":"u1","itemId":"q"}]));
+        // A further message from the person: the question is still followed.
+        live(&mut v, 3, "item/started", "t", "u3", person("p3"));
+        assert_eq!(followed(&v), json!([{"threadId":"t","turnId":"u1","itemId":"q"}]));
+        // A new question changes the reading: nothing is said to be followed.
+        live(&mut v, 4, "item/completed", "t", "u3", question("q4", "Again?"));
+        assert_eq!(followed(&v), json!([]));
+        // A conversation read from its start with only a message from the person: no question to name.
+        v.asked_thread_started("s");
+        live(&mut v, 5, "item/started", "s", "u1", person("ps"));
+        assert_eq!(state(&v, "s"), AskedQuestion::None);
+        assert_eq!(followed(&v), json!([]));
+    }
+    #[test]
+    fn followed_from_history_names_the_latest_question_before_the_decisive_message() {
+        let mut v = view();
+        deliver(&mut v, &page(json!([
+            {"id":"u3","status":"completed","items":[person("p3"),agent("a3")]},
+            {"id":"u2","status":"completed","items":[person("p2"),question("q2","Second?")]},
+            {"id":"u1","status":"completed","items":[question("q1","First?")]}])));
+        assert_eq!(state(&v, "t"), AskedQuestion::None);
+        assert_eq!(followed(&v), json!([{"threadId":"t","turnId":"u2","itemId":"q2"}]));
+        // A page with no question before its decisive message names none.
+        let mut v = view();
+        deliver(&mut v, &page(json!([{"id":"u1","status":"completed","items":[person("p1")]}])));
+        assert_eq!(state(&v, "t"), AskedQuestion::None);
+        assert_eq!(followed(&v), json!([]));
+        // A page proving a message newer than a waiting question names that question even where
+        // its own copy of the question's turn lacks it.
+        let mut v = view();
+        live(&mut v, 1, "item/completed", "t", "u1", question("q", "Live?"));
+        deliver(&mut v, &page(json!([
+            {"id":"u2","status":"completed","items":[person("p2")]},
+            {"id":"u1","status":"completed","items":[person("p1")]}])));
+        assert_eq!(state(&v, "t"), AskedQuestion::None);
+        assert_eq!(followed(&v), json!([{"threadId":"t","turnId":"u1","itemId":"q"}]));
+    }
+    #[test]
+    fn followed_is_removed_when_the_reading_changes_or_becomes_unresolved() {
+        let mut v = view();
+        live(&mut v, 1, "item/completed", "t", "u1", question("q", "Asked?"));
+        live(&mut v, 2, "item/started", "t", "u2", person("p"));
+        assert_eq!(followed(&v).as_array().unwrap().len(), 1);
+        // An unorderable conflicting page: not read, and nothing followed.
+        deliver(&mut v, &page(json!([{"id":"u0","status":"completed","items":[question("q0","Old?")]}])));
+        assert_eq!(state(&v, "t"), AskedQuestion::NotRead);
+        assert_eq!(followed(&v), json!([]));
+        // A history-established followed is removed when an ordered newer page finds a question.
+        let mut v = view();
+        deliver(&mut v, &page(json!([
+            {"id":"u2","status":"completed","items":[person("p2")]},
+            {"id":"u1","status":"completed","items":[question("q1","First?")]}])));
+        assert_eq!(followed(&v), json!([{"threadId":"t","turnId":"u1","itemId":"q1"}]));
+        deliver(&mut v, &page(json!([
+            {"id":"u3","status":"completed","items":[question("q3","Third?")]},
+            {"id":"u2","status":"completed","items":[person("p2")]}])));
+        assert_eq!(waiting_item(&v, "t").as_deref(), Some("q3"));
+        assert_eq!(followed(&v), json!([]));
+        // A successor generation keeps none.
+        live(&mut v, 1, "item/started", "t", "u4", person("p4"));
+        assert_eq!(followed(&v).as_array().unwrap().len(), 1);
+        v.close(&g(1)).unwrap();
+        v.ready(g(2), Value::Null, Value::Null).unwrap();
+        assert_eq!(followed(&v), json!([]));
     }
     #[test]
     fn waiting_entries_are_sorted_by_conversation() {
