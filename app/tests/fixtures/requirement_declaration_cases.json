@@ -1,0 +1,393 @@
+{
+  "about": "Declared-part cases shared by the host's test (workflow_declaration.rs) and the web test (requirement-declaration.test.mjs). 'declaration' is the selection row's declaration as the host serializes it for 'text'; 'requirementDeclaration' is the host's one reading of declared against undeclared for the same bytes. The host test recomputes both from 'text' (or 'error') and refuses a difference. Invented content only.",
+  "cases": [
+    {
+      "declaration": {
+        "categories": {
+          "checkpoints": "undeclared",
+          "expected_inputs": "undeclared",
+          "required_tools": "undeclared",
+          "returned_evidence": "undeclared",
+          "returned_outputs": "undeclared"
+        },
+        "elements": {},
+        "findings": [],
+        "raw": null,
+        "reading": "undeclared"
+      },
+      "error": null,
+      "name": "no declared part",
+      "requirementDeclaration": {
+        "state": "undeclared"
+      },
+      "state": "undeclared",
+      "text": "# Invented workflow\n\nSteps in prose that mention a shell tool and sub-agents.\n\n"
+    },
+    {
+      "declaration": {
+        "categories": {
+          "checkpoints": "declared_empty",
+          "expected_inputs": "undeclared",
+          "required_tools": "undeclared",
+          "returned_evidence": "undeclared",
+          "returned_outputs": "undeclared"
+        },
+        "elements": {
+          "checkpoints": []
+        },
+        "findings": [],
+        "raw": {
+          "checkpoints": [],
+          "declaration_contract_version": "WD-v0.8"
+        },
+        "reading": "recognized"
+      },
+      "error": null,
+      "name": "a declared part that does not name required tools",
+      "requirementDeclaration": {
+        "state": "undeclared"
+      },
+      "state": "undeclared",
+      "text": "# Invented workflow\n\nSteps in prose that mention a shell tool and sub-agents.\n\n```workflow-declaration\n{\"declaration_contract_version\":\"WD-v0.8\",\"checkpoints\":[]}\n```\n"
+    },
+    {
+      "declaration": {
+        "categories": {
+          "checkpoints": "undeclared",
+          "expected_inputs": "undeclared",
+          "required_tools": "declared_empty",
+          "returned_evidence": "undeclared",
+          "returned_outputs": "undeclared"
+        },
+        "elements": {
+          "required_tools": []
+        },
+        "findings": [],
+        "raw": {
+          "declaration_contract_version": "WD-v0.8",
+          "required_tools": []
+        },
+        "reading": "recognized"
+      },
+      "error": null,
+      "name": "declares that it needs none",
+      "requirementDeclaration": {
+        "state": "declared_empty"
+      },
+      "state": "declared_empty",
+      "text": "# Invented workflow\n\nSteps in prose that mention a shell tool and sub-agents.\n\n```workflow-declaration\n{\"declaration_contract_version\":\"WD-v0.8\",\"required_tools\":[]}\n```\n"
+    },
+    {
+      "declaration": {
+        "categories": {
+          "checkpoints": "undeclared",
+          "expected_inputs": "undeclared",
+          "required_tools": "recognized",
+          "returned_evidence": "undeclared",
+          "returned_outputs": "undeclared"
+        },
+        "elements": {
+          "required_tools": [
+            {
+              "findings": [],
+              "reading": "recognized",
+              "value": {
+                "capability": "agent-delegation",
+                "class": "harness_capability",
+                "name": "delegate",
+                "necessity": "required",
+                "purpose": "Hand a part to a sub-agent",
+                "stages": [
+                  "Method"
+                ]
+              }
+            },
+            {
+              "findings": [],
+              "reading": "recognized",
+              "value": {
+                "class": "host_operation",
+                "fallback": "Ask the person",
+                "name": "lookup",
+                "necessity": "optional",
+                "operation": "invented.lookup",
+                "purpose": "Look a value up",
+                "stages": [
+                  "Method"
+                ],
+                "versions": [
+                  "1"
+                ]
+              }
+            }
+          ]
+        },
+        "findings": [],
+        "raw": {
+          "declaration_contract_version": "WD-v0.8",
+          "required_tools": [
+            {
+              "capability": "agent-delegation",
+              "class": "harness_capability",
+              "name": "delegate",
+              "necessity": "required",
+              "purpose": "Hand a part to a sub-agent",
+              "stages": [
+                "Method"
+              ]
+            },
+            {
+              "class": "host_operation",
+              "fallback": "Ask the person",
+              "name": "lookup",
+              "necessity": "optional",
+              "operation": "invented.lookup",
+              "purpose": "Look a value up",
+              "stages": [
+                "Method"
+              ],
+              "versions": [
+                "1"
+              ]
+            }
+          ]
+        },
+        "reading": "recognized"
+      },
+      "error": null,
+      "name": "declares a required and an optional tool",
+      "requirementDeclaration": {
+        "declaration": {
+          "categories": {
+            "required_tools": "recognized"
+          },
+          "elements": {
+            "required_tools": [
+              {
+                "findings": [],
+                "reading": "recognized",
+                "value": {
+                  "capability": "agent-delegation",
+                  "class": "harness_capability",
+                  "name": "delegate",
+                  "necessity": "required",
+                  "purpose": "Hand a part to a sub-agent",
+                  "stages": [
+                    "Method"
+                  ]
+                }
+              },
+              {
+                "findings": [],
+                "reading": "recognized",
+                "value": {
+                  "class": "host_operation",
+                  "fallback": "Ask the person",
+                  "name": "lookup",
+                  "necessity": "optional",
+                  "operation": "invented.lookup",
+                  "purpose": "Look a value up",
+                  "stages": [
+                    "Method"
+                  ],
+                  "versions": [
+                    "1"
+                  ]
+                }
+              }
+            ]
+          },
+          "reading": "recognized"
+        },
+        "state": "declared"
+      },
+      "state": "declared",
+      "text": "# Invented workflow\n\nSteps in prose that mention a shell tool and sub-agents.\n\n```workflow-declaration\n{\"declaration_contract_version\":\"WD-v0.8\",\"required_tools\":[{\"name\":\"delegate\",\"class\":\"harness_capability\",\"capability\":\"agent-delegation\",\"purpose\":\"Hand a part to a sub-agent\",\"necessity\":\"required\",\"stages\":[\"Method\"]},{\"name\":\"lookup\",\"class\":\"host_operation\",\"operation\":\"invented.lookup\",\"versions\":[\"1\"],\"purpose\":\"Look a value up\",\"necessity\":\"optional\",\"fallback\":\"Ask the person\",\"stages\":[\"Method\"]}]}\n```\n"
+    },
+    {
+      "declaration": {
+        "categories": {
+          "checkpoints": "undeclared",
+          "expected_inputs": "undeclared",
+          "required_tools": "recognized",
+          "returned_evidence": "undeclared",
+          "returned_outputs": "undeclared"
+        },
+        "elements": {
+          "required_tools": [
+            {
+              "findings": [
+                "\"class\" is a required property",
+                "\"purpose\" is a required property",
+                "\"stages\" is a required property"
+              ],
+              "reading": "not_established",
+              "value": {
+                "name": "delegate",
+                "necessity": "required"
+              }
+            }
+          ]
+        },
+        "findings": [],
+        "raw": {
+          "declaration_contract_version": "WD-v0.8",
+          "required_tools": [
+            {
+              "name": "delegate",
+              "necessity": "required"
+            }
+          ]
+        },
+        "reading": "recognized"
+      },
+      "error": null,
+      "name": "declares a tool the App cannot read as declared",
+      "requirementDeclaration": {
+        "declaration": {
+          "categories": {
+            "required_tools": "recognized"
+          },
+          "elements": {
+            "required_tools": [
+              {
+                "findings": [
+                  "\"class\" is a required property",
+                  "\"purpose\" is a required property",
+                  "\"stages\" is a required property"
+                ],
+                "reading": "not_established",
+                "value": {
+                  "name": "delegate",
+                  "necessity": "required"
+                }
+              }
+            ]
+          },
+          "reading": "recognized"
+        },
+        "state": "declared"
+      },
+      "state": "declared",
+      "text": "# Invented workflow\n\nSteps in prose that mention a shell tool and sub-agents.\n\n```workflow-declaration\n{\"declaration_contract_version\":\"WD-v0.8\",\"required_tools\":[{\"name\":\"delegate\",\"necessity\":\"required\"}]}\n```\n"
+    },
+    {
+      "declaration": {
+        "categories": {
+          "checkpoints": "undeclared",
+          "expected_inputs": "undeclared",
+          "required_tools": "not_established",
+          "returned_evidence": "undeclared",
+          "returned_outputs": "undeclared"
+        },
+        "elements": {},
+        "findings": [],
+        "raw": {
+          "declaration_contract_version": "WD-v0.8",
+          "required_tools": "none"
+        },
+        "reading": "recognized"
+      },
+      "error": null,
+      "name": "required tools not given as a list",
+      "requirementDeclaration": {
+        "reason": "the declared required tools are not given as a list",
+        "state": "not_read"
+      },
+      "state": "not_read",
+      "text": "# Invented workflow\n\nSteps in prose that mention a shell tool and sub-agents.\n\n```workflow-declaration\n{\"declaration_contract_version\":\"WD-v0.8\",\"required_tools\":\"none\"}\n```\n"
+    },
+    {
+      "declaration": {
+        "categories": {},
+        "elements": {},
+        "findings": [
+          "FB-02: EOF while parsing a list at line 1 column 60"
+        ],
+        "raw": null,
+        "reading": "not_established"
+      },
+      "error": null,
+      "name": "a declared part that is not JSON",
+      "requirementDeclaration": {
+        "reason": "the declared part could not be read: FB-02: EOF while parsing a list at line 1 column 60",
+        "state": "not_read"
+      },
+      "state": "not_read",
+      "text": "# Invented workflow\n\nSteps in prose that mention a shell tool and sub-agents.\n\n```workflow-declaration\n{\"declaration_contract_version\":\"WD-v0.8\",\"required_tools\":[\n```\n"
+    },
+    {
+      "declaration": {
+        "categories": {},
+        "elements": {},
+        "findings": [
+          "FB-02: duplicate JSON key required_tools at line 1 column 78"
+        ],
+        "raw": null,
+        "reading": "not_established"
+      },
+      "error": null,
+      "name": "a declared part with a repeated key",
+      "requirementDeclaration": {
+        "reason": "the declared part could not be read: FB-02: duplicate JSON key required_tools at line 1 column 78",
+        "state": "not_read"
+      },
+      "state": "not_read",
+      "text": "# Invented workflow\n\nSteps in prose that mention a shell tool and sub-agents.\n\n```workflow-declaration\n{\"declaration_contract_version\":\"WD-v0.8\",\"required_tools\":[],\"required_tools\":[{\"name\":\"delegate\",\"class\":\"harness_capability\",\"capability\":\"agent-delegation\",\"purpose\":\"Hand a part to a sub-agent\",\"necessity\":\"required\",\"stages\":[\"Method\"]}]}\n```\n"
+    },
+    {
+      "declaration": {
+        "categories": {},
+        "elements": {},
+        "findings": [
+          "contract version not established; preserved"
+        ],
+        "raw": {
+          "declaration_contract_version": "WD-v9",
+          "required_tools": []
+        },
+        "reading": "not_established"
+      },
+      "error": null,
+      "name": "another contract version",
+      "requirementDeclaration": {
+        "reason": "the declared part could not be read: contract version not established; preserved",
+        "state": "not_read"
+      },
+      "state": "not_read",
+      "text": "# Invented workflow\n\nSteps in prose that mention a shell tool and sub-agents.\n\n```workflow-declaration\n{\"declaration_contract_version\":\"WD-v9\",\"required_tools\":[]}\n```\n"
+    },
+    {
+      "declaration": {
+        "categories": {},
+        "elements": {},
+        "findings": [
+          "FB-02: more than one workflow-declaration block"
+        ],
+        "raw": null,
+        "reading": "not_established"
+      },
+      "error": null,
+      "name": "two declared parts",
+      "requirementDeclaration": {
+        "reason": "the declared part could not be read: FB-02: more than one workflow-declaration block",
+        "state": "not_read"
+      },
+      "state": "not_read",
+      "text": "# Invented workflow\n\nSteps in prose that mention a shell tool and sub-agents.\n\n```workflow-declaration\n{\"declaration_contract_version\":\"WD-v0.8\",\"required_tools\":[]}\n```\n\n```workflow-declaration\n{\"declaration_contract_version\":\"WD-v0.8\"}\n```\n"
+    },
+    {
+      "declaration": {
+        "unavailable": "selected revision not resolvable"
+      },
+      "error": "selected revision not resolvable",
+      "name": "the workflow text could not be read",
+      "requirementDeclaration": {
+        "reason": "selected revision not resolvable",
+        "state": "not_read"
+      },
+      "state": "not_read",
+      "text": null
+    }
+  ]
+}

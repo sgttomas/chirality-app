@@ -1336,3 +1336,42 @@ fn a_host_operation_without_a_connected_host_never_reads_available() {
         assert_eq!(view["preparation"]["check"]["result"], "not_established");
     }
 }
+
+// DEL-02-03 REQ-001: the reading a catalogue entry carries at the moment of picking and the
+// conversation's check never disagree about declared against undeclared. For each shared case, the
+// entry's state is set beside the report's own declared-part status and the check's result on the
+// same declaration.
+#[test]
+fn the_entry_reading_and_the_check_agree_on_declared_against_undeclared() {
+    use crate::workflow_declaration::{read, requirement_declaration};
+    let table: Value = serde_json::from_str(include_str!("../../tests/fixtures/requirement_declaration_cases.json")).unwrap();
+    let mut seen = 0;
+    for case in table["cases"].as_array().unwrap() {
+        let Some(text) = case["text"].as_str() else { continue };
+        let name = &case["name"];
+        let declaration = read(text).unwrap();
+        let state = requirement_declaration(&Ok(declaration.clone()))["state"].as_str().unwrap().to_owned();
+        let status = declared_part_status(&declaration);
+        let result = Compatibility::check(&declaration, &Environment::default()).result;
+        match state.as_str() {
+            "undeclared" => {
+                assert_eq!(status, "undeclared", "{name}");
+                assert_eq!(result, Check::NotEstablished, "{name}: an undeclared workflow never passes");
+            }
+            "declared_empty" => {
+                assert_eq!(status, "declared_empty", "{name}");
+                assert_eq!(result, Check::Compatible, "{name}");
+            }
+            // Declared: the report says declared, or not established where an element could not be
+            // read as declared; never undeclared and never declared-empty.
+            "declared" => assert!(matches!(status, "declared" | "not_established"), "{name}: {status}"),
+            "not_read" => {
+                assert_eq!(status, "not_established", "{name}");
+                assert_eq!(result, Check::NotEstablished, "{name}: an unreadable part never passes");
+            }
+            other => panic!("{name}: {other}"),
+        }
+        seen += 1;
+    }
+    assert!(seen >= 10);
+}

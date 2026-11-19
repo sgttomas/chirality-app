@@ -4805,10 +4805,12 @@ impl WorkflowRootSession {
     /// A production catalog entry as the run guide reads it: runnable only when
     /// this App's installed bundle currently resolves that package (LS-5).
     /// `bundle` is this App's installed root with its manifest verified, or why not.
-    fn production_entry_admission(&self, catalog: &crate::workflow_workspace::production_catalog::ProductionCatalog, bundle: &Result<std::path::PathBuf, String>, name: &str) -> Result<(), String> {
+    /// Whether an included entry resolves now and, where it does, what its own
+    /// bytes declare of its required tools.
+    fn production_entry_admission(&self, catalog: &crate::workflow_workspace::production_catalog::ProductionCatalog, bundle: &Result<std::path::PathBuf, String>, name: &str) -> Result<Value, String> {
         let unverified = |e: &String| format!("This App's included workflow could not be verified: {e}. Nothing can be selected or run from it (WR LS-5)");
         let root = bundle.as_ref().map_err(|e| e.clone())?;
-        catalog.listed_admission(root, name).map_err(|e| unverified(&e))
+        catalog.listed_requirement_declaration(root, name).map_err(|e| unverified(&e))
     }
     /// This App's installed workflow resources with their manifest verified now,
     /// or the reason no bundled workflow can be offered.
@@ -4836,9 +4838,12 @@ impl WorkflowRootSession {
         Ok(())
     }
     fn selection_view(&self, s: &WorkflowSelectionState) -> Value {
+        let declaration = s.selection.snapshot().declaration();
         json!({"reference":s.reference,"identity":s.selection.identity(),"standing":s.selection.admission().standing(),"assurance":match s.selection.approval() { Some(Ok(a)) => a.record(), _ => Value::Null },"package":crate::attachments::native_path_identity(&s.package),"currentLimit":s.selection.verify_store(&s.package).err(),"selectedAt":s.selected_at,"replaces":s.replaces,"newerRevision":self.newer_revision_view(s),"runnable":self.run_admission(&s.selection).is_ok(),"runLimit":self.run_admission(&s.selection).err(),
                 // NIR §9 PD-1 / AS §4 OV-1: the declared part, read from the selected revision's own bytes, for the run panel.
-                "declaration":s.selection.snapshot().declaration().map(|d|json!(d)).unwrap_or_else(|error|json!({"unavailable":error}))})
+                // The same reading of declared against undeclared that a catalogue entry carries (DEL-02-03 REQ-001).
+                "requirementDeclaration":crate::workflow_declaration::requirement_declaration(&declaration),
+                "declaration":declaration.map(|d|json!(d)).unwrap_or_else(|error|json!({"unavailable":error}))})
     }
     fn choice(&self, chat: Option<&crate::workflow_selection::Chat>) -> Option<&WorkflowSelectionState> {
         match chat { Some(chat) => self.selected.get(chat), None => self.inspected.as_ref() }
@@ -4882,12 +4887,16 @@ impl WorkflowRootSession {
                     let mut row = json!({"name":identity.name,"revision":identity.revision,
                         "origin":identity.origin,"sourceRoot":identity.source_root,
                         "revisionMethod":identity.revision_method,"identity":identity,
-                        "runnable":admission.is_ok(),"runLimit":admission.err(),
+                        "runnable":admission.is_ok(),"runLimit":admission.as_ref().err(),
                         "bundledStanding":crate::workflow_workspace::production_catalog::BUNDLED_STANDING});
                     // What the Library's own index says of the workflow, for choosing among them.
                     for (key, value) in entry.listing().as_object().into_iter().flatten() {
                         row[key.as_str()] = value.clone();
                     }
+                    // DEL-02-03 REQ-001, at the moment of picking: what the entry's own verified bytes
+                    // declare of its required tools, by the one function a selection's row uses. An
+                    // entry that does not resolve is not read, never undeclared.
+                    row["requirementDeclaration"] = admission.unwrap_or_else(|reason| json!({"state":"not_read","reason":reason}));
                     row
                 }).collect::<Vec<_>>();
                 json!({"standing":crate::workflow_workspace::production_catalog::PRODUCTION_STANDING,
@@ -8739,6 +8748,52 @@ for line in sys.stdin:
         assert!(absent["runLimit"].as_str().unwrap().contains("could not be verified"), "{absent}");
         assert!(root.select_production_bundle(Some(&chat), installed.0.clone(), "create-workflow").is_err());
         assert!(root.selected.is_empty(), "nothing selected");
+    }
+    // DEL-02-03 REQ-001, at the moment of picking: every catalogue entry carries what its own
+    // verified bytes declare of its required tools, by the function a selection's row uses, so the
+    // entry and the conversation's check cannot disagree about declared against undeclared.
+    #[test]
+    fn a_catalogue_entry_carries_the_same_requirement_declaration_as_its_selection() {
+        let peer = Peer::new();
+        let catalog = crate::workflow_workspace::production_catalog::ProductionCatalog::load().unwrap();
+        let names: Vec<String> = catalog.entries().map(|e| e.identity().name.clone()).collect();
+        // An installed-resources root holding every included workflow.
+        let base = std::fs::canonicalize(std::env::temp_dir()).unwrap().join(crate::util::opaque_id("installed-all-").unwrap());
+        let installed = InstalledBundle::under(&base);
+        for name in names.iter().filter(|name| *name != BUNDLED) {
+            catalog.select_source(name).snapshot().publish_new(&installed.0.join(name)).unwrap();
+        }
+        let mut root = WorkflowRootSession::default();
+        // Before the App's installed resources are known, no entry is read: never undeclared.
+        for entry in root.snapshot()["productionCatalog"]["entries"].as_array().unwrap() {
+            assert_eq!(entry["requirementDeclaration"]["state"], "not_read", "{entry}");
+            assert_eq!(entry["requirementDeclaration"]["reason"], entry["runLimit"], "{entry}");
+        }
+        root.configure_installed_bundle(installed.0.clone()).unwrap();
+        let entries = root.snapshot()["productionCatalog"]["entries"].as_array().unwrap().clone();
+        assert_eq!(entries.len(), names.len());
+        let chat = crate::workflow_selection::Chat::in_home(&peer.home, "thread");
+        let mut states = std::collections::BTreeMap::<String, usize>::new();
+        for entry in &entries {
+            let name = entry["name"].as_str().unwrap();
+            assert_eq!(entry["runnable"], true, "{entry}");
+            let reading = &entry["requirementDeclaration"];
+            // The same bytes read directly, as a selection of them reads them.
+            let direct = crate::workflow_declaration::requirement_declaration(&catalog.select_source(name).snapshot().declaration());
+            assert_eq!(*reading, direct, "{name}");
+            // And the selection's own row, through the selection the person makes.
+            let chosen = root.select_production_bundle(Some(&chat), installed.0.clone(), name).unwrap();
+            assert_eq!(chosen["choice"]["requirementDeclaration"], *reading, "{name}");
+            assert_eq!(chosen["choice"]["identity"], entry["identity"], "{name}");
+            *states.entry(reading["state"].as_str().unwrap().to_owned()).or_default() += 1;
+        }
+        // What the included workflows declare today: none of them declares required tools.
+        assert_eq!(states, std::collections::BTreeMap::from([("undeclared".to_owned(), names.len())]));
+        // An entry whose files no longer verify is not read, with the reason the entry gives for not being runnable.
+        std::fs::write(installed.0.join(BUNDLED).join("WORKFLOW.md"), "changed").unwrap();
+        let changed = bundled_entry(&root, BUNDLED);
+        assert_eq!(changed["runnable"], false);
+        assert_eq!(changed["requirementDeclaration"], json!({"state":"not_read","reason":changed["runLimit"]}));
     }
     // J1 / WR LS-5, TX-1, TX-7 (c): the exact selected bundled subject runs
     // without A15 through the existing guarded prepare/send lifecycle. Its

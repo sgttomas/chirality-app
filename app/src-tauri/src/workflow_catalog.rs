@@ -339,9 +339,18 @@ impl ProductionCatalog {
     /// and modification times are unchanged. This is a listing aid only:
     /// selection, preparation and sending always read and hash the bytes.
     pub fn listed_admission(&self, root: &Path, name: &str) -> Result<(), String> {
-        type Listed = std::collections::HashMap<PathBuf, (Vec<FileFacts>, Result<(), String>)>;
+        self.listed_requirement_declaration(root, name).map(|_| ())
+    }
+    /// The same listing aid, with what the entry's own verified bytes declare
+    /// of its required tools (`workflow_declaration::requirement_declaration`,
+    /// read as a selection of those bytes reads it). An entry that does not
+    /// resolve has no reading: the refusal is returned instead.
+    pub fn listed_requirement_declaration(&self, root: &Path, name: &str) -> Result<serde_json::Value, String> {
+        type Listed = std::collections::HashMap<PathBuf, (Vec<FileFacts>, Result<serde_json::Value, String>)>;
         static LISTED: std::sync::OnceLock<std::sync::Mutex<Listed>> = std::sync::OnceLock::new();
-        let verify = || self.select_bundle_package(root, name).map(|_| ());
+        let verify = || self.select_bundle_package(root, name).map(|package| {
+            crate::workflow_declaration::requirement_declaration(&package.selection.snapshot().declaration())
+        });
         let package = root.join(name);
         let mut facts = Vec::new();
         if file_facts(&package, &mut facts).is_err() {

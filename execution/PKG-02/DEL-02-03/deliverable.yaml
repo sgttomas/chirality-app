@@ -101,6 +101,12 @@ code_paths:
 - app/src-tauri/schemas/checkpoint-record-entries.schema.json
 # The requirement check as the person's guide shows it; RunJourney.tsx (DEL-02-02's) mounts it.
 - app/src/RequirementCheck.tsx
+# workflow_declaration.rs is DEL-02-01's and workflow_catalog.rs is DEL-02-02's. Here: the one
+# reading of declared against undeclared (requirement_declaration) that a catalogue entry and a
+# selection's row both carry, so what is said at the moment of picking and the requirement
+# check cannot disagree.
+- app/src-tauri/src/workflow_declaration.rs
+- app/src-tauri/src/workflow_catalog.rs
 # runtime_session.rs, lib.rs and host_tick.rs are shared. Here: opening and ending a run, its
 # run reference and tag, the occasions of the requirement check, and feeding observed items
 # to the checkpoint recorder. Run preparation, run text and the supply check are DEL-02-02's;
@@ -128,4 +134,8 @@ checks:
 - app/tests/proposed-run-disclosure.test.mjs
 - app/tests/run-panel.test.mjs
 - app/tests/requirement-check.test.mjs
+# The declared-part cases the host's tests and the web test both read, and the web test that sets
+# the check's sentence beside the host's reading for each.
+- app/tests/fixtures/requirement_declaration_cases.json
+- app/tests/requirement-declaration.test.mjs
 - app/tests/validate-records.test.mjs

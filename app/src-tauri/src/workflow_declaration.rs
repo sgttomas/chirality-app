@@ -364,6 +364,45 @@ pub fn read(text: &str) -> Result<Declaration, String> {
     Ok(r)
 }
 
+/// What a workflow's declared part says of its required tools, for a pick
+/// and for the conversation's requirement check alike (DEL-02-03 REQ-001).
+/// This is the one reading of declared against undeclared: a catalogue entry
+/// and a selection of the same bytes carry this value, and neither is derived
+/// another way. It says nothing of whether a tool is available.
+///
+/// - `undeclared`: no declared part, or one that does not name the category.
+///   Never the same as declaring none.
+/// - `declared_empty`: the workflow declares that it needs none.
+/// - `declared`: it declares tools; `declaration` carries them as the
+///   selection's own `declaration` does, cut down to the required tools.
+/// - `not_read`: the declared part could not be read, with the reason. Never
+///   shown as undeclared.
+pub fn requirement_declaration(declaration: &Result<Declaration, String>) -> Value {
+    let not_read = |reason: String| serde_json::json!({"state":"not_read","reason":reason});
+    let declaration = match declaration {
+        Ok(declaration) => declaration,
+        Err(reason) => return not_read(reason.clone()),
+    };
+    let category = declaration.categories.get("required_tools");
+    match (&declaration.reading, category) {
+        (Reading::Undeclared, _) | (Reading::Recognized, None | Some(Reading::Undeclared)) => {
+            serde_json::json!({"state":"undeclared"})
+        }
+        (Reading::Recognized, Some(Reading::DeclaredEmpty)) => {
+            serde_json::json!({"state":"declared_empty"})
+        }
+        (Reading::Recognized, Some(Reading::Recognized)) => serde_json::json!({"state":"declared",
+            "declaration":{"reading":declaration.reading,"categories":{"required_tools":category},
+                "elements":{"required_tools":declaration.elements.get("required_tools").cloned().unwrap_or_default()}}}),
+        // The part is read and names the category, but not as a list of tools.
+        (Reading::Recognized, Some(_)) => not_read("the declared required tools are not given as a list".into()),
+        _ => not_read(match declaration.findings.first() {
+            Some(finding) => format!("the declared part could not be read: {finding}"),
+            None => "the declared part could not be read".into(),
+        }),
+    }
+}
+
 fn domain_checks(r: &mut Declaration) {
     let usable: BTreeMap<String, BTreeSet<String>> = r
         .elements
@@ -522,5 +561,91 @@ fn domain_checks(r: &mut Declaration) {
                 e.findings.extend(failures.into_iter().map(String::from));
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod requirement_declaration_tests {
+    use super::*;
+    use serde_json::json;
+    const CASES: &str = include_str!("../../tests/fixtures/requirement_declaration_cases.json");
+    fn read_case(case: &Value) -> Result<Declaration, String> {
+        match case["text"].as_str() {
+            Some(text) => read(text),
+            None => Err(case["error"].as_str().unwrap().to_owned()),
+        }
+    }
+    /// The selection row's own serialization of the declared part (`runtime_session::selection_view`).
+    fn row_declaration(read: &Result<Declaration, String>) -> Value {
+        read.as_ref().map(|d| json!(d)).unwrap_or_else(|error| json!({"unavailable":error}))
+    }
+    // DEL-02-03 REQ-001: the table the web test reads is what the host computes, for every case.
+    #[test]
+    fn the_shared_cases_are_what_the_host_reads() {
+        let table: Value = serde_json::from_str(CASES).unwrap();
+        let cases = table["cases"].as_array().unwrap();
+        let mut states = BTreeSet::new();
+        for case in cases {
+            let name = &case["name"];
+            let read = read_case(case);
+            let reading = requirement_declaration(&read);
+            assert_eq!(row_declaration(&read), case["declaration"], "{name}");
+            assert_eq!(reading, case["requirementDeclaration"], "{name}");
+            assert_eq!(reading["state"], case["state"], "{name}");
+            states.insert(reading["state"].as_str().unwrap().to_owned());
+        }
+        assert_eq!(states.into_iter().collect::<Vec<_>>(), ["declared", "declared_empty", "not_read", "undeclared"]);
+    }
+    #[test]
+    fn each_state_carries_only_what_it_says() {
+        let table: Value = serde_json::from_str(CASES).unwrap();
+        for case in table["cases"].as_array().unwrap() {
+            let name = &case["name"];
+            let read = read_case(case);
+            let reading = requirement_declaration(&read);
+            let keys: Vec<&str> = reading.as_object().unwrap().keys().map(String::as_str).collect();
+            match reading["state"].as_str().unwrap() {
+                "undeclared" | "declared_empty" => assert_eq!(keys, ["state"], "{name}"),
+                "not_read" => {
+                    assert_eq!(keys, ["reason", "state"], "{name}");
+                    assert!(!reading["reason"].as_str().unwrap().is_empty(), "{name}");
+                }
+                "declared" => {
+                    assert_eq!(keys, ["declaration", "state"], "{name}");
+                    // Cut down to the required tools, and otherwise the row's own declaration: same
+                    // reading, same category, the same elements in the same order.
+                    let whole = row_declaration(&read);
+                    let cut = &reading["declaration"];
+                    assert_eq!(cut["reading"], whole["reading"], "{name}");
+                    assert_eq!(cut["categories"], json!({"required_tools": whole["categories"]["required_tools"]}), "{name}");
+                    assert_eq!(cut["elements"], json!({"required_tools": whole["elements"]["required_tools"]}), "{name}");
+                    assert!(!cut["elements"]["required_tools"].as_array().unwrap().is_empty(), "{name}");
+                    assert_eq!(cut.as_object().unwrap().len(), 3, "{name}: nothing else of the declared part");
+                }
+                other => panic!("{name}: {other}"),
+            }
+        }
+    }
+    // Declared against undeclared never turns on prose, and an unreadable part is never undeclared.
+    #[test]
+    fn prose_declares_nothing_and_an_unreadable_part_is_not_undeclared() {
+        let prose = read("# W\n\nThis workflow requires the shell tool and sub-agents.\n\n```json\n{\"required_tools\":[]}\n```\n");
+        assert_eq!(requirement_declaration(&prose), json!({"state":"undeclared"}));
+        for text in ["```workflow-declaration\n{\n```\n", "```workflow-declaration\n{\"declaration_contract_version\":\"WD-v0.8\",\"required_tools\":{}}\n```\n"] {
+            assert_eq!(requirement_declaration(&read(text))["state"], "not_read", "{text}");
+        }
+        assert_eq!(requirement_declaration(&Err("unreadable".into())), json!({"state":"not_read","reason":"unreadable"}));
+    }
+    #[test]
+    #[ignore = "writes the shared table's computed values; run by hand after changing its cases"]
+    fn write_the_shared_cases() {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/fixtures/requirement_declaration_cases.json");
+        let mut table: Value = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+        for case in table["cases"].as_array_mut().unwrap() {
+            let read = read_case(case);
+            case["declaration"] = row_declaration(&read);
+            case["requirementDeclaration"] = requirement_declaration(&read);
+        }
+        std::fs::write(&path, format!("{}\n", serde_json::to_string_pretty(&table).unwrap())).unwrap();
     }
 }
