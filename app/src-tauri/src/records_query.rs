@@ -21,8 +21,10 @@ impl QueryDb {
         let stem = format!("query-{}-{}.sqlite", crate::util::sha256_hex(root.as_os_str().as_encoded_bytes()), crate::util::opaque_id("")?);
         let (store, folder) = cache_folder().map_err(|e| format!("query cache not written ({e}); the record sources are read directly"))?;
         let db = Self::at(&folder.join(&stem)).map_err(|e| format!("query cache not written ({e}); the record sources are read directly"))?;
-        // Created in the store this process bound, and in no folder put in
-        // its place meanwhile: otherwise the file is removed and not used.
+        // After opening, check the store binding again. A refusal discards
+        // the cache and attempts cleanup under the identity check. A folder or
+        // file changed on the path between these separate steps is not
+        // defended against (release limitation LIM-035).
         match crate::records_store::opened_existing() {
             Ok((bound, _)) if bound == store => { let mut db = db; db.store = Some(store); Ok(db) }
             Ok(_) | Err(_) => Err(format!("query cache not written (the records store at {} is no longer the store this App opened); the record sources are read directly", store.display())),
@@ -128,9 +130,9 @@ impl QueryDb {
         self.begin_log(log, 0)?;
         self.finish_log(true)
     }
-    /// Install only source-verified positions, retaining a byte-proved prefix.
-    /// The staging file is newly built by this process, checked before/after
-    /// the copy, and writer-locked by the attached SQLite transaction.
+    /// Retain a byte-proved prefix and copy positions from the attached
+    /// staging path. The stage's identity is checked separately from the
+    /// attachment. See LIM-035.
     pub(super) fn copy_log(&mut self, source: &Self, log: u32, from: u64, source_still_current: impl FnOnce() -> bool) -> rusqlite::Result<()> {
         #[cfg(test)]
         crate::records_effect_guard::mutation_for_test("records_query::QueryDb::copy_log");
@@ -197,9 +199,9 @@ impl QueryDb {
 /// device and inode checked). Set this to `false` and every index read uses
 /// source scans and writes nothing.
 const READS_WRITE_CACHE: bool = true;
-/// The bound store and its `indexes/` folder. Creates at most that one folder,
-/// in the existing bound store: never the store, any ancestor of it, or a
-/// folder anywhere else (no temporary-folder fallback).
+/// Resolve the bound store and attempt to create its `indexes/` child if
+/// missing. There is no temporary-folder fallback. Creation uses the path
+/// after the store check. See LIM-035.
 fn cache_folder() -> Result<(PathBuf, PathBuf), String> {
     #[cfg(test)]
     crate::records_effect_guard::mutation_for_test("records_query::cache_folder");
@@ -208,10 +210,13 @@ fn cache_folder() -> Result<(PathBuf, PathBuf), String> {
     }
     let (store, _) = crate::records_store::opened_existing()?;
     let folder = store.join("indexes");
+    use std::os::unix::fs::DirBuilderExt;
     match std::fs::symlink_metadata(&folder) {
         Ok(m) if m.is_dir() => {}
         Ok(_) => return Err(format!("{} is not a folder", folder.display())),
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => match std::fs::create_dir(&folder) {
+        // Requested with Unix mode 0700, subject to the file-creation mask,
+        // when made here; one already there is taken as found.
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => match std::fs::DirBuilder::new().mode(0o700).create(&folder) {
             Ok(()) => {}
             Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {}
             Err(e) => return Err(format!("{}: {e}", folder.display())),
@@ -228,7 +233,7 @@ impl Drop for QueryDb {
     fn drop(&mut self) {
         #[cfg(test)]
         crate::records_effect_guard::mutation_for_test("records_query::QueryDb::drop");
-        // Remove only our own file, never a substituted path or symlink.
+        // Check the cache before attempting removal by path. See LIM-035.
         if self.unchanged() { let _ = std::fs::remove_file(&self.path); }
     }
 }

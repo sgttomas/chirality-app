@@ -45,9 +45,13 @@ selector. It performs no signing.
 In production mode only, `--provisioning-profile /private/profile.provisionprofile
 --provisioning-profile-sha256 <exact-digest>` embeds the selected private Developer ID
 profile at `Contents/embedded.provisionprofile` through `bundle.macOS.files`. The
-helper requires the exact digest and parses the definite-length CMS SignedData
-structure down to its single encapsulated `id-data` OCTET STRING. That content must be
-exactly one XML property list with no duplicate keys, and the profile must be valid at
+helper requires the exact digest and reads the profile for exactly the enforced list in
+`prepare.py` (one definite-length element of 1 byte to 256 KiB; the declared CMS SignedData
+structure from the outside down to its single encapsulated `id-data` OCTET STRING; every
+length inside its parent; that content string read whole by `whole_plist.load`), without
+validating the inside of the other fields as ASN.1. The content must be exactly one XML
+property list, with no duplicate keys, each field the tools read of its type
+(`prepare.profile_types`), and the profile must be valid at
 preparation time (recorded as `validity_checked_at`). It also checks that the
 metadata matches the publisher input: the profile prefix plus the bundle
 identifier equals the `com.apple.application-identifier` grant, team and platform

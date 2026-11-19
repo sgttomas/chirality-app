@@ -138,7 +138,8 @@ class ProductionInputs(unittest.TestCase):
         self.assertNotIn('cargo_build_input', recipe)
         self.assertEqual(module.check_plan(self.output)['files'],result['files'])
         account=json.loads((self.output/'input-inventory.json').read_text())
-        self.assertEqual(len(account['tool_sha256']),6)
+        # prepare, inventory, the file checks, the whole-document property-list reader, the font notice, the bundle mapping and the coverage account
+        self.assertEqual(len(account['tool_sha256']),7)
         self.assertTrue(account['jsonschema_version'])
         self.assertFalse(result['build_executed']);self.assertFalse(result['signing_executed']);self.assertFalse(result['package_complete'])
     def test_explicit_cargo_input_preserves_config_bytes_and_host_target_scope(self):
@@ -224,7 +225,12 @@ class ProductionInputs(unittest.TestCase):
     def envelope(self, content, trailing=b''):
         t=self.tlv
         encap=t(0x30,t(0x06,module.DATA_OID)+t(0xa0,t(0x04,content)))
-        signed=t(0x30,t(0x02,b'\x01')+t(0x31,b'')+encap+t(0x31,b'INVENTED signer info; never Apple-signed'))
+        # invented fields in their declared outer shapes (RFC 5652, RFC 5280); never Apple-signed
+        algorithm=t(0x30,t(0x06,bytes.fromhex('608648016503040201'))+t(0x05,b''))
+        name=t(0x30,t(0x31,t(0x30,t(0x06,bytes.fromhex('550403'))+t(0x0c,b'INVENTED NAME'))))
+        certificate=t(0x30,t(0x30,t(0x02,b'\x01')+algorithm+name)+algorithm+t(0x03,b'\x00INVENTED signature bits'))
+        signer=t(0x30,t(0x02,b'\x01')+t(0x30,name+t(0x02,b'\x01'))+algorithm+algorithm+t(0x04,b'INVENTED signature value'))
+        signed=t(0x30,t(0x02,b'\x01')+t(0x31,algorithm)+encap+t(0xa0,certificate)+t(0x31,signer))
         return t(0x30,t(0x06,module.SIGNED_DATA_OID)+t(0xa0,signed))+trailing
     def profile_value(self, **changes):
         import datetime
@@ -249,6 +255,35 @@ class ProductionInputs(unittest.TestCase):
             with self.subTest(name=name):
                 path=self.profile_file(raw)
                 with self.assertRaises(ValueError):self.run_plan(**self.production(path))
+        self.assertFalse(self.output.exists())
+    def test_the_command_line_prints_the_readers_reason(self):
+        """Review round 2: the command line printed only 'error_type: Refused'. It now carries the refusal, fixed text and
+        integers only, and its one-line reading; another error still prints only its type."""
+        import plistlib, subprocess, sys
+        good=plistlib.dumps(self.profile_value())
+        def sparse(size):  # review round 3, finding 1: a size above the cap, and above the transfer's 32 MiB bound
+            path=self.profile_file(b'');path.write_bytes(b'')
+            with path.open('r+b') as handle: handle.truncate(size)
+            return path
+        cases={'two sibling values':(lambda:self.profile_file(self.envelope(good.replace(b'</plist>',b'<string>INVENTED</string></plist>'))),None,'a second value under plist'),
+               'an unknown encoding':(lambda:self.profile_file(self.envelope(good.replace(b'UTF-8',b'x-invented-encoding'))),None,'a declared encoding other than UTF-8'),
+               'review: one byte over the 256 KiB cap':(lambda:sparse(256*1024+1),None,'a file larger than the size limit'),
+               'review: one byte over the 32 MiB transfer bound':(lambda:sparse(32*1024*1024+1),None,'a file larger than the size limit'),
+               'review: another digest selected':(lambda:self.profile_file(self.envelope(good)),'7'*64,'other bytes')}
+        for name,(make,digest,found) in cases.items():
+            with self.subTest(name):
+                path=make()
+                argv=[sys.executable,str(ROOT/'app/packaging/production_inputs/prepare.py')]
+                for key,value in (self.kw|self.production(path,digest)).items():
+                    if value is None or value is False: continue
+                    argv+=['--'+key.replace('_','-')]+([] if value is True else [str(value)])
+                done=subprocess.run(argv,capture_output=True,text=True,check=False)
+                self.assertEqual(done.returncode,2,done.stderr)
+                output=json.loads(done.stdout)
+                self.assertEqual((output['preparation_complete'],output['error_type'],output['refusal']['found']),(False,'Refused',found))
+                self.assertEqual(output['reason'],module.whole_plist.describe(output['refusal']))
+                self.assertNotIn('INVENTED',done.stdout)
+                if digest: self.assertEqual(output['refusal']['kind'],'digest'); self.assertNotIn('read whole',output['reason'])
         self.assertFalse(self.output.exists())
     def test_profile_outside_validity_refuses(self):
         import datetime

@@ -482,6 +482,42 @@ implemented behavior and qualification limits.
     up to the stop wait limit for those turns to end, exits, stops each home's
     Codex and writes `session_ended` *quit* with each quit stop request's
     state. A relaunch reads *quit-with-live-work* and "interrupted by quit".
+
+    History shows the selected conversation's App stop requests where its home
+    is established. A labelled row gives the status Codex reported when
+    available, including interrupted, completed or failed. If a labelled row
+    has no reported final status, the App says its stop record has no reported
+    final status for that turn. Each row gives the stop-record reading, with
+    any App label attributed and a derived label marked. An interrupt request
+    does not answer a Codex request. The host gives a request-state/write
+    disagreement its own reading and omits the label. Where those fields
+    agree, the host gives a reported final outside the settled and
+    outcome-recovered states its own reading and omits the label. Any reported
+    final is still projected independently. For other rows, the host reads a
+    written label only in the settled, outcome-unknown and outcome-recovered
+    states. The remaining states use their ordinary reading. A sent, accepted
+    or refused row from an earlier session whose end is established can still
+    receive a derived label. The App's writers produce neither the conflicting
+    rows nor rows with written labels outside those three states. The
+    read-back rules apply to the Recorded stop requests disclosure, the live
+    stop label, the box and the stored page. The live activity code and its
+    home mapping match the pinned main base.
+
+    An accepted stored turn page shows the native status and the newest
+    matching row in the App's stop-request view. With no matching stop-request
+    row, it can show an applicable in-memory Stop or Restart Codex outcome.
+    Both matches require the turn's home. The page shows the App's
+    stop-request reading or its Stop or Restart Codex outcome, with any App
+    label attributed and any final report identified by source. On a matched
+    stop-request row, the two final reports are identified by source when they
+    differ. A labelled stop-request row whose interrupt write is recorded as
+    sent, from an earlier session whose end is established, offers **Continue
+    this conversation**. It sends the existing Codex resume request and opens
+    the conversation after matching admission in the current view. Continue
+    sends no conversation message. The read-only Prior work section in
+    Conversation shows the same stored-turn stop labels after a matched resume
+    and adds no Continue.
+
     An exit nobody decided is held and asked as Quit. **Closing the window is
     not quit** (DEF-1, SQ-W): it hides the window (macOS; the Dock icon shows
     it again) or minimizes it; work and requests continue, and the view
@@ -1882,12 +1918,16 @@ criterion 5 is not served by it until that view does.
 
 The store is created (its folder and `store.json`) when the App starts, and
 otherwise only by the acts that write for the person: attaching a project with
-a newly minted identity, the imports and the identity acts. A read creates
-no store, no folder, no lock file and no control, and repairs nothing (a
-reader does take a shared lock on a control that already exists, which is
-what keeps a disposal out while it reads): with no store, or a folder at the store's path that
-holds no identity, every reader says the store is not created yet and nothing
-is written there, elsewhere or in a temporary folder. Once opened, a process
+a newly minted identity, the imports and the identity acts. A store folder
+the App creates is created with Unix mode 0700 subject to the file-creation
+mask; a folder already at the store's path is used as found, its mode
+unchanged. A read creates no store, lock file or control and makes no
+repairs. It may create the derived index and its folder inside an existing
+store, as described below. A reader can take a shared lock on an existing
+control to keep a disposal out while it reads. Before the process has bound
+a store, opening a missing store folder or a folder without `store.json`
+reports that the store has not been created yet. A read does not create a
+replacement. Once opened, a process
 stays bound to the store's physical folder and identity file (their device and
 inode): a redirected alias is not followed, and a folder put at the store's
 path in its place, even holding a copy of `store.json`, is refused by readers
@@ -2183,14 +2223,22 @@ The derived records index keeps identities, positions and membership counts in
 process-owned SQLite files under the store's `indexes/`; record bodies stay in
 their logs. Cold use rebuilds from authoritative sources, and returned entries
 are reread and revalidated, including their exact line hash. Changed or unusable
-caches rebuild or use source scans. The cache is the one stated exception to a
-read writing nothing: a read may write it under `indexes/` of a store that
-already exists and that the process has bound, never into a folder put in the
-store's place, and never in a temporary folder (SQLite's own temporary
-structures stay in memory). The decision view does not use it. Where the cache
-cannot be written the sources are read directly and the chain report says so.
-The cache is dispensable: deleting `indexes/` at any time changes no answer,
-only how fast it comes.
+caches rebuild or use source scans. An index-backed read may write its
+derived cache under `indexes/` of a store that already exists and that the
+process has bound. The App uses no
+temporary-folder fallback. SQLite's own temporary structures stay in memory.
+The path is checked before
+the cache file is made and the store's binding is checked again after it is
+opened; later steps reopen or remove the cache by its path, so where another
+account can change the folders or files on that path the remaining risk is
+the one `docs/RELEASE_LIMITATIONS_4.0.0.md` lists as LIM-035. The decision
+view does not use it. Where the cache cannot be written the sources are read
+directly and the chain report says so. The cache is dispensable. A fresh
+index rebuilt from unchanged logs gives the same record answers while the
+cache's path stays under the person's control. A rebuild can invalidate a
+check already in progress. An `indexes/` folder a read creates is created
+with Unix mode 0700 subject to the file-creation mask; one already there is
+used as found, its mode unchanged.
 Index metadata for ordinary valid entries is per log and directory; diagnostics
 grow with reported limits. Full act projections retain their
 separate result-sized memory cost (RS §13.8, §14.3).

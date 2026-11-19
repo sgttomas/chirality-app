@@ -158,3 +158,18 @@ def info_plist(**changes):
     return plistlib.dumps(value)
 
 
+def two_values(first, second):
+    """One XML property list document holding the value of `first` and then the value of `second` under its root.
+
+    plistlib alone reads such a document as `second`; the whole-document reader refuses it."""
+    open_tag, close_tag = b'<plist version="1.0">\n', b'\n</plist>'
+    body = lambda raw: raw[raw.index(open_tag) + len(open_tag):raw.rindex(close_tag)]
+    return second[:second.index(open_tag) + len(open_tag)] + body(first) + b'\n' + body(second) + close_tag + b'\n'
+
+
+def conflicting_info_plist():
+    """Another identity's Info.plist and then the release identity's, as two sibling values in one document."""
+    return two_values(info_plist(CFBundleIdentifier='com.example.other', CFBundleShortVersionString='9.9.9', CFBundleVersion='9.9.9',
+                                 LSMinimumSystemVersion='10.13', CFBundleExecutable='other'), info_plist())
+
+

@@ -64,7 +64,7 @@ WRITABLE_ENVIRONMENT = ('HOME', 'TMPDIR', 'CARGO_HOME', 'CARGO_TARGET_DIR', 'COD
                         'NPM_CONFIG_GLOBALCONFIG', 'RUSTUP_HOME', 'NPM_CONFIG_PREFIX', 'NPM_CONFIG_LOGS_DIR')
 INSTALL_ARGV = ['npm', 'ci', '--offline', '--ignore-scripts', '--no-audit', '--no-fund']
 CARGO_CACHE_REFUSED = ('config', 'config.toml', 'credentials', 'credentials.toml', 'env')
-CHECKS = ['info_plist_identifier', 'info_plist_version', 'info_plist_bundle_version', 'info_plist_minimum_system_version',
+CHECKS = ['info_plist_whole', 'info_plist_not_read', 'info_plist_identifier', 'info_plist_version', 'info_plist_bundle_version', 'info_plist_minimum_system_version',
           'info_plist_executable', 'dyld_validate', 'executable_signature', 'already_signed', 'vendor_tree', 'resource',
           'publisher_binding', 'limitations']
 common.VOCABULARY.update(CHECKS)
@@ -204,11 +204,22 @@ def bundle_errors(app, plan, vendor, source_root, runner, env, private):
     """Every post-build check; returns (facts, errors). Errors are named checks with an optional relative path."""
     errors, facts = [], {}
     preflight_tree(app)
-    def error(name, path=None):
-        errors.append({'check': name, 'path': path})
-    info_raw, info = common.read_info_plist(app)
-    for name in common.release_identity_errors(info):
-        error(name)
+    def error(name, path=None, detail=None):
+        errors.append({'check': name, 'path': path, **({'detail': detail} if detail is not None else {})})
+    try:
+        info_raw, info = common.read_info_plist(app)  # the one whole-document reader
+    except common.Refused as refused:
+        # Not one XML property list whose value is the whole document, in the admitted form: no identity field is read
+        # from part of it. A form outside the reader's subset (not established) is named apart from a malformed file; the detail names the
+        # field, the shape expected, what was found and, where it has a position, the byte (fixed text and integers only).
+        # A whole Info.plist whose identity field is missing or not a string is a mismatch, named by that field's check.
+        info_raw, info = read_input(app / 'Contents/Info.plist'), {}
+        checks = dict(common.INFO_FIELDS.values())  # Info.plist key -> the build's named check
+        error({'unsupported': 'info_plist_not_read', 'malformed': 'info_plist_whole'}.get(refused.kind) or checks[refused.field],
+              detail=refused.detail())
+    else:
+        for refused in common.release_identity_refusals(info):
+            error(dict(common.INFO_FIELDS.values())[refused.field], detail=refused.detail())
     facts['info_plist_sha256'] = sha(info_raw)
     identity = common.bundle_identity(info)
     facts['identity'] = {k: common.selected(v, 'version' if 'version' in k else 'identifier') for k, v in identity.items()}

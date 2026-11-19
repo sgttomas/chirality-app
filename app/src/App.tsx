@@ -13,14 +13,14 @@ import { ConnectorRoutePanel, emptyRouteRead, routeReadTransition, type RouteRea
 // (HOSTING H2), writes no record and cannot capture an act: the native
 // confirmation is the host's (AAC §6.2 P-2). Views per DECISION_VIEW.md §4.
 import { Fragment, useCallback, useEffect, useRef, useState, type Ref } from "react";
-import { appHome, CodexProcessControls, stopLabel } from "./CodexControls";
+import { appHome, CodexProcessControls, ConversationStops, historyHome, stopLabel, stopRequestsFor } from "./CodexControls";
 import { ContinueAsPanel, ModelIdField, RoleChoice, RoleHeader, RoleHistoryReader, SupplyStatus, type ContinueStartOutcome, type HandoffSendOutcome } from "./ConversationRoles";
 import { EXACT_TEXT } from "./exactText";
 import { ArrivalRecord, CompatibilityAdvisory, HistoryReferenceNotice, RunBringBack, RunPanel, SelectedWorkflow, hasUnsavedHistoryReference, isRecordedRun, runBringBackDefault, type OpenArrivalFileAct } from "./RunPanel";
 import { chatWorkflow, workflowArguments, workflowContext } from "./workflowSelection";
 import { FileActPanel, type FileActPanelHandle } from "./FileActPanel";
 import { NativeActivityView, activityModel, sameActivityGeneration, type NativeActivityHandle } from "./NativeActivity";
-import { ContinuationContext, historyPageBinding, StoredItemPage, StoredTurnPage } from "./NativeHistory";
+import { ContinuationContext, historyPageBinding, StoredItemPage, StoredTurnPage, storedStopFor } from "./NativeHistory";
 import { ObserverAttachment } from "./ObserverAttachment";
 import { PlanModeControl } from "./PlanMode";
 import { NativeRequestCard, answerable, hostRequests, requestItem, requestPlace, requestThread, requestScopeKey, requestReplyGuarded, type RequestActivityLink, type RequestAnswer, type ReadRequestCustody, type RequestReplyObservation, type WaitingRequestGroup } from "./RequestCards";
@@ -602,6 +602,8 @@ export function HistoryPanel({ host, refresh, threadKey, setThreadKey, captureCo
     : "Read turns to inspect prior work. Use Continue only when you want to open this conversation for new messages.";
   const turnPage = historyPageBinding(host, "turns");
   const itemPage = historyPageBinding(host, "items");
+  // The App-owned home of this history source, only where its home and generation agree; unknown associates nothing.
+  const stopHome = historyHome(host, history);
   const same = (a: Json, b: Json) => JSON.stringify(a) === JSON.stringify(b);
   // Only identity/revision metadata is retained across an observer failure.
   // The returned resume body, transcript and native role hints stay out of it.
@@ -774,6 +776,8 @@ export function HistoryPanel({ host, refresh, threadKey, setThreadKey, captureCo
       <details><summary>Conversation source and role details</summary>
       <p>Conversation ID: <code>{selected.threadId}</code>.</p>
       <p>History state: {selected.state}. App role in force: {JSON.stringify(selected.appRole)}. Native agentRole: {JSON.stringify(selected.metadata?.thread?.agentRole === undefined ? { state: "not reported" } : selected.metadata.thread.agentRole)}.</p></details>
+      <ConversationStops records={stopRequestsFor(host?.stopRequests, selected.threadId, stopHome)} limited={(host?.stopRequests?.limits ?? []).length > 0}
+        onContinue={() => run("continue")} canContinue={available && !busy} />
       {(selected.futureGuidanceNotices ?? []).map((notice: Json) => <p key={notice.path}>{notice.path}: {notice.kind === "not-read" ? `current guidance not compared (${notice.reason})` : notice.reason}; new conversations use the current guidance. This conversation retains its original role.</p>)}
       <button disabled={!available || busy} onClick={() => run("metadata")}>Read metadata</button>{" "}
       <button disabled={!available || busy} onClick={() => run("turns")}>Read turns</button>{" "}
@@ -784,7 +788,8 @@ export function HistoryPanel({ host, refresh, threadKey, setThreadKey, captureCo
       <p>Goal: {selected.goalAvailability}. {selected.goal?.goal === null ? "Native reported no goal." : selected.goal ? JSON.stringify(selected.goal.goal) : "Goal has not been read."}</p>
       <p>{selected.checklists}</p>
       <h3>Turns</h3>{turnPage.accepted && pageButtons("turns", turnPage.page, null, turnPage.query.params.sortDirection)}
-      <StoredTurnPage binding={turnPage} canRead={available && !busy} readItems={turn => run("items", null, turn)} />
+      <StoredTurnPage binding={turnPage} canRead={available && !busy} readItems={turn => run("items", null, turn)}
+        stopFor={storedStopFor(host, selected.threadId, generation)} onContinue={() => run("continue")} canContinue={available && !busy} />
       <h3>Selected item page</h3>{itemPage.accepted && pageButtons("items", itemPage.page, itemPage.query.params.turnId, itemPage.query.params.sortDirection)}
       <StoredItemPage binding={itemPage} />
       <h3>Native child references</h3>

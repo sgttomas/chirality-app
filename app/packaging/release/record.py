@@ -38,9 +38,20 @@ observation that was not made, that failed, or that is incomplete cannot come ou
 that drift and mistakes are caught. They are not a filesystem snapshot and are not built to withstand
 a writer changing the inputs during the run, nor someone with write access forging a record: a
 completion marker or a recorded digest is not authentication.
-The whole-document command-output rule does not cover the profile or Info.plist file readers:
-those use the standard parser, which does not refuse a repeated top-level value. This limits the
-profile UUID/team/App ID/allowed and unexpected entitlements/expiry and the bundle identity fields.
+The whole Info.plist, and the property list a profile's envelope holds as its content, are read by the one
+whole-document reader (production_inputs/whole_plist.py): a value is returned only when that input is one XML property list
+in the admitted form whose structure, read from its own bytes, accounts for every byte and agrees
+with plistlib's value. The profile's envelope (prepare.profile_envelope) is read for exactly the enforced list stated
+there (one definite-length element; the declared structure from the outside down to the content; every
+length inside its parent; the property list the whole of the one content string); it is not validated
+as ASN.1 beyond that and not authenticated. A refusal names the part, the kind, the field, the shape
+expected, what was found and, where the form has a position in the file, its byte offset, in fixed text and integers. "Not established" means the reader
+met a named form outside the subset it reads, at a named field, and did not read the file; it asserts
+nothing about whether the file is valid (never a mismatch, never agreement). Malformed is asserted only
+where the reader is certain within its subset; a mismatch means the file was read whole and a value the
+tools read is not of its type or not what the release requires.
+In `check`, a file in a form not read is the failed observation '... not established': its fields are
+listed under not_established, are not reported as differences, and the result is not equal.
 Line-form output is decoded with UTF-8 replacement, blank lines omitted and trailing whitespace stripped.
 """
 import datetime
@@ -48,7 +59,6 @@ import importlib.util
 import json
 import os
 from pathlib import Path
-import plistlib
 import sys
 
 
@@ -85,7 +95,22 @@ FAILURES = ['bundle identity', 'signature', 'entitlements', 'unexpected entitlem
             'stapled ticket absent', 'gatekeeper', 'provisioning profile', 'notarization summary', 'notarization status',
             'notarization issues', 'notarization digest', 'submitted file', 'app as signed', 'workflow manifest',
             'hardened runtime', 'ad hoc signature', 'signer', 'identifier', 'debugging entitlement', 'supplier signature changed',
-            'release standing', 'candidate release standing']
+            'release standing', 'candidate release standing',
+            # A file in a form the reader does not read: the observation was not made, so its comparison is not
+            # established (never a difference, never agreement).
+            'provisioning profile not established', 'bundle identity not established']
+NOT_ESTABLISHED = {'provisioning profile not established': [('observed', 'provisioning_profile')],
+                   'bundle identity not established': [('observed', 'bundle', key) for key in
+                                                       ('identifier', 'version', 'bundle_version', 'minimum_system_version', 'executable')]}
+NOT_COMPARED = {'provisioning profile': NOT_ESTABLISHED['provisioning profile not established'],
+                'bundle identity': NOT_ESTABLISHED['bundle identity not established']}
+# The profile facts the record requires once the profile was read whole: (field, expected), a mismatch when not met.
+PROFILE_FACTS = {'uuid': ('UUID', 'an uppercase UUID'),
+                 'app_id': ('Entitlements com.apple.application-identifier', 'an App ID of a public team'),
+                 'team': ('TeamIdentifier', 'one or more public teams and no other'),
+                 'expiration': ('ExpirationDate', 'a date')}
+prepare.whole_plist.declare(fields={f for f, _ in PROFILE_FACTS.values()}, expected={e for _, e in PROFILE_FACTS.values()})
+common.VOCABULARY.update(prepare.whole_plist.vocabulary())
 # Every field name the record's stated shape uses: the only keys `check` prints by name.
 FIELD_NAMES = {
     'format', 'package', 'file_name', 'sha256', 'size', 'public_teams', 'publisher_team', 'candidate', 'source_revision', 'pin',
@@ -123,9 +148,15 @@ def standing_valid(standing):
             and isinstance(gaps, int) and not isinstance(gaps, bool) and gaps >= 0 and (gaps == 0) == complete)
 
 
-def failure(name, subject='.'):
+def failure(name, subject='.', detail=None):
+    """A failed observation; `detail` is a file reader's refusal detail (fixed text and integers), when one says why."""
     require(name in FAILURES, 'unlisted record failure')
-    return {'observation': name, 'subject': subject}
+    return {'observation': name, 'subject': subject, **({'detail': detail} if detail is not None else {})}
+
+
+def refused_failure(refused, name):
+    """The failed observation for a file reader's refusal: not established for a form the reader does not read."""
+    return failure(name + ' not established' if refused.kind == 'unsupported' else name, detail=refused.detail())
 
 
 def inv(tree):
@@ -209,11 +240,18 @@ def profile_facts(app, public_teams, failures):
     if not path.is_file():
         failures.append(failure('provisioning profile'))
         return 'not observed'
+    try:
+        prepare.profile_size(path)  # by name, before the profile is read for the reader (the inventory has read it already)
+    except common.Refused as refused:
+        failures.append(refused_failure(refused, 'provisioning profile'))
+        return {'decoded': False}
     raw = path.read_bytes()
     try:
-        value = plistlib.loads(prepare.profile_content(raw), fmt=plistlib.FMT_XML, dict_type=prepare.UniquePlistDict)
-        require(isinstance(value, dict), 'profile is not a dictionary')
-    except (ValueError, plistlib.InvalidFileException):
+        value = prepare.profile_plist(raw)  # the one whole-document reader: no fact comes from part of the property list
+    except common.Refused as refused:
+        failures.append(refused_failure(refused, 'provisioning profile'))
+        return {'sha256': sha(raw), 'decoded': False}
+    except ValueError:
         failures.append(failure('provisioning profile'))
         return {'sha256': sha(raw), 'decoded': False}
     chosen, unexpected = obs.select_entitlements(value.get('Entitlements'), public_teams)
@@ -222,8 +260,13 @@ def profile_facts(app, public_teams, failures):
              'uuid': common.selected(value.get('UUID'), 'profile_uuid'), 'team': teams,
              'app_id': (chosen or {}).get(common.APP_ID_KEY), 'allowed_entitlements': chosen,
              'unexpected_entitlements': unexpected, 'expiration': plain_datetime(value.get('ExpirationDate'))}
-    if facts['uuid'] is None or facts['app_id'] is None or not teams or 'other' in teams or facts['expiration'] is None:
-        failures.append(failure('provisioning profile'))
+    for key, failed in (('uuid', facts['uuid'] is None), ('app_id', facts['app_id'] is None),
+                        ('team', not teams or 'other' in teams), ('expiration', facts['expiration'] is None)):
+        if failed:
+            field, expected = PROFILE_FACTS[key]
+            failures.append(failure('provisioning profile', detail=common.Refused(
+                'profile fact', part='profile grants', kind='mismatch', field=field, expected=expected, found='another value').detail()))
+            break
     return facts
 
 
@@ -244,14 +287,17 @@ def observe_package(dmg, app, run, public_teams, publisher_team, limitations_sou
     dmg, app = Path(dmg), Path(app)
     failures = []
     raw = dmg.read_bytes()
-    info_raw, info = common.read_info_plist(app)
-    identity_fields = common.bundle_identity(info)
+    try:
+        info_raw, info = common.read_info_plist(app)  # the one whole-document reader; refused, no identity field is stated
+    except common.Refused as refused:
+        info_raw, info = (app / 'Contents/Info.plist').read_bytes(), None
+        failures.append(refused_failure(refused, 'bundle identity'))
+    identity_fields = common.bundle_identity(info or {})
     bundle = {'name': common.APP_NAME if app.name == common.APP_NAME else 'other', 'info_plist_sha256': sha(info_raw)}
-    for key, shape in (('identifier', 'identifier'), ('version', 'version'), ('bundle_version', 'version'),
-                       ('minimum_system_version', 'version'), ('executable', 'identifier')):
+    for key, shape in common.INFO_SHAPES.items():
         bundle[key] = common.selected(identity_fields[key], shape)
-        if bundle[key] is None:
-            failures.append(failure('bundle identity'))
+        if bundle[key] is None and info is not None:  # a string (read_info_plist), not of the shape the record states
+            failures.append(failure('bundle identity', detail=common.info_refusal(key, common.SHAPE_TEXT[shape], 'another shape').detail()))
     bundle['executable_sha256'] = sha((app / 'Contents/MacOS' / common.MAIN_EXECUTABLE).read_bytes())
     resources = app / 'Contents/Resources'
     vendor_tree = inventory.scan(resources / 'codex')
@@ -477,7 +523,15 @@ def check(record, *, dmg, app, run, record_dir, candidate_dir=None):
     vendor_paths = committed_vendor_paths(record['candidate'].get('pin'))
     facts, failures = observe_package(dmg, app, run, public_teams, record['publisher_team'], record['candidate']['limitations_sha256'])
     found = differences(record['package'], facts.pop('package'), ('package',))
-    found += differences(record['observed'], facts, ('observed',))
+    # An observation not made (a file in a form the reader does not read) is not compared: it is neither a difference
+    # nor agreement, and it is named as not established.
+    unmade = [path for f in failures for path in NOT_ESTABLISHED.get(f['observation'], [])]
+    # A file refused for any reason (named with its detail) is not compared either: its fields are omitted from
+    # differences; the refusal describes what failed. Byte and inventory differences (the App's digests and inventory, the Info.plist's
+    # digest) are still compared.
+    uncompared = unmade + [path for f in failures if 'detail' in f for path in NOT_COMPARED.get(f['observation'], [])]
+    found += [d for d in differences(record['observed'], facts, ('observed',))
+              if not any(d[0][:len(path)] == path for path in uncompared)]
     for key in NOTARIZED:
         observed, more = notarization_facts(record_dir, record['notarization'][key])
         failures += [failure(f['observation'], key) for f in more]
@@ -512,6 +566,10 @@ def check(record, *, dmg, app, run, record_dir, candidate_dir=None):
         observations[item['observation']] = observations.get(item['observation'], 0) + 1
     return {'equal': not found and not failures, 'differences': dict(sorted(summary.items())),
             'failed_observations': dict(sorted(observations.items())),
+            'not_established': sorted('.'.join(path) for path in unmade),
+            # why each refused file was refused: fixed text and integers only, and the same as one line
+            'refusals': [{'observation': f['observation'], 'detail': f['detail'], 'line': common.describe(f['detail'])}
+                         for f in failures if 'detail' in f],
             'release_standing': {'stated_by_record': record['release_standing']['standing'],
                                  'checked_against_candidate': standing_checked},
             'not_checked': not_checked}

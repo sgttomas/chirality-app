@@ -269,3 +269,45 @@ for(const selectError of [null,'invented stored-conversation selection refusal']
   ui.recover();
  });
 });
+// After a quit with live work and a relaunch (DEL-01-02 REQ-005, AC-006): the selected conversation's stop requests
+// and its stored turn are shown, and the stored turn's added offer is the same matched Continue.
+const quitRow=over=>({stopRequestId:'stop:q',appSession:'earlier',earlierSession:true,sourceSessionEnd:'established',home:'H-acct',generation:'gen',threadId:'stored',turnId:'turn-q',cause:'quit',send:'sent',
+ requestedAt:'2026-10-11T09:00:00Z',state:'settled',label:'interrupted by quit',labelDerived:false,reading:'Final status observed when the turn ended.',codexReported:'interrupted',persistence:'recorded in the App ledger',...over});
+const stopView=(records)=>(value,resumed)=>{
+ value.stopRequests={records:structuredClone(records()),limits:[]};
+ // The routing entry holds the account home's generation, so stored pages of that generation are this home's.
+ for(const entry of value.homeRouting.entries)if(entry.modeHomeClass==='account')entry.generation=structuredClone(g);
+ const selected=value.nativeHistory?.selected;
+ if(!resumed&&selected?.threadId==='stored'&&value.nativeHistory.selectionEpoch>0){
+  selected.turnsPage={data:[{id:'turn-q',status:'interrupted',items:[]}],nextCursor:null};
+  selected.streamResolutions={...selected.streamResolutions,'turn-pages':{query:{factory_id:9,query_id:9,home:g.home,generation:structuredClone(g),method:'thread/turns/list',params:{threadId:'stored',sortDirection:'desc'}},revision:1,outcome:'native-result-observed'}};
+ }
+};
+const turnPage=c=>c.querySelectorAll(e=>e.getAttribute('aria-label')==='Stored native turn page')[0];
+test('the stored turn\'s added Continue is the same matched resume, pressed once',async()=>{
+ await mounted({view:stopView(()=>[quitRow()])},async ui=>{
+  await ui.poll();
+  const box=ui.c.querySelectorAll(e=>e.getAttribute('aria-label')==='Stop requests recorded for this conversation');
+  assert.equal(box.length,1);
+  assert.match(box[0].textContent,/The App recorded a quit stop request for this turn\. Codex reported it interrupted\./);
+  const page=turnPage(ui.c);
+  assert.match(page.textContent,/native status interrupted \(cause not established by this page\)/);
+  assert.match(page.textContent,/The App recorded a quit stop request for this turn\. Codex reported it interrupted\. App label: interrupted by quit\./);
+  const offer=elements(page,'button').find(e=>e.textContent==='Continue this conversation');
+  assert.ok(offer);assert.equal(props(offer).disabled,false);
+  await React.act(async()=>{ui.track(props(offer).onClick());});
+  assert.equal(ui.selected(),key('stored'));assert.ok(ui.context());
+ });
+});
+test('a mixed History source at the real caller shows no stop requests, no stored stop record and no added Continue',async()=>{
+ // History's home is another home's while its generation is the account home's; the stop records are the account home's.
+ await mounted({view:(value,resumed)=>{stopView(()=>[quitRow()])(value,resumed);if(!resumed&&value.nativeHistory)value.nativeHistory.home='other-home';}},async ui=>{
+  await ui.poll();
+  assert.equal(ui.c.querySelectorAll(e=>e.getAttribute('aria-label')==='Stop requests recorded for this conversation').length,0,'no box');
+  const page=turnPage(ui.c);
+  assert.ok(!/App label|Stop request|Codex reported it interrupted/.test(page.textContent),page.textContent);
+  assert.equal(elements(ui.c,'button').filter(e=>e.textContent==='Continue this conversation').length,0,'no added Continue');
+  // The ordinary Continue is untouched.
+  await ui.press('Continue selected conversation');
+ });
+});

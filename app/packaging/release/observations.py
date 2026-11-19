@@ -8,7 +8,8 @@ The rule. A command's output is an observation only when:
   3. no property list or JSON it parses has a key twice, and no form that may appear once appears
      twice; a property list (the entitlements) counts only when the value read is the whole document
      (load_xml_plist: the document read by its own bytes equals plistlib's writing of the value, apart
-     from the document header and whitespace between elements);
+     from the document header and whitespace between elements). The provisioning profile and Info.plist
+     FILES are read by production_inputs/whole_plist.load, which shares this event reading;
   4. every form that carries a required fact is present, with a value of its declared shape;
   5. where a form carries a path, the path is the object asked about (the single assessment source
      and the object binding of the earlier rounds are part of the declared forms).
@@ -44,7 +45,6 @@ from pathlib import Path
 import plistlib
 import re
 import sys
-from xml.parsers import expat
 from xml.parsers.expat import ExpatError
 
 
@@ -191,58 +191,8 @@ class _UniqueDict(dict):
         super().__setitem__(key, value)
 
 
-# Elements whose content is other elements: text directly inside them only separates elements.
-_CONTAINERS = {'plist', 'dict', 'array'}
-_XML_WHITESPACE = b' \t\r\n'
-
-
-def _refuse(*_):
-    raise ValueError('an entity is declared, skipped or external')
-
-
-def xml_structure(raw):
-    """(header, body): what an XML property list document is, read without plistlib and without discarding anything.
-
-    The parser reports every event with the byte offset where it starts, so the events partition the document's
-    bytes. Two normalizations are made, and no others:
-    - Document header. Everything before the root element is reduced to its XML declaration (version, encoding,
-      standalone) and its document type (name, system and public identifier, whether an internal subset is present).
-      Any other event there (a comment, a processing instruction) is kept in `header` as an event.
-    - Whitespace between elements. A run of bytes that is only space, tab, carriage return or line feed, directly
-      inside `plist`, `dict` or `array`, is left out, and so is such whitespace after the root element.
-    `body` is every other byte of the root element exactly as written: every element, attribute, repeated entry,
-    piece of text (in a value or between elements), comment, processing instruction and CDATA section, with each
-    character and entity reference as spelled. Entity declarations, skipped (undefined) entity references and external
-    entities raise; nothing is fetched."""
-    parser = expat.ParserCreate()
-    parser.SetParamEntityParsing(expat.XML_PARAM_ENTITY_PARSING_NEVER)
-    events, stack = [], []
-
-    def record(kind, effect=None):
-        def handler(*values):
-            events.append((parser.CurrentByteIndex, kind, values, bool(stack) and stack[-1] in _CONTAINERS))
-            if effect:
-                effect(*values)
-        return handler
-    parser.XmlDeclHandler = record('xml declaration')
-    parser.StartDoctypeDeclHandler = record('document type')
-    parser.StartElementHandler = record('start', lambda name, _: stack.append(name))
-    parser.EndElementHandler = record('end', lambda _: stack.pop())
-    parser.CharacterDataHandler = record('text')
-    parser.CommentHandler = record('comment')
-    parser.ProcessingInstructionHandler = record('processing instruction')
-    parser.StartCdataSectionHandler, parser.EndCdataSectionHandler = record('cdata start'), record('cdata end')
-    parser.EntityDeclHandler = parser.UnparsedEntityDeclHandler = parser.NotationDeclHandler = _refuse
-    parser.SkippedEntityHandler = parser.ExternalEntityRefHandler = _refuse
-    parser.Parse(raw, True)
-    root = next(n for n, event in enumerate(events) if event[1] == 'start')
-    header = [(kind, values) for _, kind, values, _ in events[:root]]
-    body = []
-    for n, (start, kind, _, in_container) in enumerate(events[root:], root):
-        span = raw[start:events[n + 1][0] if n + 1 < len(events) else len(raw)]
-        if not (kind == 'text' and in_container and not span.strip(_XML_WHITESPACE)):
-            body.append(span)
-    return header, b''.join(body).rstrip(_XML_WHITESPACE)
+# The event reading of an XML document is shared with the file readers (production_inputs/whole_plist.py).
+xml_structure = common.prepare.whole_plist.xml_structure
 
 
 def load_xml_plist(raw):
@@ -418,6 +368,13 @@ OWNER_REASONS = {
     'REFUSED_OUT_EXISTS': 'refused: --out already exists; give a new folder',
     'REFUSED_OUT_PARENT': 'refused: the folder that would hold --out does not exist',
     'REFUSED_CANDIDATE': 'refused: the candidate does not verify against CANDIDATE.json, or its build did not finish',
+    'REFUSED_INFO_PLIST_MALFORMED': ('refused: the candidate\'s Info.plist is malformed: it is not one whole property list; the '
+                                     'next line names the field, the shape expected and what was found; nothing ran'),
+    'REFUSED_INFO_PLIST_NOT_ESTABLISHED': ('refused: the candidate\'s Info.plist uses a form outside the subset this reader reads, '
+                                           'named on the next line; the file was not read and the identity comparison is not '
+                                           'established; nothing ran'),
+    'REFUSED_INFO_PLIST_MISMATCH': ('refused: the candidate\'s Info.plist was read whole and an identity field is missing, not a '
+                                    'string, or not the release value; the next line names the field; nothing ran'),
     'REFUSED_TEAM': 'refused: the identity names a team other than the candidate\'s compiled publisher team',
     'REFUSED_LIMITATIONS': 'refused: --limitations is not the candidate source\'s release limitations file',
     'REFUSED_PROFILE_BYTES': 'refused: the provisioning profile\'s bytes differ from --profile-sha256',
@@ -429,7 +386,13 @@ OWNER_REASONS = {
     'S0_ENTITLEMENTS': ('step 0: a supplier executable\'s entitlements are not an observation (' + NOT_AN_OBSERVATION + ') or include '
                         'get-task-allow; re-signing is not part of the arrangement (DEL-01-06 CLM-002)'),
     'S1_COPY': 'step 1: the working copy of the App differs from the candidate in bytes, modes or types',
-    'S2_PROFILE': 'step 2: the provisioning profile is not a current Developer ID profile granting the publisher App ID and team',
+    'S2_PROFILE': ('step 2: the provisioning profile was read whole and a field the tools read is not of its type, or it is not '
+                   'a current Developer ID profile granting the publisher App ID and team; the line below names the field and rule'),
+    'S2_PROFILE_MALFORMED': ('step 2: the provisioning profile is malformed: the reader is certain, within the subset it reads, '
+                             'that its envelope or property list is not well formed or a field is not of its declared shape; '
+                             'the next line names the field, the shape and what was found'),
+    'S2_PROFILE_NOT_ESTABLISHED': ('step 2: the provisioning profile uses a form outside the subset this reader reads, named '
+                                   'on the next line; the file was not read and the identity comparison is not established'),
     'S2_PLACED': 'step 2: the placed profile is not mode 0644 with the selected digest',
     'S3_APP_ID': 'step 3: the profile grants another application identifier than the publisher binding derives',
     'S4_SIGN': 'step 4: codesign did not return zero when signing the App',
@@ -449,7 +412,8 @@ OWNER_REASONS = {
     'S12_EXEC': 'step 12: the mounted App\'s Gatekeeper assessment is not an observation of acceptance from Notarized Developer ID (' + NOT_AN_OBSERVATION + ')',
     'S12_DETACH': 'step 12: the disk image did not detach; detach it with hdiutil detach',
     'S13_ATTACH': 'step 13: the disk image did not mount read-only for the record',
-    'S13_OBSERVATION': 'step 13: an observation the record states failed; no record was written',
+    'S13_OBSERVATION': ('step 13: an observation the record states failed or could not be made; each is named in STOPPED.json when written, '
+                        'and a file reader\'s refusal also on the lines below; no record was written'),
     'S13_DETACH': 'step 13: the disk image did not detach; no record was written; detach it with hdiutil detach',
     'GUARD_SIGNING': 'guard: a signing call other than the one on the App and the one on the disk image was refused',
     'INTERRUPTED': 'interrupted: the run was interrupted; nothing ran after the interruption',
