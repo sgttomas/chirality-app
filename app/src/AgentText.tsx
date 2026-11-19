@@ -294,6 +294,18 @@ const RETAINED_WORDS = { "outside-search": "chosen — outside this search", "no
 const choiceRowStyle: CSSProperties = { display: "block", margin: "2px 0" };
 
 /**
+ * A conversation's supplied title inside a choice, after the App's words and the identifier: the App's words saying
+ * who supplied it (in the accessible name only), then the title set apart, with its line breaks and control
+ * characters as marks, and how much of it is shown when it is shortened. Nothing where no title is supplied. Every
+ * list of conversation choices shows a title through this.
+ */
+export function ChoiceTitle({ value }: { value: unknown }) {
+  const title = boundedTitle(value);
+  if (!title) return null;
+  return <><span className="conversation-choice-title-name" style={visuallyHidden}>{CHOICE_TITLE_NAME_WORDS}</span> <span className="conversation-choice-title" style={choiceTitleStyle}><Parts value={title.text} /></span>{title.shortened && <small>{titleCount(title)}</small>}</>;
+}
+
+/**
  * A choice among conversations, as native radio buttons in a fieldset with the App's legend. `value` is the list
  * offered; `chosen` is the key chosen ("" for none); `onChoose` is called with a key; `none`, when given, offers a
  * first choice submitting "" and is named by those words; `group` is the radio buttons' shared name, unique on the
@@ -315,7 +327,7 @@ export function ConversationChoices({ legend, value, chosen, onChoose, group, di
       const title = boundedTitle(row.title);
       return <div key={row.key} className="conversation-choice" style={choiceRowStyle}>
         <label><input type="radio" name={group} value={row.key} checked={chosen === row.key} disabled={disabled} onChange={() => onChoose(row.key)} aria-description={choiceDescription(row) ?? undefined} /> {labels[i]}
-          {title && <><span className="conversation-choice-title-name" style={visuallyHidden}>{CHOICE_TITLE_NAME_WORDS}</span> <span className="conversation-choice-title" style={choiceTitleStyle}><Parts value={title.text} /></span>{title.shortened && <small>{titleCount(title)}</small>}</>}</label>
+          <ChoiceTitle value={row.title} /></label>
         {plainId(row.id) === null && <>{" "}<AgentText value={row.id} source="codex" label="Identity:" name="The conversation's identity as Codex reported it, not the App's words" /></>}
         {row.relation && plainId(row.relation.id) === null && <>{" "}<AgentText value={row.relation.id} source="record" label="Related conversation:" name="The recorded identity of the related conversation" /></>}
         {!title && <>{" "}<i>no title supplied</i></>}

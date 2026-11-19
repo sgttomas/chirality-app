@@ -33,7 +33,9 @@ import { WorkflowRegistrationReview } from "./WorkflowRegistrationReview";
 import { BringBackComposer, CleanTrialPanel, DelegatedTrialComposer, composersFor, conversationKey, findConversation, hostMessage, prefillKept } from "./TrialComposer";
 import { preparedMessages, preparedMessageLimit, type PreparedMessage } from "./preparedMessages";
 import { ConversationContext, ProjectLibraryContext, appProjectFolder, conversationFromKey, workflowSourceLimit } from "./WorkflowContext";
-import { DailyWorkspace, WorkspaceDisclosure, WorkspaceConnectionStatus, revealWorkspaceTarget, registerWorkspaceViews, WORKSPACE_VIEWS } from "./DailyWorkspace";
+import { WorkspaceDisclosure, WorkspaceConnectionStatus, revealWorkspaceTarget, revealWorkspaceLink, registerWorkspaceViews } from "./DailyWorkspace";
+import { ActivityStrip, WorkspaceShell, isRightPanelTab, turnPhase, type RightPanelTab, RIGHT_PANEL_TABS, type TabSelection } from "./WorkspaceShell";
+import { AccountRow, Navigator, navigatorEntries, navigatorProjects, type NavigatorEntry } from "./Navigator";
 import { flushSync } from "react-dom";
 import { UnsentWork, useReportUnsent } from "./unsentWork";
 import { DesktopSetupPanel } from "./DesktopSetupPanel";
@@ -140,7 +142,8 @@ const ordinaryConversationRef = (generation: Json, thread: string | undefined) =
   ? JSON.stringify([generation.home, generation.appSession, generation.spawnCounter, thread]) : "";
 type PreparedComposerReveal = { sequence: number; item: PreparedMessage; isCurrent: () => boolean; finish: (shown: boolean) => void };
 
-export function ConversationPanel({ localRoute = null, focusComposer, startAct, composerOffer, host, threadKey, setThreadKey, answer, readRequest, replyObservations, runAct, trialRunAct, send, observeOrdinaryView, steer, submitAttachments, observeAttachmentView, interrupt, checkPlanMode, codexBusy, forkConversation, handoffSend, handoffRead, activityNavigationRef, activityLink, preparedReveal }: { localRoute?: LocalView | null; focusComposer?: number; startAct?: RunAct; composerOffer?: ComposerOffer | null; preparedReveal?: PreparedComposerReveal | null; activityNavigationRef?: Ref<NativeActivityHandle>; activityLink?: RequestActivityLink; forkConversation?: (generation: Json, sourceThread: string) => Promise<void>; handoffSend?: (id: string, text: string) => Promise<HandoffSendOutcome>; handoffRead?: (id: string) => Promise<HandoffSendOutcome>; codexBusy: boolean; host: Json; threadKey: string; setThreadKey: (key: string) => void; trialRunAct?: RunAct; answer: RequestAnswer; readRequest?: ReadRequestCustody; replyObservations?: Record<string, RequestReplyObservation>; runAct: RunAct; checkPlanMode: (generation: Json) => Promise<void>; submitAttachments: (generation: Json, thread: string, expected: string | null, text: string, owner: string, revision: number, refs: string[]) => Promise<Json>; observeAttachmentView?: (request: AttachmentRequest) => Promise<void>; send: (generation: Json, thread: string, text: string, mode?: "plan" | "default", model?: string, effort?: string) => Promise<Json>; observeOrdinaryView?: (request: OrdinaryTextRequest, isCurrent: () => boolean) => Promise<void>; steer: (generation: Json, thread: string, expected: string, text: string) => Promise<boolean | void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<boolean | void> }) {
+export function ConversationPanel({ reportChooser, localRoute = null, focusComposer, startAct, composerOffer, host, threadKey, setThreadKey, answer, readRequest, replyObservations, runAct, trialRunAct, send, observeOrdinaryView, steer, submitAttachments, observeAttachmentView, interrupt, checkPlanMode, codexBusy, forkConversation, handoffSend, handoffRead, activityNavigationRef, activityLink, preparedReveal }: { /** Receives the view's own choice of a conversation while the view takes a choice, else null. */
+  reportChooser?: (choose: ((key: string) => void) | null) => void; localRoute?: LocalView | null; focusComposer?: number; startAct?: RunAct; composerOffer?: ComposerOffer | null; preparedReveal?: PreparedComposerReveal | null; activityNavigationRef?: Ref<NativeActivityHandle>; activityLink?: RequestActivityLink; forkConversation?: (generation: Json, sourceThread: string) => Promise<void>; handoffSend?: (id: string, text: string) => Promise<HandoffSendOutcome>; handoffRead?: (id: string) => Promise<HandoffSendOutcome>; codexBusy: boolean; host: Json; threadKey: string; setThreadKey: (key: string) => void; trialRunAct?: RunAct; answer: RequestAnswer; readRequest?: ReadRequestCustody; replyObservations?: Record<string, RequestReplyObservation>; runAct: RunAct; checkPlanMode: (generation: Json) => Promise<void>; submitAttachments: (generation: Json, thread: string, expected: string | null, text: string, owner: string, revision: number, refs: string[]) => Promise<Json>; observeAttachmentView?: (request: AttachmentRequest) => Promise<void>; send: (generation: Json, thread: string, text: string, mode?: "plan" | "default", model?: string, effort?: string) => Promise<Json>; observeOrdinaryView?: (request: OrdinaryTextRequest, isCurrent: () => boolean) => Promise<void>; steer: (generation: Json, thread: string, expected: string, text: string) => Promise<boolean | void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<boolean | void> }) {
   const [turnId, setTurnId] = useState<string>("");
   const [offerBusy, setOfferBusy] = useState(false);
   const [text, setText] = useState<string>("");
@@ -182,6 +185,14 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
   // (the host also refuses new turns once a stop is confirmed).
   const busy = ownBusy || (codexBusy ? "Stop or Restart Codex in progress" : "");
   const [error, setError] = useState<string>("");
+  // Choosing a conversation here; the navigator's entries make the same choice, and take none while this view does not.
+  const chooseConversation = (key: string) => { setThreadKey(key); setTurnId(""); setError(""); };
+  const chooseLatest = useRef(chooseConversation);
+  chooseLatest.current = chooseConversation;
+  const reportChooserLatest = useRef(reportChooser);
+  reportChooserLatest.current = reportChooser;
+  useEffect(() => { reportChooserLatest.current?.(ownBusy ? null : key => chooseLatest.current(key)); }, [ownBusy]);
+  useEffect(() => () => reportChooserLatest.current?.(null), []);
   const [attachmentOutcome, setAttachmentOutcome] = useState<AttachmentOutcome | null>(null);
   const attachmentView = useRef({ generation: host?.generation, threadKey });
   attachmentView.current = { generation: host?.generation, threadKey };
@@ -417,7 +428,7 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
   return <section id="conversation" aria-labelledby="conversation-heading">
     <h2 id="conversation-heading">Conversation</h2>
     <ConversationChoices legend="Current-generation conversation" group="current-conversation" disabled={!!ownBusy} chosen={threadKey} none="No conversation chosen"
-      value={threadChoices(currentThreads, (thread: Json) => JSON.stringify([thread.generation, thread.threadId]))} onChoose={key => { setThreadKey(key); setTurnId(""); setError(""); }} />
+      value={threadChoices(currentThreads, (thread: Json) => JSON.stringify([thread.generation, thread.threadId]))} onChoose={chooseConversation} />
     {selected && <PermissionLevel host={host} threadId={selected.threadId}/>}
     {selected && <details className="conversation-identity"><summary>Exact conversation ID</summary><code>{selected.threadId}</code></details>}
     {selected && <details className="conversation-options"><summary>Role and continuation options</summary><RoleHeader key={`role-header:${JSON.stringify([selected.generation, selected.threadId])}`} thread={selected} limits={host?.roleLimits} busy={!!busy || forkBusy} ready={host?.state === "ready"} trialConversation={trialConversation} trialsStartedHere={trialsStartedHere}
@@ -884,7 +895,7 @@ function NativeConfirmationContent() {
     return () => { live = false; clearInterval(t); };
   }, []);
   if (!shown.length) return null;
-  return <section role="region" aria-label="Content named by an open native confirmation" style={{ border: "2px solid #a60", padding: 8 }}>
+  return <section className="native-confirmation-content" tabIndex={0} role="region" aria-label="Content named by an open native confirmation" style={{ border: "2px solid #a60", padding: 8 }}>
     <h2>Content named by an open native confirmation</h2>
     {shown.map((row: Json) => <article key={row.digest}>
       <h3>{wordOf(CONFIRMATION_KIND, row.kind) ?? "Content named by the confirmation"}</h3>{wordOf(CONFIRMATION_KIND, row.kind) === null && <p>Recorded kind: <AgentText value={row.kind} source="record" name="A kind of content the App does not recognise, as the host recorded it; the App does not vouch for its words" /></p>}
@@ -2074,21 +2085,60 @@ export function App() {
   const threadChoiceRevision = useRef(0);
   const activityNavigationRef = useRef<NativeActivityHandle>(null);
   const setThreadKey = (key: string) => { threadChoiceRevision.current++; updateThreadKey(key); };
-  // Task views (DailyWorkspace): one visible at a time, all mounted. An intent
-  // that navigates sets its view in the same update as its own state, so the
-  // reveal that follows finds its target visible.
-  const [taskView, setTaskView] = useState<string>("run");
-  const taskViewRef = useRef(taskView);
+  // Views (WorkspaceShell): the Conversation view is always shown in the centre; the others are the right panel's
+  // tabs, one selected at a time, all mounted. Showing a tab opens the right region if it is collapsed. An intent that
+  // navigates sets its view in the same update as its own state, so the reveal that follows finds its target visible.
+  const [rightTab, setRightTab] = useState<RightPanelTab>("run");
+  // The conversation view's own choice of a conversation, as it reports it (null while it takes none).
+  const [conversationChooser, setConversationChooser] = useState<{ choose: ((key: string) => void) | null }>({ choose: null });
+  const [rightCollapsed, setRightCollapsed] = useState(false);
+  const rightTabRef = useRef<RightPanelTab>(rightTab);
+  const rightCollapsedRef = useRef(rightCollapsed);
+  rightCollapsedRef.current = rightCollapsed;
   // Whether the person has navigated since launch: every view change but the App's own moves (autoMove) is theirs.
   const navigated = useRef(false);
   const autoMoving = useRef(false);
-  const showView = (next: string) => { navigated.current = true; taskViewRef.current = next; setTaskView(next); };
+  // Whether the person or the App has gone to the conversation since launch: a reveal there, a move to it, or the
+  // person's own focus or press inside it. It is always shown, so going there selects nothing; it stands where "the
+  // Conversation view is shown" stood before the views shared the window, for the App's own model read below.
+  const [conversationVisited, setConversationVisited] = useState(false);
+  // The conversation view needs nothing done to show it; a tab is selected and its region opened.
+  const selectView = (next: string, sync = false) => {
+    if (next === "conversation") { setConversationVisited(true); return; }
+    if (!isRightPanelTab(next)) return;
+    if (rightTabRef.current === next && !rightCollapsedRef.current) return;
+    rightTabRef.current = next; rightCollapsedRef.current = false;
+    const apply = () => { setRightTab(next); setRightCollapsed(false); };
+    if (sync) flushSync(apply); else apply();
+  };
+  const showView = (next: string) => { navigated.current = true; selectView(next); };
+  // The person's own focus or press inside the conversation view: they have gone to the conversation.
+  // A link there that leads elsewhere (to the access controls) is not going to the conversation.
+  const enterConversation = (event: { target: EventTarget | null }) => {
+    for (let node = event.target as HTMLElement | null; node; node = node.parentNode as HTMLElement | null) if (node.tagName === "A") return;
+    navigated.current = true;
+    if (!conversationVisited) setConversationVisited(true);
+  };
+  // A tab the person presses lands as its link did: its view shown first, then its disclosure opened and scrolled to;
+  // focus stays on the tab. Moving along the tabs by the arrow keys shows each view and opens nothing.
+  const selectTab = (next: RightPanelTab, by: TabSelection) => {
+    navigated.current = true;
+    selectView(next, true);
+    if (by === "press") revealWorkspaceTarget(RIGHT_PANEL_TABS.find(tab => tab.id === next)?.target ?? "", false);
+  };
+  // Closing or opening the right panel is the person's own navigation.
+  const collapseRight = (collapsed: boolean) => { navigated.current = true; setRightCollapsed(collapsed); };
+  // A new Codex session is a new source: going to the conversation before it does not count for it.
+  const visitedGeneration = useRef<string | null>(null);
+  useEffect(() => {
+    const now = host?.generation ? JSON.stringify(host.generation) : null;
+    if (visitedGeneration.current !== null && now !== null && visitedGeneration.current !== now) setConversationVisited(false);
+    if (now !== null) visitedGeneration.current = now;
+  }, [host?.generation]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => registerWorkspaceViews(next => {
     if (!autoMoving.current) navigated.current = true;
-    if (taskViewRef.current === next) return;
-    taskViewRef.current = next;
-    flushSync(() => setTaskView(next));
-  }), []);
+    selectView(next, true);
+  }), []); // eslint-disable-line react-hooks/exhaustive-deps
   // The App's own move (the first view at launch, the move after a sign-in): the view, then its target revealed
   // and its disclosure opened, without counting as the person's navigation.
   const [autoReveal, setAutoReveal] = useState<{ sequence: number; target: string } | null>(null);
@@ -2098,7 +2148,7 @@ export function App() {
   const connectionShown = connectionOpen ?? (host?.state !== "ready");
   const autoMove = (view: string, target: string) => {
     if (target === "workspace-sign-in") setConnectionOpen(true);
-    taskViewRef.current = view; setTaskView(view);
+    selectView(view);
     setAutoReveal(previous => ({ sequence: (previous?.sequence ?? 0) + 1, target }));
   };
   useEffect(() => {
@@ -2108,7 +2158,7 @@ export function App() {
   }, [autoReveal]);
   // The App reads the model list itself when New conversation opens with its only connection in use and Codex ready:
   // once for each source and chooser, the same read as the person's press. The person still chooses the model.
-  const newConversationOpen = taskView === "conversation" && (startShown ?? startOpenByDefault);
+  const newConversationOpen = conversationVisited && (startShown ?? startOpenByDefault);
   const autoModelReadKey = onlyAccessEntry(homeClass) && newConversationOpen && host?.state === "ready" && !host?.generationClosed
     ? JSON.stringify([providerSource(host), chooserHome.current.epoch]) : null;
   useEffect(() => {
@@ -2828,29 +2878,28 @@ export function App() {
       return { error: error instanceof Error ? error.message : String(error), refreshFailed };
     }
   };
-  return (<UnsentWork.Provider value={reportUnsent}><PermissionLevelActions.Provider value={{ host, change: changePermissionLevel, unavailable: homePending, stale: shownBeforePress(hostReads), readFailed: !!hostReads.failure }}><DailyWorkspace>
-        {firstRead !== "read" && <FirstReadStatus failed={firstRead === "failed"} slow={firstReadSlow} retry={() => { void refresh().catch(() => undefined); }}/>}
-        {setupRequired && <FirstUseSetup view={host.desktopSetup}/>}
-        {firstRead === "read" && <div hidden={setupRequired}>
-        <header className="workspace-heading"><div><h1>Chirality</h1><p>Workflow workspace</p></div><p>Make, try, review and refine workflows through conversation.</p></header>
-        <WorkflowAssuranceSetting setting={host?.workflowRoot?.assuranceSetting} act={async (command, args) => commandThenRefresh(() => invoke(command, args), refresh, () => setMessage(withRefreshFailure))}/>
-        </div>}
-        {/* The navigation and "Waiting on you" stay in view together whichever view is shown. A sticky
-            element sticks only within its parent, so this is a direct child of the workspace, which holds every view. */}
-        {firstRead === "read" && <div className="workspace-sticky" hidden={setupRequired}>
-        <nav className="workspace-nav" aria-label="Workspace navigation">
-          {WORKSPACE_VIEWS.map(item => <a key={item.id} href={`#${item.target}`} aria-current={taskView === item.id ? "page" : undefined}>{item.label}</a>)}
-        </nav>
-        <WaitingOnYou readings={waitingReads} view={host?.nativeView} busy={homePending} onOpen={() => { void readFleetOnOpen(); }} openGroup={group => { void openRequests(group); }} go={goToWaiting}/>
-        </div>}
-        {firstRead === "read" && <div hidden={setupRequired}>
-        <WorkspaceConnectionStatus state={host?.state} setupRequired={host?.desktopSetup?.launch?.state === "setup-required"} savedSetup={!!host?.desktopSetup?.pending} generationClosed={host?.generationClosed} startRefusal={host?.lastStartRefusal} codexHome={host?.codexHome} refusalCause={host?.startRefusalCause} build={host?.build} signIn={signInReading}
-          plan={reportedPlan(host)} codexError={accountReadError(host)}
-          checkAgain={async () => { const shown = currentHost.current; try { await readAccountStatus(shown?.generation, shown?.homeRouting?.activeModeHomeClass, () => true); } catch (error) { setMessage(`Check again: ${readingSentence(error) ?? String(error)}`); } }}
-          // On Settings & tools with Connection and access open, that section carries the sign-in: one sign-in button on a
-          // view, never two. Closed, the line carries it again, so the view always shows a way to sign in.
-          startSignIn={taskView === "settings" && connectionShown ? undefined : async () => { try { await homeAction("oauth_start", { generation: currentHost.current?.generation, mode: "browser" }); } catch (error) { setMessage(`oauth_start: ${String(error)}`); } }}/>
-        </div>}
+  // The navigator and the status strip read requests as "Waiting on you" reads them: each person-answerable request
+  // of the active home's current generation, by the conversation it names.
+  const waitingRequests = waitingReads.filter(r => r.state === "whole" || r.state === "limited").flatMap(r => r.entries)
+    .filter(entry => entry.source === "supplier-request" && entry.target.kind === "request");
+  // A delegated agent's request is marked on the conversation it descends from, as "Waiting on you" groups it; the
+  // request's own conversation stays the one opened.
+  const requestRootOf = (entry: WaitingEntry) => entry.group.label.kind === "conversation" ? entry.group.label.threadId : null;
+  const requestOwnOf = (entry: WaitingEntry) => entry.target.kind === "request" ? entry.target.group.threadId : null;
+  // Both are marked: the conversation the request is on, and the one it descends from.
+  const waitingThreads = new Set(waitingRequests.flatMap(entry => [requestOwnOf(entry), requestRootOf(entry)]).filter((id): id is string => typeof id === "string"));
+  // A status the last read did not refresh says nothing current about a turn: no live mark and nothing in the strip.
+  const statusCurrent = !hostReads.failure;
+  const projects = navigatorProjects(appProjectFolder(host), navigatorEntries(host, waitingThreads).map(entry => statusCurrent ? entry : { ...entry, live: false }));
+  const answerIn = (entry: NavigatorEntry) => { const first = waitingRequests.find(request => requestOwnOf(request) === entry.threadId) ?? waitingRequests.find(request => requestRootOf(request) === entry.threadId); if (first) goToWaiting(first); };
+  const newChat = () => revealWorkspaceTarget("workspace-start", true);
+  const openSettings = () => revealWorkspaceTarget("workspace-tools", true);
+  const shownRow = selectedThread ? (host?.threads ?? []).find((t: Json) => t.threadId === selectedThread && JSON.stringify(t.generation) === JSON.stringify(host?.generation)) : null;
+  const workspaceShown = firstRead === "read" && !setupRequired;
+  return (<UnsentWork.Provider value={reportUnsent}><PermissionLevelActions.Provider value={{ host, change: changePermissionLevel, unavailable: homePending, stale: shownBeforePress(hostReads), readFailed: !!hostReads.failure }}>
+      <main className={`shell${workspaceShown ? " shell--workspace" : ""} shell--stone`} onClick={revealWorkspaceLink}>
+        {firstRead !== "read" && <div className="daily-workspace"><FirstReadStatus failed={firstRead === "failed"} slow={firstReadSlow} retry={() => { void refresh().catch(() => undefined); }}/></div>}
+        {setupRequired && <div className="daily-workspace"><FirstUseSetup view={host.desktopSetup}/></div>}
         <NativeWaitingBridge ready={!!host} report={setMessage} checkpoint={() => ({ signature: JSON.stringify([threadChoiceRevision.current, chooserHome.current.epoch, editRevision.current]),
           pristine: threadChoiceRevision.current === 0 && editRevision.current === 0 })} capture={() => {
           const revision = threadChoiceRevision.current;
@@ -2870,7 +2919,26 @@ export function App() {
           };
       }}/>
         <NativeConfirmationContent />
-        {firstRead === "read" && <div hidden={setupRequired}>
+        {/* "Waiting on you" is seen on every view: above the three regions, and at the top of the window where they stack. */}
+        {workspaceShown && <div className="daily-workspace workspace-waiting">
+        <WaitingOnYou readings={waitingReads} view={host?.nativeView} busy={homePending} onOpen={() => { void readFleetOnOpen(); }} openGroup={group => { void openRequests(group); }} go={goToWaiting}/>
+        </div>}
+        {firstRead === "read" && <WorkspaceShell hidden={setupRequired} rightTab={rightTab} onRightTab={selectTab} rightCollapsed={rightCollapsed} setRightCollapsed={collapseRight}
+          navigator={<Navigator projects={projects} selectedKey={threadKey} choose={conversationChooser.choose ? key => { navigated.current = true; conversationChooser.choose?.(key); } : null} answer={answerIn} newChat={newChat} openSettings={openSettings}/>}
+          collapsedNavigator={openNavigator => <div className="woven-collapsed-strip" aria-label="Collapsed chat navigation">
+            {projects.some(project => project.entries.some(entry => entry.needsAnswer)) ? <button type="button" aria-label="Needs answer" onClick={openNavigator}>!</button> : null}
+            <button type="button" aria-label="New chat" onClick={newChat}>＋</button>
+            <div className="woven-collapsed-settings"><AccountRow open={openSettings}/></div>
+          </div>}
+          strip={<ActivityStrip phase={statusCurrent ? turnPhase(shownRow, !!shownRow && waitingThreads.has(shownRow.threadId)) : null}/>}
+          centre={<div className="daily-workspace">
+        <WorkspaceConnectionStatus state={host?.state} setupRequired={host?.desktopSetup?.launch?.state === "setup-required"} savedSetup={!!host?.desktopSetup?.pending} generationClosed={host?.generationClosed} startRefusal={host?.lastStartRefusal} codexHome={host?.codexHome} refusalCause={host?.startRefusalCause} build={host?.build} signIn={signInReading}
+          plan={reportedPlan(host)} codexError={accountReadError(host)}
+          checkAgain={async () => { const shown = currentHost.current; try { await readAccountStatus(shown?.generation, shown?.homeRouting?.activeModeHomeClass, () => true); } catch (error) { setMessage(`Check again: ${readingSentence(error) ?? String(error)}`); } }}
+          // On Settings & tools with Connection and access open, that section carries the sign-in: one sign-in button on a
+          // view, never two. Closed, the line carries it again, so the view always shows a way to sign in.
+          startSignIn={rightTab === "settings" && !rightCollapsed && connectionShown ? undefined : async () => { try { await homeAction("oauth_start", { generation: currentHost.current?.generation, mode: "browser" }); } catch (error) { setMessage(`oauth_start: ${String(error)}`); } }}/>
+        <WorkflowAssuranceSetting setting={host?.workflowRoot?.assuranceSetting} act={async (command, args) => commandThenRefresh(() => invoke(command, args), refresh, () => setMessage(withRefreshFailure))}/>
         {offer && <ActControlPanel offer={offer} choice={choice} setChoice={setChoice} decide={decide} close={() => setOffer(null)} />}
         <div className="workspace-notices"><div id="other-requests">
             {outsideRequests.length > 0 && <h3>Requests outside the selected conversation</h3>}
@@ -2887,7 +2955,7 @@ export function App() {
           source {trialObservation.relation.source.sourceRef ?? "unavailable"}; home {trialObservation.relation.source.modeHomeClass ?? "unavailable"}; generation {JSON.stringify(trialObservation.relation.source.generation)};
           requested target {JSON.stringify(trialObservation.relation.target)}): {String(trialObservation.limit).replace(/\.$/, "")}. The original command outcome is unchanged.
         </p>}</div>
-        <div id="view-conversation" data-workspace-view="conversation" className="workspace-view" hidden={taskView !== "conversation"}>
+        <div id="view-conversation" data-workspace-view="conversation" className="workspace-view" onFocus={enterConversation} onPointerDown={enterConversation}>
         <WorkspaceDisclosure id="workspace-start" title="New conversation" description="Model and role — start explicitly" open={startOpenByDefault ? true : undefined} onToggle={setStartShown}>
           <h2>New conversation</h2>
           {signedInNotice && <p role="status" aria-label="Signed in">You're signed in. Choose a model to start a conversation.</p>}
@@ -2918,7 +2986,7 @@ export function App() {
         </WorkspaceDisclosure>
         <div className="workspace-primary">
           <div className="workspace-primary-column" aria-label="Conversation workspace">
-            <ConversationPanel localRoute={fixedLocal} focusComposer={conversationReveal?.target === "ordinary-composer-text" ? conversationReveal.sequence : undefined} composerOffer={composerOffer} preparedReveal={preparedReveal} activityNavigationRef={activityNavigationRef} activityLink={activityLink} forkConversation={forkConversation} handoffSend={(id, text) => handoffAction("continue_as_send", { id, text })} handoffRead={id => handoffAction("continue_as_send_read", { id })} codexBusy={processBusy} host={host} threadKey={threadKey} setThreadKey={setThreadKey} answer={answerRequest} readRequest={readRequestCustody} replyObservations={replyObservations} runAct={runAct} trialRunAct={trialRunAct} startAct={startRunAct} send={ordinarySend} observeOrdinaryView={observeOrdinaryView} checkPlanMode={async (generation) => {
+            <ConversationPanel reportChooser={choose => setConversationChooser({ choose })} localRoute={fixedLocal} focusComposer={conversationReveal?.target === "ordinary-composer-text" ? conversationReveal.sequence : undefined} composerOffer={composerOffer} preparedReveal={preparedReveal} activityNavigationRef={activityNavigationRef} activityLink={activityLink} forkConversation={forkConversation} handoffSend={(id, text) => handoffAction("continue_as_send", { id, text })} handoffRead={id => handoffAction("continue_as_send_read", { id })} codexBusy={processBusy} host={host} threadKey={threadKey} setThreadKey={setThreadKey} answer={answerRequest} readRequest={readRequestCustody} replyObservations={replyObservations} runAct={runAct} trialRunAct={trialRunAct} startAct={startRunAct} send={ordinarySend} observeOrdinaryView={observeOrdinaryView} checkPlanMode={async (generation) => {
           // The check's own failure stands, with the fixed line after it when the refresh failed too.
           // A completed check whose refresh fails rejects with the fixed line alone: its result is
           // visible only through the refreshed status, and that line says the status was not read.
@@ -2963,19 +3031,21 @@ export function App() {
           </div>
         </div>
         </div>
-        <div id="view-workflows" className="workspace-view workspace-view-narrow" hidden={taskView !== "run" && taskView !== "make"}>
+        </div>}
+          right={<div className="daily-workspace">
+        <div id="view-workflows" className="workspace-view workspace-view-narrow" hidden={rightTab !== "run" && rightTab !== "make"}>
           <div className="workspace-primary-column" aria-label="Workflow studio">
-            <WorkflowRootPanel viewStale={shownBeforePress(hostReads)} readFailure={hostReads.failure} findInHistory={findInHistory} view={taskView} showConversation={showConversation} offerComposer={offerComposer} data={host?.workflowRoot} host={host} operationalReference={threadKey ? conversationFromKey(threadKey) ?? undefined : null} openFileAct={openArrivalFileAct} fileActBusy={fileActBusy} act={(command, args) => { const refusal = bringBackRefusal(command, args, currentHost.current); return refusal ? Promise.reject(Error(refusal)) : invoke<Json>(command, args); }} observeView={refresh} openPreparedMessage={item => { void openPreparedMessage(item); }}/>
+            <WorkflowRootPanel viewStale={shownBeforePress(hostReads)} readFailure={hostReads.failure} findInHistory={findInHistory} view={rightTab} showConversation={showConversation} offerComposer={offerComposer} data={host?.workflowRoot} host={host} operationalReference={threadKey ? conversationFromKey(threadKey) ?? undefined : null} openFileAct={openArrivalFileAct} fileActBusy={fileActBusy} act={(command, args) => { const refusal = bringBackRefusal(command, args, currentHost.current); return refusal ? Promise.reject(Error(refusal)) : invoke<Json>(command, args); }} observeView={refresh} openPreparedMessage={item => { void openPreparedMessage(item); }}/>
         {preparedNotice && <p role="status">{preparedNotice}</p>}
           </div>
         </div>
-        <div id="view-history" data-workspace-view="history" className="workspace-view workspace-view-narrow" hidden={taskView !== "history"}>
+        <div id="view-history" data-workspace-view="history" className="workspace-view workspace-view-narrow" hidden={rightTab !== "history"}>
           <WorkspaceDisclosure id="workspace-history" title="History and recovery" description="Read prior conversations and inspect recovery custody" open>
             <RecoveryCustodyPanel key={JSON.stringify([host?.homeRouting?.activeModeHomeClass, host?.generation])} modeHomeClass={host?.homeRouting?.activeModeHomeClass} generation={host?.generation ?? null} nativeHistoryGeneration={host?.nativeHistory?.generation ?? null} read={() => invoke("read_recovery_custody", { modeHomeClass: host?.homeRouting?.activeModeHomeClass, generation: host?.generation ?? null })} readRequests={(cursor: Json) => invoke("read_recovery_request_history", { modeHomeClass: host?.homeRouting?.activeModeHomeClass, generation: host?.generation ?? null, cursor: cursor ?? null })} retry={(threadId: string) => invoke("recovery_retry", { modeHomeClass: host?.homeRouting?.activeModeHomeClass, generation: host?.generation ?? null, threadId })}/>
         <HistoryPanel host={host} refresh={refresh} threadKey={threadKey} setThreadKey={setThreadKey} captureContinueNavigation={captureContinueNavigation} openConversation={openAdmittedConversation} searchHint={historyHint}/>
           </WorkspaceDisclosure>
         </div>
-        <section id="workspace-tools" data-workspace-view="settings" className="workspace-tools workspace-view workspace-view-narrow" aria-label="Workspace tools" hidden={taskView !== "settings"}>
+        <section id="workspace-tools" data-workspace-view="settings" className="workspace-tools workspace-view workspace-view-narrow" aria-label="Workspace tools" hidden={rightTab !== "settings"}>
           <h2>Settings &amp; tools</h2>
           <DesktopSetupPanel view={host?.desktopSetup}/>
           <WorkspaceDisclosure id="workspace-connection" title="Connection and access" description="Home, sign-in, provider setup and Codex controls" open={host?.state !== "ready" ? true : undefined} onToggle={setConnectionOpen}>
@@ -3055,6 +3125,6 @@ export function App() {
         </section>
           </WorkspaceDisclosure>
         </section>
-        </div>}
-      </DailyWorkspace></PermissionLevelActions.Provider></UnsentWork.Provider>);
+        </div>}/>}
+      </main></PermissionLevelActions.Provider></UnsentWork.Provider>);
 }

@@ -266,22 +266,26 @@ const {App} = loadSrc('App');
 const place = c => c.querySelectorAll(n => n.getAttribute('aria-label') === 'Waiting on you')[0];
 const shownIn = (el, c) => { for (let n = el; n && n !== c; n = n.parentNode) if (props(n)?.hidden) return false; return true; };
 
-test('the place is present on every view, directly under the navigation, inside the part that stays in view', async () => {
-  const {WORKSPACE_VIEWS} = loadSrc('DailyWorkspace');
+test('the place is present whichever tab is selected, at the top of the conversation, inside the part that stays in view', async () => {
+  const {RIGHT_PANEL_TABS} = loadSrc('WorkspaceShell');
   await mountApp(async ({c}) => {
-    const main = nodes(c, 'main')[0];
-    for (const item of WORKSPACE_VIEWS) {
-      const link = nodes(c, 'a').find(a => a.textContent === item.label && a.parentNode.localName === 'nav');
-      await React.act(async () => props(main).onClick({target:link, currentTarget:main, preventDefault:() => {}}));
-      assert.equal(link.getAttribute('aria-current'), 'page', item.label);
+    for (const item of RIGHT_PANEL_TABS) {
+      const tab = nodes(c, 'button').find(b => b.getAttribute('role') === 'tab' && b.textContent === item.label);
+      await React.act(async () => props(tab).onClick());
+      assert.equal(tab.getAttribute('aria-selected'), 'true', item.label);
       const here = place(c);
       assert.ok(here, `${item.label}: the place is in the document`);
       assert.ok(shownIn(here, c), `${item.label}: the place is shown`);
       assert.match(nodes(here, 'summary')[0].textContent, /^Waiting on you: \d+( observed now)?( \(\d+ requests? from Codex\))?(; status incomplete)?$/);
-      const sticky = here.parentNode;
-      assert.equal(sticky.getAttribute('class'), 'workspace-sticky', 'it stays in view with the navigation');
-      assert.equal(sticky.parentNode, main, 'a direct child of the workspace that holds every view, so it sticks while any of them scrolls');
-      assert.equal(sticky.childNodes[0].localName, 'nav'); assert.equal(sticky.childNodes[1], here, 'directly under the navigation');
+      // Above the three regions, a direct child of the frame: it is seen whichever region is being used, and at
+      // the top of the window where the regions stack and the page itself scrolls.
+      const line = here.parentNode;
+      assert.equal(line.getAttribute('class'), 'daily-workspace workspace-waiting');
+      const frame = line.parentNode;
+      assert.equal(frame.localName, 'main', 'a direct child of the frame');
+      const regions = frame.childNodes.find(n => (n.getAttribute?.('class') ?? '').split(' ').includes('woven-workspace'));
+      assert.ok(frame.childNodes.indexOf(line) < frame.childNodes.indexOf(regions), 'before the three regions');
+      assert.equal(regions.contains(here), false, 'inside none of them, so no region\'s own scrolling takes it out of view');
     }
     assert.equal(c.querySelectorAll(n => n.getAttribute('aria-label') === 'Requests waiting for your answer').length, 1, 'the waiting count is inside the place, once');
     assert.ok(place(c).contains(c.querySelectorAll(n => n.getAttribute('aria-label') === 'Requests waiting for your answer')[0]));
