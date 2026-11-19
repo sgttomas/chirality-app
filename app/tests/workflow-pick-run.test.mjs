@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {loadSrc} from './support/load-src.mjs';
-import {installIdleNativeWaiting} from './support/idle-native-waiting.mjs';
+import {installIdleNativeWaiting, navigatorReadOf} from './support/idle-native-waiting.mjs';
 import {chatInput, newChatButton, sendButton} from './support/conversation-view.mjs';
 
 // The composer's Start run with a workflow picked in the Workflows tab (WorkflowPick.tsx), through the mounted App's
@@ -100,7 +100,7 @@ const ISSUED_ONLY = new Set(['host_status', 'decision_view', 'native_confirmatio
 /** Mounts the App over the stand-in; `ui.issued()` is every command but the reads the App makes by itself. */
 async function mounted(host, check) {
   const c = document.createElement('div'); document.body.appendChild(c); const root = createRoot(c);
-  const idle = installIdleNativeWaiting(host.invoke);
+  const idle = installIdleNativeWaiting(host.invoke, {navigatorRead: () => navigatorReadOf(g, (host.snapshot?.threads ?? []).map(t => t.threadId))});
   // The App's timed status reads, run when the test says (as model-choice.test.mjs does).
   const intervals = new Map(), previous = {setInterval: globalThis.setInterval, clearInterval: globalThis.clearInterval}; let timer = 0;
   globalThis.setInterval = fn => { intervals.set(++timer, fn); return timer; }; globalThis.clearInterval = id => intervals.delete(id);

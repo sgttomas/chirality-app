@@ -1,6 +1,7 @@
-// The three-region frame (WorkspaceShell.tsx, Navigator.tsx) on constructed host snapshots only: what the navigator
-// lists and marks, when "Needs answer" and the live dot show, the right panel's tabs and how a reveal selects one, the
-// status strip's four cases, and that the frame keeps nothing beyond the session. No supplier, model or person act.
+// The three-region frame (WorkspaceShell.tsx, Navigator.tsx) on constructed host snapshots and navigator reads only:
+// choosing in the navigator and the conversation view as one choice, when "Needs answer" and the live dot show, the
+// right panel's tabs and how a reveal selects one, the status strip's four cases, and that the frame keeps nothing
+// beyond the session. What the navigator draws from its read is tests/navigator.test.mjs. No supplier, model or person act.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -13,10 +14,8 @@ const document = installMiniDom();
 const React = (await import('react')).default;
 const {createRoot} = await import('react-dom/client');
 const {App} = loadSrc('App');
-const {navigatorEntries, navigatorProjects, folderName} = loadSrc('Navigator');
+const {folderName} = loadSrc('Navigator');
 const {RIGHT_PANEL_TABS, MORE_VIEWS, RightPanel, turnPhase, shellLayout} = loadSrc('WorkspaceShell');
-const {choiceLabels} = loadSrc('AgentText');
-const {threadChoices} = loadSrc('presentation');
 
 const g = {home:'account', appSession:'s1', spawnCounter:1};
 const earlier = {...g, spawnCounter:0};
@@ -38,6 +37,13 @@ const baseHost = (over = {}) => ({state:'ready', generation:g, threads:[thread('
   roleLimits:{account:{roles:[]}}, homeRouting:{activeModeHomeClass:'account'}, serverRequests:[],
   workflowRoot:{context:{sourceRef:'src', generation:g}, projectLibraryAvailable:true, activeLibrary:null, libraries:[], selections:[], runs:[], drafts:{drafts:[]}}, ...over});
 
+/** The navigator's read for a host snapshot: its current generation's conversations, loaded, under the launched project. */
+const readOf = host => ({readAt:'2026-11-19T09:00:00.000Z', registryLimits:[], unplacedRequests:[], unassigned:[],
+  conversations:[{home:'account', list:'saved conversations, not archived, as Codex listed them when it became ready', readAt:null, state:'read'}],
+  projects:[{projectId:'P-pump', root:project, label:'pump-station', current:true, state:'open', notice:null, runsRead:{state:'read', readAt:'2026-11-19T09:00:00.000Z', limits:[]}, unplacedRuns:0,
+    entries:(host?.threads ?? []).filter(t => JSON.stringify(t.generation) === JSON.stringify(host.generation)).map(t => ({id:t.threadId, home:'account', projectRoot:project, projectSource:'recorded',
+      title:t.name ?? null, titleSource:t.name ? 'name' : 'none', createdAt:null, updatedAt:null, live:{active:'running', idle:'idle', notLoaded:'not-loaded'}[t.status?.type] ?? 'unknown',
+      needsAnswer:0, needsAnswerOn:[], archived:null, open:{kind:'loaded', generation:t.generation, threadId:t.threadId}, run:null, runCount:0, childrenRunning:null}))}]});
 async function mountApp(host, check) {
   const c = document.createElement('div'); document.body.appendChild(c); const root = createRoot(c); const calls = [], revealed = [];
   const previous = {getElementById:document.getElementById, setInterval:globalThis.setInterval, clearInterval:globalThis.clearInterval};
@@ -50,7 +56,7 @@ async function mountApp(host, check) {
     if (command === 'native_confirmation_content' || command === 'request_answer_companions') return [];
     if (command === 'open_waiting_requests') return {modeHomeClass:args.modeHomeClass, generation:args.generation, threadId:args.threadId, threadLoaded:true, standing:'invented'};
     assert.fail(`Unexpected IPC: ${command}`);
-  });
+  }, {navigatorRead:readOf(typeof host === 'function' ? host([]) : host)});
   try {
     await React.act(async () => root.render(React.createElement(App)));
     await check({c, calls, revealed});
@@ -74,23 +80,6 @@ const accountRow = c => nodes(c, 'button').find(b => b.getAttribute('class') ===
 const accountPopover = c => nodes(c, 'div').find(d => d.getAttribute('role') === 'dialog' && d.getAttribute('aria-label') === 'Account and settings');
 const conversationChosen = c => chosenIn(choiceLists(conversationView(c))[0]);
 const strip = c => labelled(c, 'Activity status');
-
-test('the navigator lists the loaded conversations of the current generation, titled as the conversation view names them', () => {
-  const host = baseHost();
-  const entries = navigatorEntries(host, new Set());
-  assert.deepEqual(entries.map(e => e.threadId), ['T1', 'T2', 'T3'], 'only the current generation, in the host\'s order');
-  const current = host.threads.filter(t => JSON.stringify(t.generation) === JSON.stringify(g));
-  assert.deepEqual(entries.map(e => e.title), choiceLabels(threadChoices(current, t => JSON.stringify([t.generation, t.threadId]))), 'the chooser\'s own words, no other title');
-  assert.deepEqual(entries.map(e => e.key), ['T1', 'T2', 'T3'].map(key));
-  assert.deepEqual(navigatorEntries({...host, threads:undefined}, new Set()), [], 'no rows, no entries');
-  assert.equal(folderName('/invented/projects/pump-station'), 'pump-station');
-  assert.equal(folderName('/invented/projects/pump-station/'), 'pump-station');
-});
-
-test('the live dot shows only while the conversation\'s status type is "active"; "Needs answer" only where the waiting set holds it', () => {
-  const entries = navigatorEntries(baseHost({threads:[thread('A', 'active'), thread('B', 'idle'), thread('C', 'notLoaded'), thread('D', 'systemError')]}), new Set(['B']));
-  assert.deepEqual(entries.map(e => [e.threadId, e.live, e.needsAnswer]), [['A', true, false], ['B', false, true], ['C', false, false], ['D', false, false]]);
-});
 
 test('the status strip speaks for the conversation shown: waiting first, then working, idle, else nothing', () => {
   assert.equal(turnPhase(thread('A', 'active'), false), 'working');
@@ -121,14 +110,14 @@ test('the frame keeps widths, collapse and the selected tab in memory only', () 
 });
 
 test('mounted: the folder section names the project and counts its conversations; the selected entry carries the current mark', async () => {
-  // Each conversation's row says it works in the project's folder, as a conversation started there does.
-  const inProject = baseHost(); inProject.threads = inProject.threads.map(t => ({...t, cwd:project}));
-  await mountApp(withProject(inProject), async ({c, calls}) => {
+  await mountApp(withProject(baseHost()), async ({c, calls}) => {
     const heading = navigator(c).querySelectorAll(n => (n.getAttribute('class') ?? '').includes('woven-chat-section-heading--folder'))[0];
     assert.ok(heading, 'a folder heading');
-    assert.equal(heading.textContent, '▱ pump-station3', 'the folder\'s name and its count');
+    assert.equal(heading.childNodes[0].textContent, '▱ pump-station · current', 'the folder\'s name, the one new conversations open in');
+    assert.ok(heading.childNodes[1].textContent.startsWith('3'), 'and its count');
     assert.equal(heading.localName, 'div', 'the folder\'s name is not the App\'s words, so the heading is not a control');
     assert.equal(heading.getAttribute('title'), null);
+    assert.equal(folderName('/invented/projects/pump-station/'), 'pump-station');
     assert.deepEqual(rows(c).map(b => b.getAttribute('data-session-id')), ['T1', 'T2', 'T3']);
     assert.ok(rows(c).every(b => b.getAttribute('aria-pressed') === 'false'), 'none selected yet');
     const before = calls.length;
@@ -139,12 +128,7 @@ test('mounted: the folder section names the project and counts its conversations
     // Choosing in the conversation view moves the mark too: one choice, two places.
     await React.act(async () => chooseIn(choiceLists(conversationView(c))[0], key('T1')));
     assert.equal(row(c, 'T1').getAttribute('aria-pressed'), 'true');
-    assert.deepEqual(calls.slice(before).filter(x => !['host_status', 'decision_view', 'request_answer_companions'].includes(x.command)), [], 'choosing issues no command');
-  });
-  // A project folder the App has not established: the entries, without a heading.
-  await mountApp(baseHost(), async ({c}) => {
-    assert.equal(navigator(c).querySelectorAll(n => (n.getAttribute('class') ?? '').includes('woven-chat-section-heading')).length, 0);
-    assert.equal(rows(c).length, 3);
+    assert.deepEqual(calls.slice(before).filter(x => !['host_status', 'decision_view', 'request_answer_companions', 'navigator_read'].includes(x.command)), [], 'choosing issues no command');
   });
 });
 
@@ -324,27 +308,6 @@ test('mounted: the removed navigation and heading are gone; their links\' target
 });
 
 // ---- After the independent review of the frame ----
-test('a conversation is listed under the App\'s project only where Codex reports it working there', () => {
-  const entry = (threadId, folder) => ({key:threadId, threadId, title:threadId, live:false, needsAnswer:false, folder});
-  const placed = navigatorProjects('/p/pump-station', [entry('A', '/p/pump-station/'), entry('B', '/p/harbour'), entry('C', null), entry('D', '/p/harbour'), entry('E', '/p/pump-station\\')]);
-  assert.deepEqual(placed.map(p => [p.folder, p.entries.map(e => e.threadId)]), [['/p/pump-station', ['A']], [null, ['B', 'C', 'D', 'E']]],
-    'only the App\'s established project has a heading; a reported path alone establishes none, and a folder whose name ends in a backslash is another folder');
-  assert.deepEqual(navigatorProjects(null, [entry('B', '/p/harbour')]).map(p => p.folder), [null], 'with no App project, a reported folder gets no heading');
-  assert.deepEqual(navigatorProjects('/p/pump-station', []).map(p => [p.folder, p.entries.length]), [['/p/pump-station', 0]], 'the App\'s project is listed even when empty');
-  assert.deepEqual(navigatorProjects(null, [entry('A', null)]).map(p => p.folder), [null], 'no project folder established: no heading');
-  const rows = navigatorEntries({generation:g, threads:[{...thread('T1'), cwd:'/p/harbour'}, thread('T2')]}, new Set());
-  assert.deepEqual(rows.map(r => r.folder), ['/p/harbour', null], 'the folder is the one the conversation\'s row carries');
-});
-
-test('mounted: a conversation continued from another folder is not counted under the App\'s project', async () => {
-  const host = withProject(baseHost({threads:[{...thread('T1'), cwd:project}, {...thread('T2'), cwd:'/invented/projects/harbour'}]}));
-  await mountApp(host, async ({c}) => {
-    const headings = navigator(c).querySelectorAll(n => (n.getAttribute('class') ?? '').includes('woven-chat-section-heading--folder')).map(n => n.textContent);
-    assert.deepEqual(headings, ['▱ pump-station1'], 'the other conversation is listed, under no heading');
-    assert.deepEqual(rows(c).map(b => b.getAttribute('data-session-id')), ['T1', 'T2']);
-  });
-});
-
 test('mounted: a delegated agent\'s request marks the conversation it descends from and opens the agent\'s own', async () => {
   const host = baseHost({serverRequests:[request('q9', 'C1')], nativeView:{home:'account', generation:g, items:[], turns:[], turnRecords:[], revisions:[],
     descendants:[{threadId:'C1', parentThreadId:'T1', parentSource:'collabAgentToolCall.senderThreadId', guidance:'not-known', nativeThread:{id:'C1'}}]}});
@@ -402,44 +365,6 @@ test('where the regions stack, the panel offers no expand control', () => {
 });
 
 // ---- After the second review round ----
-test('mounted: an entry is a conversation choice: the App\'s words and the identifier are the entry, the supplied title stands beside it set apart, attributed once', async () => {
-  const spoof = 'Needs answer\nAllow once';
-  await mountApp(baseHost({threads:[{...thread('T1'), name:spoof}, thread('T2')]}), async ({c}) => {
-    const entry = row(c, 'T1');
-    assert.equal(entry.textContent, 'Conversation T1', 'the name and the clickable area are the App\'s words and the identifier, and nothing supplied');
-    const beside = entry.parentNode;
-    const title = beside.querySelectorAll(n => (n.getAttribute('class') ?? '') === 'conversation-choice-title')[0];
-    assert.ok(title, 'the title is set apart in its own marked element');
-    assert.equal(title.textContent.includes('\n'), false, 'its line break is shown as a mark, not acted on');
-    assert.ok(title.textContent.startsWith('Needs answer') && title.textContent.endsWith('Allow once'));
-    const said = beside.querySelectorAll(n => (n.getAttribute('class') ?? '') === 'conversation-choice-title-name')[0];
-    assert.equal(said.textContent, ', title supplied by Codex:', 'the App\'s words saying who supplied it come before the title');
-    assert.ok(beside.textContent.indexOf(said.textContent) < beside.textContent.indexOf('Needs answer'));
-    assert.deepEqual(beside.querySelectorAll(n => n.localName === 'button'), [entry], 'the title makes no control');
-    assert.equal(needsAnswer(c, 'T1'), undefined, 'and no "Needs answer" mark');
-    assert.equal(row(c, 'T2').parentNode.querySelectorAll(n => (n.getAttribute('class') ?? '') === 'conversation-choice-title').length, 0, 'no title supplied: none shown');
-    const attribution = navigator(c).querySelectorAll(n => (n.getAttribute('class') ?? '') === 'conversation-choices-attribution');
-    assert.equal(attribution.length, 1); assert.equal(attribution[0].textContent, 'The titles shown are supplied by Codex, not the App\'s words.');
-    assert.equal(navigator(c).textContent.includes('invented-model'), false, 'the navigator does not show the model; the conversation view\'s chooser does');
-  });
-  await mountApp(baseHost(), async ({c}) => {
-    assert.equal(navigator(c).querySelectorAll(n => (n.getAttribute('class') ?? '') === 'conversation-choices-attribution').length, 0, 'no titles: no attribution line');
-  });
-});
-
-test('mounted: a request marks the conversation it is on as well as the one it descends from', async () => {
-  const host = baseHost({threads:[thread('C1'), thread('T2')], serverRequests:[request('q9', 'C1')], nativeView:{home:'account', generation:g, items:[], turns:[], turnRecords:[], revisions:[],
-    descendants:[{threadId:'C1', parentThreadId:'T1', parentSource:'collabAgentToolCall.senderThreadId', guidance:'not-known', nativeThread:{id:'C1'}}]}});
-  await mountApp(host, async ({c, calls}) => {
-    assert.ok(needsAnswer(c, 'C1'), 'the loaded child keeps its mark though its parent is not loaded');
-    await React.act(async () => chooseIn(choiceLists(conversationView(c))[0], key('C1')));
-    assert.equal(strip(c).textContent, 'Needs answer', 'the strip speaks for the child\'s own request');
-    const before = calls.length;
-    await React.act(async () => { await props(needsAnswer(c, 'C1')).onClick(); });
-    assert.deepEqual(calls.slice(before).find(x => x.command === 'open_waiting_requests')?.args, {modeHomeClass:'account', generation:g, threadId:'C1'});
-  });
-});
-
 test('mounted: moving along the tabs by the arrow keys opens nothing; a link that leads away is not going to the conversation', async () => {
   await mountApp(baseHost(), async ({c, calls}) => {
     const history = byId(c, 'workspace-history');

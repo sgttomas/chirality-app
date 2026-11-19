@@ -101,6 +101,38 @@ needs:
     "Waiting on you", the return-review queue gives each return awaiting review with its reference,
     who returned it and who prepared its brief, as recorded.
   gating: false
+- from: DEL-04-03
+  condition: The registry of project folders can be read to its last complete line, with what
+    was not read stated, without opening, attaching, remembering or examining any folder; and for
+    the launched project, its status as host status takes it (the workspace as given), giving its
+    attachment (identity, fault, refusal and the acts that resolve it) and whether the project is
+    unavailable, with its error.
+  gating: true
+  when: The navigator's read of every project
+- from: DEL-02-03
+  condition: The workflow root holds its latest reading of the launched project's recorded runs
+    (made at launch, on the person's Reopen and after a recorded run is ended), with when it
+    began, its limits and history notices, or why it did not read, and for each run its
+    conversation, workflow identity, recorded lifecycle (open, ended with who and why, start not
+    confirmed, unknown with its reason) and when its start was recorded; it holds the runs this
+    process has prepared, each with its home, conversation, workflow and state; and all of this
+    is given from memory, without a file read or waiting on a run; and for a run this process
+    holds in force, whether the run guide is offered the agent's finished report.
+  gating: true
+  when: The navigator's read of every project
+- from: DEL-01-02
+  condition: Where the Host holds them, the App's conversation index rows (each conversation's
+    recorded project and the runs tagged on it) and the waiting register's outstanding
+    requests can be read without settling a reply write or reading or writing the ledger.
+  gating: true
+  when: The navigator's read of every project
+- from: DEL-01-03
+  condition: Where held, each home's history view gives the conversations it has received for its
+    generation, its selection epoch and the outcome of the App's own list read when Codex became
+    ready, and the native view gives each delegated child with its parent, all without a
+    dispatch, a receipt or a change of either view.
+  gating: true
+  when: The navigator's read of every project
 - from: DEL-01-06
   condition: The installed App is signed with the same Developer ID team and bundle identifier
     in every release, so that keychain items written by one release are readable by the next.
@@ -162,6 +194,10 @@ code_paths:
 - app/src-tauri/src/request_answer_sheet.rs
 - app/src-tauri/src/waiting_requests.rs
 - app/src-tauri/src/native_waiting.rs
+# The navigator's read: every project of the records store, with its conversations, for the
+# open project each conversation's latest run and a count, and how each conversation is opened
+# by the existing paths. A read only, from what the App holds; the panel is the interface lane's.
+- app/src-tauri/src/navigator_read.rs
 - app/src-tauri/src/attachments.rs
 - app/src-tauri/src/attachment_custody.rs
 - app/src-tauri/resources/attachments
@@ -214,8 +250,10 @@ code_paths:
 - app/src/DailyWorkspace.tsx
 - app/src/workspace.css
 # The frame (DEL-02-02 AX-004), shared with DEL-02-02. Here: the centre holds the conversation
-# surface, the navigator's entry chooses a conversation as that surface does, and "Needs answer"
-# and the status strip read a request waiting for the person as "Waiting on you" reads it.
+# surface; the navigator draws its read, each entry in the form REQ-002 sets for it, and an entry
+# chooses a conversation as that surface does or selects it in History; and "Needs answer",
+# "Approval needed" and the status strip read a request waiting for the person as "Waiting on you"
+# reads it.
 - app/src/WorkspaceShell.tsx
 - app/src/Navigator.tsx
 checks:
@@ -265,6 +303,9 @@ checks:
 - app/tests/waiting-requests.test.mjs
 - app/tests/native-waiting.test.mjs
 - app/src-tauri/src/waiting_requests_tests.rs
+- app/src-tauri/src/navigator_read_tests.rs
+- app/tests/navigator.test.mjs
+- app/src-tauri/src/hosting_navigator_tests.rs
 - app/src-tauri/src/native_request_answer_tests.rs
 - app/src-tauri/src/request_answer_presentation.rs
 - app/src-tauri/src/request_answer_sheet.rs

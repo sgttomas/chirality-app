@@ -173,6 +173,7 @@ test('the commands that mark nothing are a closed table of self-issued commands,
     finish_native_waiting_intent:'the waiting-navigation registry only, which neither guide shows',
     host_observe:'queues an observer reconstruction kept apart from live activity; reconciliation only',
     native_confirmation_content:'none',
+    navigator_read:"none; composes what the App holds in memory with the store registry's complete lines and the listed folders' own metadata, shown by navigator_read::tests::the_whole_read_writes_nothing_and_remembers_no_other_folder",
     request_answer_companions:'none; reads only already-masked frozen request-answer snapshots in memory',
     workflow_review_digest:'none',
   });
@@ -199,7 +200,7 @@ test('mounted App: a command issued outside the workflow panel withholds the Run
   // Review finding: End run pressed in the conversation goes through the shell's command function, not the
   // workflow panel. With the following status reply held the Run guide went on offering "End this run". The guide's
   // place is now the Run tab (End run) and the Workflows tab (Show this project's workflows).
-  const {installIdleNativeWaiting} = await import('./support/idle-native-waiting.mjs');
+  const {installIdleNativeWaiting, navigatorReadOf} = await import('./support/idle-native-waiting.mjs');
   const {App} = loadSrc('App');
   const g = {home:'account', appSession:'s1', spawnCounter:1};
   const thread = id => ({generation:g, threadId:id, model:'invented-model', status:{type:'idle'}, appRole:{standing:'app-observed', role:null}, roleRelation:{kind:'start'}, futureGuidanceNotices:[]});
@@ -221,7 +222,7 @@ test('mounted App: a command issued outside the workflow panel withholds the Run
     if (command === 'workflow_end_run') { runs = [run('ended by the person')]; return {state:'ended'}; }
     if (command === 'workflow_open_project_library') return {state:'opened'};
     assert.fail(`Unexpected IPC: ${command}`);
-  });
+  }, {navigatorRead:navigatorReadOf(g, ['T1', 'T2'])});
   const props = node => node[Object.keys(node).find(k => k.startsWith('__reactProps$'))];
   const nodes = tag => c.querySelectorAll(node => node.localName === tag);
   const guide = () => c.querySelectorAll(node => node.getAttribute('id') === 'view-current-run')[0];

@@ -37,7 +37,7 @@ import { preparedMessages, preparedMessageLimit, type PreparedMessage } from "./
 import { ConversationContext, ProjectLibraryContext, appProjectFolder, conversationFromKey, workflowSourceLimit } from "./WorkflowContext";
 import { WorkspaceDisclosure, WorkspaceConnectionStatus, revealWorkspaceTarget, revealWorkspaceLink, registerWorkspaceViews } from "./DailyWorkspace";
 import { ActivityStrip, MoreBack, MoreList, MORE_VIEWS, WorkspaceShell, isMoreView, isRightPanelTab, turnPhase, type MoreView, type RightPanelTab, RIGHT_PANEL_TABS, type TabSelection } from "./WorkspaceShell";
-import { Navigator, folderName, navigatorEntries, navigatorProjects, samePath, type NavigatorEntry } from "./Navigator";
+import { Navigator, NO_NAVIGATOR_READ, folderName, navigatorAfterRead, samePath, waitingConversations, type EntryOpen, type NavigatorHeld, type NavigatorReading } from "./Navigator";
 import { AccountRow, accountDeclined, accountRowWords, sourceKey as accountSourceKey, useAccountController, type AccountCommands, type AccountController, type PanelAccountCommand } from "./AccountControls";
 import { flushSync } from "react-dom";
 import { UnsentWork, useReportUnsent } from "./unsentWork";
@@ -118,6 +118,12 @@ export const historyReadAtReady = (host: Json): "reading" | "read-to-end" | "sto
  * with a margin, so it takes nothing from the case the move exists for. It is a product bound, not a measured one; the
  * reads' own waits (20 s an answer, up to 100 history pages) are longer and are not shortened by it. */
 export const FIRST_VIEW_MOVE_BOUND_MS = 10_000;
+/** How often the navigator's read is made (the interface lane's number, not a requirement): often enough that a
+ * conversation, a run's state or a project appears within a couple of seconds, at half the status read's rate since
+ * it also reads the registry of project folders. */
+export const NAVIGATOR_READ_MS = 2000;
+/** How long an unanswered navigator read holds the next one back. */
+export const NAVIGATOR_READ_PATIENCE_MS = 10_000;
 
 type ForkScope = { generation: Json; sourceThread: string; modeHomeClass: string; choiceRevision: number; homeEpoch: number; startRevision: number; sequence: number };
 type ForkNavigation = ForkScope & { threadId: string; requestRef: string };
@@ -749,7 +755,9 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
     <ConversationChoices legend="Current-generation conversation" group="current-conversation" disabled={!!ownBusy} chosen={threadKey} none="No conversation chosen"
       value={threadChoices(currentThreads, (thread: Json) => JSON.stringify([thread.generation, thread.threadId]))} onChoose={chooseConversation} />
     <div id="conversation-level"><PermissionLevel host={host} threadId={selected?.threadId}/></div>
-    {selected && <details className="conversation-identity"><summary>Exact conversation ID</summary><code>{selected.threadId}</code></details>}
+    {/* The conversation's identifier and its whole title, which the navigator's entry shows only on one line, shortened. */}
+    {selected && <details className="conversation-identity"><summary>Exact conversation ID and title</summary><p>Conversation ID: <code>{selected.threadId}</code></p>
+      {suppliedTitle(selected) !== null ? <p><AgentText value={suppliedTitle(selected)} source="codex" label="Title, supplied by Codex:" name="The conversation's whole title as Codex supplied it, not the App's words" /></p> : <p>Codex supplies no title for this conversation.</p>}</details>}
     {selected && <details className="conversation-options"><summary>Role and continuation options</summary><RoleHeader key={`role-header:${JSON.stringify([selected.generation, selected.threadId])}`} thread={selected} limits={host?.roleLimits} busy={!!busy || forkBusy} ready={host?.state === "ready"} trialConversation={trialConversation} trialsStartedHere={trialsStartedHere}
       readSupplyHistory={() => invoke("role_supply_history", { generation: selected.generation, thread: selected.threadId })}
       continueAs={role => { void roleAct("asking for a handoff summary", "continue_as_begin", { generation: selected.generation, threadId: selected.threadId, role }); }}
@@ -2850,6 +2858,35 @@ export function App() {
     return () => { clearInterval(t); document.removeEventListener("visibilitychange", shown); };
   }, [refresh]);
 
+  // The navigator's read (navigator_read): every NAVIGATOR_READ_MS, at mount, when the window is shown again, when the
+  // Codex generation or the active home changes, and after the navigator's own opening of a conversation. A read only,
+  // issued by the web view itself (SELF_ISSUED_QUIET). Reads are numbered and an older answer is never applied over a
+  // newer one; a read that has not answered within NAVIGATOR_READ_PATIENCE_MS no longer holds the next one back.
+  const [navigatorHeld, setNavigatorHeld] = useState<NavigatorHeld>(NO_NAVIGATOR_READ);
+  const navigatorReads = useRef({ started: 0, applied: 0, pendingSince: null as number | null });
+  const readNavigator = useCallback(async () => {
+    const reads = navigatorReads.current;
+    if (reads.pendingSince !== null && Date.now() - reads.pendingSince < NAVIGATOR_READ_PATIENCE_MS) return;
+    const index = ++reads.started;
+    reads.pendingSince = Date.now();
+    let reading: NavigatorReading;
+    try { reading = { read: await invoke<Json>("navigator_read"), at: Date.now() }; }
+    catch { reading = { failed: true, at: Date.now() }; }
+    if (index === reads.started) reads.pendingSince = null;
+    if (index <= reads.applied) return;
+    reads.applied = index;
+    setNavigatorHeld(held => navigatorAfterRead(held, reading));
+  }, []);
+  useEffect(() => {
+    void readNavigator();
+    const t = setInterval(() => { void readNavigator(); }, NAVIGATOR_READ_MS);
+    const shown = () => { if (document.visibilityState === "visible") void readNavigator(); };
+    document.addEventListener("visibilitychange", shown);
+    return () => { clearInterval(t); document.removeEventListener("visibilitychange", shown); };
+  }, [readNavigator]);
+  const navigatorSource = JSON.stringify([host?.generation ?? null, host?.homeRouting?.activeModeHomeClass ?? null]);
+  useEffect(() => { if (host) void readNavigator(); }, [navigatorSource]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // "Waiting on you": every WAITING_SOURCE_POLL_MS the decision packages are read
   // again through the command their panel uses, a read the web view already
   // issues by itself (SELF_ISSUED_QUIET), and the return-review queue through the
@@ -3442,10 +3479,11 @@ export function App() {
       return { error: error instanceof Error ? error.message : String(error), refreshFailed };
     }
   };
-  // The navigator and the status strip read requests as "Waiting on you" reads them: each person-answerable request
-  // of the active home's current generation, by the conversation it names.
+  // The status strip reads requests as "Waiting on you" reads them: each person-answerable request of the active home's
+  // current generation, by the conversation it names. The navigator places the same readings on its entries.
   const waitingRequests = waitingReads.filter(r => r.state === "whole" || r.state === "limited").flatMap(r => r.entries)
     .filter(entry => entry.source === "supplier-request" && entry.target.kind === "request");
+  const waitingShown = waitingReads.filter(r => r.state === "whole" || r.state === "limited").flatMap(r => r.entries);
   // A delegated agent's request is marked on the conversation it descends from, as "Waiting on you" groups it; the
   // request's own conversation stays the one opened.
   const requestRootOf = (entry: WaitingEntry) => entry.group.label.kind === "conversation" ? entry.group.label.threadId : null;
@@ -3454,8 +3492,19 @@ export function App() {
   const waitingThreads = new Set(waitingRequests.flatMap(entry => [requestOwnOf(entry), requestRootOf(entry)]).filter((id): id is string => typeof id === "string"));
   // A status the last read did not refresh says nothing current about a turn: no live mark and nothing in the strip.
   const statusCurrent = !hostReads.failure;
-  const projects = navigatorProjects(appProjectFolder(host), navigatorEntries(host, waitingThreads).map(entry => statusCurrent ? entry : { ...entry, live: false }));
-  const answerIn = (entry: NavigatorEntry) => { const first = waitingRequests.find(request => requestOwnOf(request) === entry.threadId) ?? waitingRequests.find(request => requestRootOf(request) === entry.threadId); if (first) goToWaiting(first); };
+  const navigatorContext = { now: Date.now(), activeHome: typeof host?.homeRouting?.activeModeHomeClass === "string" ? host.homeRouting.activeModeHomeClass : null, generation: host?.generation ?? null, statusCurrent };
+  // An entry not loaded in the current generation opens in History, selected there, where it can be continued: the
+  // History panel's own selection (history_select), with the epoch its view holds now where that view is the entry's.
+  const openInHistory = async (open: Extract<EntryOpen, { kind: "history" }>) => {
+    navigated.current = true;
+    const view = host?.nativeHistory;
+    const selectionEpoch = view && JSON.stringify(view.generation) === JSON.stringify(open.generation) && Number.isSafeInteger(view.selectionEpoch) ? view.selectionEpoch : open.selectionEpoch;
+    try { await invoke("history_select", { generation: open.generation, selectionEpoch, threadId: open.threadId }); }
+    catch (error) { setMessage(`History could not select that conversation: ${readingSentence(error) ?? String(error)}`); }
+    await refreshAfterAction(refresh, () => setMessage(withRefreshFailure));
+    void readNavigator();
+    revealWorkspaceTarget("workspace-history", true);
+  };
   // New chat: no conversation chosen; the empty conversation, with its message box ready. Nothing is started until
   // the person sends their first message.
   const newChat = () => {
@@ -3571,9 +3620,11 @@ export function App() {
         <WaitingOnYou readings={waitingReads} view={host?.nativeView} busy={homePending} onOpen={() => { void readFleetOnOpen(); }} openGroup={group => { void openRequests(group); }} go={goToWaiting}/>
         </div>}
         {firstRead === "read" && <WorkspaceShell hidden={setupRequired} rightTab={rightTab} onRightTab={selectTab} rightCollapsed={rightCollapsed} setRightCollapsed={collapseRight}
-          navigator={<Navigator projects={projects} selectedKey={threadKey} choose={conversationChooser.choose ? key => { navigated.current = true; conversationChooser.choose?.(key); openedConversation(key); } : null} answer={answerIn} newChat={newChat} account={accountRow}/>}
+          navigator={<Navigator held={navigatorHeld} waiting={waitingShown} now={navigatorContext.now} activeHome={navigatorContext.activeHome} generation={navigatorContext.generation} statusCurrent={statusCurrent} selectedThread={selectedThread || null}
+            choose={conversationChooser.choose ? key => { navigated.current = true; conversationChooser.choose?.(key); openedConversation(key); } : null}
+            openInHistory={open => { void openInHistory(open); }} answer={goToWaiting} newChat={newChat} account={accountRow}/>}
           collapsedNavigator={openNavigator => <div className="woven-collapsed-strip" aria-label="Collapsed chat navigation">
-            {projects.some(project => project.entries.some(entry => entry.needsAnswer)) ? <button type="button" aria-label="Needs answer" onClick={openNavigator}>!</button> : null}
+            {waitingConversations(navigatorHeld, waitingShown, navigatorContext) > 0 ? <button type="button" aria-label="Needs answer: open the navigator" onClick={openNavigator}>!</button> : null}
             <button type="button" aria-label="New chat" disabled={!conversationChooser.choose} onClick={newChat}>＋</button>
             <div className="woven-collapsed-settings">{accountRow}</div>
           </div>}

@@ -1,6 +1,7 @@
 // Answers to the commands the web view issues by itself (timers and mount effects), shaped as the
 // host's command functions return them (lib.rs). Not a state.
 import { PROJECT, nativePath } from "./_shared.js";
+import { readFromHost } from "./_navigator.js";
 const missingSource = (path, home = "selected project") => ({ path, nativePath: nativePath(path), home, line: null });
 const fleetLimits = [
   { source: missingSource(".chirality/fleet/briefs"), reason: "fleet folder missing; no empty-work conclusion" },
@@ -38,6 +39,9 @@ export const selfIssued = (over = {}) => ({
   // lib.rs read_home_access → runtime_session::read_native_home_access: HomeSession::account_view after the reads,
   // which is the status's homeAccess (the read it makes is already among its observations here).
   read_home_access: (_args, state) => state.host.homeAccess,
+  // lib.rs navigator_read → navigator_read::read: the launched project with the conversations the snapshot holds
+  // (_navigator.js readFromHost). The navigator's own states answer it themselves.
+  navigator_read: (_args, state) => readFromHost(state.host),
   ...over,
 });
 

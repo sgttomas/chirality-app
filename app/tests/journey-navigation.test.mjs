@@ -9,7 +9,7 @@ import assert from 'node:assert/strict';
 import {loadSrc} from './support/load-src.mjs';
 import {choiceList, choiceLists, chooseIn, chosenIn} from './support/choices.mjs';
 import {installMiniDom} from './support/mini-dom.mjs';
-import {installIdleNativeWaiting} from './support/idle-native-waiting.mjs';
+import {installIdleNativeWaiting, navigatorReadOf} from './support/idle-native-waiting.mjs';
 import { conversationView } from './support/conversation-view.mjs';
 const document = installMiniDom();
 const React = (await import('react')).default;
@@ -42,7 +42,7 @@ test('Answer in the conversation, in the Run tab, keeps the run\'s conversation 
     if (command === 'decision_view') return {rows:[]};
     if (command === 'native_confirmation_content' || command === 'request_answer_companions') return [];
     assert.fail(`Unexpected IPC: ${command}`);
-  });
+  }, {navigatorRead:navigatorReadOf(g, ['T1', 'T2'])});
   try {
     await React.act(async () => root.render(React.createElement(App)));
     const conversationSelect = () => choiceLists(conversationView(c))[0];
