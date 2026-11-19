@@ -463,6 +463,32 @@ class ProductionInputs(unittest.TestCase):
         self.assertEqual((account['notice_coverage']['complete'],account['notice_coverage']['gaps']),(False,len(open_items)+1))
         self.assertEqual(result['release_standing'],account['release_standing'])
         self.assertEqual(len(account['notice_coverage']['open']),len(open_items))
+    def test_packages_with_no_publisher_text_alone_cannot_make_a_public_plan(self):
+        # App Agent 0's condition: a crate group whose only open packages state a licence with no publisher text is open,
+        # and an account describing the selected vendor with only that open still refuses a public plan.
+        real_load = module.load_module
+        manifest = self.kw['expected_manifest']
+        group = ('Crates compiled into the Codex executables (codex-rs/Cargo.lock, including its 14 Git-sourced packages)')
+        open_items = [{'name': group, 'version': '9.9.9', 'standing': 'uncovered',
+                       'reason': 'of the 1483 locked packages, 0 have no text, 8 state a licence with no publisher text found, and 0 '
+                                 'await an owner licence reading: crc32c 0.6.8, ...'}]
+        class OnlyNoPublisherText:
+            __file__ = str(ROOT / 'app/packaging/notices/coverage.py')
+            unaccounted = staticmethod(UNACCOUNTED)
+            @staticmethod
+            def check(root): return {'sha256': '0' * 64, 'counts': {'covered': 1, 'uncovered': 1}, 'open': open_items,
+                                     'supplier_pin': '9.9.9', 'supplier_distribution': {'manifest_sha256': manifest},
+                                     'mappings': NAMED}
+        def load(name, path):
+            return OnlyNoPublisherText if name == 'production_notice_coverage' else real_load(name, path)
+        kw=self.production(); kw.pop('not_for_public_release')
+        with patch.object(module, 'load_module', load):
+            with self.assertRaisesRegex(module.NoticeCoverageIncomplete, 'notice coverage is incomplete') as caught: self.run_plan(**kw)
+            self.assertEqual((caught.exception.open_components, caught.exception.other_gaps), ([group], 0))
+            self.assertFalse(self.output.exists())
+            self.run_plan(**self.production())
+        inventory=json.loads((self.output/'input-inventory.json').read_text())
+        self.assertEqual(inventory['release_standing'], 'not for public release (named by the caller); notice coverage is incomplete')
     def test_complete_account_for_another_supplier_cannot_make_a_public_plan(self):
         # Review finding 4: an account made complete but describing 0.167.0 does not cover the invented 9.9.9 vendor.
         real_load = module.load_module

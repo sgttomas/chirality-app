@@ -262,15 +262,24 @@ class Account(Builds):
     def test_deleting_compiled_dependency_rows_leaves_every_executable_uncovered(self):
         executables = texts.executables(texts.supplier_record(self.repo)[2])
         self.assertEqual(len(executables), 5)
+        # Deleted, or kept but no longer marked as compiled dependencies, while a lockfile association still names them:
+        # refused (review round 3, finding 3), rather than covered by another route.
         for change in (lambda v: v.update(components=[c for c in v['components'] if c.get('kind') != coverage.COMPILED]),
                        lambda v: [c.pop('kind') and c.update(standing='uncovered', reason='INVENTED', would_close='INVENTED')
                                   for c in v['components'] if c.get('kind') == coverage.COMPILED]):
             with self.subTest(change=change):
-                # Deleted, or kept but no longer marked as compiled dependencies: every executable still gets an uncovered row.
                 self.setUp(); self.edit(TABLE, change)
-                open_names = {o['name'] for o in self.build()['open']}
-                for path in executables:
-                    self.assertIn('Dependencies compiled into ' + path, open_names)
+                with self.assertRaisesRegex(ValueError, 'names a component that is not a compiled-dependencies row'):
+                    self.build()
+        # An executable moved to a row that is not compiled dependencies still gets its own uncovered row.
+        def move(v):
+            row = next(c for c in v['components'] if c['id'] == 'codex-crate-dependencies')
+            row['members'].remove('bin/codex-exec-server')
+            next(c for c in v['components'] if c['id'] == 'codex')['members'].append('bin/codex-exec-server')
+        with self.subTest(change='moved'):
+            self.setUp(); self.edit(TABLE, move)
+            open_names = {o['name'] for o in self.build()['open']}
+            self.assertIn('Dependencies compiled into bin/codex-exec-server', open_names)
 
     def test_empty_workspace_texts_cannot_leave_ripgrep_covered(self):
         crates = texts.supplier_crates
@@ -281,7 +290,7 @@ class Account(Builds):
         # Even after the curated binding is updated, neither regeneration nor the gate accepts a textless package.
         for operation in (crates.packages, crates.check, coverage.build):
             with self.subTest(operation=operation.__name__):
-                with self.assertRaisesRegex(ValueError, 'must have at least one text'):
+                with self.assertRaisesRegex(ValueError, 'texts must be a non-empty list'):
                     operation(self.repo)
 
     # Round 2 finding 2, with the rule the 0.169.0 crate group adds: a compiled-dependencies row is covered only when every
@@ -293,10 +302,18 @@ class Account(Builds):
         codex, rg = rows['codex-crate-dependencies'], rows['ripgrep-crate-dependencies']
         self.assertEqual((rg['standing'], rg['packages']['total'], rg['packages']['gap']), (coverage.COVERED, 59, 0))
         self.assertEqual(codex['standing'], coverage.UNCOVERED)
-        self.assertEqual((codex['packages']['total'], codex['packages']['gap'], codex['packages']['held']), (1483, 138, 5))
-        self.assertEqual(len(codex['open_packages']), 143)
+        packages = codex['packages']
+        self.assertEqual((packages['total'], packages['text'], packages['gap'], packages['held'], packages['no-publisher-text'],
+                          packages['not-in-macos-package']), (1483, 1393, 53, 23, 8, 6))
+        # Held, gap and no-publisher-text packages are open; recorded absence is not, and each absent package is named.
+        self.assertEqual(len(codex['open_packages']), 84)
+        self.assertEqual(sorted(p['name'] for p in codex['excluded_packages']),
+                         ['linux-keyutils', 'rustls-platform-verifier-android', 'socks5-protocol', 'winapi-i686-pc-windows-gnu',
+                          'winapi-x86_64-pc-windows-gnu', 'winsplit'])
+        self.assertTrue(all(p['absence']['reverse_dependencies'] for p in codex['excluded_packages']))
         self.assertIn('some may not be compiled', codex['packages']['superset'])
         self.assertIn('objc2-foundation 0.3.2', codex['reason'])
+        self.assertIn('crc32c 0.6.8', codex['reason'])
         # The table cannot claim covered for an open group.
         self.setUp(); self.edit(TABLE, lambda v: next(c for c in v['components'] if c['id'] == 'codex-crate-dependencies').update(standing='covered'))
         with self.assertRaisesRegex(ValueError, 'the table says covered'): self.build()
@@ -321,12 +338,68 @@ class Account(Builds):
         # Dropping a lockfile's association, or naming another revision for it, refuses.
         self.setUp(); self.edit(crates_dir + '/associations.json', lambda v: v.update(locks=[l for l in v['locks'] if l['id'] != 'ripgrep']))
         with self.assertRaisesRegex(ValueError, 'crate index differs from the lockfiles'): self.build()
+        # The lock alone moved: its own workspace entry no longer matches it (review round 4, finding 4).
         self.setUp(); self.edit(crates_dir + '/associations.json', lambda v: next(l for l in v['locks'] if l['id'] == 'ripgrep').update(revision='e' * 40))
+        with self.assertRaisesRegex(ValueError, 'a workspace association names another repository or revision than its lockfile: ripgrep'):
+            crates.packages(self.repo)
+        # The lock and its workspace moved together: the component compares them as written, with main's refusal.
+        def move(v):
+            for item in (next(l for l in v['locks'] if l['id'] == 'ripgrep'), next(w for w in v['workspaces'] if w['lock'] == 'ripgrep')):
+                item.update(revision='e' * 40)
+        self.setUp(); self.edit(crates_dir + '/associations.json', move)
         (self.repo / crates.PACKAGES).write_bytes(crates.encode(crates.packages(self.repo)))
-        with self.assertRaisesRegex(ValueError, 'another repository or revision'): self.build()
+        with self.assertRaisesRegex(ValueError, "the crate group's lockfile is for another repository or revision than the component"):
+            self.build()
         # A lockfile whose bytes drift refuses.
         self.setUp(); lock = self.repo / crates_dir / 'locks/ripgrep.Cargo.lock'; lock.write_bytes(lock.read_bytes() + b'\n')
         with self.assertRaisesRegex(ValueError, 'lockfile differs'): self.build()
+
+    # App Agent 0's condition: packages that state a licence with no publisher text are open, never covered; an account
+    # whose only open packages are of that kind still fails --strict.
+    def test_no_publisher_text_alone_keeps_the_account_open_and_strict_refuses(self):
+        from unittest.mock import patch
+        crates = coverage.texts.supplier_crates  # the module coverage.py itself calls
+        # Invented for this copy: the other open supplier rows ship the skill-creator text, so only the crate group is open.
+        creator = 'app/packaging/supplier_notices/codex-skills-086ccc83/skill-creator/license.txt'
+
+        def close_others(v):
+            for c in v['components']:
+                if c['id'] in ('codex-skill-imagegen-sample', 'codex-skill-openai-docs-sample', 'codex-vendored-bubblewrap'):
+                    c.update(texts=[creator], standing='covered'); c.pop('reason'); c.pop('would_close')
+        self.edit(TABLE, close_others)
+        real = crates.group
+
+        def only_no_publisher_text(repo, component):
+            value = real(repo, component)
+            if value is None or component != 'codex-crate-dependencies':
+                return value
+            donor = next(r for r in value['packages'] if r['standing'] == 'text' and r['texts'])
+            rows = []
+            for row in value['packages']:
+                if row['standing'] in ('held', 'gap'):
+                    row = {k: v for k, v in row.items() if k not in ('reason', 'would_close')}
+                    row.update(standing='text', texts=row['texts'] or donor['texts'], basis='INVENTED')
+                rows.append(row)
+            return {**value, 'packages': rows}
+        with patch.object(crates, 'group', only_no_publisher_text):
+            value = self.build()
+            codex = next(c for c in value['components'] if c.get('id') == 'codex-crate-dependencies')
+            self.assertEqual({p['standing'] for p in codex['open_packages']}, {'no-publisher-text'})
+            self.assertEqual(len(codex['open_packages']), 8)
+            self.assertEqual(codex['standing'], coverage.UNCOVERED)
+            self.assertEqual([o['name'] for o in value['open']], [codex['name']])
+            self.assertIn('8 state a licence with no publisher text found', codex['reason'])
+            # The strict check refuses this account.
+            (self.repo / coverage.ACCOUNT).write_bytes(coverage.encode(value))
+            real_check = coverage.check
+            with patch.object(coverage, 'check', lambda **kw: real_check(self.repo, **kw)), \
+                    patch.object(sys, 'argv', ['coverage.py', 'check', '--strict']), \
+                    patch('sys.stdout', io.StringIO()), patch('sys.stderr', io.StringIO()) as err:
+                self.assertEqual(coverage.main(), 1)
+            self.assertIn('not covered: ' + codex['name'], err.getvalue())
+            # Nothing turns these packages covered: the table cannot say so.
+            self.edit(TABLE, lambda v: next(c for c in v['components'] if c['id'] == 'codex-crate-dependencies').update(standing='covered'))
+            with self.assertRaisesRegex(ValueError, 'the table says covered'): self.build()
 
     def test_a_dropped_component_needs_a_reviewed_statement(self):
         # The account as the reviewed copy generates it is the base and the committed account the generator compares with.
@@ -417,14 +490,18 @@ class Account(Builds):
 
     def test_supplier_table_must_claim_every_member_and_justify_gaps(self):
         table = TABLE
-        self.edit(table, lambda v: v['components'].pop(next(i for i, c in enumerate(v['components']) if c['id'] == 'zlib')))
+        self.edit(table, lambda v: next(c for c in v['components'] if c['id'] == 'zlib').update(members=[]))
         with self.assertRaisesRegex(ValueError, 'claimed by no component'): coverage.build(self.repo)
+        # Dropping a voice row also leaves a library of the supplier's sources.json that no row accounts for.
+        self.setUp()
+        self.edit(table, lambda v: v['components'].pop(next(i for i, c in enumerate(v['components']) if c['id'] == 'zlib')))
+        with self.assertRaisesRegex(ValueError, 'no voice row accounts for: zlib'): coverage.build(self.repo)
         self.setUp()
         self.edit(table, lambda v: next(c for c in v['components'] if c['id'] == 'fp16').update(standing='uncovered'))
         with self.assertRaises((ValueError, KeyError)): coverage.build(self.repo)
         self.setUp()
         self.edit(table, lambda v: next(c for c in v['components'] if c['id'] == 'opus').update(members=['codex-resources/voice/lib/invented.dylib']))
-        with self.assertRaisesRegex(ValueError, 'not in the tree'): coverage.build(self.repo)
+        with self.assertRaisesRegex(ValueError, 'not in the tree|supplier manifest does not list'): coverage.build(self.repo)
 
     # Round 2 finding 1: a curated input cannot change without its review record; removals fail a test in the same change.
     def test_curated_input_changes_refuse_without_the_review_record(self):
@@ -448,7 +525,7 @@ class Account(Builds):
         with self.assertRaisesRegex(ValueError, 'differ from the review record'): self.build()
 
     def test_expected_supplier_components(self):
-        # At 0.169.0: the voice rows are open because sources.json changed; three rows are new and open.
+        # At 0.169.0: the voice rows are established by the supplier's voice records; three rows are new and open.
         expected = {
             'codex': 'covered', 'codex-skill-creator-sample': 'covered', 'codex-skill-installer-sample': 'covered',
             'codex-skill-imagegen-sample': 'uncovered', 'codex-skill-openai-docs-sample': 'uncovered',
@@ -458,9 +535,9 @@ class Account(Builds):
             'icu': 'covered', 'libcxx': 'covered', 'libcxxabi': 'covered', 'llvm-libc': 'covered',
             'libcxx-credits-and-subdirectories': 'covered', 'libcxxabi-credits-and-subdirectories': 'covered',
             'llvm-libc-subdirectories': 'covered', 'highway': 'covered', 'fast_float': 'covered', 'simdutf': 'covered',
-            'dragonbox': 'covered', 'fp16': 'covered', 'abseil-cpp': 'covered', 'gstreamer': 'uncovered',
-            'gst-plugins-base': 'uncovered', 'gst-plugins-good': 'uncovered', 'glib': 'uncovered', 'proxy-libintl': 'uncovered',
-            'libffi': 'uncovered', 'pcre2-voice': 'uncovered', 'opus': 'uncovered', 'zlib': 'uncovered'}
+            'dragonbox': 'covered', 'fp16': 'covered', 'abseil-cpp': 'covered', 'gstreamer': 'covered',
+            'gst-plugins-base': 'covered', 'gst-plugins-good': 'covered', 'glib': 'covered', 'proxy-libintl': 'covered',
+            'libffi': 'covered', 'pcre2-voice': 'covered', 'opus': 'covered', 'zlib': 'covered'}
         table = json.loads((ROOT / TABLE).read_text())
         self.assertEqual({c['id']: c['standing'] for c in table['components']}, expected)
         account = self.build()
@@ -612,23 +689,273 @@ class Account(Builds):
         voice = [c for c in table['components'] if c['supplier_tree_texts']]
         self.assertEqual(len(voice), 9)
         self.assertTrue(all(c['revision'] is None and c['repository'].startswith('https://') for c in voice))
-        # At 0.169.0 the voice rows stay open: sources.json changed and its content is not held.
+        # At 0.169.0 the voice rows are covered, each established by the supplier's sources.json.
         opus = self.row(self.build(), 'Opus')
-        self.assertEqual(opus['standing'], coverage.UNCOVERED)
-        self.assertIn('sources.json', opus['reason'])
+        self.assertEqual(opus['standing'], coverage.COVERED)
+        self.assertEqual(opus['source_statement']['url'], opus['source']['repository'])
 
         def reviewed(v, repository):
-            row = next(c for c in v['components'] if c['id'] == 'opus')
-            row.update(standing='covered', repository=repository)
-            row.pop('reason'); row.pop('would_close')
-        self.setUp(); self.edit(TABLE, lambda v: reviewed(v, next(c for c in v['components'] if c['id'] == 'opus')['repository']))
-        self.assertEqual(self.row(self.build(), 'Opus')['standing'], coverage.COVERED)
+            next(c for c in v['components'] if c['id'] == 'opus').update(repository=repository)
         for repository in (None, '', 'opus-1.6.1.tar.gz'):
             with self.subTest(repository=repository):
+                # With the supplier's voice records held, a row whose source differs from them refuses.
                 self.setUp(); self.edit(TABLE, lambda v, r=repository: reviewed(v, r))
+                with self.assertRaisesRegex(ValueError, 'no single native-library entry of sources.json states the source of opus'):
+                    self.build()
+                # Without them, the row's own identity is still checked first.
+                shutil.rmtree(self.repo / coverage.voice_records.RECORDS)
                 row = self.row(self.build(), 'Opus')
                 self.assertEqual(row['standing'], coverage.UNCOVERED)
                 self.assertIn('source URL', row['reason'])
+        # Review rounds 4 and 5, finding 2: a voice row's revision key is present and null; any value, or no key, refuses by
+        # name before the review record's entries index it.
+        for revision in ('1' * 40, '', 'v1.6.1', 'absent'):
+            with self.subTest(revision=revision):
+                self.setUp()
+                def change(v, r=revision):
+                    opus = next(c for c in v['components'] if c['id'] == 'opus')
+                    if r == 'absent':
+                        del opus['revision']
+                    else:
+                        opus['revision'] = r
+                # A value is refused after review (rebound); an absent key before the review record is read.
+                self.edit(TABLE, change, rebind=revision != 'absent')
+                with self.assertRaisesRegex(ValueError, "a voice component's revision must be present and null: opus"):
+                    self.build()
+        # Without the records, a voice row with a complete identity is open, not covered.
+        self.setUp(); shutil.rmtree(self.repo / coverage.voice_records.RECORDS)
+        row = self.row(self.build(), 'Opus')
+        self.assertEqual(row['standing'], coverage.UNCOVERED)
+        self.assertIn('voice records for', row['reason'])
+
+    # Review round 2, finding 2: a voice component is one by where its members are, not by how its row is written; it is
+    # covered only through the voice records, with its source statement, and no exception or other text covers it.
+    def test_a_voice_component_is_covered_only_through_the_voice_records(self):
+        def reroute(v):
+            opus = next(c for c in v['components'] if c['id'] == 'opus')
+            codex = next(c for c in v['components'] if c['id'] == 'codex')
+            opus.update(supplier_tree_texts=[], texts=[codex['texts'][0]],
+                        text_exceptions=[{'path': codex['texts'][0], 'reason': 'INVENTED reviewed exception'}],
+                        members=opus['members'] + ['codex-resources/voice/licenses/Opus.txt'])
+        for records in (True, False):
+            with self.subTest(records=records):
+                self.setUp(); self.edit(TABLE, reroute)
+                if not records:
+                    shutil.rmtree(self.repo / coverage.voice_records.RECORDS)
+                row = self.row(self.build(), 'Opus')
+                self.assertEqual(row['standing'], coverage.UNCOVERED)
+                self.assertNotIn('source_statement', row)
+        # Review round 5: each condition alone. A committed text alone (an exception can only name a shipped text) leaves the
+        # row uncovered, by its identity check first (a voice row has no revision, which committed texts need); no tree text
+        # (the licence file kept as a member) leaves it uncovered by the voice route.
+        def committed_text(v):
+            codex = next(c for c in v['components'] if c['id'] == 'codex')
+            next(c for c in v['components'] if c['id'] == 'opus')['texts'] = [codex['texts'][0]]
+        def no_tree_text(v):
+            opus = next(c for c in v['components'] if c['id'] == 'opus')
+            opus['members'] = opus['members'] + opus['supplier_tree_texts']
+            opus['supplier_tree_texts'] = []
+        for change in (committed_text, no_tree_text):
+            with self.subTest(change=change.__name__):
+                self.setUp(); self.edit(TABLE, change)
+                row = self.row(self.build(), 'Opus')
+                self.assertEqual(row['standing'], coverage.UNCOVERED)
+                self.assertIn({'committed_text': "committed texts need the component's own repository and revision",
+                               'no_tree_text': 'covered only by its licence texts in the supplier tree'}[change.__name__], row['reason'])
+        # Moving the library into the Codex row makes that row a voice row: it records a revision, which a voice row may not
+        # (review round 4, finding 2), and no native-library entry establishes it.
+        def to_codex(v, keep_revision):
+            codex = next(c for c in v['components'] if c['id'] == 'codex')
+            codex['members'].append('codex-resources/voice/lib/libopus.0.dylib')
+            next(c for c in v['components'] if c['id'] == 'opus')['members'].remove('codex-resources/voice/lib/libopus.0.dylib')
+            if not keep_revision:
+                codex['revision'] = None
+        for keep_revision, message in ((True, "a voice component's revision must be present and null: codex"),
+                                       (False, 'states the source of codex')):
+            with self.subTest(keep_revision=keep_revision):
+                self.setUp(); self.edit(TABLE, lambda v, k=keep_revision: to_codex(v, k))
+                with self.assertRaisesRegex(ValueError, message):
+                    self.build()
+        # Control: the committed rows are covered, each with its source statement.
+        self.setUp()
+        report = self.build()
+        for name in ('Opus', 'zlib'):
+            row = self.row(report, name)
+            self.assertEqual(row['standing'], coverage.COVERED)
+            self.assertIn('source_statement', row)
+
+    # Review round 3, finding 1: voice membership is decided before any branch; a voice member takes only the voice route
+    # and belongs to one component.
+    def test_a_voice_member_takes_only_the_voice_route(self):
+        lib = 'codex-resources/voice/lib/libopus.0.dylib'
+        def to_compiled(v):
+            next(c for c in v['components'] if c['id'] == 'opus')['members'].remove(lib)
+            next(c for c in v['components'] if c['id'] == 'ripgrep-crate-dependencies')['members'].append(lib)
+        def to_reading(v):
+            icu, opus = (next(c for c in v['components'] if c['id'] == i) for i in ('icu', 'opus'))
+            for key in ('version', 'repository', 'members', 'supplier_tree_texts'):
+                icu[key] = json.loads(json.dumps(opus[key]))
+            icu['texts'] = []
+            opus.update(members=[], supplier_tree_texts=[], repository=None, standing='uncovered', reason='INVENTED',
+                        would_close='INVENTED')
+        def twice(v):
+            next(c for c in v['components'] if c['id'] == 'zlib')['members'].append(lib)
+        for change, message in ((to_compiled, 'takes only the voice route'), (to_reading, 'takes only the voice route'),
+                                (twice, 'a voice member belongs to two components')):
+            with self.subTest(message=message, change=change.__name__):
+                self.setUp(); self.edit(TABLE, change)
+                with self.assertRaisesRegex(ValueError, message):
+                    self.build()
+
+    # Review round 3, finding 2: supplier-tree texts only on a voice component, and only under the voice licences folder.
+    def test_supplier_tree_texts_belong_only_to_voice_components(self):
+        def nonvoice(v):
+            next(c for c in v['components'] if c['id'] == 'codex-skill-imagegen-sample').update(
+                standing='covered', supplier_tree_texts=['bin/codex'])
+        def outside(v):
+            next(c for c in v['components'] if c['id'] == 'opus')['supplier_tree_texts'] = ['codex-resources/voice/lib/libopus.0.dylib']
+        for change, message in ((nonvoice, 'only a voice component may name supplier-tree texts'),
+                                (outside, 'must be a member under codex-resources/voice/licenses/')):
+            with self.subTest(message=message):
+                self.setUp(); self.edit(TABLE, change)
+                with self.assertRaisesRegex(ValueError, message):
+                    self.build()
+
+    def test_the_vendor_check_keeps_main_s_refusal(self):
+        # Review round 3, finding 2: the optional --vendor comparison refuses, as on main, a row with tree texts whose source
+        # the extracted tree's sources.json does not state; the control passes.
+        vendor = self.repo / 'invented-vendor'
+        tree = {}
+        for name, member in coverage.voice_records.MEMBERS.items():
+            raw = (self.repo / coverage.voice_records.RECORDS / '0.169.0' / name).read_bytes()
+            (vendor / member).parent.mkdir(parents=True, exist_ok=True)
+            (vendor / member).write_bytes(raw)
+            tree[member] = {'sha256': hashlib.sha256(raw).hexdigest()}
+        record = json.loads((self.repo / 'app/src-tauri/resources/supplier/0.169.0/CANONICAL_DISTRIBUTION.json').read_text())
+        table = json.loads((self.repo / TABLE).read_text())
+        coverage.check_vendor(vendor, table, tree, '0.169.0', record)
+        next(c for c in table['components'] if c['id'] == 'codex-skill-imagegen-sample').update(supplier_tree_texts=['bin/codex'])
+        with self.assertRaisesRegex(ValueError, 'voice component differs from sources.json: codex-skill-imagegen-sample'):
+            coverage.check_vendor(vendor, table, tree, '0.169.0', record)
+
+    # Review round 3, finding 3: a component a lockfile association names is a compiled-dependencies row with an executable.
+    def test_a_locked_component_is_compiled_and_has_an_executable(self):
+        def unkind(v):
+            row = next(c for c in v['components'] if c['id'] == 'codex-crate-dependencies')
+            row.pop('kind')
+            row.update(standing='covered', texts=[next(c for c in v['components'] if c['id'] == 'codex')['texts'][0]])
+        def move(v):
+            codex, rg = (next(c for c in v['components'] if c['id'] == i) for i in ('codex-crate-dependencies', 'ripgrep-crate-dependencies'))
+            rg['members'].extend(codex['members'])
+            codex['members'] = []
+        def share(v):
+            next(c for c in v['components'] if c['id'] == 'ripgrep-crate-dependencies')['members'].append('bin/codex')
+        for change, message in ((unkind, 'names a component that is not a compiled-dependencies row'),
+                                (move, 'has no executable member'), (share, 'belongs to two compiled-dependencies components')):
+            with self.subTest(message=message):
+                self.setUp(); self.edit(TABLE, change)
+                with self.assertRaisesRegex(ValueError, message):
+                    self.build()
+
+    # Review round 3, finding 6: a repeated key in a keyed collection refuses rather than letting the last one win.
+    def test_a_repeated_supplier_identifier_refuses(self):
+        def twice_id(v):
+            v['components'].append(json.loads(json.dumps(next(c for c in v['components'] if c['id'] == 'codex'))))
+        def twice_text(v):
+            v['texts'].append(dict(v['texts'][0]))
+        for change, message in ((twice_id, 'duplicate supplier component id'), (twice_text, 'repeats a text path')):
+            with self.subTest(message=message):
+                self.setUp(); self.edit(TABLE, change)
+                with self.assertRaisesRegex(ValueError, message):
+                    self.build()
+
+    # Review round 4, finding 1 and App Agent 0's condition: a compiled component's repository is compared with its
+    # lockfile's as written, as on main, and refuses with main's message for a suffix in any case or another letter case.
+    def test_a_compiled_component_s_repository_is_compared_as_written(self):
+        rg = 'https://github.com/BurntSushi/ripgrep'
+        for repository in (rg + '.GIT', rg + '.git', rg + '/', 'https://github.com/burntsushi/ripgrep', 'https://GitHub.com/BurntSushi/ripgrep'):
+            with self.subTest(repository=repository):
+                self.setUp()
+                self.edit(TABLE, lambda v, r=repository: next(c for c in v['components'] if c['id'] == 'ripgrep-crate-dependencies')
+                          .update(repository=r))
+                with self.assertRaisesRegex(ValueError, "the crate group's lockfile is for another repository or revision than the "
+                                                        'component: ripgrep-crate-dependencies'):
+                    self.build()
+
+    # Review rounds 4 and 5, finding 1: every non-voice repository field of the table is either exactly the canonical
+    # GitHub form or begins with exactly https://chromium.googlesource.com/; anything else refuses, naming the field. The
+    # component and its texts are respelled together, so no comparison between them refuses first.
+    def test_a_repository_field_has_one_of_the_two_accepted_forms(self):
+        rg = 'https://github.com/BurntSushi/ripgrep'
+        def respell(v, spelling):
+            for item in [next(c for c in v['components'] if c['id'] == 'ripgrep')] + v['texts']:
+                if item.get('repository') == rg:
+                    item['repository'] = spelling
+        for spelling in (rg + '.GIT', rg + '/', 'https://github.com:443/BurntSushi/ripgrep', 'https://git@github.com/BurntSushi/ripgrep',
+                         'https://GITHUB.COM/BurntSushi/ripgrep', 'https://www.github.com/BurntSushi/ripgrep',
+                         'https://gitlab.com/BurntSushi/ripgrep', 'https://Chromium.googlesource.com/BurntSushi/ripgrep',
+                         'https://github.com/BurntSushi/..', 'https://github.com/./ripgrep'):
+            with self.subTest(spelling=spelling):
+                self.setUp(); self.edit(TABLE, lambda v, r=spelling: respell(v, r))
+                with self.assertRaisesRegex(ValueError, 'a repository field is neither exactly https://github.com/<owner>/<repository> '
+                                                        'nor under https://chromium.googlesource.com/: '):
+                    self.build()
+        # An also_at identity is held to the same rule.
+        def also_at(v):
+            other = next(t for t in v['texts'] if t.get('also_at'))['also_at'][0]
+            other['repository'] = other['repository'].replace('https://github.com/', 'https://github.com:443/')
+        self.setUp(); self.edit(TABLE, also_at)
+        with self.assertRaisesRegex(ValueError, r'a repository field is neither exactly.*: texts\[.*\]\.also_at\[0\]\.repository$'):
+            self.build()
+        # A null or missing field is not a form; each refuses or stays open as on main.
+        def text_field(v, change):
+            change(next(t for t in v['texts'] if t['repository'] == rg))
+        for change in (lambda t: t.update(repository=None), lambda t: t.pop('repository')):
+            with self.subTest(field='text', change=change):
+                self.setUp(); self.edit(TABLE, lambda v, c=change: text_field(v, c))
+                with self.assertRaisesRegex(ValueError, 'supplier text needs a non-empty repository and revision'):
+                    self.build()
+        for change in (lambda o: o.update(repository=None), lambda o: o.pop('repository')):
+            with self.subTest(field='also_at', change=change):
+                self.setUp(); self.edit(TABLE, lambda v, c=change: c(next(t for t in v['texts'] if t.get('also_at'))['also_at'][0]))
+                with self.assertRaisesRegex(ValueError, 'an also_at identity needs repository'):
+                    self.build()
+        self.setUp(); self.edit(TABLE, lambda v: next(c for c in v['components'] if c['id'] == 'ripgrep').update(repository=None))
+        self.assertEqual(self.row(self.build(), 'ripgrep')['standing'], coverage.UNCOVERED)
+        self.setUp(); self.edit(TABLE, lambda v: next(c for c in v['components'] if c['id'] == 'ripgrep').pop('repository'))
+        with self.assertRaises(KeyError):
+            self.build()
+        # Control: the committed table passes, with both accepted forms present.
+        self.setUp()
+        table = json.loads((self.repo / TABLE).read_text())
+        values = [c['repository'] for c in table['components'] if not coverage.voice_records.is_voice(c)]
+        self.assertTrue(any(v.startswith(coverage.OTHER_REPOSITORY_PREFIXES) for v in values))
+        self.assertEqual(self.row(self.build(), 'ripgrep')['standing'], coverage.COVERED)
+
+    # Review round 4, remaining item: a distribution record that repeats a file refuses (an invented record in the copy).
+    def test_a_distribution_record_that_repeats_a_file_refuses(self):
+        record = texts.supplier_record(self.repo)[1]
+        def repeat(v):
+            v['inventory']['entries'].append(dict(next(e for e in v['inventory']['entries'] if e['kind'] == 'file')))
+        self.edit(record, repeat, rebind=False); self.rebind()
+        with self.assertRaisesRegex(ValueError, 'the distribution record repeats a file'):
+            self.build()
+
+    # Review round 3, finding 5: one repository identity; another letter case is the same repository.
+    def test_the_codex_commit_check_ignores_repository_case(self):
+        crates_module = coverage.texts.supplier_crates
+        def table(v):
+            next(c for c in v['components'] if c['id'] == 'codex-crate-dependencies').update(
+                repository='https://github.com/OpenAI/Codex', revision='2' * 40)
+        def associations(v):
+            for item in [next(l for l in v['locks'] if l['id'] == 'codex'), next(w for w in v['workspaces'] if w['lock'] == 'codex')] + [
+                    m['source'] for m in v['manifests'] if m['source']['kind'] == 'workspace-file']:
+                item.update(repository='https://github.com/OpenAI/Codex', revision='2' * 40)
+        self.edit(TABLE, table)
+        self.edit(crates_module.ASSOCIATIONS, associations)
+        (self.repo / crates_module.PACKAGES).write_bytes(crates_module.encode(crates_module.packages(self.repo)))
+        with self.assertRaisesRegex(ValueError, 'must be at the distribution record\'s source commit'):
+            self.build()
 
     def test_library_content_must_match_its_bundle_source_record(self):
         self.edit(texts.INPUTS, lambda v: v['library_content'][1].update(revision='d' * 40))

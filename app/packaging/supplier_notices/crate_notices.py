@@ -17,7 +17,9 @@ The route, for one archive and the package a held lockfile names:
    notice's path, size, SHA-256 and Git blob. `extract` repeats steps 1 to 4 and requires every result to equal the
    index before it writes anything.
 
-Nothing here parses a manifest, README or source file, runs a build, a resolver or Cargo, or writes to a cache. A
+Nothing here parses a manifest, README or source file, runs a build, a resolver or Cargo, or writes to a cache.
+`read_member` returns one named member's bytes after the same checks; crates.py uses it only to compare a committed
+parent manifest with its archive's Cargo.toml. A
 selection by name finds the files named as notices; it does not show that no other file carries its own terms.
 """
 import gzip
@@ -57,6 +59,12 @@ def git_blob(raw):
 
 
 NOTICE_FOLDER = re.compile(r'^licen[cs]es?$', re.I)
+
+
+def safe_relative(path):
+    """The member path rule: a relative path with no backslash and no empty, `.` or `..` segment (so not absolute).
+    crates.py applies the same rule to every repository-relative path in its curated inputs."""
+    return type(path) is str and path != '' and '\\' not in path and all(p not in ('', '.', '..') for p in path.split('/'))
 
 
 def is_notice(path):
@@ -155,9 +163,7 @@ def _members(raw, package, opener=gzip.GzipFile):
             relative = path[len(prefix):]
             if kind == DIRECTORY and relative == '':
                 continue
-            parts = relative.split('/')
-            require(relative and '\\' not in relative and all(p not in ('', '.', '..') for p in parts),
-                    'unsafe member path: ' + name)
+            require(safe_relative(relative), 'unsafe member path: ' + name)
             key = relative.casefold()
             require(key not in folded, 'archive repeats a member, or has two names equal ignoring case: '
                     + relative + ' and ' + folded.get(key, relative))
@@ -206,3 +212,16 @@ def extract_checked(raw, entry, opener=gzip.GzipFile):
     found = [{k: n[k] for k in ('path', 'size_bytes', 'sha256', 'git_blob_sha1')} for n in notices]
     require(found == entry['notices'], f'selected notices differ from the index: {package[0]} {package[1]}')
     return {n['path']: n['data'] for n in notices}
+
+
+def read_member(raw, package, checksum, member, opener=gzip.GzipFile):
+    """The bytes of one named regular member of a verified archive (for crates.py verify-manifests), after the same
+    checksum and header checks; no other member's payload is returned."""
+    require(sha256(raw) == checksum, f'archive differs from the lockfile checksum: {package[0]} {package[1]}')
+    found = [m for m in _members(raw, package, opener) if m['path'] == member]
+    require(len(found) == 1 and found[0]['kind'] == REGULAR, f'the archive has no single regular member {member}')
+    with opener(fileobj=io.BytesIO(raw)) as stream:
+        stream.seek(found[0]['offset'], io.SEEK_CUR)
+        data = stream.read(found[0]['size'])
+    require(len(data) == found[0]['size'], 'member is shorter than its header: ' + member)
+    return data

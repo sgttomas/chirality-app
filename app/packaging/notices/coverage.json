@@ -6,7 +6,7 @@
   "record": "app/src-tauri/resources/supplier/0.169.0/CANONICAL_DISTRIBUTION.json",
   "manifest_sha256": "c2d91de0619e9be8e9fb294af5a0323b352cadc75aabc8162469fc9a3f504012"
  },
- "compiled_program_rule": "for this distribution record, every regular file with an execute bit that is neither a .dylib library nor .json data is a compiled program (checked against the record's Mach-O count); each has a compiled-dependencies component, covered only when every package its associated lockfile locks has its text (supplier_notices/crates.py)",
+ "compiled_program_rule": "for this distribution record, every regular file with an execute bit that is neither a .dylib library nor .json data is a compiled program (checked against the record's Mach-O count); each has a compiled-dependencies component, covered only when every package its associated lockfile locks has its text or is recorded absent from the macOS target by declared target condition (supplier_notices/crates.py)",
  "review_record": "app/packaging/notices/coverage-review.json",
  "supplier_table_reviewed_for_pin": "0.169.0",
  "supplier_executables": [
@@ -19,18 +19,20 @@
  "inputs_sha256": {
   "app/packaging/font_notice/index.json": "ad2b50d268aa1df4c856a9cb446cd0fb6821deed4a65e4214c6d5f0df69ac03f",
   "app/packaging/notices/coverage-inputs.json": "c69574536b96438ef7660ac65ae5998369023b5354813a6bdf8d354a0b682871",
-  "app/packaging/notices/coverage-review.json": "585bbc345a7a7c89af03c417bb051575be7708994f4c8d067f7d55135f47a086",
+  "app/packaging/notices/coverage-review.json": "da99cc424916bfd1fe3ac3c09c5a5041c474f8a0f86e1a8abad52c6612a1e17c",
   "app/packaging/notices/index.json": "fbf873b839b167d5347b233a7d019df4d053809e8dc9e31968e04b4e6cf46ac4",
   "app/packaging/notices/transitive-index.json": "557c17f96f1a82982d0933a5c0ea570f000db17dad4278d67b16fd63379ed517",
   "app/packaging/sqlite_notice/index.json": "cfbe3f95ea753d14f7d50a4f55d0263693726a30f4847e5430ccadf4d943fc3b",
-  "app/packaging/supplier_notices/components.json": "df68be19bd3c2830179f5467bf3441cb855aebfc0a0d2c1f1324ba5664c3f9d5",
+  "app/packaging/supplier_notices/components.json": "0ddf30f79a0b2d1ccece7cdb72f8fa8e09cf626d49fa44d546a1f7cf60bb9de7",
+  "app/packaging/supplier_notices/voice_records/0.169.0/manifest.json": "de47c1e0b9145db978ef68e4daa1c65dd84a9e99dc3c9428408bda019ffa8cff",
+  "app/packaging/supplier_notices/voice_records/0.169.0/sources.json": "5613f37012effc3e28cdad52a7c88b9098aaaf7aae43f3cb7199f55ffbb15908",
   "app/packaging/unsigned/tauri.notices.conf.json": "db4e0b618091a882aa4455363f1da21c2f0edb39d6a8b357468438d73c1b45a9",
   "app/src-tauri/resources/supplier/0.169.0/CANONICAL_DISTRIBUTION.json": "166adbcb5b2663ebed90a18808867e7ceb75c87e8c7707bc8bb3d1bb6d4b2dd4"
  },
  "counts": {
-  "covered": 230,
+  "covered": 239,
   "held-pending-owner-licence-reading": 0,
-  "uncovered": 13,
+  "uncovered": 4,
   "total": 243
  },
  "open": [
@@ -59,71 +61,8 @@
    "name": "Crates compiled into the Codex executables (codex-rs/Cargo.lock, including its 14 Git-sourced packages)",
    "version": "0.169.0",
    "standing": "uncovered",
-   "reason": "138 of the 1483 locked packages have no text and 5 await an owner licence reading: Inflector 0.11.4, age 0.12.1, age-core 0.12.0, allocative 0.3.6, allocative_derive 0.3.6, asn1-rs-impl 0.2.0, base64-simd 0.8.0, block2 0.6.2, clipboard-win 5.4.1, cookie-factory 0.3.3, crc32c 0.6.8, dasp_sample 0.11.0, debugserver-types 0.5.0, defmt 0.3.100, defmt-parser 1.0.0, deno_core_icudata 0.78.0, difflib 0.4.0, dispatch2 0.3.0, display_container 0.9.0, eventsource-stream 0.2.3, fax 0.2.6, fax_derive 0.2.0, flatbuffers 25.12.19, fluent-langneg 0.13.1, fxhash 0.2.1, include_dir 0.7.4, include_dir_macros 0.7.4, intl_pluralrules 7.0.2, io_tee 0.1.1, jni 0.22.4, jni-macros 0.22.4, jni-sys-macros 0.4.1, linux-keyutils 0.2.4, lock_free_hashtable 0.1.4, ndk 0.9.0, ndk-context 0.1.1, ndk-sys 0.6.0+11769913, objc2 0.6.3, objc2-app-kit 0.3.2, objc2-audio-toolbox 0.3.2, objc2-avf-audio 0.3.2, objc2-cloud-kit 0.3.2, objc2-core-audio 0.3.2, objc2-core-audio-types 0.3.2, objc2-core-data 0.3.2, objc2-core-foundation 0.3.2, objc2-core-graphics 0.3.2, objc2-core-image 0.3.2, objc2-core-location 0.3.2, objc2-core-text 0.3.2, objc2-encode 4.1.0, objc2-foundation 0.3.2, objc2-io-surface 0.3.2, objc2-local-authentication 0.3.2, objc2-quartz-core 0.3.2, objc2-security 0.3.2, objc2-ui-kit 0.3.2, objc2-user-notifications 0.3.2, opentelemetry 0.31.0, opentelemetry-appender-tracing 0.31.1, opentelemetry-http 0.31.0, opentelemetry-otlp 0.31.0, opentelemetry-proto 0.31.0, opentelemetry-semantic-conventions 0.31.0, opentelemetry_sdk 0.31.0, pagable 0.4.1, pagable_derive 0.4.1, protoc-bin-vendored 3.2.0, protoc-bin-vendored-linux-aarch_64 3.2.0, protoc-bin-vendored-linux-ppcle_64 3.2.0, protoc-bin-vendored-linux-s390_64 3.2.0, protoc-bin-vendored-linux-x86_32 3.2.0, protoc-bin-vendored-linux-x86_64 3.2.0, protoc-bin-vendored-macos-aarch_64 3.2.0, protoc-bin-vendored-macos-x86_64 3.2.0, protoc-bin-vendored-win32 3.2.0, rama-core 0.3.0-alpha.4, rama-dns 0.3.0-alpha.4, rama-error 0.3.0-alpha.4, rama-http 0.3.0-alpha.4, rama-http-backend 0.3.0-alpha.4, rama-http-core 0.3.0-alpha.4, rama-http-headers 0.3.0-alpha.4, rama-http-types 0.3.0-alpha.4, rama-macros 0.3.0-alpha.4, rama-net 0.3.0-alpha.4, rama-socks5 0.3.0-alpha.4, rama-tcp 0.3.0-alpha.4, rama-tls-rustls 0.3.0-alpha.4, rama-udp 0.3.0-alpha.4, rama-unix 0.3.0-alpha.4, rama-utils 0.3.0-alpha.4, ratatui-termina 0.1.0, rtc-datachannel 0.20.3, rtc-dtls 0.20.3, rtc-ice 0.20.3, rtc-interceptor 0.20.3, rtc-interceptor-derive 0.20.3, rtc-mdns 0.20.3, rtc-media 0.20.3, rtc-rtcp 0.20.3, rtc-rtp 0.20.3, rtc-sctp 0.20.3, rtc-sdp 0.20.3, rtc-shared 0.20.3, rtc-srtp 0.20.3, rtc-stun 0.20.3, rtc-turn 0.20.3, rustls-platform-verifier-android 0.1.1, schemafy_core 0.5.2, schemafy_lib 0.5.2, socks5-protocol 0.3.5, sonora-aec3 0.2.0, sorted_vector_map 0.2.1, starlark 0.14.2, starlark_derive 0.14.2, starlark_map 0.14.2, starlark_syntax 0.14.2, static_interner 0.1.2, strong_hash 0.1.0, strong_hash_derive 0.1.0, tonic-prost 0.14.3, tonic-prost-build 0.14.3, tracelogging 1.2.3, tracelogging_macros 1.2.3, ts-rs 11.1.0, ts-rs-macros 11.1.0, valuable 0.1.1, vtparse 0.6.2, wasip2 1.0.2+wasi-0.2.9, wasip3 0.4.0+wasi-0.3.0-rc-2026-01-06, wasite 0.1.0, wasm-encoder 0.244.0, wasm-metadata 0.244.0, wasmparser 0.244.0, wezterm-input-types 0.1.0, winapi-i686-pc-windows-gnu 0.4.0, winapi-x86_64-pc-windows-gnu 0.4.0, winsplit 0.1.0, wit-component 0.244.0, wit-parser 0.244.0, zune-core 0.4.12, zune-jpeg 0.4.21",
-   "would_close": "each open package's licence text (an owner-permitted acquisition) or, for a held one, the owner's reading"
-  },
-  {
-   "name": "GStreamer",
-   "version": "1.28.6",
-   "standing": "uncovered",
-   "reason": "codex-resources/voice/sources.json, which states this component's version and source, differs at 0.169.0 from the 0.167.0 file read for this row (same size, another digest), and its content is not held; the version and source recorded here are 0.167.0's. The licence texts in the tree are byte-identical to 0.167.0's.",
-   "would_close": "read sources.json from the 0.169.0 distribution (a read-only single-member extraction, proposed to the integrator) and check this row against it"
-  },
-  {
-   "name": "GStreamer Base Plugins",
-   "version": "1.28.6",
-   "standing": "uncovered",
-   "reason": "codex-resources/voice/sources.json, which states this component's version and source, differs at 0.169.0 from the 0.167.0 file read for this row (same size, another digest), and its content is not held; the version and source recorded here are 0.167.0's. The licence texts in the tree are byte-identical to 0.167.0's.",
-   "would_close": "read sources.json from the 0.169.0 distribution (a read-only single-member extraction, proposed to the integrator) and check this row against it"
-  },
-  {
-   "name": "GStreamer Good Plugins",
-   "version": "1.28.6",
-   "standing": "uncovered",
-   "reason": "codex-resources/voice/sources.json, which states this component's version and source, differs at 0.169.0 from the 0.167.0 file read for this row (same size, another digest), and its content is not held; the version and source recorded here are 0.167.0's. The licence texts in the tree are byte-identical to 0.167.0's.",
-   "would_close": "read sources.json from the 0.169.0 distribution (a read-only single-member extraction, proposed to the integrator) and check this row against it"
-  },
-  {
-   "name": "GLib (with GVDB)",
-   "version": "2.88.3",
-   "standing": "uncovered",
-   "reason": "codex-resources/voice/sources.json, which states this component's version and source, differs at 0.169.0 from the 0.167.0 file read for this row (same size, another digest), and its content is not held; the version and source recorded here are 0.167.0's. The licence texts in the tree are byte-identical to 0.167.0's.",
-   "would_close": "read sources.json from the 0.169.0 distribution (a read-only single-member extraction, proposed to the integrator) and check this row against it"
-  },
-  {
-   "name": "proxy-libintl",
-   "version": "0.5",
-   "standing": "uncovered",
-   "reason": "codex-resources/voice/sources.json, which states this component's version and source, differs at 0.169.0 from the 0.167.0 file read for this row (same size, another digest), and its content is not held; the version and source recorded here are 0.167.0's. The licence texts in the tree are byte-identical to 0.167.0's.",
-   "would_close": "read sources.json from the 0.169.0 distribution (a read-only single-member extraction, proposed to the integrator) and check this row against it"
-  },
-  {
-   "name": "libffi",
-   "version": "3.8.0",
-   "standing": "uncovered",
-   "reason": "codex-resources/voice/sources.json, which states this component's version and source, differs at 0.169.0 from the 0.167.0 file read for this row (same size, another digest), and its content is not held; the version and source recorded here are 0.167.0's. The licence texts in the tree are byte-identical to 0.167.0's.",
-   "would_close": "read sources.json from the 0.169.0 distribution (a read-only single-member extraction, proposed to the integrator) and check this row against it"
-  },
-  {
-   "name": "PCRE2 (voice)",
-   "version": "10.47",
-   "standing": "uncovered",
-   "reason": "codex-resources/voice/sources.json, which states this component's version and source, differs at 0.169.0 from the 0.167.0 file read for this row (same size, another digest), and its content is not held; the version and source recorded here are 0.167.0's. The licence texts in the tree are byte-identical to 0.167.0's.",
-   "would_close": "read sources.json from the 0.169.0 distribution (a read-only single-member extraction, proposed to the integrator) and check this row against it"
-  },
-  {
-   "name": "Opus",
-   "version": "1.6.1",
-   "standing": "uncovered",
-   "reason": "codex-resources/voice/sources.json, which states this component's version and source, differs at 0.169.0 from the 0.167.0 file read for this row (same size, another digest), and its content is not held; the version and source recorded here are 0.167.0's. The licence texts in the tree are byte-identical to 0.167.0's.",
-   "would_close": "read sources.json from the 0.169.0 distribution (a read-only single-member extraction, proposed to the integrator) and check this row against it"
-  },
-  {
-   "name": "zlib",
-   "version": "1.3.2",
-   "standing": "uncovered",
-   "reason": "codex-resources/voice/sources.json, which states this component's version and source, differs at 0.169.0 from the 0.167.0 file read for this row (same size, another digest), and its content is not held; the version and source recorded here are 0.167.0's. The licence texts in the tree are byte-identical to 0.167.0's.",
-   "would_close": "read sources.json from the 0.169.0 distribution (a read-only single-member extraction, proposed to the integrator) and check this row against it"
+   "reason": "of the 1483 locked packages, 53 have no text, 8 state a licence with no publisher text found, and 23 await an owner licence reading (6 are recorded absent from the macOS package and named under excluded_packages): Inflector 0.11.4, age 0.12.1, age-core 0.12.0, allocative 0.3.6, allocative_derive 0.3.6, block2 0.6.2, cookie-factory 0.3.3, crc32c 0.6.8, dasp_sample 0.11.0, debugserver-types 0.5.0, deno_core_icudata 0.78.0, difflib 0.4.0, dispatch2 0.3.0, display_container 0.9.0, eventsource-stream 0.2.3, fax 0.2.6, fax_derive 0.2.0, fluent-langneg 0.13.1, fxhash 0.2.1, include_dir 0.7.4, include_dir_macros 0.7.4, io_tee 0.1.1, jni 0.22.4, jni-macros 0.22.4, lock_free_hashtable 0.1.4, objc2 0.6.3, objc2-app-kit 0.3.2, objc2-audio-toolbox 0.3.2, objc2-avf-audio 0.3.2, objc2-cloud-kit 0.3.2, objc2-core-audio 0.3.2, objc2-core-audio-types 0.3.2, objc2-core-data 0.3.2, objc2-core-foundation 0.3.2, objc2-core-graphics 0.3.2, objc2-core-image 0.3.2, objc2-core-location 0.3.2, objc2-core-text 0.3.2, objc2-encode 4.1.0, objc2-foundation 0.3.2, objc2-io-surface 0.3.2, objc2-local-authentication 0.3.2, objc2-quartz-core 0.3.2, objc2-security 0.3.2, objc2-ui-kit 0.3.2, objc2-user-notifications 0.3.2, protoc-bin-vendored 3.2.0, protoc-bin-vendored-linux-aarch_64 3.2.0, protoc-bin-vendored-linux-ppcle_64 3.2.0, protoc-bin-vendored-linux-s390_64 3.2.0, protoc-bin-vendored-linux-x86_32 3.2.0, protoc-bin-vendored-linux-x86_64 3.2.0, protoc-bin-vendored-macos-aarch_64 3.2.0, protoc-bin-vendored-macos-x86_64 3.2.0, protoc-bin-vendored-win32 3.2.0, rama-core 0.3.0-alpha.4, rama-dns 0.3.0-alpha.4, rama-error 0.3.0-alpha.4, rama-http 0.3.0-alpha.4, rama-http-backend 0.3.0-alpha.4, rama-http-core 0.3.0-alpha.4, rama-http-headers 0.3.0-alpha.4, rama-http-types 0.3.0-alpha.4, rama-macros 0.3.0-alpha.4, rama-net 0.3.0-alpha.4, rama-socks5 0.3.0-alpha.4, rama-tcp 0.3.0-alpha.4, rama-tls-rustls 0.3.0-alpha.4, rama-udp 0.3.0-alpha.4, rama-unix 0.3.0-alpha.4, rama-utils 0.3.0-alpha.4, sorted_vector_map 0.2.1, static_interner 0.1.2, strong_hash 0.1.0, strong_hash_derive 0.1.0, tracelogging 1.2.3, tracelogging_macros 1.2.3, ts-rs 11.1.0, ts-rs-macros 11.1.0, valuable 0.1.1, vtparse 0.6.2, wezterm-input-types 0.1.0, zune-core 0.4.12, zune-jpeg 0.4.21",
+   "would_close": "each open package's licence text (an owner-permitted acquisition), for one with no publisher text the owner's decision on what may serve as its notice, and for a held one the owner's reading"
   }
  ],
  "standings": {
@@ -9987,875 +9926,679 @@
     "registry": 1296,
     "git": 14,
     "path": 173,
-    "text": 1340,
-    "held": 5,
-    "gap": 138,
+    "text": 1393,
+    "held": 23,
+    "gap": 53,
+    "no-publisher-text": 8,
+    "not-in-macos-package": 6,
     "account": "third-party-notices/supplier/crates/packages.json",
-    "superset": "every package the lockfile locks, on every platform and feature; some may not be compiled into the macOS executables"
+    "superset": "every package the lockfile locks, on every platform and feature; some may not be compiled into the macOS executables. Only packages standing not-in-macos-package are recorded as absent, by declared target condition"
    },
+   "excluded_packages": [
+    {
+     "name": "linux-keyutils",
+     "version": "0.2.4",
+     "checksum": "761e49ec5fd8a5a463f9b84e877c373d888935b71c6be78f3767fe2ae6bed18e",
+     "absence": {
+      "target": "aarch64-apple-darwin",
+      "reverse_dependencies": [
+       {
+        "name": "keyring",
+        "version": "3.6.3",
+        "manifest": "app/packaging/supplier_notices/crates/manifests/keyring-3.6.3.Cargo.toml",
+        "declarations": [
+         {
+          "target": "cfg(target_os = \"linux\")",
+          "kind": "normal"
+         }
+        ],
+        "inherited_dependencies": {
+         "rule": "registry manifest",
+         "basis": "a published Cargo.toml has no workspace inheritance; every declaration is explicit"
+        }
+       }
+      ]
+     }
+    },
+    {
+     "name": "rustls-platform-verifier-android",
+     "version": "0.1.1",
+     "checksum": "f87165f0995f63a9fbeea62b64d10b4d9d8e78ec6d7d51fb2125fda7bb36788f",
+     "absence": {
+      "target": "aarch64-apple-darwin",
+      "reverse_dependencies": [
+       {
+        "name": "rustls-platform-verifier",
+        "version": "0.7.0",
+        "manifest": "app/packaging/supplier_notices/crates/manifests/rustls-platform-verifier-0.7.0.Cargo.toml",
+        "declarations": [
+         {
+          "target": "cfg(target_os = \"android\")",
+          "kind": "normal"
+         }
+        ],
+        "inherited_dependencies": {
+         "rule": "registry manifest",
+         "basis": "a published Cargo.toml has no workspace inheritance; every declaration is explicit"
+        }
+       }
+      ]
+     }
+    },
+    {
+     "name": "socks5-protocol",
+     "version": "0.3.5",
+     "checksum": "24b4925e3858bd0a1ac69668653234b4bebb0d4cd32a111c31057837d3d99117",
+     "absence": {
+      "target": "aarch64-apple-darwin",
+      "reverse_dependencies": [
+       {
+        "name": "codex-linux-sandbox",
+        "version": "0.0.0",
+        "manifest": "app/packaging/supplier_notices/crates/manifests/codex-rs.linux-sandbox.Cargo.toml",
+        "declarations": [
+         {
+          "target": "cfg(target_os = \"linux\")",
+          "kind": "dev"
+         }
+        ],
+        "inherited_dependencies": {
+         "rule": "i",
+         "basis": "every inherited dependency sits under a condition false for aarch64-apple-darwin",
+         "inherited_keys": 23
+        }
+       }
+      ]
+     }
+    },
+    {
+     "name": "winapi-i686-pc-windows-gnu",
+     "version": "0.4.0",
+     "checksum": "ac3b87c63620426dd9b991e5ce0329eff545bccbbb34f3be09ff6fb6ab51b7b6",
+     "absence": {
+      "target": "aarch64-apple-darwin",
+      "reverse_dependencies": [
+       {
+        "name": "winapi",
+        "version": "0.3.9",
+        "manifest": "app/packaging/supplier_notices/crates/manifests/winapi-0.3.9.Cargo.toml",
+        "declarations": [
+         {
+          "target": "i686-pc-windows-gnu",
+          "kind": "normal"
+         }
+        ],
+        "inherited_dependencies": {
+         "rule": "registry manifest",
+         "basis": "a published Cargo.toml has no workspace inheritance; every declaration is explicit"
+        }
+       }
+      ]
+     }
+    },
+    {
+     "name": "winapi-x86_64-pc-windows-gnu",
+     "version": "0.4.0",
+     "checksum": "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f",
+     "absence": {
+      "target": "aarch64-apple-darwin",
+      "reverse_dependencies": [
+       {
+        "name": "winapi",
+        "version": "0.3.9",
+        "manifest": "app/packaging/supplier_notices/crates/manifests/winapi-0.3.9.Cargo.toml",
+        "declarations": [
+         {
+          "target": "x86_64-pc-windows-gnu",
+          "kind": "normal"
+         }
+        ],
+        "inherited_dependencies": {
+         "rule": "registry manifest",
+         "basis": "a published Cargo.toml has no workspace inheritance; every declaration is explicit"
+        }
+       }
+      ]
+     }
+    },
+    {
+     "name": "winsplit",
+     "version": "0.1.0",
+     "checksum": "3ab703352da6a72f35c39a533526393725640575bb211f61987a2748323ad956",
+     "absence": {
+      "target": "aarch64-apple-darwin",
+      "reverse_dependencies": [
+       {
+        "name": "codex-tui",
+        "version": "0.0.0",
+        "manifest": "app/packaging/supplier_notices/crates/manifests/codex-rs.tui.Cargo.toml",
+        "declarations": [
+         {
+          "target": "cfg(windows)",
+          "kind": "normal"
+         }
+        ],
+        "inherited_dependencies": {
+         "rule": "ii",
+         "basis": "the inherited keys equal in number the lockfile dependencies the manifest does not name explicitly, so none resolves to winsplit",
+         "lockfile_dependencies": 126,
+         "explicit_names": 8,
+         "inherited_keys": 118
+        }
+       }
+      ]
+     }
+    }
+   ],
    "open_packages": [
     {
      "name": "Inflector",
      "version": "0.11.4",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no member named as a notice; at https://github.com/whatisinternet/inflector a4a95eac (the revision its VCS record names) its selected licence texts include 1 not held: https://raw.githubusercontent.com/whatisinternet/inflector/a4a95eac75043f4bffb127c7c8ec886b5b106053/LICENSE.md (1,270 bytes, blob 937b1bd1). The request to acquire these files is with the owner."
     },
     {
      "name": "age",
      "version": "0.12.1",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no member named as a notice; at https://github.com/str4d/rage 7a854c9c (the revision its VCS record names) its selected licence texts include 1 not held: https://raw.githubusercontent.com/str4d/rage/7a854c9c8c02dab2ebea19e02e6693a5730a8b2a/LICENSE-MIT (1,077 bytes, blob c775f610); already held: LICENSE-APACHE. The request to acquire these files is with the owner."
     },
     {
      "name": "age-core",
      "version": "0.12.0",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no member named as a notice; at https://github.com/str4d/rage f6383f36 (the revision its VCS record names) its selected licence texts include 1 not held: https://raw.githubusercontent.com/str4d/rage/7a854c9c8c02dab2ebea19e02e6693a5730a8b2a/LICENSE-MIT (1,077 bytes, blob c775f610); already held: LICENSE-APACHE. The request to acquire these files is with the owner."
     },
     {
      "name": "allocative",
      "version": "0.3.6",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no VCS record, so the locked revision is not established: crates.io records publication of 0.3.6 on 2026-05-20 under \"Apache-2.0\"; the candidate commit fc41670c of facebookexperimental/allocative sets 0.3.6, but its workspace Cargo.toml (blob 4015725e) declares \"MIT OR Apache-2.0\", unlike the archive, so the archive was not built from that tree unchanged"
     },
     {
      "name": "allocative_derive",
      "version": "0.3.6",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "asn1-rs-impl",
-     "version": "0.2.0",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "base64-simd",
-     "version": "0.8.0",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no VCS record, so the locked revision is not established: crates.io records publication of 0.3.6 on 2026-05-20 under \"Apache-2.0\"; the candidate commit fc41670c of facebookexperimental/allocative sets 0.3.6, but its workspace Cargo.toml (blob 4015725e) declares \"MIT OR Apache-2.0\", unlike the archive, so the archive was not built from that tree unchanged"
     },
     {
      "name": "block2",
      "version": "0.6.2",
      "standing": "held",
-     "reason": "the same text awaits an owner licence reading for this crate as the App's own copy does; the App's reading of 2026-11-12 is not extended to the supplier's copy here"
-    },
-    {
-     "name": "clipboard-win",
-     "version": "5.4.1",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "listed for the owner's reading: the objc2 repository's LICENSE.md (a licensing overview, sha256 7f976f7e9cb2) ships and awaits that reading for this supplier copy; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
     },
     {
      "name": "cookie-factory",
      "version": "0.3.3",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no member named as a notice; at https://github.com/rust-bakery/cookie-factory d36b805d (the revision its VCS record names) its selected licence texts include 1 not held: https://raw.githubusercontent.com/rust-bakery/cookie-factory/d36b805dbd7dd65f2df947235c5bcc573afe2c76/LICENSES/MIT.txt (1,065 bytes, blob d9e66dc9). The request to acquire these files is with the owner."
     },
     {
      "name": "crc32c",
      "version": "0.6.8",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "standing": "no-publisher-text",
+     "reason": "a licence is stated and no publisher text was found: The listing at the locked revision names no licence file. Its manifest declares \"Apache-2.0/MIT\"; README.md lines 38-40 give either licence at the user's option; src/combine.rs (3,292 bytes, blob bf56adf1) lines 11-16 carry a third-party zlib notice (\"Copyright (C) 1995-2006, 2010, 2011, 2012, 2016 Mark Adler / For conditions of distribution and use, see copyright notice in zlib.h\"), whose zlib.h text is not in the repository; no other copyright line was found in src/, build.rs or the tests read. A listing that names no licence file does not show that no publisher text exists elsewhere."
     },
     {
      "name": "dasp_sample",
      "version": "0.11.0",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no member named as a notice; at https://github.com/rustaudio/sample 97c3bb9b (the revision its VCS record names) its selected licence texts include 2 not held: https://raw.githubusercontent.com/rustaudio/sample/97c3bb9b2363c0b46ac1633858bf1054fd02a980/LICENSE-APACHE (561 bytes, blob 74c4f492), https://raw.githubusercontent.com/rustaudio/sample/97c3bb9b2363c0b46ac1633858bf1054fd02a980/LICENSE-MIT (1,087 bytes, blob b35b5491). The request to acquire these files is with the owner."
     },
     {
      "name": "debugserver-types",
      "version": "0.5.0",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "defmt",
-     "version": "0.3.100",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "defmt-parser",
-     "version": "1.0.0",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "standing": "no-publisher-text",
+     "reason": "a licence is stated and no publisher text was found: The listing at the locked revision names no licence file. Its manifest declares \"MIT\"; README.md and src/lib.rs state no licence or copyright. The types are generated from src/schema.json (108,673 bytes, blob 53e3a32c), which the README describes as VSCode's debug server protocol; that schema's origin and licence were not examined. A listing that names no licence file does not show that no publisher text exists elsewhere."
     },
     {
      "name": "deno_core_icudata",
      "version": "0.78.0",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "standing": "no-publisher-text",
+     "reason": "a licence is stated and no publisher text was found: The listing at the locked revision names no licence file. Its manifest declares \"MIT\"; README.md (105 bytes) and src/lib.rs (205 bytes) state no licence. The crate embeds src/icudtl.dat (10,876,560 bytes, blob 9655a2e1) with include_bytes, and the README says it is Rusty V8's third_party/icu/common/icudtl.dat: ICU data, whose own licence the examined files do not state. A listing that names no licence file does not show that no publisher text exists elsewhere."
     },
     {
      "name": "difflib",
      "version": "0.4.0",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no VCS record, so its revision is not established; App Agent 0 accepts a binding by invariance where a licence text is the same blob at every candidate revision bracketing publication, confirmed by a reviewer across the whole range. Window: 6fd59b0c (2018-07-03, sets 0.4.0) to f035fb8e (2018-07-22T12:36:05Z, the last commit before publication at 12:47:54Z), through 06afc187 and 31ea2a24 on the merged branch. LICENSE is blob 5acedf04 (1,086 bytes) at 6fd59b0c and at f035fb8e (saved tree listings); the two commits between are not held, so identity across the whole range is not yet shown. The LICENSE is not held"
     },
     {
      "name": "dispatch2",
      "version": "0.3.0",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "standing": "held",
+     "reason": "listed for the owner's reading: the objc2 repository's LICENSE.md (a licensing overview, sha256 7f976f7e9cb2) ships and awaits that reading for this supplier copy; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
     },
     {
      "name": "display_container",
      "version": "0.9.0",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no VCS record, so the locked revision is not established: crates.io records publication of 0.9.0 on 2023-06-05T12:23:55Z, and the earliest public commit of facebookincubator/gazebo at 0.9.0 (13efb6d4) is dated after it (history imported), so no commit is bound"
     },
     {
      "name": "eventsource-stream",
      "version": "0.2.3",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "standing": "no-publisher-text",
+     "reason": "a licence is stated and no publisher text was found: The listing at the locked revision names no licence file. Its manifest declares \"MIT OR Apache-2.0\"; README.md line 22 reads \"License: MIT OR Apache-2.0\"; no source file read carries a copyright line. A listing that names no licence file does not show that no publisher text exists elsewhere."
     },
     {
      "name": "fax",
      "version": "0.2.6",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "standing": "no-publisher-text",
+     "reason": "a licence is stated and no publisher text was found: The listing at the locked revision names no licence file. Its manifest declares \"MIT\"; README.md states no licence; none of its five src files read has a licence or copyright header. A listing that names no licence file does not show that no publisher text exists elsewhere."
     },
     {
      "name": "fax_derive",
      "version": "0.2.0",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "flatbuffers",
-     "version": "25.12.19",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "standing": "no-publisher-text",
+     "reason": "a licence is stated and no publisher text was found: The listing at the locked revision (folder derive/) names no licence file. Its manifest declares \"MIT\"; derive/src/lib.rs has no licence or copyright header. A listing that names no licence file does not show that no publisher text exists elsewhere."
     },
     {
      "name": "fluent-langneg",
      "version": "0.13.1",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no member named as a notice; at https://github.com/projectfluent/fluent-langneg-rs 7fdc5904 (the revision its VCS record names) its selected licence texts include 1 not held: https://raw.githubusercontent.com/projectfluent/fluent-langneg-rs/7fdc590466ea63ca2367ac10fb1b881fe561f1a8/LICENSE-MIT (1,053 bytes, blob 00ec7a23); already held: LICENSE-APACHE. The request to acquire these files is with the owner."
     },
     {
      "name": "fxhash",
      "version": "0.2.1",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "standing": "no-publisher-text",
+     "reason": "a licence is stated and no publisher text was found: The archive has no VCS record, so the locked revision is not established; 537570af, the last commit touching Cargo.toml before publication (version 0.2.1), is only a candidate. The listing at that candidate has five entries and no licence file. Its manifest declares \"Apache-2.0/MIT\"; lib.rs lines 1-9 at the candidate read \"Copyright 2015 The Rust Project Developers. See the COPYRIGHT file at the top-level directory of this distribution ... Licensed under the Apache License, Version 2.0 <LICENSE-APACHE ...> or the MIT license <LICENSE-MIT ...>\", and the files it names are absent from that tree. A listing that names no licence file does not show that no publisher text exists elsewhere."
     },
     {
      "name": "include_dir",
      "version": "0.7.4",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no member named as a notice; at https://github.com/Michael-F-Bryan/include_dir d742c6ff (the revision its VCS record names) its selected licence texts include 1 not held: https://raw.githubusercontent.com/Michael-F-Bryan/include_dir/d742c6fffce99ee89da91b934e7ce6fb2a82680c/LICENSE (1,070 bytes, blob be6d221e). The request to acquire these files is with the owner."
     },
     {
      "name": "include_dir_macros",
      "version": "0.7.4",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "intl_pluralrules",
-     "version": "7.0.2",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no member named as a notice; at https://github.com/Michael-F-Bryan/include_dir d742c6ff (the revision its VCS record names) its selected licence texts include 1 not held: https://raw.githubusercontent.com/Michael-F-Bryan/include_dir/d742c6fffce99ee89da91b934e7ce6fb2a82680c/LICENSE (1,070 bytes, blob be6d221e). The request to acquire these files is with the owner."
     },
     {
      "name": "io_tee",
      "version": "0.1.1",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "standing": "no-publisher-text",
+     "reason": "a licence is stated and no publisher text was found: The listing at the locked revision names no licence file. Its manifest declares \"MIT OR Apache-2.0\"; README.md lines 11-19 state the dual licence; no copyright line was found. A listing that names no licence file does not show that no publisher text exists elsewhere."
     },
     {
      "name": "jni",
      "version": "0.22.4",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no member named as a notice; at https://github.com/jni-rs/jni-rs 5ae9458a (the revision its VCS record names) its selected licence texts include 1 not held: https://raw.githubusercontent.com/jni-rs/jni-rs/5ae9458a4ec44c5318f37ddc7569c1d4ae8a69e7/LICENSE-MIT (1,104 bytes, blob 74323882); already held: LICENSE-APACHE. The request to acquire these files is with the owner."
     },
     {
      "name": "jni-macros",
      "version": "0.22.4",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "jni-sys-macros",
-     "version": "0.4.1",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "linux-keyutils",
-     "version": "0.2.4",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no member named as a notice; at https://github.com/jni-rs/jni-rs 33045a12 (the revision its VCS record names) its selected licence texts include 1 not held: https://raw.githubusercontent.com/jni-rs/jni-rs/5ae9458a4ec44c5318f37ddc7569c1d4ae8a69e7/LICENSE-MIT (1,104 bytes, blob 74323882); already held: LICENSE-APACHE. The request to acquire these files is with the owner."
     },
     {
      "name": "lock_free_hashtable",
      "version": "0.1.4",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "ndk",
-     "version": "0.9.0",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "ndk-context",
-     "version": "0.1.1",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "ndk-sys",
-     "version": "0.6.0+11769913",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no VCS record, so its revision is not established; App Agent 0 accepts a binding by invariance where the licence texts are the same blobs at every candidate revision bracketing publication, confirmed by a reviewer across the whole range. Window: e65e66a7 and 48ae5c61 (both 2026-05-22T13:35:05Z, at 0.1.4) to publication at 2026-05-22T14:34:20Z. The buck2 root LICENSE-APACHE (blob b09cd785, held), LICENSE-MIT (blob b93be905, held) and NOTICE (341 bytes, blob 1eb292d9) are the same blobs at bb911429, at 48ae5c61 and at tag 2026-06-01 (saved root listings); e65e66a7's root and the commits up to publication are not held, so identity across the whole range is not yet shown. The NOTICE is not held"
     },
     {
      "name": "objc2",
      "version": "0.6.3",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "standing": "held",
+     "reason": "listed for the owner's reading: the objc2 repository's LICENSE.md (a licensing overview, sha256 7f976f7e9cb2) ships and awaits that reading for this supplier copy; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
     },
     {
      "name": "objc2-app-kit",
      "version": "0.3.2",
      "standing": "held",
-     "reason": "the same text awaits an owner licence reading for this crate as the App's own copy does; the App's reading of 2026-11-12 is not extended to the supplier's copy here"
+     "reason": "listed for the owner's reading: the objc2 repository's LICENSE.md (a licensing overview, sha256 7f976f7e9cb2) ships and awaits that reading for this supplier copy; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
     },
     {
      "name": "objc2-audio-toolbox",
      "version": "0.3.2",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "standing": "held",
+     "reason": "listed for the owner's reading: the objc2 repository's LICENSE.md (a licensing overview, sha256 7f976f7e9cb2) ships and awaits that reading for this supplier copy; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
     },
     {
      "name": "objc2-avf-audio",
      "version": "0.3.2",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "standing": "held",
+     "reason": "listed for the owner's reading: the objc2 repository's LICENSE.md (a licensing overview, sha256 7f976f7e9cb2) ships and awaits that reading for this supplier copy; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
     },
     {
      "name": "objc2-cloud-kit",
      "version": "0.3.2",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "standing": "held",
+     "reason": "listed for the owner's reading: the objc2 repository's LICENSE.md (a licensing overview, sha256 7f976f7e9cb2) ships and awaits that reading for this supplier copy; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
     },
     {
      "name": "objc2-core-audio",
      "version": "0.3.2",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "standing": "held",
+     "reason": "listed for the owner's reading: the objc2 repository's LICENSE.md (a licensing overview, sha256 7f976f7e9cb2) ships and awaits that reading for this supplier copy; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
     },
     {
      "name": "objc2-core-audio-types",
      "version": "0.3.2",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "standing": "held",
+     "reason": "listed for the owner's reading: the objc2 repository's LICENSE.md (a licensing overview, sha256 7f976f7e9cb2) ships and awaits that reading for this supplier copy; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
     },
     {
      "name": "objc2-core-data",
      "version": "0.3.2",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "standing": "held",
+     "reason": "listed for the owner's reading: the objc2 repository's LICENSE.md (a licensing overview, sha256 7f976f7e9cb2) ships and awaits that reading for this supplier copy; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
     },
     {
      "name": "objc2-core-foundation",
      "version": "0.3.2",
      "standing": "held",
-     "reason": "the same text awaits an owner licence reading for this crate as the App's own copy does; the App's reading of 2026-11-12 is not extended to the supplier's copy here"
+     "reason": "listed for the owner's reading: the objc2 repository's LICENSE.md (a licensing overview, sha256 7f976f7e9cb2) ships and awaits that reading for this supplier copy; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
     },
     {
      "name": "objc2-core-graphics",
      "version": "0.3.2",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "standing": "held",
+     "reason": "listed for the owner's reading: the objc2 repository's LICENSE.md (a licensing overview, sha256 7f976f7e9cb2) ships and awaits that reading for this supplier copy; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
     },
     {
      "name": "objc2-core-image",
      "version": "0.3.2",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "standing": "held",
+     "reason": "listed for the owner's reading: the objc2 repository's LICENSE.md (a licensing overview, sha256 7f976f7e9cb2) ships and awaits that reading for this supplier copy; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
     },
     {
      "name": "objc2-core-location",
      "version": "0.3.2",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "standing": "held",
+     "reason": "listed for the owner's reading: the objc2 repository's LICENSE.md (a licensing overview, sha256 7f976f7e9cb2) ships and awaits that reading for this supplier copy; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
     },
     {
      "name": "objc2-core-text",
      "version": "0.3.2",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "standing": "held",
+     "reason": "listed for the owner's reading: the objc2 repository's LICENSE.md (a licensing overview, sha256 7f976f7e9cb2) ships and awaits that reading for this supplier copy; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
     },
     {
      "name": "objc2-encode",
      "version": "4.1.0",
      "standing": "held",
-     "reason": "the same text awaits an owner licence reading for this crate as the App's own copy does; the App's reading of 2026-11-12 is not extended to the supplier's copy here"
+     "reason": "listed for the owner's reading: the objc2 repository's LICENSE.md (a licensing overview, sha256 7f976f7e9cb2) ships and awaits that reading for this supplier copy; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
     },
     {
      "name": "objc2-foundation",
      "version": "0.3.2",
      "standing": "held",
-     "reason": "the same text awaits an owner licence reading for this crate as the App's own copy does; the App's reading of 2026-11-12 is not extended to the supplier's copy here"
+     "reason": "listed for the owner's reading: the objc2 repository's LICENSE.md (a licensing overview, sha256 7f976f7e9cb2) ships and awaits that reading for this supplier copy; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
     },
     {
      "name": "objc2-io-surface",
      "version": "0.3.2",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "standing": "held",
+     "reason": "listed for the owner's reading: the objc2 repository's LICENSE.md (a licensing overview, sha256 7f976f7e9cb2) ships and awaits that reading for this supplier copy; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
     },
     {
      "name": "objc2-local-authentication",
      "version": "0.3.2",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "standing": "held",
+     "reason": "listed for the owner's reading: the objc2 repository's LICENSE.md (a licensing overview, sha256 7f976f7e9cb2) ships and awaits that reading for this supplier copy; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
     },
     {
      "name": "objc2-quartz-core",
      "version": "0.3.2",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "standing": "held",
+     "reason": "listed for the owner's reading: the objc2 repository's LICENSE.md (a licensing overview, sha256 7f976f7e9cb2) ships and awaits that reading for this supplier copy; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
     },
     {
      "name": "objc2-security",
      "version": "0.3.2",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "standing": "held",
+     "reason": "listed for the owner's reading: the objc2 repository's LICENSE.md (a licensing overview, sha256 7f976f7e9cb2) ships and awaits that reading for this supplier copy; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
     },
     {
      "name": "objc2-ui-kit",
      "version": "0.3.2",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "standing": "held",
+     "reason": "listed for the owner's reading: the objc2 repository's LICENSE.md (a licensing overview, sha256 7f976f7e9cb2) ships and awaits that reading for this supplier copy; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
     },
     {
      "name": "objc2-user-notifications",
      "version": "0.3.2",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "opentelemetry",
-     "version": "0.31.0",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "opentelemetry-appender-tracing",
-     "version": "0.31.1",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "opentelemetry-http",
-     "version": "0.31.0",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "opentelemetry-otlp",
-     "version": "0.31.0",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "opentelemetry-proto",
-     "version": "0.31.0",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "opentelemetry-semantic-conventions",
-     "version": "0.31.0",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "opentelemetry_sdk",
-     "version": "0.31.0",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "pagable",
-     "version": "0.4.1",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "pagable_derive",
-     "version": "0.4.1",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "standing": "held",
+     "reason": "listed for the owner's reading: the objc2 repository's LICENSE.md (a licensing overview, sha256 7f976f7e9cb2) ships and awaits that reading for this supplier copy; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
     },
     {
      "name": "protoc-bin-vendored",
      "version": "3.2.0",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no member named as a notice; at https://github.com/stepancheg/rust-protoc-bin-vendored 895c0433 (the revision its VCS record names) its selected licence texts include 1 not held: https://raw.githubusercontent.com/stepancheg/rust-protoc-bin-vendored/895c0433c3727a552970ce961e398e20e52d6353/LICENSE.txt (1,057 bytes, blob acce6396). The request to acquire these files is with the owner."
     },
     {
      "name": "protoc-bin-vendored-linux-aarch_64",
      "version": "3.2.0",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no member named as a notice; at https://github.com/stepancheg/rust-protoc-bin-vendored 895c0433 (the revision its VCS record names) its selected licence texts include 1 not held: https://raw.githubusercontent.com/stepancheg/rust-protoc-bin-vendored/895c0433c3727a552970ce961e398e20e52d6353/LICENSE.txt (1,057 bytes, blob acce6396). The request to acquire these files is with the owner."
     },
     {
      "name": "protoc-bin-vendored-linux-ppcle_64",
      "version": "3.2.0",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no member named as a notice; at https://github.com/stepancheg/rust-protoc-bin-vendored 895c0433 (the revision its VCS record names) its selected licence texts include 1 not held: https://raw.githubusercontent.com/stepancheg/rust-protoc-bin-vendored/895c0433c3727a552970ce961e398e20e52d6353/LICENSE.txt (1,057 bytes, blob acce6396). The request to acquire these files is with the owner."
     },
     {
      "name": "protoc-bin-vendored-linux-s390_64",
      "version": "3.2.0",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no member named as a notice; at https://github.com/stepancheg/rust-protoc-bin-vendored 895c0433 (the revision its VCS record names) its selected licence texts include 1 not held: https://raw.githubusercontent.com/stepancheg/rust-protoc-bin-vendored/895c0433c3727a552970ce961e398e20e52d6353/LICENSE.txt (1,057 bytes, blob acce6396). The request to acquire these files is with the owner."
     },
     {
      "name": "protoc-bin-vendored-linux-x86_32",
      "version": "3.2.0",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no member named as a notice; at https://github.com/stepancheg/rust-protoc-bin-vendored 895c0433 (the revision its VCS record names) its selected licence texts include 1 not held: https://raw.githubusercontent.com/stepancheg/rust-protoc-bin-vendored/895c0433c3727a552970ce961e398e20e52d6353/LICENSE.txt (1,057 bytes, blob acce6396). The request to acquire these files is with the owner."
     },
     {
      "name": "protoc-bin-vendored-linux-x86_64",
      "version": "3.2.0",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no member named as a notice; at https://github.com/stepancheg/rust-protoc-bin-vendored 895c0433 (the revision its VCS record names) its selected licence texts include 1 not held: https://raw.githubusercontent.com/stepancheg/rust-protoc-bin-vendored/895c0433c3727a552970ce961e398e20e52d6353/LICENSE.txt (1,057 bytes, blob acce6396). The request to acquire these files is with the owner."
     },
     {
      "name": "protoc-bin-vendored-macos-aarch_64",
      "version": "3.2.0",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no member named as a notice; at https://github.com/stepancheg/rust-protoc-bin-vendored 895c0433 (the revision its VCS record names) its selected licence texts include 1 not held: https://raw.githubusercontent.com/stepancheg/rust-protoc-bin-vendored/895c0433c3727a552970ce961e398e20e52d6353/LICENSE.txt (1,057 bytes, blob acce6396). The request to acquire these files is with the owner."
     },
     {
      "name": "protoc-bin-vendored-macos-x86_64",
      "version": "3.2.0",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no member named as a notice; at https://github.com/stepancheg/rust-protoc-bin-vendored 895c0433 (the revision its VCS record names) its selected licence texts include 1 not held: https://raw.githubusercontent.com/stepancheg/rust-protoc-bin-vendored/895c0433c3727a552970ce961e398e20e52d6353/LICENSE.txt (1,057 bytes, blob acce6396). The request to acquire these files is with the owner."
     },
     {
      "name": "protoc-bin-vendored-win32",
      "version": "3.2.0",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no member named as a notice; at https://github.com/stepancheg/rust-protoc-bin-vendored 895c0433 (the revision its VCS record names) its selected licence texts include 1 not held: https://raw.githubusercontent.com/stepancheg/rust-protoc-bin-vendored/895c0433c3727a552970ce961e398e20e52d6353/LICENSE.txt (1,057 bytes, blob acce6396). The request to acquire these files is with the owner."
     },
     {
      "name": "rama-core",
      "version": "0.3.0-alpha.4",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no member named as a notice; at https://github.com/plabayo/rama 4733273a (the revision its VCS record names) its selected licence texts include 1 not held: https://raw.githubusercontent.com/plabayo/rama/4733273a10a791762e2b7727850032b0c9b8536d/LICENSE-MIT (1,092 bytes, blob 03623e63); already held: LICENSE-APACHE. The request to acquire these files is with the owner."
     },
     {
      "name": "rama-dns",
      "version": "0.3.0-alpha.4",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no member named as a notice; at https://github.com/plabayo/rama 4733273a (the revision its VCS record names) its selected licence texts include 1 not held: https://raw.githubusercontent.com/plabayo/rama/4733273a10a791762e2b7727850032b0c9b8536d/LICENSE-MIT (1,092 bytes, blob 03623e63); already held: LICENSE-APACHE. The request to acquire these files is with the owner."
     },
     {
      "name": "rama-error",
      "version": "0.3.0-alpha.4",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no member named as a notice; at https://github.com/plabayo/rama 4733273a (the revision its VCS record names) its selected licence texts include 1 not held: https://raw.githubusercontent.com/plabayo/rama/4733273a10a791762e2b7727850032b0c9b8536d/LICENSE-MIT (1,092 bytes, blob 03623e63); already held: LICENSE-APACHE. The request to acquire these files is with the owner."
     },
     {
      "name": "rama-http",
      "version": "0.3.0-alpha.4",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no member named as a notice; at https://github.com/plabayo/rama 4733273a (the revision its VCS record names) its selected licence texts include 1 not held: https://raw.githubusercontent.com/plabayo/rama/4733273a10a791762e2b7727850032b0c9b8536d/LICENSE-MIT (1,092 bytes, blob 03623e63); already held: LICENSE-APACHE. The request to acquire these files is with the owner."
     },
     {
      "name": "rama-http-backend",
      "version": "0.3.0-alpha.4",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no member named as a notice; at https://github.com/plabayo/rama 4733273a (the revision its VCS record names) its selected licence texts include 1 not held: https://raw.githubusercontent.com/plabayo/rama/4733273a10a791762e2b7727850032b0c9b8536d/LICENSE-MIT (1,092 bytes, blob 03623e63); already held: LICENSE-APACHE. The request to acquire these files is with the owner."
     },
     {
      "name": "rama-http-core",
      "version": "0.3.0-alpha.4",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no member named as a notice; at https://github.com/plabayo/rama 4733273a (the revision its VCS record names) its selected licence texts include 1 not held: https://raw.githubusercontent.com/plabayo/rama/4733273a10a791762e2b7727850032b0c9b8536d/LICENSE-MIT (1,092 bytes, blob 03623e63); already held: LICENSE-APACHE. The request to acquire these files is with the owner."
     },
     {
      "name": "rama-http-headers",
      "version": "0.3.0-alpha.4",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no member named as a notice; at https://github.com/plabayo/rama 4733273a (the revision its VCS record names) its selected licence texts include 1 not held: https://raw.githubusercontent.com/plabayo/rama/4733273a10a791762e2b7727850032b0c9b8536d/LICENSE-MIT (1,092 bytes, blob 03623e63); already held: LICENSE-APACHE. The request to acquire these files is with the owner."
     },
     {
      "name": "rama-http-types",
      "version": "0.3.0-alpha.4",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no member named as a notice; at https://github.com/plabayo/rama 4733273a (the revision its VCS record names) its selected licence texts include 1 not held: https://raw.githubusercontent.com/plabayo/rama/4733273a10a791762e2b7727850032b0c9b8536d/LICENSE-MIT (1,092 bytes, blob 03623e63); already held: LICENSE-APACHE. The request to acquire these files is with the owner."
     },
     {
      "name": "rama-macros",
      "version": "0.3.0-alpha.4",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no member named as a notice; at https://github.com/plabayo/rama 4733273a (the revision its VCS record names) its selected licence texts include 1 not held: https://raw.githubusercontent.com/plabayo/rama/4733273a10a791762e2b7727850032b0c9b8536d/LICENSE-MIT (1,092 bytes, blob 03623e63); already held: LICENSE-APACHE. The request to acquire these files is with the owner."
     },
     {
      "name": "rama-net",
      "version": "0.3.0-alpha.4",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no member named as a notice; at https://github.com/plabayo/rama 4733273a (the revision its VCS record names) its selected licence texts include 1 not held: https://raw.githubusercontent.com/plabayo/rama/4733273a10a791762e2b7727850032b0c9b8536d/LICENSE-MIT (1,092 bytes, blob 03623e63); already held: LICENSE-APACHE. The request to acquire these files is with the owner."
     },
     {
      "name": "rama-socks5",
      "version": "0.3.0-alpha.4",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no member named as a notice; at https://github.com/plabayo/rama 4733273a (the revision its VCS record names) its selected licence texts include 1 not held: https://raw.githubusercontent.com/plabayo/rama/4733273a10a791762e2b7727850032b0c9b8536d/LICENSE-MIT (1,092 bytes, blob 03623e63); already held: LICENSE-APACHE. The request to acquire these files is with the owner."
     },
     {
      "name": "rama-tcp",
      "version": "0.3.0-alpha.4",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no member named as a notice; at https://github.com/plabayo/rama 4733273a (the revision its VCS record names) its selected licence texts include 1 not held: https://raw.githubusercontent.com/plabayo/rama/4733273a10a791762e2b7727850032b0c9b8536d/LICENSE-MIT (1,092 bytes, blob 03623e63); already held: LICENSE-APACHE. The request to acquire these files is with the owner."
     },
     {
      "name": "rama-tls-rustls",
      "version": "0.3.0-alpha.4",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no member named as a notice; at https://github.com/plabayo/rama 4733273a (the revision its VCS record names) its selected licence texts include 1 not held: https://raw.githubusercontent.com/plabayo/rama/4733273a10a791762e2b7727850032b0c9b8536d/LICENSE-MIT (1,092 bytes, blob 03623e63); already held: LICENSE-APACHE. The request to acquire these files is with the owner."
     },
     {
      "name": "rama-udp",
      "version": "0.3.0-alpha.4",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no member named as a notice; at https://github.com/plabayo/rama 4733273a (the revision its VCS record names) its selected licence texts include 1 not held: https://raw.githubusercontent.com/plabayo/rama/4733273a10a791762e2b7727850032b0c9b8536d/LICENSE-MIT (1,092 bytes, blob 03623e63); already held: LICENSE-APACHE. The request to acquire these files is with the owner."
     },
     {
      "name": "rama-unix",
      "version": "0.3.0-alpha.4",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no member named as a notice; at https://github.com/plabayo/rama 4733273a (the revision its VCS record names) its selected licence texts include 1 not held: https://raw.githubusercontent.com/plabayo/rama/4733273a10a791762e2b7727850032b0c9b8536d/LICENSE-MIT (1,092 bytes, blob 03623e63); already held: LICENSE-APACHE. The request to acquire these files is with the owner."
     },
     {
      "name": "rama-utils",
      "version": "0.3.0-alpha.4",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "ratatui-termina",
-     "version": "0.1.0",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "rtc-datachannel",
-     "version": "0.20.3",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "rtc-dtls",
-     "version": "0.20.3",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "rtc-ice",
-     "version": "0.20.3",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "rtc-interceptor",
-     "version": "0.20.3",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "rtc-interceptor-derive",
-     "version": "0.20.3",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "rtc-mdns",
-     "version": "0.20.3",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "rtc-media",
-     "version": "0.20.3",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "rtc-rtcp",
-     "version": "0.20.3",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "rtc-rtp",
-     "version": "0.20.3",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "rtc-sctp",
-     "version": "0.20.3",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "rtc-sdp",
-     "version": "0.20.3",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "rtc-shared",
-     "version": "0.20.3",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "rtc-srtp",
-     "version": "0.20.3",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "rtc-stun",
-     "version": "0.20.3",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "rtc-turn",
-     "version": "0.20.3",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "rustls-platform-verifier-android",
-     "version": "0.1.1",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "schemafy_core",
-     "version": "0.5.2",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "schemafy_lib",
-     "version": "0.5.2",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "socks5-protocol",
-     "version": "0.3.5",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "sonora-aec3",
-     "version": "0.2.0",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no member named as a notice; at https://github.com/plabayo/rama 4733273a (the revision its VCS record names) its selected licence texts include 1 not held: https://raw.githubusercontent.com/plabayo/rama/4733273a10a791762e2b7727850032b0c9b8536d/LICENSE-MIT (1,092 bytes, blob 03623e63); already held: LICENSE-APACHE. The request to acquire these files is with the owner."
     },
     {
      "name": "sorted_vector_map",
      "version": "0.2.1",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "starlark",
-     "version": "0.14.2",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "starlark_derive",
-     "version": "0.14.2",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "starlark_map",
-     "version": "0.14.2",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "starlark_syntax",
-     "version": "0.14.2",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no member named as a notice; at https://github.com/facebookexperimental/rust-shed 756ae7da (the revision its VCS record names) its selected licence texts include 2 not held: https://raw.githubusercontent.com/facebookexperimental/rust-shed/756ae7daba100d194aa0260131937b7d96672549/LICENSE-APACHE (10,140 bytes, blob d0381d6d), https://raw.githubusercontent.com/facebookexperimental/rust-shed/756ae7daba100d194aa0260131937b7d96672549/LICENSE-MIT (1,086 bytes, blob b96dcb04). The request to acquire these files is with the owner."
     },
     {
      "name": "static_interner",
      "version": "0.1.2",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no VCS record, so its revision is not established; App Agent 0 accepts a binding by invariance where the licence texts are the same blobs at every candidate revision bracketing publication, confirmed by a reviewer across the whole range. Window: bb911429 (2026-05-16, sets shed/static_interner to 0.1.2; the folder's next change is 0404cfb1 on 2026-05-22) to publication at 2026-05-17T18:38:46Z. The buck2 root LICENSE-APACHE (blob b09cd785, held), LICENSE-MIT (blob b93be905, held) and NOTICE (341 bytes, blob 1eb292d9) are the same blobs at bb911429, at 48ae5c61 (2026-05-22) and at tag 2026-06-01 (saved root listings); the commits between are not held, so identity across the whole range is not yet shown. The NOTICE is not held"
     },
     {
      "name": "strong_hash",
      "version": "0.1.0",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no VCS record, so the locked revision is not established: crates.io records publication of 0.1.0 on 2026-05-17, and the package's source folder was not located under facebook/buck2 shed/ at tag 2026-06-01, so neither a revision nor a folder is established"
     },
     {
      "name": "strong_hash_derive",
      "version": "0.1.0",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "tonic-prost",
-     "version": "0.14.3",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "tonic-prost-build",
-     "version": "0.14.3",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no VCS record, so the locked revision is not established: crates.io records publication of 0.1.0 on 2026-05-17, and the package's source folder was not located under facebook/buck2 shed/ at tag 2026-06-01, so neither a revision nor a folder is established"
     },
     {
      "name": "tracelogging",
      "version": "1.2.3",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no member named as a notice; at https://github.com/microsoft/tracelogging 4d3c8b02 (the revision its VCS record names) its selected licence texts include 1 not held: https://raw.githubusercontent.com/microsoft/tracelogging/4d3c8b02da568d34daf977db7052a819ab4b18ec/LICENSE (1,107 bytes, blob c05d7b12). The request to acquire these files is with the owner."
     },
     {
      "name": "tracelogging_macros",
      "version": "1.2.3",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no member named as a notice; at https://github.com/microsoft/tracelogging 4d3c8b02 (the revision its VCS record names) its selected licence texts include 1 not held: https://raw.githubusercontent.com/microsoft/tracelogging/4d3c8b02da568d34daf977db7052a819ab4b18ec/LICENSE (1,107 bytes, blob c05d7b12). The request to acquire these files is with the owner."
     },
     {
      "name": "ts-rs",
      "version": "11.1.0",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no member named as a notice; at https://github.com/Aleph-Alpha/ts-rs 1dce5297 (the revision its VCS record names) its selected licence texts include 1 not held: https://raw.githubusercontent.com/Aleph-Alpha/ts-rs/1dce5297090804082e9639d2b7d851ba815aa359/LICENSE (1,073 bytes, blob c23d24d8). The request to acquire these files is with the owner."
     },
     {
      "name": "ts-rs-macros",
      "version": "11.1.0",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no member named as a notice; at https://github.com/Aleph-Alpha/ts-rs 1dce5297 (the revision its VCS record names) its selected licence texts include 1 not held: https://raw.githubusercontent.com/Aleph-Alpha/ts-rs/1dce5297090804082e9639d2b7d851ba815aa359/LICENSE (1,073 bytes, blob c23d24d8). The request to acquire these files is with the owner."
     },
     {
      "name": "valuable",
      "version": "0.1.1",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no member named as a notice; at https://github.com/tokio-rs/valuable 9efc29b6 (the revision its VCS record names) its selected licence texts include 1 not held: https://raw.githubusercontent.com/tokio-rs/valuable/9efc29b6e58cef28f6566a47aa7e142a55fead77/LICENSE (1,065 bytes, blob 4ca822a5). The request to acquire these files is with the owner."
     },
     {
      "name": "vtparse",
      "version": "0.6.2",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "wasip2",
-     "version": "1.0.2+wasi-0.2.9",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "wasip3",
-     "version": "0.4.0+wasi-0.3.0-rc-2026-01-06",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "wasite",
-     "version": "0.1.0",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "wasm-encoder",
-     "version": "0.244.0",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "wasm-metadata",
-     "version": "0.244.0",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "wasmparser",
-     "version": "0.244.0",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no member named as a notice; at https://github.com/wez/wezterm edeae72b (the revision its VCS record names) its selected licence texts include 1 not held: https://raw.githubusercontent.com/wez/wezterm/edeae72b5fc55c7fa4aa1d08bbefd08c5493f757/LICENSE.md (1,529 bytes, blob cf22ae0b). The request to acquire these files is with the owner."
     },
     {
      "name": "wezterm-input-types",
      "version": "0.1.0",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "winapi-i686-pc-windows-gnu",
-     "version": "0.4.0",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "winapi-x86_64-pc-windows-gnu",
-     "version": "0.4.0",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "winsplit",
-     "version": "0.1.0",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "wit-component",
-     "version": "0.244.0",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
-    },
-    {
-     "name": "wit-parser",
-     "version": "0.244.0",
-     "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no member named as a notice; at https://github.com/wez/wezterm d5ca5509 (the revision its VCS record names) its selected licence texts include 1 not held: https://raw.githubusercontent.com/wez/wezterm/edeae72b5fc55c7fa4aa1d08bbefd08c5493f757/LICENSE.md (1,529 bytes, blob cf22ae0b; the saved listing of d5ca5509 names the same blob at LICENSE.md, so one file serves both revisions). The request to acquire these files is with the owner."
     },
     {
      "name": "zune-core",
      "version": "0.4.12",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no member named as a notice; at https://github.com/etemesi254/zune-image f8fbb123 (the revision its VCS record names) its selected licence texts include 2 not held: https://raw.githubusercontent.com/etemesi254/zune-image/f8fbb123d5ed04441e8324a555bfcda0cb1bd28f/LICENSE-ZLIB (818 bytes, blob 582ec653), https://raw.githubusercontent.com/etemesi254/zune-image/f8fbb123d5ed04441e8324a555bfcda0cb1bd28f/LICENSE.md (357 bytes, blob 4761bfa9). The request to acquire these files is with the owner."
     },
     {
      "name": "zune-jpeg",
      "version": "0.4.21",
      "standing": "gap",
-     "reason": "the locked archive has no member named as a notice and no text is held for this crate version"
+     "reason": "the archive has no member named as a notice; at https://github.com/etemesi254/zune-image fa2c767a (the revision its VCS record names) its selected licence texts include 2 not held: https://raw.githubusercontent.com/etemesi254/zune-image/f8fbb123d5ed04441e8324a555bfcda0cb1bd28f/LICENSE-ZLIB (818 bytes, blob 582ec653), https://raw.githubusercontent.com/etemesi254/zune-image/f8fbb123d5ed04441e8324a555bfcda0cb1bd28f/LICENSE.md (357 bytes, blob 4761bfa9). The request to acquire these files is with the owner."
     }
    ],
    "standing": "uncovered",
-   "reason": "138 of the 1483 locked packages have no text and 5 await an owner licence reading: Inflector 0.11.4, age 0.12.1, age-core 0.12.0, allocative 0.3.6, allocative_derive 0.3.6, asn1-rs-impl 0.2.0, base64-simd 0.8.0, block2 0.6.2, clipboard-win 5.4.1, cookie-factory 0.3.3, crc32c 0.6.8, dasp_sample 0.11.0, debugserver-types 0.5.0, defmt 0.3.100, defmt-parser 1.0.0, deno_core_icudata 0.78.0, difflib 0.4.0, dispatch2 0.3.0, display_container 0.9.0, eventsource-stream 0.2.3, fax 0.2.6, fax_derive 0.2.0, flatbuffers 25.12.19, fluent-langneg 0.13.1, fxhash 0.2.1, include_dir 0.7.4, include_dir_macros 0.7.4, intl_pluralrules 7.0.2, io_tee 0.1.1, jni 0.22.4, jni-macros 0.22.4, jni-sys-macros 0.4.1, linux-keyutils 0.2.4, lock_free_hashtable 0.1.4, ndk 0.9.0, ndk-context 0.1.1, ndk-sys 0.6.0+11769913, objc2 0.6.3, objc2-app-kit 0.3.2, objc2-audio-toolbox 0.3.2, objc2-avf-audio 0.3.2, objc2-cloud-kit 0.3.2, objc2-core-audio 0.3.2, objc2-core-audio-types 0.3.2, objc2-core-data 0.3.2, objc2-core-foundation 0.3.2, objc2-core-graphics 0.3.2, objc2-core-image 0.3.2, objc2-core-location 0.3.2, objc2-core-text 0.3.2, objc2-encode 4.1.0, objc2-foundation 0.3.2, objc2-io-surface 0.3.2, objc2-local-authentication 0.3.2, objc2-quartz-core 0.3.2, objc2-security 0.3.2, objc2-ui-kit 0.3.2, objc2-user-notifications 0.3.2, opentelemetry 0.31.0, opentelemetry-appender-tracing 0.31.1, opentelemetry-http 0.31.0, opentelemetry-otlp 0.31.0, opentelemetry-proto 0.31.0, opentelemetry-semantic-conventions 0.31.0, opentelemetry_sdk 0.31.0, pagable 0.4.1, pagable_derive 0.4.1, protoc-bin-vendored 3.2.0, protoc-bin-vendored-linux-aarch_64 3.2.0, protoc-bin-vendored-linux-ppcle_64 3.2.0, protoc-bin-vendored-linux-s390_64 3.2.0, protoc-bin-vendored-linux-x86_32 3.2.0, protoc-bin-vendored-linux-x86_64 3.2.0, protoc-bin-vendored-macos-aarch_64 3.2.0, protoc-bin-vendored-macos-x86_64 3.2.0, protoc-bin-vendored-win32 3.2.0, rama-core 0.3.0-alpha.4, rama-dns 0.3.0-alpha.4, rama-error 0.3.0-alpha.4, rama-http 0.3.0-alpha.4, rama-http-backend 0.3.0-alpha.4, rama-http-core 0.3.0-alpha.4, rama-http-headers 0.3.0-alpha.4, rama-http-types 0.3.0-alpha.4, rama-macros 0.3.0-alpha.4, rama-net 0.3.0-alpha.4, rama-socks5 0.3.0-alpha.4, rama-tcp 0.3.0-alpha.4, rama-tls-rustls 0.3.0-alpha.4, rama-udp 0.3.0-alpha.4, rama-unix 0.3.0-alpha.4, rama-utils 0.3.0-alpha.4, ratatui-termina 0.1.0, rtc-datachannel 0.20.3, rtc-dtls 0.20.3, rtc-ice 0.20.3, rtc-interceptor 0.20.3, rtc-interceptor-derive 0.20.3, rtc-mdns 0.20.3, rtc-media 0.20.3, rtc-rtcp 0.20.3, rtc-rtp 0.20.3, rtc-sctp 0.20.3, rtc-sdp 0.20.3, rtc-shared 0.20.3, rtc-srtp 0.20.3, rtc-stun 0.20.3, rtc-turn 0.20.3, rustls-platform-verifier-android 0.1.1, schemafy_core 0.5.2, schemafy_lib 0.5.2, socks5-protocol 0.3.5, sonora-aec3 0.2.0, sorted_vector_map 0.2.1, starlark 0.14.2, starlark_derive 0.14.2, starlark_map 0.14.2, starlark_syntax 0.14.2, static_interner 0.1.2, strong_hash 0.1.0, strong_hash_derive 0.1.0, tonic-prost 0.14.3, tonic-prost-build 0.14.3, tracelogging 1.2.3, tracelogging_macros 1.2.3, ts-rs 11.1.0, ts-rs-macros 11.1.0, valuable 0.1.1, vtparse 0.6.2, wasip2 1.0.2+wasi-0.2.9, wasip3 0.4.0+wasi-0.3.0-rc-2026-01-06, wasite 0.1.0, wasm-encoder 0.244.0, wasm-metadata 0.244.0, wasmparser 0.244.0, wezterm-input-types 0.1.0, winapi-i686-pc-windows-gnu 0.4.0, winapi-x86_64-pc-windows-gnu 0.4.0, winsplit 0.1.0, wit-component 0.244.0, wit-parser 0.244.0, zune-core 0.4.12, zune-jpeg 0.4.21",
-   "would_close": "each open package's licence text (an owner-permitted acquisition) or, for a held one, the owner's reading"
+   "reason": "of the 1483 locked packages, 53 have no text, 8 state a licence with no publisher text found, and 23 await an owner licence reading (6 are recorded absent from the macOS package and named under excluded_packages): Inflector 0.11.4, age 0.12.1, age-core 0.12.0, allocative 0.3.6, allocative_derive 0.3.6, block2 0.6.2, cookie-factory 0.3.3, crc32c 0.6.8, dasp_sample 0.11.0, debugserver-types 0.5.0, deno_core_icudata 0.78.0, difflib 0.4.0, dispatch2 0.3.0, display_container 0.9.0, eventsource-stream 0.2.3, fax 0.2.6, fax_derive 0.2.0, fluent-langneg 0.13.1, fxhash 0.2.1, include_dir 0.7.4, include_dir_macros 0.7.4, io_tee 0.1.1, jni 0.22.4, jni-macros 0.22.4, lock_free_hashtable 0.1.4, objc2 0.6.3, objc2-app-kit 0.3.2, objc2-audio-toolbox 0.3.2, objc2-avf-audio 0.3.2, objc2-cloud-kit 0.3.2, objc2-core-audio 0.3.2, objc2-core-audio-types 0.3.2, objc2-core-data 0.3.2, objc2-core-foundation 0.3.2, objc2-core-graphics 0.3.2, objc2-core-image 0.3.2, objc2-core-location 0.3.2, objc2-core-text 0.3.2, objc2-encode 4.1.0, objc2-foundation 0.3.2, objc2-io-surface 0.3.2, objc2-local-authentication 0.3.2, objc2-quartz-core 0.3.2, objc2-security 0.3.2, objc2-ui-kit 0.3.2, objc2-user-notifications 0.3.2, protoc-bin-vendored 3.2.0, protoc-bin-vendored-linux-aarch_64 3.2.0, protoc-bin-vendored-linux-ppcle_64 3.2.0, protoc-bin-vendored-linux-s390_64 3.2.0, protoc-bin-vendored-linux-x86_32 3.2.0, protoc-bin-vendored-linux-x86_64 3.2.0, protoc-bin-vendored-macos-aarch_64 3.2.0, protoc-bin-vendored-macos-x86_64 3.2.0, protoc-bin-vendored-win32 3.2.0, rama-core 0.3.0-alpha.4, rama-dns 0.3.0-alpha.4, rama-error 0.3.0-alpha.4, rama-http 0.3.0-alpha.4, rama-http-backend 0.3.0-alpha.4, rama-http-core 0.3.0-alpha.4, rama-http-headers 0.3.0-alpha.4, rama-http-types 0.3.0-alpha.4, rama-macros 0.3.0-alpha.4, rama-net 0.3.0-alpha.4, rama-socks5 0.3.0-alpha.4, rama-tcp 0.3.0-alpha.4, rama-tls-rustls 0.3.0-alpha.4, rama-udp 0.3.0-alpha.4, rama-unix 0.3.0-alpha.4, rama-utils 0.3.0-alpha.4, sorted_vector_map 0.2.1, static_interner 0.1.2, strong_hash 0.1.0, strong_hash_derive 0.1.0, tracelogging 1.2.3, tracelogging_macros 1.2.3, ts-rs 11.1.0, ts-rs-macros 11.1.0, valuable 0.1.1, vtparse 0.6.2, wezterm-input-types 0.1.0, zune-core 0.4.12, zune-jpeg 0.4.21",
+   "would_close": "each open package's licence text (an owner-permitted acquisition), for one with no publisher text the owner's decision on what may serve as its notice, and for a held one the owner's reading"
   },
   {
    "class": "supplier",
@@ -11265,12 +11008,15 @@
     "text": 59,
     "held": 0,
     "gap": 0,
+    "no-publisher-text": 0,
+    "not-in-macos-package": 0,
     "account": "third-party-notices/supplier/crates/packages.json",
-    "superset": "every package the lockfile locks, on every platform and feature; some may not be compiled into the macOS executables"
+    "superset": "every package the lockfile locks, on every platform and feature; some may not be compiled into the macOS executables. Only packages standing not-in-macos-package are recorded as absent, by declared target condition"
    },
+   "excluded_packages": [],
    "open_packages": [],
    "standing": "covered",
-   "basis": "every one of the 59 packages the associated lockfile locks has its text in the package (archive notice members selected by name, Git-source licence files at the locked revision, or the workspace's texts); the set is a superset of what is compiled, and adequacy is not decided here"
+   "basis": "every one of the 59 packages the associated lockfile locks for the macOS package has its text in the package (archive notice members selected by name, Git-source licence files at the locked revision, publisher texts at the archive's named revision, or the workspace's texts); 0 are recorded absent from the macOS target by declared target condition; the set is otherwise a superset of what is compiled, and adequacy is not decided here"
   },
   {
    "class": "supplier",
@@ -12017,9 +11763,17 @@
     }
    ],
    "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined.",
-   "standing": "uncovered",
-   "reason": "codex-resources/voice/sources.json, which states this component's version and source, differs at 0.169.0 from the 0.167.0 file read for this row (same size, another digest), and its content is not held; the version and source recorded here are 0.167.0's. The licence texts in the tree are byte-identical to 0.167.0's.",
-   "would_close": "read sources.json from the 0.169.0 distribution (a read-only single-member extraction, proposed to the integrator) and check this row against it"
+   "source_statement": {
+    "version": "1.28.6",
+    "url": "https://gstreamer.freedesktop.org/src/gstreamer/gstreamer-1.28.6.tar.xz",
+    "sources_entry": "gstreamer",
+    "records": [
+     "app/packaging/supplier_notices/voice_records/0.169.0/manifest.json",
+     "app/packaging/supplier_notices/voice_records/0.169.0/sources.json"
+    ]
+   },
+   "standing": "covered",
+   "basis": "licence texts the supplier ships in its tree, identified by the distribution record's digests; the component is identified by its source URL"
   },
   {
    "class": "supplier",
@@ -12052,9 +11806,17 @@
     }
    ],
    "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined.",
-   "standing": "uncovered",
-   "reason": "codex-resources/voice/sources.json, which states this component's version and source, differs at 0.169.0 from the 0.167.0 file read for this row (same size, another digest), and its content is not held; the version and source recorded here are 0.167.0's. The licence texts in the tree are byte-identical to 0.167.0's.",
-   "would_close": "read sources.json from the 0.169.0 distribution (a read-only single-member extraction, proposed to the integrator) and check this row against it"
+   "source_statement": {
+    "version": "1.28.6",
+    "url": "https://gstreamer.freedesktop.org/src/gst-plugins-base/gst-plugins-base-1.28.6.tar.xz",
+    "sources_entry": "gst-plugins-base",
+    "records": [
+     "app/packaging/supplier_notices/voice_records/0.169.0/manifest.json",
+     "app/packaging/supplier_notices/voice_records/0.169.0/sources.json"
+    ]
+   },
+   "standing": "covered",
+   "basis": "licence texts the supplier ships in its tree, identified by the distribution record's digests; the component is identified by its source URL"
   },
   {
    "class": "supplier",
@@ -12079,9 +11841,17 @@
     }
    ],
    "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined.",
-   "standing": "uncovered",
-   "reason": "codex-resources/voice/sources.json, which states this component's version and source, differs at 0.169.0 from the 0.167.0 file read for this row (same size, another digest), and its content is not held; the version and source recorded here are 0.167.0's. The licence texts in the tree are byte-identical to 0.167.0's.",
-   "would_close": "read sources.json from the 0.169.0 distribution (a read-only single-member extraction, proposed to the integrator) and check this row against it"
+   "source_statement": {
+    "version": "1.28.6",
+    "url": "https://gstreamer.freedesktop.org/src/gst-plugins-good/gst-plugins-good-1.28.6.tar.xz",
+    "sources_entry": "gst-plugins-good",
+    "records": [
+     "app/packaging/supplier_notices/voice_records/0.169.0/manifest.json",
+     "app/packaging/supplier_notices/voice_records/0.169.0/sources.json"
+    ]
+   },
+   "standing": "covered",
+   "basis": "licence texts the supplier ships in its tree, identified by the distribution record's digests; the component is identified by its source URL"
   },
   {
    "class": "supplier",
@@ -12108,9 +11878,17 @@
     }
    ],
    "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined.",
-   "standing": "uncovered",
-   "reason": "codex-resources/voice/sources.json, which states this component's version and source, differs at 0.169.0 from the 0.167.0 file read for this row (same size, another digest), and its content is not held; the version and source recorded here are 0.167.0's. The licence texts in the tree are byte-identical to 0.167.0's.",
-   "would_close": "read sources.json from the 0.169.0 distribution (a read-only single-member extraction, proposed to the integrator) and check this row against it"
+   "source_statement": {
+    "version": "2.88.3",
+    "url": "https://download.gnome.org/sources/glib/2.88/glib-2.88.3.tar.xz",
+    "sources_entry": "glib",
+    "records": [
+     "app/packaging/supplier_notices/voice_records/0.169.0/manifest.json",
+     "app/packaging/supplier_notices/voice_records/0.169.0/sources.json"
+    ]
+   },
+   "standing": "covered",
+   "basis": "licence texts the supplier ships in its tree, identified by the distribution record's digests; the component is identified by its source URL"
   },
   {
    "class": "supplier",
@@ -12134,9 +11912,17 @@
     }
    ],
    "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined.",
-   "standing": "uncovered",
-   "reason": "codex-resources/voice/sources.json, which states this component's version and source, differs at 0.169.0 from the 0.167.0 file read for this row (same size, another digest), and its content is not held; the version and source recorded here are 0.167.0's. The licence texts in the tree are byte-identical to 0.167.0's.",
-   "would_close": "read sources.json from the 0.169.0 distribution (a read-only single-member extraction, proposed to the integrator) and check this row against it"
+   "source_statement": {
+    "version": "0.5",
+    "url": "https://github.com/frida/proxy-libintl/archive/refs/tags/0.5.tar.gz",
+    "sources_entry": "proxy-libintl",
+    "records": [
+     "app/packaging/supplier_notices/voice_records/0.169.0/manifest.json",
+     "app/packaging/supplier_notices/voice_records/0.169.0/sources.json"
+    ]
+   },
+   "standing": "covered",
+   "basis": "licence texts the supplier ships in its tree, identified by the distribution record's digests; the component is identified by its source URL"
   },
   {
    "class": "supplier",
@@ -12160,17 +11946,25 @@
     }
    ],
    "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined.",
-   "standing": "uncovered",
-   "reason": "codex-resources/voice/sources.json, which states this component's version and source, differs at 0.169.0 from the 0.167.0 file read for this row (same size, another digest), and its content is not held; the version and source recorded here are 0.167.0's. The licence texts in the tree are byte-identical to 0.167.0's.",
-   "would_close": "read sources.json from the 0.169.0 distribution (a read-only single-member extraction, proposed to the integrator) and check this row against it"
+   "source_statement": {
+    "version": "3.8.0",
+    "url": "https://github.com/libffi/libffi/releases/download/v3.8.0/libffi-3.8.0.tar.gz",
+    "sources_entry": "libffi",
+    "records": [
+     "app/packaging/supplier_notices/voice_records/0.169.0/manifest.json",
+     "app/packaging/supplier_notices/voice_records/0.169.0/sources.json"
+    ]
+   },
+   "standing": "covered",
+   "basis": "licence texts the supplier ships in its tree, identified by the distribution record's digests; the component is identified by its source URL"
   },
   {
    "class": "supplier",
    "id": "pcre2-voice",
    "name": "PCRE2 (voice)",
-   "version": "10.47",
+   "version": "10.48",
    "source": {
-    "repository": "https://github.com/PCRE2Project/pcre2/releases/download/pcre2-10.47/pcre2-10.47.tar.gz",
+    "repository": "https://github.com/PCRE2Project/pcre2/releases/download/pcre2-10.48/pcre2-10.48.tar.gz",
     "revision": null
    },
    "members": [
@@ -12193,9 +11987,17 @@
     }
    ],
    "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined.",
-   "standing": "uncovered",
-   "reason": "codex-resources/voice/sources.json, which states this component's version and source, differs at 0.169.0 from the 0.167.0 file read for this row (same size, another digest), and its content is not held; the version and source recorded here are 0.167.0's. The licence texts in the tree are byte-identical to 0.167.0's.",
-   "would_close": "read sources.json from the 0.169.0 distribution (a read-only single-member extraction, proposed to the integrator) and check this row against it"
+   "source_statement": {
+    "version": "10.48",
+    "url": "https://github.com/PCRE2Project/pcre2/releases/download/pcre2-10.48/pcre2-10.48.tar.gz",
+    "sources_entry": "pcre2",
+    "records": [
+     "app/packaging/supplier_notices/voice_records/0.169.0/manifest.json",
+     "app/packaging/supplier_notices/voice_records/0.169.0/sources.json"
+    ]
+   },
+   "standing": "covered",
+   "basis": "licence texts the supplier ships in its tree, identified by the distribution record's digests; the component is identified by its source URL"
   },
   {
    "class": "supplier",
@@ -12219,9 +12021,17 @@
     }
    ],
    "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined.",
-   "standing": "uncovered",
-   "reason": "codex-resources/voice/sources.json, which states this component's version and source, differs at 0.169.0 from the 0.167.0 file read for this row (same size, another digest), and its content is not held; the version and source recorded here are 0.167.0's. The licence texts in the tree are byte-identical to 0.167.0's.",
-   "would_close": "read sources.json from the 0.169.0 distribution (a read-only single-member extraction, proposed to the integrator) and check this row against it"
+   "source_statement": {
+    "version": "1.6.1",
+    "url": "https://downloads.xiph.org/releases/opus/opus-1.6.1.tar.gz",
+    "sources_entry": "opus",
+    "records": [
+     "app/packaging/supplier_notices/voice_records/0.169.0/manifest.json",
+     "app/packaging/supplier_notices/voice_records/0.169.0/sources.json"
+    ]
+   },
+   "standing": "covered",
+   "basis": "licence texts the supplier ships in its tree, identified by the distribution record's digests; the component is identified by its source URL"
   },
   {
    "class": "supplier",
@@ -12245,9 +12055,17 @@
     }
    ],
    "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined.",
-   "standing": "uncovered",
-   "reason": "codex-resources/voice/sources.json, which states this component's version and source, differs at 0.169.0 from the 0.167.0 file read for this row (same size, another digest), and its content is not held; the version and source recorded here are 0.167.0's. The licence texts in the tree are byte-identical to 0.167.0's.",
-   "would_close": "read sources.json from the 0.169.0 distribution (a read-only single-member extraction, proposed to the integrator) and check this row against it"
+   "source_statement": {
+    "version": "1.3.2",
+    "url": "https://github.com/madler/zlib/releases/download/v1.3.2/zlib-1.3.2.tar.gz",
+    "sources_entry": "zlib",
+    "records": [
+     "app/packaging/supplier_notices/voice_records/0.169.0/manifest.json",
+     "app/packaging/supplier_notices/voice_records/0.169.0/sources.json"
+    ]
+   },
+   "standing": "covered",
+   "basis": "licence texts the supplier ships in its tree, identified by the distribution record's digests; the component is identified by its source URL"
   },
   {
    "class": "app-content",
@@ -12430,8 +12248,8 @@
     {
      "repository_path": "app/packaging/supplier_notices/crates/packages.json",
      "package_path": "third-party-notices/supplier/crates/packages.json",
-     "size_bytes": 1044021,
-     "sha256": "91a7b36a22babf3594753f233036b5ce4c5910a81d3dded8be1733e70ca437bd"
+     "size_bytes": 1128066,
+     "sha256": "ae0a836237c785ffb068b6f02ddd01a7e4df326425cff19901d46d4e24ce6a2e"
     }
    ],
    "standing": "covered",
@@ -12840,8 +12658,9 @@
   "Each text is recorded with the repository and revision it comes from, or as a member of the supplier tree. Below a repository's root, only what a row lists is included (V8's third_party licences); each row's below_root says what was examined.",
   "Which component is inside which member follows the supplier's build files and package records (Codex third_party/v8 build files, the rg selector, the voice manifest and sources.json); it is the supplier's statement in its source, not read from the binaries.",
   "The executable rule (an execute bit, not .dylib or .json) fits this distribution record, checked against its Mach-O count; it is not a general proof that a file is a compiled program.",
-  "Reviewed for 0.169.0 from the supplier's source at d32063f9 and the distribution record; no member of the distributed archive was read. Reading the selected source is not an observation of the distributed binary.",
+  "Reviewed for 0.169.0 from the supplier's source at d32063f9 and the distribution record; of the distributed archive only the two voice records (voice/sources.json and voice/manifest.json) were read. Reading the selected source is not an observation of the distributed binary.",
   "The supplier's release workflow at d32063f9 links a checksum-pinned prebuilt rusty_v8 archive (RUSTY_V8_ARCHIVE); the producer revision of that archive is not established. Both are limits of the association, not evidence of coverage.",
-  "Six optional native files were not acquired (App Agent 0's decision; native-source-reading report of 2026-11-16): V8 AUTHORS, because the held V8 LICENSE and LICENSE.v8 require their own copyright notice, conditions and disclaimer, which they carry, and do not incorporate AUTHORS; and libunwind LICENSE.TXT, buildtools LICENSE, jinja2 LICENSE.rst and markupsafe LICENSE and AUTHORS, which are rusty_v8 fork submodule files used by the producer's Windows source build (.github/workflows/rusty-v8-release.yml lines 277-427, V8_FROM_SOURCE at line 384), while the macOS release sets the checksum-pinned RUSTY_V8_ARCHIVE (.github/actions/setup-rusty-v8/action.yml lines 45-64; rust-release.yml lines 225-229). The decision is reversible; legal adequacy is the owner's."
+  "Six optional native files were not acquired (App Agent 0's decision; native-source-reading report of 2026-11-16): V8 AUTHORS, because the held V8 LICENSE and LICENSE.v8 require their own copyright notice, conditions and disclaimer, which they carry, and do not incorporate AUTHORS; and libunwind LICENSE.TXT, buildtools LICENSE, jinja2 LICENSE.rst and markupsafe LICENSE and AUTHORS, which are rusty_v8 fork submodule files used by the producer's Windows source build (.github/workflows/rusty-v8-release.yml lines 277-427, V8_FROM_SOURCE at line 384), while the macOS release sets the checksum-pinned RUSTY_V8_ARCHIVE (.github/actions/setup-rusty-v8/action.yml lines 45-64; rust-release.yml lines 225-229). The decision is reversible; legal adequacy is the owner's.",
+  "The voice rows' versions and source URLs are the supplier's own statements about its bundle (voice/sources.json and voice/manifest.json of the 0.169.0 distribution, read as two single members of the held archive after its size and digest were checked); the libraries' contents were not inspected and no source archive was read."
  ]
 }
