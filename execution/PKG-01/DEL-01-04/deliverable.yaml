@@ -247,6 +247,8 @@ checks:
 - app/tests/codex-controls.test.mjs
 - app/tests/conversation-roles.test.mjs
 - app/tests/conversation-panel.test.mjs
+# Which host refusals of a new conversation's start were made before dispatch, read against the host source.
+- app/tests/thread-start-refusals.test.mjs
 - app/tests/fork-admission.test.mjs
 - app/tests/history-continue-navigation.test.mjs
 - app/tests/run-panel.test.mjs

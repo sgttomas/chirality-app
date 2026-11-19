@@ -101,6 +101,10 @@ code_paths:
 - app/src-tauri/schemas/checkpoint-record-entries.schema.json
 # The requirement check as the person's guide shows it; RunJourney.tsx (DEL-02-02's) mounts it.
 - app/src/RequirementCheck.tsx
+# WorkflowPick.tsx is DEL-02-02's. Here: the composer's line beside a picked workflow that names each
+# declared required tool as available, unavailable now or missing, read with RequirementCheck's own
+# reading, before the press that sends the run.
+- app/src/WorkflowPick.tsx
 # runtime_session.rs, lib.rs and host_tick.rs are shared. Here: opening and ending a run, its
 # run reference and tag, the occasions of the requirement check, and feeding observed items
 # to the checkpoint recorder. Run preparation, run text and the supply check are DEL-02-02's;
@@ -128,4 +132,6 @@ checks:
 - app/tests/proposed-run-disclosure.test.mjs
 - app/tests/run-panel.test.mjs
 - app/tests/requirement-check.test.mjs
+# Shared with DEL-02-02. Here: the required-tool line before the second press, in its three readings.
+- app/tests/workflow-pick-run.test.mjs
 - app/tests/validate-records.test.mjs
