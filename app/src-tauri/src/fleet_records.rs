@@ -473,6 +473,9 @@ pub(crate) fn read_for_workspace(workspace: Option<&Path>) -> Result<Value,Strin
     let mut all_project = briefs.clone(); all_project.extend(graphs.clone()); all_project.extend(project_log.rows.clone());
     let project_duplicates = duplicates(&all_project,&mut limits,"project fleet sources");
     let attachment = protected(&mut census,&root,&mut limits);
+    // The absence case's four missing-source limits, withdrawn (and the two
+    // logs' views set) only once the final checks pass.
+    let mut absent_case: Option<[usize; 4]> = None;
     let (mut protected_view, mut protected_log, healthy) = match &attachment {
         Ok(attached) => {
             let mut log = read_log(&mut census,&attached.dir.join("fleet").join(LOG),&attached.dir,true,validation,&mut limits);
@@ -494,9 +497,9 @@ pub(crate) fn read_for_workspace(workspace: Option<&Path>) -> Result<Value,Strin
                 if listed && census.absent(&fleet)
                     && records_store::package::names_member(&attached.dir,&format!("fleet/{LOG}")) == Ok(false)
                     && !accepted_history(&attached.history) {
-                    for index in [store_at, log_at, graphs_at, briefs_at] { limits.remove(index); }
-                    log.read_as_empty();
-                    project_log.read_as_empty();
+                    absent_case = Some([store_at, log_at, graphs_at, briefs_at]);
+                    // Read as empty bytes for the steps before the final checks.
+                    for read in [&mut log, &mut project_log] { read.bytes = Some(Vec::new()); read.complete = true; }
                 }
             }
             let duplicate = duplicates(&log.rows,&mut limits,"protected fleet log");
@@ -552,6 +555,17 @@ pub(crate) fn read_for_workspace(workspace: Option<&Path>) -> Result<Value,Strin
         _ => Ok(()),
     });
     let snapshot_stable = final_check.is_ok();
+    if let Some(withdrawn) = absent_case {
+        if snapshot_stable {
+            for index in withdrawn { limits.remove(index); }
+            if let Some(log) = &mut protected_log { log.read_as_empty(); }
+            project_log.read_as_empty();
+        } else {
+            // The sources keep their original limits and views.
+            if let Some(log) = &mut protected_log { log.bytes = None; log.complete = false; }
+            project_log.bytes = None; project_log.complete = false;
+        }
+    }
     if let Err(reason) = final_check {
         complete_copy = false;
         protected_view["state"] = json!("source changed while reading");

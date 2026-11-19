@@ -983,6 +983,7 @@ fn fleet_reader_absence_needs_a_listing_without_the_name_and_a_folder_come_and_g
         AFTER_READ.with(|h| *h.borrow_mut() = Some(Box::new(move || { std::fs::create_dir(&fleet).unwrap(); std::fs::remove_dir(&fleet).unwrap(); })));
         let view = f.read();
         assert!(has_limit(&view, "changed"), "store side {store_side}: {}", view["limits"]);
+        assert_sources_keep_their_absences(&view);
     }
 }
 
@@ -1011,6 +1012,13 @@ fn fleet_reader_a_fleet_folder_appearing_during_the_read_is_not_read_as_absent()
     AFTER_READ.with(|h|*h.borrow_mut()=Some(Box::new(move||{std::fs::create_dir(&store_fleet).unwrap();std::fs::create_dir(&project_fleet).unwrap();})));
     let view=f.read();
     assert!(has_limit(&view,"changed while reading"),"{}",view["limits"]);
+    assert_sources_keep_their_absences(&view);
+}
+/// After a final check that fails, the sources keep their original limits and views.
+fn assert_sources_keep_their_absences(view: &Value) {
+    assert_project_absences_as_on_main(view);
+    assert_eq!(limit_at(view, STORE_LOG).first().map(String::as_str), Some(SOURCE_MISSING), "{}", view["limits"]);
+    assert_eq!((view["coordination"]["protectedLog"]["status"].as_str(), view["coordination"]["protectedLog"]["complete"].as_bool()), (Some("missing"), Some(false)));
 }
 
 
