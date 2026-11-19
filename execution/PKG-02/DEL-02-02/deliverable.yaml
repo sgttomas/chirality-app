@@ -163,6 +163,8 @@ code_paths:
 # starts the run through the run guide's own commands.
 - app/src/WorkflowLibrary.tsx
 - app/src/WorkflowPick.tsx
+# The Run tab: the run of the conversation in view, its results, the request that waits and End run.
+- app/src/RunTab.tsx
 # Development tooling for looking at the views without running the App: a stand-in host that
 # answers from one constructed state. Not in the product build and not evidence for a criterion.
 - app/examination/visual_preview/**
@@ -223,3 +225,4 @@ checks:
 - app/tests/run-panel.test.mjs
 - app/tests/workflow-library-tab.test.mjs
 - app/tests/workflow-pick-run.test.mjs
+- app/tests/run-tab.test.mjs
