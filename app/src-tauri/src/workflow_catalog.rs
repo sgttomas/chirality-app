@@ -345,6 +345,14 @@ impl ProductionCatalog {
     /// of its required tools (`workflow_declaration::requirement_declaration`,
     /// read as a selection of those bytes reads it). An entry that does not
     /// resolve has no reading: the refusal is returned instead.
+    ///
+    /// A kept verification answers only while the package folder itself and
+    /// everything beneath it are what was verified, by [`FileFacts`]: kind,
+    /// size, modification time and, where the platform gives them, identity
+    /// and status-change time. So a rewrite of the same size with its
+    /// modification time put back, a replaced file or folder, and a link in
+    /// place of the folder are each verified again, and a reading is never
+    /// given from bytes other than those last verified.
     pub fn listed_requirement_declaration(&self, root: &Path, name: &str) -> Result<serde_json::Value, String> {
         type Listed = std::collections::HashMap<PathBuf, (Vec<FileFacts>, Result<serde_json::Value, String>)>;
         static LISTED: std::sync::OnceLock<std::sync::Mutex<Listed>> = std::sync::OnceLock::new();
@@ -353,6 +361,12 @@ impl ProductionCatalog {
         });
         let package = root.join(name);
         let mut facts = Vec::new();
+        // The package folder itself is part of what is compared; anything but a real folder there
+        // is never answered from a kept verification.
+        match std::fs::symlink_metadata(&package) {
+            Ok(meta) if meta.is_dir() => facts.push(facts_of(package.clone(), &meta)),
+            _ => return verify(),
+        }
         if file_facts(&package, &mut facts).is_err() {
             return verify();
         }
@@ -443,12 +457,27 @@ impl ProductionCatalog {
     }
 }
 /// Path, kind, size and modification time of one entry beneath a package.
-type FileFacts = (PathBuf, bool, u64, Option<std::time::SystemTime>);
+/// What the listing aid compares to take a package as unchanged since it was
+/// verified: a path's kind (file, folder, link or other), size, modification
+/// time and, on Unix, its device and inode and its status-change time, which a
+/// write or a change of its times moves and no caller can set.
+type FileFacts = (PathBuf, u8, u64, Option<std::time::SystemTime>, Option<(u64, u64, i64, i64)>);
+fn facts_of(path: PathBuf, meta: &std::fs::Metadata) -> FileFacts {
+    let kind = if meta.file_type().is_symlink() { 2 } else if meta.is_dir() { 1 } else if meta.is_file() { 0 } else { 3 };
+    #[cfg(unix)]
+    let identity = {
+        use std::os::unix::fs::MetadataExt;
+        Some((meta.dev(), meta.ino(), meta.ctime(), meta.ctime_nsec()))
+    };
+    #[cfg(not(unix))]
+    let identity = None;
+    (path, kind, meta.len(), meta.modified().ok(), identity)
+}
 fn file_facts(folder: &Path, out: &mut Vec<FileFacts>) -> std::io::Result<()> {
     for entry in std::fs::read_dir(folder)? {
         let path = entry?.path();
         let meta = std::fs::symlink_metadata(&path)?;
-        out.push((path.clone(), meta.is_dir(), meta.len(), meta.modified().ok()));
+        out.push(facts_of(path.clone(), &meta));
         if meta.is_dir() {
             file_facts(&path, out)?;
         }

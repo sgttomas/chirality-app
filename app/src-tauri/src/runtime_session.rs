@@ -4881,6 +4881,15 @@ impl WorkflowRootSession {
         let production_catalog = match crate::workflow_workspace::production_catalog::ProductionCatalog::load() {
             Ok(catalog) => {
                 let bundle = self.installed_bundle();
+                // Why an entry's declared tools were not read, in words of their own: an entry's
+                // run limit speaks of selecting and running, which is not what was asked here.
+                let unread = if crate::workflow_workspace::development_catalog::installed_root().is_none() {
+                    "The App does not have the location of its installed workflows, so it could not read this workflow's declared tools."
+                } else if bundle.is_err() {
+                    "The App could not verify its installed workflows, so it could not read this workflow's declared tools."
+                } else {
+                    "The App could not verify this workflow's installed files, so it could not read its declared tools."
+                };
                 let entries = catalog.entries().map(|entry| {
                     let identity = entry.identity();
                     let admission = self.production_entry_admission(catalog, &bundle, &identity.name);
@@ -4896,7 +4905,7 @@ impl WorkflowRootSession {
                     // DEL-02-03 REQ-001, at the moment of picking: what the entry's own verified bytes
                     // declare of its required tools, by the one function a selection's row uses. An
                     // entry that does not resolve is not read, never undeclared.
-                    row["requirementDeclaration"] = admission.unwrap_or_else(|reason| json!({"state":"not_read","reason":reason}));
+                    row["requirementDeclaration"] = admission.unwrap_or_else(|_| json!({"state":"not_read","reason":unread}));
                     row
                 }).collect::<Vec<_>>();
                 json!({"standing":crate::workflow_workspace::production_catalog::PRODUCTION_STANDING,
@@ -8766,8 +8775,8 @@ for line in sys.stdin:
         let mut root = WorkflowRootSession::default();
         // Before the App's installed resources are known, no entry is read: never undeclared.
         for entry in root.snapshot()["productionCatalog"]["entries"].as_array().unwrap() {
-            assert_eq!(entry["requirementDeclaration"]["state"], "not_read", "{entry}");
-            assert_eq!(entry["requirementDeclaration"]["reason"], entry["runLimit"], "{entry}");
+            assert_eq!(entry["requirementDeclaration"], json!({"state":"not_read","reason":"The App does not have the location of its installed workflows, so it could not read this workflow's declared tools."}), "{entry}");
+            assert!(entry["runLimit"].as_str().unwrap().contains("production bundle candidate"), "the run limit is as before: {entry}");
         }
         root.configure_installed_bundle(installed.0.clone()).unwrap();
         let entries = root.snapshot()["productionCatalog"]["entries"].as_array().unwrap().clone();
@@ -8789,11 +8798,43 @@ for line in sys.stdin:
         }
         // What the included workflows declare today: none of them declares required tools.
         assert_eq!(states, std::collections::BTreeMap::from([("undeclared".to_owned(), names.len())]));
-        // An entry whose files no longer verify is not read, with the reason the entry gives for not being runnable.
-        std::fs::write(installed.0.join(BUNDLED).join("WORKFLOW.md"), "changed").unwrap();
+        // An entry whose files no longer verify is not read, in words about the reading; its run limit is its own.
+        let unverified = json!({"state":"not_read","reason":"The App could not verify this workflow's installed files, so it could not read its declared tools."});
+        let text = installed.0.join(BUNDLED).join("WORKFLOW.md");
+        let kept = std::fs::read(&text).unwrap();
+        std::fs::write(&text, "changed").unwrap();
         let changed = bundled_entry(&root, BUNDLED);
         assert_eq!(changed["runnable"], false);
-        assert_eq!(changed["requirementDeclaration"], json!({"state":"not_read","reason":changed["runLimit"]}));
+        assert_eq!(changed["requirementDeclaration"], unverified);
+        assert!(changed["runLimit"].as_str().unwrap().contains("could not be verified"), "{changed}");
+        std::fs::write(&text, &kept).unwrap();
+        assert_eq!(bundled_entry(&root, BUNDLED)["requirementDeclaration"], json!({"state":"undeclared"}));
+        // The reading is never kept past a change the listing's kept verification could miss.
+        // (a) The same size, with the modification time put back: one byte of the text changed.
+        let modified = std::fs::metadata(&text).unwrap().modified().unwrap();
+        let mut rewritten = kept.clone();
+        rewritten[0] ^= 1;
+        std::fs::write(&text, &rewritten).unwrap();
+        std::fs::File::options().write(true).open(&text).unwrap().set_modified(modified).unwrap();
+        assert_eq!((std::fs::metadata(&text).unwrap().len(), std::fs::metadata(&text).unwrap().modified().unwrap()), (kept.len() as u64, modified));
+        let changed = bundled_entry(&root, BUNDLED);
+        assert_eq!((&changed["runnable"], &changed["requirementDeclaration"]), (&json!(false), &unverified), "a same-size rewrite with its time put back is verified again");
+        assert!(root.select_production_bundle(Some(&chat), installed.0.clone(), BUNDLED).is_err(), "and selection refuses it");
+        std::fs::write(&text, &kept).unwrap();
+        std::fs::File::options().write(true).open(&text).unwrap().set_modified(modified).unwrap();
+        assert_eq!(bundled_entry(&root, BUNDLED)["requirementDeclaration"], json!({"state":"undeclared"}));
+        // (b) A link in place of the package folder, to a byte-identical copy elsewhere: selection
+        // refuses a path through a link, and the entry is not read from the kept verification.
+        let package = installed.0.join(BUNDLED);
+        let aside = base.join("aside");
+        std::fs::rename(&package, &aside).unwrap();
+        std::os::unix::fs::symlink(&aside, &package).unwrap();
+        let linked = bundled_entry(&root, BUNDLED);
+        assert_eq!((&linked["runnable"], &linked["requirementDeclaration"]), (&json!(false), &unverified), "{linked}");
+        assert!(root.select_production_bundle(Some(&chat), installed.0.clone(), BUNDLED).is_err());
+        std::fs::remove_file(&package).unwrap();
+        std::fs::rename(&aside, &package).unwrap();
+        assert_eq!(bundled_entry(&root, BUNDLED)["requirementDeclaration"], json!({"state":"undeclared"}));
     }
     // J1 / WR LS-5, TX-1, TX-7 (c): the exact selected bundled subject runs
     // without A15 through the existing guarded prepare/send lifecycle. Its

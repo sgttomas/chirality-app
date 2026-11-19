@@ -1,5 +1,5 @@
 {
-  "about": "Declared-part cases shared by the host's test (workflow_declaration.rs) and the web test (requirement-declaration.test.mjs). 'declaration' is the selection row's declaration as the host serializes it for 'text'; 'requirementDeclaration' is the host's one reading of declared against undeclared for the same bytes. The host test recomputes both from 'text' (or 'error') and refuses a difference. Invented content only.",
+  "about": "Declared-part cases shared by the host's test (workflow_declaration.rs) and the web test (requirement-declaration.test.mjs). 'declaration' is the selection row's declaration as the host serializes it for 'text'; 'requirementDeclaration' is the host's one reading of declared against undeclared for the same bytes. The host test recomputes both from 'text' (or 'error') and refuses a difference. 'state', 'reportStatus' (the requirement report's own declared-part status; null where no declaration could be read) and 'toolReadings' (how each declared tool reads, in order) are written by hand and are what the computed values are judged against. Invented content only.",
   "cases": [
     {
       "declaration": {
@@ -21,6 +21,8 @@
         "state": "undeclared"
       },
       "state": "undeclared",
+      "reportStatus": "undeclared",
+      "toolReadings": [],
       "text": "# Invented workflow\n\nSteps in prose that mention a shell tool and sub-agents.\n\n"
     },
     {
@@ -48,6 +50,8 @@
         "state": "undeclared"
       },
       "state": "undeclared",
+      "reportStatus": "undeclared",
+      "toolReadings": [],
       "text": "# Invented workflow\n\nSteps in prose that mention a shell tool and sub-agents.\n\n```workflow-declaration\n{\"declaration_contract_version\":\"WD-v0.8\",\"checkpoints\":[]}\n```\n"
     },
     {
@@ -75,6 +79,8 @@
         "state": "declared_empty"
       },
       "state": "declared_empty",
+      "reportStatus": "declared_empty",
+      "toolReadings": [],
       "text": "# Invented workflow\n\nSteps in prose that mention a shell tool and sub-agents.\n\n```workflow-declaration\n{\"declaration_contract_version\":\"WD-v0.8\",\"required_tools\":[]}\n```\n"
     },
     {
@@ -202,6 +208,11 @@
         "state": "declared"
       },
       "state": "declared",
+      "reportStatus": "declared",
+      "toolReadings": [
+        "recognized",
+        "recognized"
+      ],
       "text": "# Invented workflow\n\nSteps in prose that mention a shell tool and sub-agents.\n\n```workflow-declaration\n{\"declaration_contract_version\":\"WD-v0.8\",\"required_tools\":[{\"name\":\"delegate\",\"class\":\"harness_capability\",\"capability\":\"agent-delegation\",\"purpose\":\"Hand a part to a sub-agent\",\"necessity\":\"required\",\"stages\":[\"Method\"]},{\"name\":\"lookup\",\"class\":\"host_operation\",\"operation\":\"invented.lookup\",\"versions\":[\"1\"],\"purpose\":\"Look a value up\",\"necessity\":\"optional\",\"fallback\":\"Ask the person\",\"stages\":[\"Method\"]}]}\n```\n"
     },
     {
@@ -269,6 +280,10 @@
         "state": "declared"
       },
       "state": "declared",
+      "reportStatus": "not_established",
+      "toolReadings": [
+        "not_established"
+      ],
       "text": "# Invented workflow\n\nSteps in prose that mention a shell tool and sub-agents.\n\n```workflow-declaration\n{\"declaration_contract_version\":\"WD-v0.8\",\"required_tools\":[{\"name\":\"delegate\",\"necessity\":\"required\"}]}\n```\n"
     },
     {
@@ -295,6 +310,8 @@
         "state": "not_read"
       },
       "state": "not_read",
+      "reportStatus": "not_established",
+      "toolReadings": [],
       "text": "# Invented workflow\n\nSteps in prose that mention a shell tool and sub-agents.\n\n```workflow-declaration\n{\"declaration_contract_version\":\"WD-v0.8\",\"required_tools\":\"none\"}\n```\n"
     },
     {
@@ -314,6 +331,8 @@
         "state": "not_read"
       },
       "state": "not_read",
+      "reportStatus": "not_established",
+      "toolReadings": [],
       "text": "# Invented workflow\n\nSteps in prose that mention a shell tool and sub-agents.\n\n```workflow-declaration\n{\"declaration_contract_version\":\"WD-v0.8\",\"required_tools\":[\n```\n"
     },
     {
@@ -333,6 +352,8 @@
         "state": "not_read"
       },
       "state": "not_read",
+      "reportStatus": "not_established",
+      "toolReadings": [],
       "text": "# Invented workflow\n\nSteps in prose that mention a shell tool and sub-agents.\n\n```workflow-declaration\n{\"declaration_contract_version\":\"WD-v0.8\",\"required_tools\":[],\"required_tools\":[{\"name\":\"delegate\",\"class\":\"harness_capability\",\"capability\":\"agent-delegation\",\"purpose\":\"Hand a part to a sub-agent\",\"necessity\":\"required\",\"stages\":[\"Method\"]}]}\n```\n"
     },
     {
@@ -355,6 +376,8 @@
         "state": "not_read"
       },
       "state": "not_read",
+      "reportStatus": "not_established",
+      "toolReadings": [],
       "text": "# Invented workflow\n\nSteps in prose that mention a shell tool and sub-agents.\n\n```workflow-declaration\n{\"declaration_contract_version\":\"WD-v9\",\"required_tools\":[]}\n```\n"
     },
     {
@@ -374,6 +397,8 @@
         "state": "not_read"
       },
       "state": "not_read",
+      "reportStatus": "not_established",
+      "toolReadings": [],
       "text": "# Invented workflow\n\nSteps in prose that mention a shell tool and sub-agents.\n\n```workflow-declaration\n{\"declaration_contract_version\":\"WD-v0.8\",\"required_tools\":[]}\n```\n\n```workflow-declaration\n{\"declaration_contract_version\":\"WD-v0.8\"}\n```\n"
     },
     {
@@ -387,6 +412,8 @@
         "state": "not_read"
       },
       "state": "not_read",
+      "reportStatus": null,
+      "toolReadings": [],
       "text": null
     }
   ]

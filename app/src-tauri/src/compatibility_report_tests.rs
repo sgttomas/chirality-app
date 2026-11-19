@@ -1347,12 +1347,19 @@ fn the_entry_reading_and_the_check_agree_on_declared_against_undeclared() {
     let table: Value = serde_json::from_str(include_str!("../../tests/fixtures/requirement_declaration_cases.json")).unwrap();
     let mut seen = 0;
     for case in table["cases"].as_array().unwrap() {
-        let Some(text) = case["text"].as_str() else { continue };
         let name = &case["name"];
+        let Some(text) = case["text"].as_str() else {
+            // No declaration could be read: there is no report, and the entry is not read.
+            assert!(case["reportStatus"].is_null(), "{name}");
+            assert_eq!(requirement_declaration(&Err(case["error"].as_str().unwrap().to_owned()))["state"], "not_read", "{name}");
+            continue;
+        };
         let declaration = read(text).unwrap();
         let state = requirement_declaration(&Ok(declaration.clone()))["state"].as_str().unwrap().to_owned();
         let status = declared_part_status(&declaration);
         let result = Compatibility::check(&declaration, &Environment::default()).result;
+        // The report's own status, against the hand-written expectation.
+        assert_eq!(json!(status), case["reportStatus"], "{name}");
         match state.as_str() {
             "undeclared" => {
                 assert_eq!(status, "undeclared", "{name}");
@@ -1364,7 +1371,13 @@ fn the_entry_reading_and_the_check_agree_on_declared_against_undeclared() {
             }
             // Declared: the report says declared, or not established where an element could not be
             // read as declared; never undeclared and never declared-empty.
-            "declared" => assert!(matches!(status, "declared" | "not_established"), "{name}: {status}"),
+            "declared" => {
+                assert!(matches!(status, "declared" | "not_established"), "{name}: {status}");
+                // A declared tool the App could not read as declared never yields a pass.
+                if status == "not_established" {
+                    assert_ne!(result, Check::Compatible, "{name}");
+                }
+            }
             "not_read" => {
                 assert_eq!(status, "not_established", "{name}");
                 assert_eq!(result, Check::NotEstablished, "{name}: an unreadable part never passes");

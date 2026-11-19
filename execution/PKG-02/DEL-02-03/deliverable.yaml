@@ -11,7 +11,9 @@ needs:
   condition: A selected revision is resolved from the stored revision and verified against it at
     selection, at run preparation and at sending; a run text is composed for each run opened,
     with its content identity and the state of its supply check; and a refinement of an opened
-    workflow is a draft that goes through review and registration.
+    workflow is a draft that goes through review and registration. The bundled catalogue supplies
+    the installed package verified against its bundled revision when the App describes its
+    required tools before selection.
   gating: false
 - from: DEL-02-04
   condition: The role chosen for a conversation, or no role, is recorded at its start and stays

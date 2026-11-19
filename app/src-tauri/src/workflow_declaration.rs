@@ -592,6 +592,10 @@ mod requirement_declaration_tests {
             assert_eq!(row_declaration(&read), case["declaration"], "{name}");
             assert_eq!(reading, case["requirementDeclaration"], "{name}");
             assert_eq!(reading["state"], case["state"], "{name}");
+            // How each declared tool reads, against the hand-written expectation: a tool the App
+            // cannot read as declared never passes for a recognized one because the table was rewritten.
+            let tools: Vec<Value> = reading["declaration"]["elements"]["required_tools"].as_array().into_iter().flatten().map(|e| e["reading"].clone()).collect();
+            assert_eq!(json!(tools), case["toolReadings"], "{name}");
             states.insert(reading["state"].as_str().unwrap().to_owned());
         }
         assert_eq!(states.into_iter().collect::<Vec<_>>(), ["declared", "declared_empty", "not_read", "undeclared"]);
