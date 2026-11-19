@@ -237,8 +237,14 @@ function messageText(content: Json): string {
 const RUN_TEXT = /^\[Chirality\] (Workflow run start:|Previous workflow run ended:)/;
 /** Whose input a message is, as the transcript draws it: the person's own (its text in their bubble, PersonText); a
  * delegated agent's (its text marked as that agent's input); or a record shown in the activity (marked as Codex recorded it). */
-type InputVoice = "person" | "delegated" | "record";
+type InputVoice = "person" | "delegated" | "input" | "app" | "record";
 const DELEGATED_INPUT = { label: "Input to this agent:", name: "Input Codex recorded for this delegated agent, not the App's words and not your message" } as const;
+/** The App's own request for a handoff summary (Continue as), as Codex recorded it in the source conversation. */
+const APP_SENT_INPUT = { label: "Sent by the App for Continue as:", name: "The App's request for a handoff summary, as Codex recorded it; not your message" } as const;
+/** Input Codex recorded with no text: not drawn as the person's message. */
+const NO_TEXT_NAME = "Input Codex recorded that is not text, not the App's words and not your message";
+/** Whether a recorded input holds text the person could have written: a text part. */
+export const inputHasText = (content: Json) => (Array.isArray(content) ? content : []).some(isTextPart);
 const isTextPart = (part: Json) => part?.type === "text";
 function UserMessage({ content, fold, voice = "record" }: { content: Json; fold: boolean; voice?: InputVoice }) {
   const parts = Array.isArray(content) ? content : [];
@@ -254,10 +260,12 @@ function UserMessage({ content, fold, voice = "record" }: { content: Json; fold:
     {runText}
     {(texts.length > 0 || (others.length === 0 && folded.length === 0)) && (voice === "person"
       ? <PersonText value={texts.map((part: Json) => text(part.text)).join("\n")} />
+      : voice === "app" ? <AgentText block value={texts.map((part: Json) => text(part.text)).join("\n")} source="record" label={APP_SENT_INPUT.label} name={APP_SENT_INPUT.name} />
+      : voice === "input" ? <AgentText block value="" source="codex" label="Input with no content, as Codex recorded it:" name={NO_TEXT_NAME} />
       : <AgentText block value={texts.map((part: Json) => text(part.text)).join("\n")} source="codex" label={DELEGATED_INPUT.label} name={DELEGATED_INPUT.name} />)}
     {others.map((part: Json, i: number) => <AgentText key={`input-${i}`} block value={json(part)} source="codex"
       label={`${wordOf(USER_INPUT_KIND, part?.type) ?? "Input of a kind the App does not recognise"}, as Codex recorded it:`}
-      name={voice === "person" ? "Input Codex recorded with your message that is not text, not the App's words" : "Input Codex recorded for this delegated agent that is not text, not the App's words"} />)}
+      name={voice === "person" ? "Input Codex recorded with your message that is not text, not the App's words" : voice === "delegated" ? "Input Codex recorded for this delegated agent that is not text, not the App's words" : NO_TEXT_NAME} />)}
   </>;
 }
 
@@ -611,9 +619,19 @@ function TurnActivity({ turn, folded, messages, live, plans, ownRuns, turnIds, o
   </details>;
 }
 
+/** An input's bubble, by whose it is: the person's message under "You"; a delegated agent's input; input Codex
+ * recorded with no text; the App's own request for a handoff summary (Continue as). */
+function InputBubble({ voice, children }: { voice: "person" | "delegated" | "input" | "app"; children: ReactNode }) {
+  switch (voice) {
+    case "person": return <article className="chat-bubble chat-bubble--operator" data-role="operator" aria-label="Your message"><p className="chat-speaker">You</p>{children}</article>;
+    case "delegated": return <article className="chat-bubble chat-bubble--input" data-role="input" aria-label="Input to this agent"><p className="chat-speaker">Input to this agent</p>{children}</article>;
+    case "input": return <article className="chat-bubble chat-bubble--input" data-role="input" aria-label="Input Codex recorded, not text you wrote"><p className="chat-speaker">Input Codex recorded</p>{children}</article>;
+    case "app": return <article className="chat-bubble chat-bubble--input" data-role="input" aria-label="Sent by the App for Continue as, not your message"><p className="chat-speaker">Sent by the App for Continue as</p>{children}</article>;
+  }
+}
 /** One input message in its bubble: the person's own under "You" (its text unformatted, PersonText), or a delegated
  * agent's input under "Input to this agent" (marked as that agent's input). */
-function YourMessage({ row, runStart, voice }: { row: Json; runStart: boolean; voice: "person" | "delegated" }) {
+function YourMessage({ row, runStart, voice }: { row: Json; runStart: boolean; voice: "person" | "delegated" | "input" | "app" }) {
   return <RowBoundary value={row.native} row={row} label="native item"><div className="chat-user-text" id={itemAnchorId(row.threadId, row.turnId, row.native?.id)}>
     <Unfinished row={row} /><UserMessage content={row.native?.content} fold={runStart} voice={voice} />
   </div></RowBoundary>;
@@ -639,14 +657,19 @@ function TurnEnd({ turn, observationEnded, stop, live }: { turn: ActivityTurn; o
   </>;
 }
 
-export function NativeActivityView({ view, threadId, offers, offerControls, runs, stopLabelFor, trialTurns, trialChildren, delegation, navigationRef, appRole, waiting = false, waitingTurns = [] }: { view: Json; threadId: string | null | undefined; offers?: Json[]; offerControls?: OfferControls; runs?: Json[]; stopLabelFor?: (threadId: string, turnId: string) => Json | null; trialTurns?: Json[]; trialChildren?: Json[]; delegation?: Json; navigationRef?: Ref<NativeActivityHandle>;
+export function NativeActivityView({ view, threadId, offers, offerControls, runs, stopLabelFor, trialTurns, trialChildren, delegation, navigationRef, appRole, waiting = false, waitingTurns = [], threadSource, appSentTurns = [] }: { view: Json; threadId: string | null | undefined; offers?: Json[]; offerControls?: OfferControls; runs?: Json[]; stopLabelFor?: (threadId: string, turnId: string) => Json | null; trialTurns?: Json[]; trialChildren?: Json[]; delegation?: Json; navigationRef?: Ref<NativeActivityHandle>;
   /** The conversation's role as the App bound it (the host's thread row `appRole`), for its agent's label. */
   appRole?: Json;
   /** A request of this conversation that names no turn waits for the person's answer: a turn is marked for it only
    * when the conversation has exactly one live turn. */
   waiting?: boolean;
   /** The turns that waiting requests of this conversation name: each, while live, is marked "Waiting for you". */
-  waitingTurns?: readonly string[] }) {
+  waitingTurns?: readonly string[];
+  /** The conversation's native thread source as the status carries it (a sub-agent's names its spawning). */
+  threadSource?: Json;
+  /** The turns of this conversation the App itself started to send its request for a handoff summary (Continue as),
+   * as the status's open handoff records name them. */
+  appSentTurns?: readonly string[] }) {
   const [shown, setShown] = useState<string>("");
   const [pending, setPending] = useState<(ActivityReveal & { revision: number }) | null>(null);
   const revision = useRef(0);
@@ -702,8 +725,15 @@ export function NativeActivityView({ view, threadId, offers, offerControls, runs
   // Only the person's own message is drawn as theirs: in the conversation they chose, which the view does not hold as
   // a delegated agent's (a descendant of another). A descendant's input, or input in a conversation the view holds as
   // one, is that agent's input.
-  const delegatedHere = list(view?.descendants).some((child: Json) => child?.threadId === threadId);
+  const delegatedHere = list(view?.descendants).some((child: Json) => child?.threadId === threadId)
+    // Codex's own thread source says a sub-agent's conversation, before or without its id among the descendants.
+    || (!!threadSource && typeof threadSource === "object" && !Array.isArray(threadSource) && Object.prototype.hasOwnProperty.call(threadSource, "subAgent"));
   const personal = target === threadId && !delegatedHere;
+  // Whose each input is: the App's own Continue as request (its turn named by the handoff record), else in the
+  // person's conversation their message only where it holds text (input with no text is marked as what it is), else
+  // the delegated agent's input.
+  const voiceOf = (row: Json): "person" | "delegated" | "input" | "app" => target === threadId && appSentTurns.includes(text(row.turnId)) ? "app"
+    : !personal ? "delegated" : inputHasText(row.native?.content) ? "person" : "input";
   const liveCount = model.turns.filter(turn => turnLive(turn, observationEnded)).length;
   const waitingAt = (turnId: string) => target === threadId && (waitingTurns.includes(turnId) || (waiting && liveCount === 1));
   return <div ref={container} className="v4-transcript" aria-label="Native activity">
@@ -733,15 +763,14 @@ export function NativeActivityView({ view, threadId, offers, offerControls, runs
         {turnLabel(target, turn.turnId) && <p role="note"><small><AgentText value={text(turnLabel(target, turn.turnId))} source="codex" label="Trial:" name="The trial's label for this turn, as recorded; the App does not vouch for its words" /></small></p>}
         {segments.map((segment, k) => {
           const last = k === segments.length - 1;
-          if (segment.kind === "you") return personal
-            ? <article key={k} className="chat-bubble chat-bubble--operator" data-role="operator" aria-label="Your message">
-              <p className="chat-speaker">You</p>
-              {segment.rows.map((row, i) => <YourMessage key={text(row.native?.id) || `you-${i}`} row={row} runStart={runStart} voice="person" />)}
-            </article>
-            : <article key={k} className="chat-bubble chat-bubble--input" data-role="input" aria-label="Input to this agent">
-              <p className="chat-speaker">Input to this agent</p>
-              {segment.rows.map((row, i) => <YourMessage key={text(row.native?.id) || `input-${i}`} row={row} runStart={runStart} voice="delegated" />)}
-            </article>;
+          if (segment.kind === "you") {
+            // Consecutive inputs of one voice share a bubble.
+            const groups: { voice: ReturnType<typeof voiceOf>; rows: Json[] }[] = [];
+            for (const row of segment.rows) { const voice = voiceOf(row); const lastGroup = groups[groups.length - 1]; if (lastGroup?.voice === voice) lastGroup.rows.push(row); else groups.push({ voice, rows: [row] }); }
+            return groups.map((group, g) => <InputBubble key={`${k}-${g}`} voice={group.voice}>
+              {group.rows.map((row, i) => <YourMessage key={text(row.native?.id) || `${group.voice}-${i}`} row={row} runStart={runStart} voice={group.voice} />)}
+            </InputBubble>);
+          }
           return <article key={k} className={`chat-bubble chat-bubble--assistant${last && live ? " chat-bubble--streaming" : ""}`} data-role="assistant" aria-label={`${speaker} reply`}>
             <p className="chat-speaker">{speaker}</p>
             {last && live && fold}

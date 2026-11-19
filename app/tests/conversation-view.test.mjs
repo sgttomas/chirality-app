@@ -700,6 +700,55 @@ test('a descendant\'s input, opened from the conversation, is that agent\'s inpu
   } finally { await React.act(() => root.unmount()); document.body.removeChild(container); }
 });
 
+// ---- Who an input is from ----
+const raw = (v, more = {}) => renderToStaticMarkup(React.createElement(NativeActivityView, {view: v, threadId: 'T', ...more}));
+const bubbleNames = html => [...html.matchAll(/<article class="chat-bubble[^"]*" data-role="[a-z]+" aria-label="([^"]+)"/g)].map(m => m[1]);
+test('an input with no text is not the person\'s message: it is marked input, with what it is', () => {
+  const v = view('completed', {items: [
+    row('turn-1', 0, {id: 'u1', type: 'userMessage', content: [{type: 'text', text: 'Look at this'}]}),
+    row('turn-1', 1, {id: 'u2', type: 'userMessage', content: [{type: 'localImage', path: '/invented/shot.png'}]}),
+    row('turn-1', 2, {id: 'a1', type: 'agentMessage', text: 'Seen'}),
+  ]});
+  const html = raw(v);
+  assert.deepEqual(bubbleNames(html), ['Your message', 'Input Codex recorded, not text you wrote', 'Agent reply']);
+  const input = html.slice(html.indexOf('aria-label="Input Codex recorded, not text you wrote"'), html.indexOf('aria-label="Agent reply"'));
+  assert.match(input, /<p class="chat-speaker">Input Codex recorded<\/p>/);
+  assert.match(input, /A local image reference, as Codex recorded it:/, 'what it is');
+  assert.doesNotMatch(input, /person-text|aria-label="Your message"|with your message/, 'nothing in it is drawn as the person\'s');
+});
+
+test('a conversation whose native thread source is a sub-agent\'s shows its input as that agent\'s, before its id is among the descendants', () => {
+  const source = {subAgent: {thread_spawn: {parent_thread_id: 'P', depth: 1}}};
+  const html = raw(view('completed'), {threadSource: source});
+  assert.deepEqual(bubbleNames(html), ['Input to this agent', 'Agent reply']);
+  assert.doesNotMatch(html, /person-text|aria-label="Your message"/);
+  // A conversation started from the App's own source is the person's.
+  assert.deepEqual(bubbleNames(raw(view('completed'), {threadSource: 'appServer'})), ['Your message', 'Agent reply']);
+});
+
+test('the App\'s own Continue as request is shown as sent by the App, marked, identified by its handoff record\'s turn, never by its text', () => {
+  const v = view('completed', {items: [...items, row('turn-2', 7, {id: 'u9', type: 'userMessage', content: [{type: 'text', text: 'Handoff from conversation T (No role). Invented request text.'}]})],
+    turns: [...view('completed').turns, {id: 'turn-2', status: 'completed', startedAt: 2, items: []}], turnRecords: [{threadId: 'T', turnId: 'turn-1'}, {threadId: 'T', turnId: 'turn-2'}]});
+  const html = raw(v, {appSentTurns: ['turn-2']});
+  assert.deepEqual(bubbleNames(html), ['Your message', 'Agent reply', 'Sent by the App for Continue as, not your message', 'Agent reply']);
+  const app = html.slice(html.indexOf('aria-label="Sent by the App for Continue as, not your message"'));
+  assert.match(app, /<p class="chat-speaker">Sent by the App for Continue as<\/p>/);
+  assert.match(app, /aria-label="The App&#x27;s request for a handoff summary, as Codex recorded it; not your message, 1 line"/, 'marked');
+  // The same text in a turn no handoff names is the person's.
+  assert.deepEqual(bubbleNames(raw(v)), ['Your message', 'Agent reply', 'Your message', 'Agent reply']);
+});
+
+test('the conversation panel names the App\'s Continue as turn from the status\'s open handoff in this conversation and generation', async () => {
+  const v = view('completed', {generation: g, home: g.home});
+  const handoff = turnId => ({id: 'h1', generation: g, sourceThread: 'T', request: {state: 'sent', turnId}, entries: []});
+  for (const [handoffs, expected] of [[[handoff('turn-1')], 'Sent by the App for Continue as, not your message'], [[{...handoff('turn-1'), sourceThread: 'U'}], 'Your message'], [[{...handoff('turn-1'), generation: g2}], 'Your message'], [[], 'Your message']]) {
+    await mounted(host({nativeView: v, continueAs: handoffs}), async ({container}) => {
+      const first = container.querySelectorAll(n => n.localName === 'article')[0];
+      assert.equal(first?.getAttribute('aria-label'), expected, JSON.stringify(handoffs));
+    });
+  }
+});
+
 // ---- A reveal of a Conversation tools target lands on a shown target ----
 test('"Change permission level" from the settings line selects the Conversation tools tab before it reveals the level, so the focus lands on a shown target', async () => {
   const container = document.createElement('div'); document.body.appendChild(container); const root = createRoot(container);

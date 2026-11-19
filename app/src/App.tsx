@@ -496,6 +496,10 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
     finally { forking.current = false; setForkBusy(false); }
   };
   const handoffs: Json[] = host?.continueAs ?? [];
+  // The turns of the selected conversation the App started itself for a handoff summary (Continue as): named by each
+  // open handoff's own record of its request, in this conversation and generation; never read from a message's text.
+  const appSentTurns: string[] = selected ? handoffs.filter((handoff: Json) => handoff?.sourceThread === selected.threadId && sameActivityGeneration(handoff?.generation, selected.generation)
+    && handoff?.request?.state === "sent" && typeof handoff.request.turnId === "string" && handoff.request.turnId).map((handoff: Json) => handoff.request.turnId) : [];
   // WR TT-3a, TT-3b, TT-10: what the host pre-filled for the person to send.
   // Every send below happens only on the person's Send press.
   // A trial or bring-back command rejects with the host's message as given, so
@@ -717,6 +721,7 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
           {before}
           {selected ? <NativeActivityView navigationRef={activityNavigationRef} key={`activity:${JSON.stringify([selected?.generation, selected?.threadId])}`} view={host?.nativeView} threadId={selected?.threadId} runs={runs} offers={offers}
             trialTurns={workflowRoot?.trialTurns} trialChildren={workflowRoot?.trialChildren} delegation={selected?.delegation} appRole={selected?.appRole} waiting={waitingUnplaced} waitingTurns={waitingTurns}
+            threadSource={selected?.threadSource} appSentTurns={appSentTurns}
             stopLabelFor={(thread, turn) => stopLabel(host?.codexStops, thread, turn, host?.stopRequests, appHome(host?.homeRouting?.activeModeHomeClass))}
             offerControls={{ generation: host?.generation, ready: host?.state === "ready", busy: offerBusy, act: offerAct }} />
             : threadKey ? <p className="panel-empty">Selected conversation is no longer available in this generation; choose a current conversation or press New chat.</p>
