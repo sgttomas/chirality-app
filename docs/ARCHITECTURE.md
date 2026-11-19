@@ -214,8 +214,12 @@ supplier direction as though it were unanswered.
   sandbox and review routing follow the permission level in force in the
   App: the one the person sets, or until then the App's default level (PRD
   V4-AUT-06). Each start, resume and fork also sends the project-root trust
-  entry described in DEL-01-05's account-home term: trusted only when the
-  account home's settings mark that root trusted, otherwise untrusted. The
+  entry of DEL-01-01 REQ-012 and DEL-01-05's account-home term: trusted for
+  a project the person set up or added in the App and has not switched off
+  there, or one the account home's settings mark trusted; untrusted where
+  those settings mark the root untrusted or cannot be read, and otherwise.
+  A trusted entry lets the project's own Codex files act: among other
+  things its MCP servers start with a conversation (LIM-037). The
   dedicated local home uses the App-owned
   configuration specified by DEL-01-05, with analytics and plugin traffic
   off. Every session setting the App applies is listed for the person with

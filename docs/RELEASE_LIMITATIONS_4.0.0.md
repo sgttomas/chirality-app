@@ -391,7 +391,9 @@ An entry is added in the same pull request that makes the limitation standing.
     sandbox after the sandbox stopped it. Any command you allow at Supervised
     may run outside the sandbox, on the first attempt or on a retry, and the
     request card cannot tell you which;
-  - at every level, for a command that a lasting rule allows (LIM-023).
+  - at every level, for a command that a lasting rule allows (LIM-023);
+  - at every level, for a command that a trusted project's own rules allow
+    (LIM-037).
   Choosing a narrower level later does not undo what was done, and does not
   stop a command left running from then (LIM-027). A program that holds
   Accessibility access on this Mac can also operate the App, choosing a level
@@ -655,3 +657,47 @@ An entry is added in the same pull request that makes the limitation standing.
   with that Quit. If the App has already ended, reopen it and check the
   conversation's recovered history before continuing.
 - **Basis:** DEL-01-02 REQ-005 and AC-006.
+
+### LIM-037: A trusted project's own files can start programs and let commands run outside the sandbox
+
+- **Id:** LIM-037
+- **Exit criteria:** 6
+- **What is unavailable:** a way to have Codex load a project's own
+  instructions (`AGENTS.md`) and its own Codex settings without also letting
+  the project's own files do the following. A project you set up or add in
+  the App is sent to Codex as trusted unless you switch that off. With a
+  trusted project, at the Codex version the App runs:
+  - MCP servers that the project's settings name are started on this Mac
+    when a conversation starts, outside the sandbox, and so is a helper
+    command such a server names;
+  - the project's shell environment applies to every command the agent runs,
+    and a start-up file of the project's own runs inside each command, under
+    the same access level as that command;
+  - the project's rules can let commands run outside the sandbox without
+    asking you, at every permission level, and the App cannot switch that off
+    while the project is trusted;
+  - if Codex cannot load the project's settings file, no new conversation
+    starts in the project until the file is fixed or trust is switched off.
+    The App names the file and gives Codex's reason.
+  Where the project's folder is inside a larger Git repository, trust is sent
+  for the repository's top folder, and the `AGENTS.md` files and `.codex`
+  settings in the folders between it and the project's folder load too. The
+  App keeps your switch with the project's records, which are files in your
+  own Library: as with the permission level (LIM-022), a command that has run
+  outside the sandbox can change that record, and so switch trust on without
+  the confirmation the App asks of you. If a project is given a new identity
+  in the records store, a switch-off made under its old identity does not
+  carry over: the project is trusted again as one you set up.
+- **Why:** the pinned Codex has one switch for a project: its instructions,
+  its settings and its rules load together or not at all, and nothing the App
+  sends with a conversation keeps the rules from applying. The owner decided
+  on 19 November 2026, with these effects stated, that a project the person
+  sets up or adds is fully trusted (PRD R-TRUST).
+- **What the person does instead:** before you set up or add a project you
+  did not write, read its `AGENTS.md` and its `.codex` folder, or switch its
+  trust off in the App: an untrusted project's own files are not loaded. After
+  any command may have run outside the sandbox, or after giving a project a
+  new identity, check the project's trust as the App shows it.
+- **Basis:** DEL-01-01 REQ-012 (the trust entry), DEL-01-05 (the account
+  home), DEL-04-03 (the records store). The observations are the
+  trusted-project rows of `app/supplier_checks/level/README.md`.

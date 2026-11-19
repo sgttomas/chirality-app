@@ -45,6 +45,7 @@ unconfirmed drafting defaults are not accepted merely by inclusion.
 | OD-nn / D-nn | Original scoped directions/choices in `conceptual/DECISIONS.md` (`sgttomas/chirality-app@974916b54487af69f17445c582a1aa9ee4fc3b5d:conceptual/DECISIONS.md`), including D-19 and D-20; later direction supersedes only what it addresses. |
 | X-nn / L-nn | Historical exemplars/lessons in `conceptual/EXEMPLARS_AND_LESSONS.md` (`sgttomas/chirality-app@974916b54487af69f17445c582a1aa9ee4fc3b5d:conceptual/EXEMPLARS_AND_LESSONS.md`); evidence with limits, not automatic additional requirements. |
 | R-STORE | Owner directions of 2026-10-12, given in session: "We can't rely on Git for records management, that's not what it's meant for." The owner approved the records-storage recommendations then presented ("I approve your recommendations. Proceed accordingly."): append-only, grouped and hash-chained logs, a derived SQLite index and the App's recovery ledger in SQLite. The owner also asked for "the best way overall, not how to wedge yourself into rulings that may no longer be appropriate", and accepted an App-managed records store outside the project working tree "as a new direction". Revises V4-REC-02 and V4-REC-04 and adds V4-REC-06. |
+| R-TRUST | Owner decisions of 2026-11-19, given in session through App Agent 0. First, that a project the person sets up or adds in the App is trusted by default, shown per project and able to be switched off ("Trusted by default"). Then, after the pinned Codex had been observed (the trusted-project rows of `app/supplier_checks/level/README.md`), the effects were put to the owner in these words: a trusted project's own files can (1) start MCP server programs on your Mac when a conversation starts, outside any sandbox; (2) run a start-up file of their own inside every command; (3) mark commands "allow" so they run outside the sandbox with no approval, which the App cannot switch off; and (4) block every new conversation there if the project's settings file is broken. Offered "AGENTS.md only (Recommended)", "Fully trusted, as decided" and "Trusted, partly withheld", the owner chose "Fully trusted, as decided". Observed beside effect (2) and reported to the owner: the start-up file runs under the same access level as the command it runs in. Adds project trust to V4-AUT-06; its limits are LIM-037. |
 | DEC-1 D2/D3 | Existing first-increment owner rulings `APP-V4-FIRST-INCREMENT-20260928-DECISION-1`, carried by [DEL-04-01's current policy contract](../execution/PKG-04/DEL-04-01/ScopeOfWork.md#governing-values-and-decisions--axiology). D2 names the reserved act kinds and D3 settles App/host routine classifier treatment for that increment; operation-specific additions remain with OI-021. |
 | DEC-4 / DEC-5 | Owner decisions (`sgttomas/chirality@archive/pre-efficiency-cleanup-2026-10-09:projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-SWBPIPE-INTAKE-20260928/OWNER_DECISIONS.md`) `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-4`, with its clarification (phased checkpoints; model access by OAuth sign-in or an API key, with no default), and `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-5`, with its confirmation (host-agent network destinations); applied by scope-change amendment SCA-V4-001. |
 
@@ -431,6 +432,16 @@ Shared access does not transfer decision rights (OD-05).
   removal or replacement outside the App is not detected and can expose an
   older choice or the default. Ordinary App choice-write failures and
   corruption detected by the store are not excluded by that limitation.
+  The App also tells its Codex, when a conversation is started, resumed or
+  forked, whether to trust the conversation's project (R-TRUST): a project
+  the person set up or added in the App is trusted unless the person has
+  switched that off, so that the project's own instructions and Codex
+  settings load. Project trust is the person's own setting, not a reserved
+  act; switching it on is confirmed by the person; and wherever the person
+  sets a project up, adds one or switches its trust, the App states in full
+  what trust lets the project's own files do, which no level restrains: its
+  MCP servers start with a conversation outside the sandbox, and its rules
+  can let commands run outside the sandbox without asking (LIM-037).
 - **V4-AUT-07** A **point** is a place in the work where a named party is
   called to respond. The person's vocabulary has five kinds, and each point
   names the actual response or act it asks for: a **checkpoint** shows where

@@ -33,6 +33,22 @@ credentials from an existing home.
    If setup fails or is cancelled, your entered choices stay available. Read
    the message, correct the cause and review again explicitly.
 
+**Project trust.** A project you choose here is sent to Codex as trusted, so
+that Codex loads the project's own instructions (`AGENTS.md`) and its own Codex
+settings (the `.codex` folder in the project). The review states in full what
+that turns on, and the native confirmation carries the same text or names it:
+MCP servers that the project's settings name are started on this Mac when a
+conversation starts, outside the sandbox; the project's shell environment
+applies to every command the agent runs, and a start-up file of the project's
+own runs inside each command, under the same access level as that command; the
+project's rules can let commands run outside the sandbox without asking you;
+and if Codex cannot load the project's settings file, no new conversation
+starts in the project until the file is fixed or trust is switched off. Read a
+project's `AGENTS.md` and `.codex` folder before you set up a project you did
+not write. Trust can be switched off for a project, and on again with a
+confirmation; a change applies from the next conversation you start, continue
+or fork. The release limitations give the limits (LIM-037).
+
 **Setup details and source status** contains the current launch, resource and
 supplier details. Problems that prevent setup remain visible above the form.
 
