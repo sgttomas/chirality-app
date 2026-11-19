@@ -3572,7 +3572,7 @@ div.woven-chat-section-heading--folder:hover { background:transparent; }
 .woven-workspace .woven-navigator-session-row:has(> .v4-nav-mark) > .woven-navigator-session { flex:1 1 100%; }
 .woven-navigator-session-row > button.v4-nav-mark { margin:0 0 6px 8px; padding:1px 10px; font-size:11.5px; cursor:pointer; }
 .woven-navigator-session-row > button.v4-nav-mark:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
-.v4-nav-title > span { white-space:pre; }
+.v4-nav-title > span { white-space:nowrap; }
 .v4-nav-title > .v4-nav-title-mark { color:var(--accent); background:var(--accent-soft); border-radius:2px; padding:0 1px; }
 .v4-nav-untitled { font-style:italic; color:var(--ink-faint); }
 .woven-navigator-session-folder.v4-nav-run { display:block; }
