@@ -909,7 +909,7 @@ fn host_status(state: State<'_, AppState>) -> Value {
     s["codexStops"] = json!({"outcomes":state.codex_stops.lock().unwrap().clone(),"stopWaitLimitSeconds":codex_stop::STOP_WAIT_LIMIT.as_secs(),"records":codex_stop::RECORDS_LIMIT});
     s["connectorRouteAvailability"] = connector_route_view::availability(state.workspace.as_deref(), &state.project_context, state.project_context_limit.as_deref());
     s["recordsStore"] = records_store::status(state.workspace.as_deref());
-    state.records_status.keep(state.workspace.as_deref(), &s["recordsStore"]);
+    let records_observation = s["recordsStore"].clone();
     s["recordsStore"]["placementChoice"] = records_store::choice_view(state.app_user_data_root.lock().unwrap().as_deref().map_err(Clone::clone), tauri::is_dev());
     s["nativeConversationLinks"] = state.native_links.lock().map(|links| links.snapshot()).unwrap_or_else(|_|json!({"state":"unavailable","limit":"native relationship recording session unavailable; native operation outcomes remain as observed"}));
     s["recordChain"] = records_index::chain_status(state.workspace.as_deref());
@@ -931,6 +931,11 @@ fn host_status(state: State<'_, AppState>) -> Value {
     if let Err(e) = &*state.instructions_root.lock().unwrap() {
         s["instructionsProblem"] = json!(e);
     }
+    // Kept for the navigator once this read's runtime and attachment-selection
+    // guards are released, so no lock is taken under them.
+    drop(selections);
+    drop(runtime);
+    state.records_status.keep(state.workspace.as_deref(), records_observation);
     s
 }
 

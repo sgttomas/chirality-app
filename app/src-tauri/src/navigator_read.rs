@@ -1142,11 +1142,11 @@ struct KeptStatus {
 }
 impl StatusSlot {
     /// Keeps `status`, taken now for `workspace` (host status's own value).
-    pub(crate) fn keep(&self, workspace: Option<&Path>, status: &Value) {
+    pub(crate) fn keep(&self, workspace: Option<&Path>, status: Value) {
         self.keep_at(workspace, status, std::time::Instant::now());
     }
-    pub(crate) fn keep_at(&self, workspace: Option<&Path>, status: &Value, at: std::time::Instant) {
-        *self.0.lock().unwrap_or_else(|p| p.into_inner()) = Some(KeptStatus { workspace: workspace.map(Path::to_path_buf), at, status: status.clone() });
+    pub(crate) fn keep_at(&self, workspace: Option<&Path>, status: Value, at: std::time::Instant) {
+        *self.0.lock().unwrap_or_else(|p| p.into_inner()) = Some(KeptStatus { workspace: workspace.map(Path::to_path_buf), at, status });
     }
     /// The kept status for `workspace` where it is at most `STATUS_FRESH` old;
     /// otherwise the store's status taken now, exactly as host status takes
@@ -1156,7 +1156,7 @@ impl StatusSlot {
             .filter(|k| k.workspace.as_deref() == Some(workspace) && k.at.elapsed() < STATUS_FRESH).map(|k| k.status.clone());
         kept.unwrap_or_else(|| {
             let status = crate::records_store::status(Some(workspace));
-            self.keep(Some(workspace), &status);
+            self.keep(Some(workspace), status.clone());
             status
         })
     }

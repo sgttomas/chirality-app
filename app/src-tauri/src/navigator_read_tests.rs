@@ -821,16 +821,16 @@ fn the_attachment_shown_is_host_statuss_last_observation() {
     let workflows = std::sync::Mutex::new(crate::runtime_session::WorkflowRootSession::default());
     let kept = json!({"state":"available","project":{"attachment":{"projectId":"P-kept","refusal":null,"fault":null}}});
     let status = StatusSlot::default();
-    status.keep(Some(&launched), &kept);
+    status.keep(Some(&launched), kept.clone());
     assert_eq!(read_as_command(&launched, vec![], &workflows, &status).projects[0].project_id.as_deref(), Some("P-kept"));
     let stale = std::time::Instant::now().checked_sub(STATUS_FRESH + std::time::Duration::from_secs(1)).unwrap();
-    status.keep_at(Some(&launched), &kept, stale);
+    status.keep_at(Some(&launched), kept.clone(), stale);
     let read = read_as_command(&launched, vec![], &workflows, &status);
     let taken = crate::records_store::status(Some(&launched));
     assert_eq!(read.projects[0].project_id.as_deref(), taken["project"]["attachment"]["projectId"].as_str(), "a stale observation is taken again, exactly as host status takes it");
     assert_ne!(read.projects[0].project_id.as_deref(), Some("P-kept"));
     // Kept for another workspace: not this one's.
-    status.keep(Some(&f.base), &kept);
+    status.keep(Some(&f.base), kept.clone());
     assert_ne!(read_as_command(&launched, vec![], &workflows, &status).projects[0].project_id.as_deref(), Some("P-kept"));
     drop(f);
 }
