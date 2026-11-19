@@ -195,10 +195,12 @@ export const startRefusedBeforeDispatch = (error: unknown): boolean => {
 /** The top of Settings & tools: the account, the access level, and where the model and effort are chosen, each in one
  * line of the App's words with the way to its full control. It changes nothing itself. */
 function SettingsTop({ host, account, threadId, openConnection, openLevel }: { host: Json; account: AccountController; threadId?: string; openConnection: () => void; openLevel: () => void }) {
-  const words = accountRowWords(host, account.completed);
+  // While Codex is not ready the connection's sentence is said once, in the line above the conversation; it is not
+  // repeated here.
+  const words = host?.state === "ready" ? accountRowWords(host, account.completed) : null;
   const level = levelInForce(host, threadId);
   return <dl className="v4-settings-top" aria-label="Your settings">
-    <div><dt>Account</dt><dd><span>{words.state}{words.detail ? <> · {words.detail}</> : null}</span> <button type="button" onClick={openConnection}>Connection and access…</button></dd></div>
+    <div><dt>Account</dt><dd>{words ? <><span>{words.state}{words.detail ? <> · {words.detail}</> : null}</span> </> : null}<button type="button" onClick={openConnection}>Connection and access…</button></dd></div>
     <div><dt>Access level</dt><dd><span>{level.name}{threadId ? " for the open conversation" : ""}</span> <button type="button" onClick={openLevel}>What it allows…</button></dd></div>
     <div><dt>Model and effort</dt><dd><span>Chosen for each conversation, on the line under the message box.</span></dd></div>
   </dl>;
@@ -956,12 +958,12 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
         : !newChat ? <span className="v4-context-fixed">Choose a conversation or press New chat</span>
         : startNew && <span className="v4-level chat-mode-selector">
           <button type="button" aria-expanded={contextOpen === "role"} aria-label={`Role: ${startRoleWord}`} onClick={() => toggleContext("role")}>{startRoleWord}</button>
-          <div className={`v4-level-pop${contextOpen === "role" ? " open" : ""}`} role="dialog" aria-label="Role" hidden={contextOpen !== "role"}><div className="daily-workspace v4-in-chat">{startNew.rolePanel}</div></div>
+          <div className={`v4-level-pop${contextOpen === "role" ? " open" : ""}`} role={contextOpen === "role" ? "dialog" : undefined} aria-label="Role" hidden={contextOpen !== "role"}><div className="daily-workspace v4-in-chat">{startNew.rolePanel}</div></div>
         </span>}
       <span aria-hidden="true">·</span>
       <span className="v4-level chat-mode-selector">
         <button type="button" aria-expanded={contextOpen === "mode"} aria-label={`Mode: ${modeShown === "plan" ? "Plan" : "Chat"}`} onClick={() => toggleContext("mode")}>{modeShown === "plan" ? "Plan" : "Chat"}</button>
-        <div className={`v4-level-pop${contextOpen === "mode" ? " open" : ""}`} role="dialog" aria-label="Mode" hidden={contextOpen !== "mode"}><div className="daily-workspace v4-in-chat">
+        <div className={`v4-level-pop${contextOpen === "mode" ? " open" : ""}`} role={contextOpen === "mode" ? "dialog" : undefined} aria-label="Mode" hidden={contextOpen !== "mode"}><div className="daily-workspace v4-in-chat">
           {planOffered ? <fieldset className="v4-mode-choice"><legend>Mode for your next message</legend>
             <label><input type="radio" name="conversation-mode" checked={modeShown === "chat"} onChange={() => setModeChoice({ owner: ordinaryOwner, mode: "chat" })} /> Chat{requestedMode?.mode === "plan" ? " (sends default mode, which leaves plan mode)" : ""}</label>
             <label><input type="radio" name="conversation-mode" checked={modeShown === "plan"} onChange={() => setModeChoice({ owner: ordinaryOwner, mode: "plan" })} /> Plan (experimental)</label>
@@ -974,14 +976,14 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
       <span aria-hidden="true">·</span>
       <span className="v4-level chat-mode-selector">
         <button type="button" aria-expanded={contextOpen === "level"} aria-label={`Access level: ${level.name}. Opens what it allows.`} onClick={() => toggleContext("level")}>{level.ask ? `${level.name} — choose to continue` : level.name}</button>
-        <div className={`v4-level-pop${contextOpen === "level" ? " open" : ""}`} role="dialog" aria-label="Access level" hidden={contextOpen !== "level"}><div className="daily-workspace v4-in-chat">
+        <div className={`v4-level-pop${contextOpen === "level" ? " open" : ""}`} role={contextOpen === "level" ? "dialog" : undefined} aria-label="Access level" hidden={contextOpen !== "level"}><div className="daily-workspace v4-in-chat">
           <PermissionLevelSummary host={host} threadId={selected?.threadId} change={() => openTools("conversation-level")} />
         </div></div>
       </span>
       <span aria-hidden="true">·</span>
       <span className="v4-level chat-mode-selector">
         <button type="button" aria-expanded={contextOpen === "model"} aria-label={`Model: ${modelWord}`} onClick={() => toggleContext("model")}>{modelWord}</button>
-        <div className={`v4-level-pop v4-level-pop--end${contextOpen === "model" ? " open" : ""}`} role="dialog" aria-label="Model" hidden={contextOpen !== "model"}><div className="daily-workspace v4-in-chat">
+        <div className={`v4-level-pop v4-level-pop--end${contextOpen === "model" ? " open" : ""}`} role={contextOpen === "model" ? "dialog" : undefined} aria-label="Model" hidden={contextOpen !== "model"}><div className="daily-workspace v4-in-chat">
           {selected ? <>
             <p><label>Optional model identifier for next ordinary text turn <input {...EXACT_TEXT} disabled={!selected || !!busy} value={ordinaryModelValue}
               onChange={e => { setModelTyping(ordinaryOwner); setOrdinaryModel(current => ({ owner: ordinaryOwner, value: e.target.value, effort: "", effortModel: "", revision: current.revision + 1 })); }}
@@ -994,7 +996,7 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
       {selected && <><span aria-hidden="true">·</span>
       <span className="v4-level chat-mode-selector">
         <button type="button" aria-expanded={contextOpen === "effort"} aria-label={`Reasoning effort: ${effortShownWord}`} onClick={() => toggleContext("effort")}>{effortShownWord}</button>
-        <div className={`v4-level-pop v4-level-pop--end${contextOpen === "effort" ? " open" : ""}`} role="dialog" aria-label="Reasoning effort" hidden={contextOpen !== "effort"}><div className="daily-workspace v4-in-chat">
+        <div className={`v4-level-pop v4-level-pop--end${contextOpen === "effort" ? " open" : ""}`} role={contextOpen === "effort" ? "dialog" : undefined} aria-label="Reasoning effort" hidden={contextOpen !== "effort"}><div className="daily-workspace v4-in-chat">
           <p><strong>Model and effort</strong>{ordinaryModel.owner === ordinaryOwner && ordinaryModel.effort ? ` · next send: ${idWords(ordinaryModel.effort)}` : effortInForce ? ` · Effort: ${idWords(effortInForce)} (in force)` : ""}</p>
           <OfferedEffortChoice owner={ordinaryOwner} threadId={selected?.threadId ?? ""} generation={selected?.generation} homeClass={host?.homeRouting?.activeModeHomeClass ?? null}
             modelProvider={selected?.modelProvider ?? ""} entryId={selected?.requestedDestination?.entryId ?? (selected?.modelProvider === "openai" ? (host?.homeRouting?.activeModeHomeClass === "api-key" ? "api-key" : "chatgpt-account") : "local-provider")}
@@ -1950,7 +1952,7 @@ export function AttachmentSelectionPanel({ data, act }: { data: Json; act: (comm
     void invokeAction("reorder_attachments", { selectionRefs: order });
   };
   return <section>
-    <h2>Selected text attachments</h2>
+    <h3>Selected text attachments</h3>
     <p>Native selection keeps private source handles and original identities. Selected files are sent only by an explicit attachment-bearing submission; whole-list/source failures do not fall back to text-only sending.</p>
     <button disabled={busy || !data?.ownerRef} onClick={() => invokeAction("select_attachment")}>Select text attachment…</button>
     <p>List revision: {data?.listRevision ?? "unavailable"} · operation: {data?.operation?.state ?? data?.state ?? "not initialized"}.</p>

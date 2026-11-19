@@ -347,7 +347,7 @@ export function Navigator({ held, waiting, now, activeHome, generation, statusCu
   const firstUnplaced = unplaced[0] ?? null;
   const unplacedCount = unplaced.reduce((n, e) => n + e.count, 0);
   return <nav className="woven-navigator" aria-label="Workspace Navigator">
-    <header className="woven-navigator-brand">Chirality</header>
+    <h1 className="woven-navigator-brand">Chirality</h1>
     <div className="woven-navigator-sections">
       <button type="button" className="woven-new-chat" disabled={!choose} onClick={newChat}><span aria-hidden="true">＋</span> New chat</button>
       <div className="woven-navigator-sessions">

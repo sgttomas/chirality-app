@@ -60,7 +60,7 @@ function actualPacket() {
 }
 const sampleFor = name => actualPacket().cases.find(sample => sample.case === name);
 function selectionView(container) {
-  const panel = nodes(container,'h2').find(node => node.textContent === 'Selected text attachments').parentNode;
+  const panel = nodes(container,'h3').find(node => node.textContent === 'Selected text attachments').parentNode;
   const articles = nodes(panel,'article');
   return {
     refs:articles.filter(node => /^Selected attachment \d+$/.test(nodes(node,'h3')[0]?.textContent ?? '')).map(node => JSON.parse(agentBlockText(agentBlocks(node)[0])).selectionRef),

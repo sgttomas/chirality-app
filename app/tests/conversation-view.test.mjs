@@ -322,7 +322,7 @@ test('the settings line shows the folder, role, mode, access level, model and ef
     assert.equal(settingButton(container, 'Model').textContent, 'reported-model');
     assert.equal(settingButton(container, 'Reasoning effort').textContent, 'high');
     // The panels are closed; the reading sentence is inside the level's panel, not in view.
-    const levelPanel = container.querySelectorAll(n => n.getAttribute('aria-label') === 'Access level' && n.getAttribute('role') === 'dialog')[0];
+    const levelPanel = container.querySelectorAll(n => n.getAttribute('aria-label') === 'Access level' && (n.getAttribute('class') ?? '').split(' ').includes('v4-level-pop'))[0];
     assert.equal(props(levelPanel).hidden, true);
     assert.match(levelPanel.textContent, /Reading is not limited by this level/);
     await React.act(async () => props(settingButton(container, 'Access level')).onClick());
@@ -344,7 +344,7 @@ test('the settings line shows the folder, role, mode, access level, model and ef
     projectTrust: {lines: ['Invented trust line: sent as trusted.'], projectRoot: '/invented/project'}};
   await mounted(host({threads: [{...host().threads[0], level}], codexHomeRules: {appSentence: 'Invented lasting-rules sentence.', homes: []}}), async ({container}) => {
     assert.equal(settingButton(container, 'Access level').textContent, 'Supervised', 'only the name is in view');
-    const panel = container.querySelectorAll(n => n.getAttribute('aria-label') === 'Access level' && n.getAttribute('role') === 'dialog')[0];
+    const panel = container.querySelectorAll(n => n.getAttribute('aria-label') === 'Access level' && (n.getAttribute('class') ?? '').split(' ').includes('v4-level-pop'))[0];
     assert.equal(props(panel).hidden, true, 'nothing else is in view until it is pressed');
     await React.act(async () => props(settingButton(container, 'Access level')).onClick());
     assert.equal(props(panel).hidden, false);
@@ -359,7 +359,7 @@ test('the settings line shows the folder, role, mode, access level, model and ef
   });
   // In a new chat there is no conversation to report on: nothing is said of what was sent.
   await mounted(host({threads: []}), async ({container}) => {
-    const panel = container.querySelectorAll(n => n.getAttribute('aria-label') === 'Access level' && n.getAttribute('role') === 'dialog')[0];
+    const panel = container.querySelectorAll(n => n.getAttribute('aria-label') === 'Access level' && (n.getAttribute('class') ?? '').split(' ').includes('v4-level-pop'))[0];
     assert.doesNotMatch(panel.textContent, /Last level sent|Project trust/);
   });
   // A level the App asks the person to choose says so beside its name.
