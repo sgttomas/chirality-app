@@ -692,3 +692,19 @@ fn a_retry_beside_a_competing_end_completes_its_own_and_appends_no_end() {
     let own = serde_json::to_vec(&ours[0]).unwrap();
     assert_eq!(project.split(|b| *b == b'\n').filter(|l| *l == own.as_slice()).count(), 1, "the project copy of this end is completed from its own line");
 }
+
+/// In a project set up as the App sets one up, with nothing written since, the
+/// session's start finds nothing an earlier session left open: it has run, with
+/// no limit for the fleet packet to carry, and it writes nothing.
+#[test]
+fn in_a_freshly_set_up_project_the_start_runs_with_nothing_to_end_and_no_limit() {
+    let f = Fixture::new();
+    let fleet = published_at(&f.scope, 0).parent().unwrap().to_owned();
+    assert!(crate::records_inspect::presence(&fleet).unwrap().is_none(), "no fleet folder in the store yet");
+    let mut session = Session::default();
+    session.end_earlier_observations(Some(&f.project), &established("first", &[]));
+    let status = session.reconciliation_status();
+    assert_eq!((status["state"].as_str(), status["endsRecorded"].as_u64()), (Some("recorded"), Some(0)), "{status}");
+    assert!(status.get("limit").is_none(), "{status}");
+    assert!(crate::records_inspect::presence(&fleet).unwrap().is_none(), "and nothing written");
+}

@@ -160,3 +160,22 @@ test('qualified readiness and incomplete queues stay qualified in the rendered c
   assert.match(html,/<strong>ready \(qualified\)<\/strong>/);assert.match(html,/dispatch may be unrecorded/);
   assert.doesNotMatch(html,/No recorded returns await/);
 });
+test('a freshly set-up project: the host readings the waiting line uses are whole, and the line says so',()=>{
+  // The actual readers' outputs in a project set up as the App sets one up (fleet_records_tests.rs).
+  const proc=spawnSync('cargo',['+1.97.1','test','--offline','--locked','--lib','fleet_records::tests::fleet_reader_a_freshly_set_up_project_reads_whole_with_nothing_recorded','--','--exact','--nocapture','--test-threads=1'],{
+    cwd:fileURLToPath(new URL('../src-tauri',import.meta.url)),encoding:'utf8',env:{...process.env,CHIRALITY_SKIP_CODEX:'1'},
+  });
+  assert.equal(proc.status,0,proc.stderr+proc.stdout);
+  const dto=tag=>{const line=proc.stdout.split('\n').find(line=>line.includes(tag));assert.ok(line,tag);return JSON.parse(line.slice(line.indexOf(tag)+tag.length));};
+  const fleet=dto('FRESH_FLEET_DTO:'),decisions=dto('FRESH_DECISIONS_DTO:'),workflowRoot=dto('FRESH_WORKFLOW_ROOT_DTO:');
+  const {waitingReadings,waitingView,waitingLine}=loadSrc('WaitingOnYou');
+  // Invented: Codex ready in the one active home with nothing outstanding, which no test here can run.
+  const generation={home:'account',appSession:'invented-session',spawnCounter:1};
+  const host={state:'ready',generation,homeRouting:{activeModeHomeClass:'account'},serverRequests:[],
+    waitingRequests:{groups:[],sources:[{modeHomeClass:'account',state:'ready'}]},workflowRoot};
+  const readings=waitingReadings({host,hostReadAt:1,fleet,fleetReadAt:1,decisions,decisionsReadAt:1});
+  for(const key of ['returns','decisions','hot-runs','reopened'])assert.equal(readings.find(r=>r.key===key)?.state,'whole',key);
+  const {observed,complete,notes}=waitingView(readings);
+  assert.deepEqual(notes,[]);assert.equal(complete,true);
+  assert.equal(waitingLine(observed,complete),'Waiting on you: 0');
+});

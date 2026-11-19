@@ -116,6 +116,15 @@ impl Census {
         }
         Ok(Some(bytes))
     }
+    /// Whether this read found `path` not there in a folder it listed: the
+    /// system answered NotFound for `path`, and this read opened and listed
+    /// its parent as a folder (`directory`: not a link, its path free of
+    /// links). A path that could not be examined, or a link or a file in its
+    /// place, is never absent here. The final comparison (`unchanged`) checks
+    /// the absence again.
+    fn absent_in_listed_folder(&self, path: &Path) -> bool {
+        self.stamps.get(path) == Some(&None) && path.parent().is_some_and(|parent| self.directories.contains_key(parent))
+    }
     fn unchanged(&self) -> Result<(), String> {
         for (path, stamp) in &self.stamps {
             storage::check_path(path)?;
@@ -179,7 +188,23 @@ fn valid(bytes: &[u8], validation: &jsonschema::Validator) -> Result<Value, &'st
 /// Mixed-version validation for the App writer; references remain quoted.
 pub(crate) fn validate_line(bytes:&[u8])->Result<Value,String>{valid(bytes,validator()?).map_err(str::to_owned)}
 
-struct LogRead { rows: Vec<Row>, bytes: Option<Vec<u8>>, complete: bool, view: Value }
+/// `missing`: where the log was not there, the index in `limits` of the limit
+/// that says so, for a caller that establishes its folder is absent.
+struct LogRead { rows: Vec<Row>, bytes: Option<Vec<u8>>, complete: bool, view: Value, missing: Option<usize> }
+impl LogRead {
+    /// The log's folder is absent where the read established it may be: read
+    /// whole, with nothing in it. Its "source missing" limit is the caller's
+    /// to withdraw.
+    fn read_as_empty(&mut self) {
+        self.bytes = Some(Vec::new());
+        self.complete = true;
+        self.missing = None;
+        self.view["status"] = json!(ABSENT_FOLDER);
+        self.view["complete"] = json!(true);
+    }
+}
+/// The status of a log whose folder is not there, read as recording nothing.
+const ABSENT_FOLDER: &str = "folder absent; nothing recorded";
 /// A pathname replacement cannot reset proof for this source. Paths retain
 /// native bytes; configured aliases converge on the same physical source.
 #[derive(Clone, Ord, PartialOrd, Eq, PartialEq)]
@@ -218,6 +243,7 @@ pub(crate) fn writer_prefix(root:&Path,store:&Path,store_id:&str,project_id:&str
 fn read_log(census: &mut Census, path: &Path, root: &Path, protected: bool, validation: &jsonschema::Validator, limits: &mut Vec<Value>) -> LogRead {
     let origin = source(path, root, protected, None);
     let mut rows = Vec::new();
+    let mut missing = None;
     let (status, mut complete, bytes) = match census.read(path) {
         Ok(Some(bytes)) => {
             let mut complete = true;
@@ -236,7 +262,7 @@ fn read_log(census: &mut Census, path: &Path, root: &Path, protected: bool, vali
             }
             ("read", complete, Some(bytes))
         }
-        Ok(None) => { limits.push(issue(&origin, "source missing; no empty-work conclusion")); ("missing", false, None) },
+        Ok(None) => { missing = Some(limits.len()); limits.push(issue(&origin, "source missing; no empty-work conclusion")); ("missing", false, None) },
         Err(reason) => { limits.push(issue(&origin, &format!("source unreadable: {reason}"))); ("unreadable", false, None) },
     };
     if protected {
@@ -247,16 +273,20 @@ fn read_log(census: &mut Census, path: &Path, root: &Path, protected: bool, vali
             }
         }
     }
-    LogRead { rows, bytes, complete, view: json!({"source":origin,"status":status,"complete":complete}) }
+    LogRead { rows, bytes, complete, view: json!({"source":origin,"status":status,"complete":complete}), missing }
 }
 
-fn files(census: &mut Census, root: &Path, folder: &Path, graphs: bool, validation: &jsonschema::Validator, limits: &mut Vec<Value>) -> Vec<Row> {
+/// The folder's records, and where the folder was not there, the index in
+/// `limits` of the limit that says so.
+fn files(census: &mut Census, root: &Path, folder: &Path, graphs: bool, validation: &jsonschema::Validator, limits: &mut Vec<Value>) -> (Vec<Row>, Option<usize>) {
     let mut rows = Vec::new();
     let paths = match census.directory(folder) {
         Ok(paths) => paths,
-        Err(reason) => { limits.push(issue(&source(folder,root,false,None), &reason)); return rows; },
+        Err(reason) => { limits.push(issue(&source(folder,root,false,None), &reason)); return (rows, None); },
     };
+    let mut missing = None;
     if census.stamps.get(folder) == Some(&None) {
+        missing = Some(limits.len());
         limits.push(issue(&source(folder,root,false,None), "fleet folder missing; no empty-work conclusion"));
     }
     for path in paths {
@@ -270,7 +300,7 @@ fn files(census: &mut Census, root: &Path, folder: &Path, graphs: bool, validati
             read_record_file(census, root, &path, "brief", validation, limits, &mut rows);
         }
     }
-    rows
+    (rows, missing)
 }
 fn read_record_file(census: &mut Census, root: &Path, path: &Path, kind: &str, validation: &jsonschema::Validator, limits: &mut Vec<Value>, rows: &mut Vec<Row>) {
     let origin = source(path,root,false,None);
@@ -423,15 +453,39 @@ pub(crate) fn read_for_workspace(workspace: Option<&Path>) -> Result<Value,Strin
     let _ = census.directory(&root.join(".chirality")).map_err(|e| limits.push(issue(&source(&root.join(".chirality"),&root,false,None),&e)));
     let folder = root.join(FOLDER);
     let _ = census.directory(&folder).map_err(|e| limits.push(issue(&source(&folder,&root,false,None),&e)));
-    let briefs = files(&mut census,&root,&folder.join("briefs"),false,validation,&mut limits);
-    let graphs = files(&mut census,&root,&folder.join("graphs"),true,validation,&mut limits);
-    let project_log = read_log(&mut census,&folder.join(LOG),&root,false,validation,&mut limits);
+    let (briefs, briefs_missing) = files(&mut census,&root,&folder.join("briefs"),false,validation,&mut limits);
+    let (graphs, graphs_missing) = files(&mut census,&root,&folder.join("graphs"),true,validation,&mut limits);
+    let mut project_log = read_log(&mut census,&folder.join(LOG),&root,false,validation,&mut limits);
     let mut all_project = briefs.clone(); all_project.extend(graphs.clone()); all_project.extend(project_log.rows.clone());
     let project_duplicates = duplicates(&all_project,&mut limits,"project fleet sources");
     let attachment = protected(&mut census,&root,&mut limits);
+    // "Not there" is read as "nothing recorded" only for a whole fleet folder
+    // this read found absent (NotFound) in a folder it listed, and only once
+    // the project is established as the App's (attached: its identity, link,
+    // registry and store folder read). Anything not examinable, a link or a
+    // file in the folder's place, a source missing from a fleet folder that
+    // is there, or an unattached project keeps its limit. The final
+    // comparison checks the absence again.
+    if let (Ok(_), true, Some(briefs_at), Some(graphs_at), Some(log_at)) =
+        (&attachment, census.absent_in_listed_folder(&folder), briefs_missing, graphs_missing, project_log.missing) {
+        project_log.read_as_empty();
+        for index in [log_at, graphs_at, briefs_at] { limits.remove(index); }
+    }
     let (mut protected_view, mut protected_log, healthy) = match &attachment {
         Ok(attached) => {
             let mut log = read_log(&mut census,&attached.dir.join("fleet").join(LOG),&attached.dir,true,validation,&mut limits);
+            // The project's own store folder is established by the attachment:
+            // this read found its identity file there as a regular single-link
+            // file, on a path with no link (`Census::read`), and checks it again
+            // at the end. Its fleet folder answering NotFound on that path
+            // records nothing.
+            if let Some(index) = log.missing {
+                let established = census.stamps.get(&attached.dir.join("project.json")).is_some_and(Option::is_some);
+                if established && matches!(census.metadata(&attached.dir.join("fleet")), Ok(None)) {
+                    limits.remove(index);
+                    log.read_as_empty();
+                }
+            }
             let duplicate = duplicates(&log.rows,&mut limits,"protected fleet log");
             log.complete &= duplicate.is_empty();
             log.view["complete"] = json!(log.complete);
