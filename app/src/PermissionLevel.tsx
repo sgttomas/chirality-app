@@ -93,8 +93,11 @@ export function levelInForce(host: Json, threadId?: string): { name: string; ask
   return { name: level ? name(level.id) : "No permission level reported", ask };
 }
 
-/** The settings line's level panel: what the level in force allows, where it came from, that reading is not limited,
- * and the levels, in the words the full panel uses. Changing the level is the full panel's (`change`). */
+/** The settings line's level panel, one press from the level's name: what the level in force allows, where it came
+ * from, that reading is not limited, at a level that asks what allowing a command means, and beside them what was
+ * sent to Codex and what it reported, a change taking effect from the next turn, the project's trust as sent and the
+ * lasting rules in the Codex home, all in the words the full panel uses (the host's sentences and the App's own
+ * tables). The values Codex returned, the save record and changing the level are the full panel's (`change`). */
 export function PermissionLevelSummary({ host, threadId, change }: { host: Json; threadId?: string; change: () => void }) {
   const row = threadId ? list(host?.threads).find(t => t.threadId === threadId && JSON.stringify(t.generation) === JSON.stringify(host?.generation)) : null;
   const level = threadId ? row?.level?.chosen : host?.levelDefault;
@@ -108,9 +111,18 @@ export function PermissionLevelSummary({ host, threadId, change }: { host: Json;
       {/* The host's sentence says the origin in full; the origin's own words stand only where the host sent none. */}
       <p className="v4-faint">{typeof level.originSentence === "string" ? level.originSentence : wordOf(ORIGINS, level.origin) ?? "The origin of this level was not reported."}</p>
       {typeof level.readingSentence === "string" ? <p className="v4-faint">{level.readingSentence}</p> : <p className="v4-faint">The reading limit was not reported.</p>}
+      {typeof level.explanation === "string" && <p className="v4-faint">{level.explanation}</p>}
+      {typeof level.allowing === "string" && <p className="v4-faint">{level.allowing}</p>}
     </>}
     {ask && <p role="alert">{ask.sentence}</p>}
     <LevelRefusal cause={cause}/>
+    {threadId && <div className="v4-level-sent" aria-label="What the App sent to Codex and what Codex reported">
+      <p>Last level sent: {name(row?.level?.sent?.levelId)}. {row?.level?.sent?.writeResult === "written" ? "Written to Codex." : "Writing it to Codex is not established."} {wordOf(AGREEMENT, row?.level?.agreement) ?? "Agreement has not been reported."}</p>
+      {typeof row?.level?.takesEffectSentence === "string" && <p>{row.level.takesEffectSentence}</p>}
+      {/* The trust lines are codex_level.rs's closed sentences; the values beside them are in the full panel. */}
+      {row?.level?.projectTrust ? list(row.level.projectTrust.lines).map((line, i) => <p key={i}>{line}</p>) : <p>Project trust has not been reported for a start, resume or fork.</p>}
+    </div>}
+    <LastingRules rules={host?.codexHomeRules} homeClass={host?.homeRouting?.activeModeHomeClass}/>
     <ul aria-label="Permission levels">{Object.keys(NAMES).map(id => <li key={id} aria-current={level?.id === id ? "true" : undefined}><b>{wordOf(NAMES, id)}</b></li>)}</ul>
     <p><button type="button" onClick={change}>{ask ? "Choose a permission level to continue" : "Change permission level"}</button></p>
   </div>;

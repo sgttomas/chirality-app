@@ -706,7 +706,7 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
       </span>
       <span aria-hidden="true">·</span>
       <span className="v4-level chat-mode-selector">
-        <button type="button" aria-expanded={contextOpen === "level"} aria-label={`Access level: ${level.name}`} onClick={() => toggleContext("level")}>{level.ask ? `${level.name} — choose to continue` : level.name}</button>
+        <button type="button" aria-expanded={contextOpen === "level"} aria-label={`Access level: ${level.name}. Opens what it allows.`} onClick={() => toggleContext("level")}>{level.ask ? `${level.name} — choose to continue` : level.name}</button>
         <div className={`v4-level-pop${contextOpen === "level" ? " open" : ""}`} role="dialog" aria-label="Access level" hidden={contextOpen !== "level"}><div className="daily-workspace v4-in-chat">
           <PermissionLevelSummary host={host} threadId={selected?.threadId} change={() => openTools("conversation-level")} />
         </div></div>

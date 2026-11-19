@@ -654,7 +654,7 @@
  {
   "file": "App.tsx",
   "where": "@aria-label",
-  "expr": "`Access level: ${level.name}`",
+  "expr": "`Access level: ${level.name}. Opens what it allows.`",
   "component": "ConversationPanel",
   "count": 1,
   "basis": "an App-owned literal vocabulary",

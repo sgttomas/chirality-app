@@ -275,7 +275,7 @@ test('the settings line shows the folder, role, mode, access level, model and ef
   await mounted(host(), async ({container}) => {
     const line = settingsLine(container);
     assert.match(line.textContent, /^Working in▱ pump-skid·HELP_HUMAN·Chat/);
-    assert.equal(props(settingButton(container, 'Access level'))['aria-label'], 'Access level: Full access');
+    assert.equal(props(settingButton(container, 'Access level'))['aria-label'], 'Access level: Full access. Opens what it allows.', 'its name says what pressing it opens');
     assert.equal(settingButton(container, 'Access level').textContent, 'Full access', 'the level\'s name, and only it, is in view');
     assert.equal(settingButton(container, 'Model').textContent, 'reported-model');
     assert.equal(settingButton(container, 'Reasoning effort').textContent, 'high');
@@ -292,6 +292,33 @@ test('the settings line shows the folder, role, mode, access level, model and ef
   // With no project folder the App says so; it never guesses one.
   await mounted(host({currentAppProjectContext: null, attachmentSelections: null}), async ({container}) => {
     assert.match(settingsLine(container).textContent, /^Working inproject folder not established/);
+  });
+  // One press from the name: what the level allows, where it comes from, that reading is not limited, what allowing a
+  // command means at a level that asks, and beside them what was sent and reported, the next-turn note, the project's
+  // trust as sent and the lasting rules. Each sentence is the host's (invented here), or the App's own table's.
+  const level = {chosen: {id: 'supervised', origin: 'chosen', dimensions: {writes: 'nowhere', network: 'off', asks: 'before-a-command-not-known-safe'},
+      originSentence: 'Invented origin sentence.', readingSentence: 'Invented sentence: reading is not limited at any level.', allowing: 'Invented sentence: what allowing a command means.'},
+    sent: {levelId: 'supervised', writeResult: 'written'}, agreement: 'agrees', takesEffectSentence: 'Invented sentence: a change takes effect from the next turn.',
+    projectTrust: {lines: ['Invented trust line: sent as trusted.'], projectRoot: '/invented/project'}};
+  await mounted(host({threads: [{...host().threads[0], level}], codexHomeRules: {appSentence: 'Invented lasting-rules sentence.', homes: []}}), async ({container}) => {
+    assert.equal(settingButton(container, 'Access level').textContent, 'Supervised', 'only the name is in view');
+    const panel = container.querySelectorAll(n => n.getAttribute('aria-label') === 'Access level' && n.getAttribute('role') === 'dialog')[0];
+    assert.equal(props(panel).hidden, true, 'nothing else is in view until it is pressed');
+    await React.act(async () => props(settingButton(container, 'Access level')).onClick());
+    assert.equal(props(panel).hidden, false);
+    const said = panel.textContent;
+    for (const words of ['Commands cannot write within the sandbox.', 'Network access is off within the sandbox.', 'Codex asks before a command it does not know to be safe.',
+      'Invented origin sentence.', 'Invented sentence: reading is not limited at any level.', 'Invented sentence: what allowing a command means.',
+      'Last level sent: Supervised. Written to Codex. Codex\'s report agrees with the level in force.', 'Invented sentence: a change takes effect from the next turn.',
+      'Invented trust line: sent as trusted.', 'Lasting rules in this Codex home', 'Invented lasting-rules sentence.'])
+      assert.ok(said.includes(words), words);
+    assert.ok(!said.includes('/invented/project'), 'supplied values stay in the full panel');
+    assert.ok(nodes(panel, 'button').some(b => b.textContent === 'Change permission level'), 'the full panel is one press further');
+  });
+  // In a new chat there is no conversation to report on: nothing is said of what was sent.
+  await mounted(host({threads: []}), async ({container}) => {
+    const panel = container.querySelectorAll(n => n.getAttribute('aria-label') === 'Access level' && n.getAttribute('role') === 'dialog')[0];
+    assert.doesNotMatch(panel.textContent, /Last level sent|Project trust/);
   });
   // A level the App asks the person to choose says so beside its name.
   await mounted(host({threads: [{...host().threads[0], level: {ask: {sentence: 'Choose a level for this conversation.'}}}]}), async ({container}) => {

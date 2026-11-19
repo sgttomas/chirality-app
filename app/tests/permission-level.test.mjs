@@ -165,7 +165,7 @@ test('the real App shows the default before Start and wires its plain setting th
     // level's full panel, with its default sentences and its setting, is among the conversation's tools.
     const start=c.querySelectorAll(e=>e.getAttribute('id')==='workspace-start')[0];
     const level=settingButton(c,'Access level');assert.ok(start.contains(level),'the level is in the new conversation\'s settings line');
-    const name=props(level)['aria-label'].slice('Access level: '.length);assert.ok(name);assert.ok(level.textContent.startsWith(name),'its name is in view');
+    const name=props(level)['aria-label'].slice('Access level: '.length).replace(/\. Opens what it allows\.$/,'');assert.ok(name);assert.ok(level.textContent.startsWith(name),'its name is in view');
     assert.equal(calls.filter(x=>x.command==='set_level').length,0);
     const panel=c.querySelectorAll(e=>e.getAttribute('aria-label')==='Permission level for new conversations')[0];
     assert.ok(conversationTools(c).contains(panel));assert.ok(panel.textContent.includes(name),'the panel names the same level');
