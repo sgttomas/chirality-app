@@ -518,7 +518,7 @@ test('daily workspace keeps A/C/B/D, exact composer, chooser, global draft and l
   const composerShown=displayed(original);await selectTab(ui.c,'Workflows');assert.equal(displayed(original),composerShown,'selecting a tab leaves the conversation beside it as it was');assert.ok(displayed(region(ui.c,'Workflows')));
   assert.equal(ui.composer(),original,'the composer stays mounted');assert.equal(props(elements(original,'textarea')[0]).value,'Edited daily-workspace message');
   assert.ok(displayed(review),'native confirmation content stays visible in every view');
-  await selectTab(ui.c,'Settings & tools');await toggleDisclosure(ui.c,'workspace-records',true);assert.equal(displayed(region(ui.c,'Workflows')),false,'the tab not selected is hidden');
+  await selectTab(ui.c,'Settings & tools');await toggleDisclosure(ui.c,'workspace-details',true);await toggleDisclosure(ui.c,'workspace-records',true);assert.equal(displayed(region(ui.c,'Workflows')),false,'the tab not selected is hidden');
   assert.ok(byId(ui.c,'view-library'),'and stays mounted');assert.ok(displayed(byId(ui.c,'workspace-records')));assert.ok(displayed(byId(ui.c,'conversation')),'the conversation stays shown');
   const reveal=[];original.parentNode.scrollIntoView=()=>{assert.ok(displayed(original));reveal.push(original);};await ui.open();
   assert.deepEqual(reveal,[original]);assert.equal(ui.selected(),key('B'));assert.equal(ui.composer(),original);assert.equal(props(elements(original,'textarea')[0]).value,'Edited daily-workspace message');assert.equal(chosenIn(choiceList(original,'Send to')),key('D'));ui.assertIndependent();

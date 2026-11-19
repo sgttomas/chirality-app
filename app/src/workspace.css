@@ -3791,3 +3791,11 @@ div.woven-chat-section-heading--folder:hover { background:transparent; }
 .account-controls-popover:focus { outline:none; }
 .account-controls-avatar-mark { position:absolute; right:-4px; bottom:-4px; width:14px; height:14px; border-radius:50%; background:var(--ink); color:var(--ground, #fff); font-size:9px; font-weight:700; line-height:14px; text-align:center; box-shadow:0 0 0 2px var(--ground, #fff); }
 .account-controls-popover .account-controls-group p[role="status"] { color:var(--ink); font-weight:600; }
+
+/* The top of Settings & tools (App.tsx SettingsTop): what a person uses, one line each. */
+.v4-settings-top { margin:4px 0 14px; display:grid; gap:0; border:1px solid var(--rule); border-radius:10px; background:var(--surface); }
+.v4-settings-top > div { display:grid; grid-template-columns:118px minmax(0,1fr); gap:10px; padding:10px 14px; align-items:baseline; }
+.v4-settings-top > div + div { border-top:1px solid var(--rule); }
+.v4-settings-top dt { font-size:12px; color:var(--ink-soft); }
+.v4-settings-top dd { margin:0; font-size:13.5px; color:var(--ink); display:flex; flex-wrap:wrap; gap:4px 12px; align-items:baseline; }
+.daily-workspace .v4-settings-top dd > button { border:0; border-radius:0; background:transparent; padding:0; color:var(--accent); font-size:12.5px; font-weight:400; text-decoration:underline; text-underline-offset:2px; }

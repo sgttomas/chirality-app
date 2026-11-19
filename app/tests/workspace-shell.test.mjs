@@ -282,6 +282,29 @@ test('mounted: New chat shows the empty conversation with its message box focuse
   });
 });
 
+test('mounted: Settings & tools leads with the account, the access level and where the model is chosen; the rest is one fold, closed while Codex is connected', async () => {
+  await mountApp(baseHost(), async ({c}) => {
+    const top = labelled(byId(c, 'workspace-tools'), 'Your settings');
+    assert.ok(!!top, 'the top is drawn');
+    assert.deepEqual(nodes(top, 'dt').map(n => n.textContent), ['Account', 'Access level', 'Model and effort']);
+    assert.deepEqual(nodes(top, 'button').map(n => n.textContent), ['Connection and access…', 'What it allows…'], 'each line leads to its full control, named in the App\'s words');
+    const fold = byId(c, 'workspace-details');
+    assert.ok(!!fold && fold.localName === 'details', 'one fold holds the rest');
+    assert.ok(props(fold).open !== true, 'closed while Codex is connected');
+    // Every earlier section is inside the fold, mounted: nothing was removed.
+    const inside = id => { for (let n = byId(c, id); n; n = n.parentNode) if (n === fold) return true; return false; };
+    for (const id of ['workspace-connection', 'workspace-files', 'workspace-records', 'workspace-evidence', 'workspace-diagnostics']) assert.ok(inside(id), `${id} is inside the fold`);
+    assert.ok(!inside('workspace-history'), 'History is not in Settings & tools');
+    // "What it allows…" shows the level's own panel, in Conversation tools under More.
+    await React.act(async () => props(nodes(top, 'button')[1]).onClick());
+    assert.equal(selectedTab(c), 'More');
+  });
+  // While Codex is not connected the fold is open, so Codex's controls are in view.
+  await mountApp({...baseHost(), state: 'stopped', threads: []}, async ({c}) => {
+    assert.ok(props(byId(c, 'workspace-details')).open === true, 'open while Codex is not connected');
+  });
+});
+
 test('mounted: the removed navigation and heading are gone; their links\' targets still reveal', async () => {
   await mountApp(baseHost(), async ({c}) => {
     assert.equal(labelled(c, 'Workspace navigation'), undefined);

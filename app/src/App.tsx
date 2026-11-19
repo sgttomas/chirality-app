@@ -184,6 +184,17 @@ export const startRefusedBeforeDispatch = (error: unknown): boolean => {
   return START_REFUSED_BEFORE_DISPATCH.some(sentence => message.startsWith(sentence) && ["", ";", ".", " "].includes(message.charAt(sentence.length)));
 };
 
+/** The top of Settings & tools: the account, the access level, and where the model and effort are chosen, each in one
+ * line of the App's words with the way to its full control. It changes nothing itself. */
+function SettingsTop({ host, account, threadId, openConnection, openLevel }: { host: Json; account: AccountController; threadId?: string; openConnection: () => void; openLevel: () => void }) {
+  const words = accountRowWords(host, account.completed);
+  const level = levelInForce(host, threadId);
+  return <dl className="v4-settings-top" aria-label="Your settings">
+    <div><dt>Account</dt><dd><span>{words.state}{words.detail ? <> · {words.detail}</> : null}</span> <button type="button" onClick={openConnection}>Connection and access…</button></dd></div>
+    <div><dt>Access level</dt><dd><span>{level.name}{threadId ? " for the open conversation" : ""}</span> <button type="button" onClick={openLevel}>What it allows…</button></dd></div>
+    <div><dt>Model and effort</dt><dd><span>Chosen for each conversation, on the line under the message box.</span></dd></div>
+  </dl>;
+}
 export function ConversationPanel({ reportChooser, localRoute = null, focusComposer, startAct, composerOffer, host, threadKey, setThreadKey, answer, readRequest, replyObservations, runAct, trialRunAct, send, observeOrdinaryView, steer, submitAttachments, observeAttachmentView, interrupt, checkPlanMode, codexBusy, forkConversation, handoffSend, handoffRead, activityNavigationRef, activityLink, preparedReveal, toolsHost = null, showTools, before, attachments, actionOutcome, startNew, pick = null, setPick, clearPick, pickDropped = false, showWorkflows, onRunStarted, readStatus }: { /** Receives the view's own choice of a conversation while the view takes a choice, else null. */
   reportChooser?: (choose: ((key: string) => void) | null) => void; localRoute?: LocalView | null; focusComposer?: number; startAct?: RunAct; composerOffer?: ComposerOffer | null; preparedReveal?: PreparedComposerReveal | null; activityNavigationRef?: Ref<NativeActivityHandle>; activityLink?: RequestActivityLink; forkConversation?: (generation: Json, sourceThread: string) => Promise<void>; handoffSend?: (id: string, text: string) => Promise<HandoffSendOutcome>; handoffRead?: (id: string) => Promise<HandoffSendOutcome>; codexBusy: boolean; host: Json; threadKey: string; setThreadKey: (key: string) => void; trialRunAct?: RunAct; answer: RequestAnswer; readRequest?: ReadRequestCustody; replyObservations?: Record<string, RequestReplyObservation>; runAct: RunAct; checkPlanMode: (generation: Json) => Promise<void>; submitAttachments: (generation: Json, thread: string, expected: string | null, text: string, owner: string, revision: number, refs: string[]) => Promise<Json>; observeAttachmentView?: (request: AttachmentRequest) => Promise<void>; send: (generation: Json, thread: string, text: string, mode?: "plan" | "default", model?: string, effort?: string) => Promise<Json>; observeOrdinaryView?: (request: OrdinaryTextRequest, isCurrent: () => boolean) => Promise<void>; steer: (generation: Json, thread: string, expected: string, text: string) => Promise<boolean | void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<boolean | void>;
   /** The right panel's "Conversation tools" element, where the conversation's other tools are drawn; without it they are drawn after the transcript. */
@@ -2612,9 +2623,12 @@ export function App() {
   // Whether Connection and access is open: the person's toggles, and the App's own move to the sign-in, which opens it.
   // Before either, it follows the section's own default (open while Codex is not ready).
   const [connectionOpen, setConnectionOpen] = useState<boolean | null>(null);
-  const connectionShown = connectionOpen ?? (host?.state !== "ready");
+  // Connection and access is inside Settings & tools' one fold ("Details and diagnostics"): it is in view only while both are open.
+  const [detailsOpen, setDetailsOpen] = useState<boolean | null>(null);
+  const connectionShown = (connectionOpen ?? (host?.state !== "ready")) && (detailsOpen ?? (host?.state !== "ready"));
+  const openConnectionPanel = () => { setDetailsOpen(true); setConnectionOpen(true); revealWorkspaceTarget("workspace-connection", true); };
   const autoMove = (view: string, target: string) => {
-    if (target === "workspace-sign-in") setConnectionOpen(true);
+    if (target === "workspace-sign-in") { setDetailsOpen(true); setConnectionOpen(true); }
     selectView(view);
     setAutoReveal(previous => ({ sequence: (previous?.sequence ?? 0) + 1, target }));
   };
@@ -3329,7 +3343,8 @@ export function App() {
     const since = readyKey ? readySince.current.get(readyKey) : undefined;
     if (since === undefined || Date.now() - since > FIRST_VIEW_MOVE_BOUND_MS) return;
     if (holdsUnsent() || requestWaiting) return;
-    if (signInReading === "no-account") autoMove("settings", "workspace-sign-in");
+    // No account: Settings & tools at its top, the fold below it closed; the line above the conversation offers the sign-in.
+    if (signInReading === "no-account") autoMove("settings", "workspace-tools");
     else if (signInReading === "chatgpt-account" && historyAtReady !== "stopped" && noConversationInHistory(host)) autoMove("conversation", "workspace-start");
   }, [host, signInReading, historyAtReady, requestWaiting, setupRequired, firstRead]); // eslint-disable-line react-hooks/exhaustive-deps
   // The account's actions, shared by the account row (in the navigator and in its collapsed strip), the workspace
@@ -3426,7 +3441,7 @@ export function App() {
   // the target in it, so focus and scrolling land on a target that is shown.
   const showToolsTarget = (target: string) => { navigated.current = true; selectView("conversation-tools", true); revealWorkspaceTarget(target, true); };
   const openSettings = () => revealWorkspaceTarget("workspace-tools", true);
-  const accountRow = <AccountRow host={host} account={account} reveals={{ openSettings, openConnection: () => revealWorkspaceTarget("workspace-connection", true) }}/>;
+  const accountRow = <AccountRow host={host} account={account} reveals={{ openSettings, openConnection: openConnectionPanel }}/>;
   const shownRow = selectedThread ? (host?.threads ?? []).find((t: Json) => t.threadId === selectedThread && JSON.stringify(t.generation) === JSON.stringify(host?.generation)) : null;
   const workspaceShown = firstRead === "read" && !setupRequired;
   // The centre's notices above the transcript.
@@ -3590,6 +3605,9 @@ export function App() {
         </div>
         <section id="workspace-tools" data-workspace-view="settings" className="workspace-tools workspace-view workspace-view-narrow" aria-label="Workspace tools" hidden={rightTab !== "settings"}>
           <h2>Settings &amp; tools</h2>
+          {/* What a person uses, in a few lines; everything else is one fold below, closed while Codex is connected. */}
+          <SettingsTop host={host} account={account} threadId={shownRow?.threadId} openConnection={openConnectionPanel} openLevel={() => showToolsTarget("conversation-level")}/>
+          <WorkspaceDisclosure id="workspace-details" title="Details and diagnostics" description="Setup, connection, files, records, connectors and the host" open={host?.state !== "ready" || detailsOpen === true ? true : undefined} onToggle={setDetailsOpen}>
           <DesktopSetupPanel view={host?.desktopSetup}/>
           {/* A setting, not a notice of the conversation: it stands with the other settings. */}
           <WorkflowAssuranceSetting setting={host?.workflowRoot?.assuranceSetting} act={async (command, args) => commandThenRefresh(() => invoke(command, args), refresh, () => setMessage(withRefreshFailure))}/>
@@ -3668,6 +3686,7 @@ export function App() {
           <details><summary>Native plans, tools, goals, turns and descendants as received (JSON)</summary><RecordedData value={{ current: host?.nativeView, observationEnded: host?.nativeViewObservationEnded, priorObservations: host?.priorNativeViews, recovery: host?.observerRecovery }} /></details>
           <details><summary>Raw native envelopes (including unknown fields)</summary><RecordedData value={host?.journal} /></details>
         </section>
+          </WorkspaceDisclosure>
           </WorkspaceDisclosure>
         </section>
         </div>}/>}

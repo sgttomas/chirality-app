@@ -110,11 +110,15 @@ async function mountedApp(initial, check) {
 }
 
 test('the first view at launch follows the launch account reading: no account, signed in with no conversation yet, otherwise Workflows', async () => {
-  // No account: Settings & tools, with Connection and access open at the sign-in.
+  // No account: Settings & tools at its top, with the fold of everything else closed; the one sign-in in view is the
+  // line's, above the conversation.
   await mountedApp(noAccount(), async ui => {
     assert.equal(viewNow(ui), 'Settings & tools');
-    assert.equal(disclosureOpen(byId(ui.container, 'workspace-connection')), true, 'Connection and access is open');
-    assert.equal(byId(ui.container, 'workspace-sign-in')?.textContent, 'Sign in with your ChatGPT account (through Codex)…', 'at the sign-in');
+    const top = ui.container.querySelectorAll(e => e.getAttribute?.('aria-label') === 'Your settings')[0];
+    assert.ok(/^Account/.test(top.textContent) && /Not signed in/.test(top.textContent), 'the top says the account');
+    assert.ok(disclosureOpen(byId(ui.container, 'workspace-details')) !== true, 'the fold is closed');
+    assert.ok(elements(connectionLine(ui.container)[0], 'button').some(b => /^Sign in with your ChatGPT account/.test(b.textContent)), 'the line above the conversation offers the sign-in');
+    assert.equal(byId(ui.container, 'workspace-sign-in')?.textContent, 'Sign in with your ChatGPT account (through Codex)…', 'Connection and access keeps its own, inside the fold');
     assert.deepEqual(ui.calls.filter(c => !['host_status', 'decision_view', 'native_confirmation_content'].includes(c.command)), [], 'moving reads, starts or signs in nothing');
   });
   // Signed in, and the stored conversations read to the end list none: Conversation, with New conversation open.
