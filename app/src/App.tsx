@@ -38,7 +38,7 @@ import { ConversationContext, ProjectLibraryContext, appProjectFolder, conversat
 import { WorkspaceDisclosure, WorkspaceConnectionStatus, revealWorkspaceTarget, revealWorkspaceLink, registerWorkspaceViews } from "./DailyWorkspace";
 import { ActivityStrip, WorkspaceShell, isRightPanelTab, turnPhase, type RightPanelTab, RIGHT_PANEL_TABS, type TabSelection } from "./WorkspaceShell";
 import { Navigator, folderName, navigatorEntries, navigatorProjects, samePath, type NavigatorEntry } from "./Navigator";
-import { AccountRow, accountRowWords, useAccountController, type AccountCommands } from "./AccountControls";
+import { AccountRow, accountDeclined, accountRowWords, sourceKey as accountSourceKey, useAccountController, type AccountCommands, type AccountController, type PanelAccountCommand } from "./AccountControls";
 import { flushSync } from "react-dom";
 import { UnsentWork, useReportUnsent } from "./unsentWork";
 import { DesktopSetupPanel } from "./DesktopSetupPanel";
@@ -47,7 +47,7 @@ import { invoke, invokeTimedRead, useOrderedHost, shownBeforePress, POLL_MS } fr
 import { readingAfterWrite, readingRefusal, readingSentence } from "./readingSentences";
 import { REFRESH_FAILED, commandThenRefresh, observationLine, observationText, refreshAfterAction, withRefreshFailure } from "./statusRefresh";
 import { FirstUseSetup } from "./FirstUse";
-import { AccountStatus, DIDNT_SAY, accountReadError, accountReadRef, accountReading, reportedPlan, signInCompletion, signInPending, type ReadAccountStatus } from "./AccountStatus";
+import { AccountStatus, DIDNT_SAY, accountReadError, accountReading, reportedPlan, signInUnresolved, type ReadAccountStatus } from "./AccountStatus";
 import { RunWorkflowGuide, registeredRevisionAnchor, runEvidenceAnchor } from "./RunJourney";
 import { PermissionLevel, PermissionLevelActions, PermissionLevelAsk, PermissionLevelSummary, levelInForce, levelOwner } from "./PermissionLevel";
 import { MakeWorkflowGuide } from "./MakeJourney";
@@ -357,7 +357,7 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
   // shows no conversation or the one the start opened, and the text is still the pressed draft. Otherwise nothing is
   // sent and the text is kept.
   const startAndSend = async () => {
-    if (selected || threadKey !== "" || !startNew || !text || busy || turnActionPending.current || !sourceReady || startNew.blocked) return;
+    if (selected || threadKey !== "" || !startNew || !text || busy || turnActionPending.current || !sourceReady || startNew.blocked || startNew.noAccount) return;
     if (!pressCurrent() || threadKeyNow.current !== "") {
       setError("Not started: that Send belonged to an earlier view, text or choice of settings for the new conversation. Check them and press Send again."); return;
     }
@@ -549,6 +549,7 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
   // 2026-10-10 D-1). Each per-conversation child keys on its own prefix.
   const sendReadiness = !sourceReady ? "Connect to Codex before sending. Your draft stays here."
     : newChat && startNew ? (busy ? "An operation is pending. New messages are paused until its result is received."
+      : startNew.noAccount ? "Sign in with your ChatGPT account before sending. Your draft stays here."
       : startNew.blocked ? `${startNew.blocked}${text ? " Your draft stays here." : ""}`
       : !text ? "Write a message to start a new conversation."
       : "Ready to start a new conversation and send it your text.")
@@ -559,7 +560,7 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
     : !text ? "Write a message to send to the selected conversation."
     : `Ready to send text to conversation ${idWords(selected.threadId)}. Sending does not change its role or how it connects.`;
   // The readiness line is in view only when it says why nothing can be sent; otherwise it describes the field.
-  const sendBlocked = !sourceReady || (!selected && (!newChat || !startNew)) || !!busy || (!!selected && unconfirmed.some(row => !row.acknowledged && row.request.threadId === selected.threadId)) || (newChat && !!startNew?.blocked);
+  const sendBlocked = !sourceReady || (!selected && (!newChat || !startNew)) || !!busy || (!!selected && unconfirmed.some(row => !row.acknowledged && row.request.threadId === selected.threadId)) || (newChat && (!!startNew?.blocked || !!startNew?.noAccount));
   const interruptReadiness = !sourceReady ? "Interruption is unavailable because this Codex source is not ready."
     : !selected ? "Choose the conversation whose turn you want to interrupt."
     : ownBusy ? "Wait for the pending conversation operation before interrupting."
@@ -570,7 +571,7 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
   const attachmentsSelected = (host?.attachmentSelections?.selections ?? []).length > 0;
   const running = liveTurns.length > 0;
   const heldHere = !!selected && unconfirmed.some(row => !row.acknowledged && row.request.threadId === selected.threadId);
-  const sendDisabled = !sourceReady || !text || !!busy || (selected ? heldHere : !newChat || !startNew || !!startNew.blocked);
+  const sendDisabled = !sourceReady || !text || !!busy || (selected ? heldHere : !newChat || !startNew || !!startNew.blocked || !!startNew.noAccount);
   const updateDisabled = !sourceReady || !selected || !steeringTarget?.turnId || !text || !!busy;
   const stopDisabled = !sourceReady || !stopTarget || !!ownBusy || requestedFor(stopTarget);
   const submit = () => { if (selected) void sendText(sendMode); else if (newChat) void startAndSend(); };
@@ -1617,37 +1618,46 @@ export function WorkflowRootPanel({ viewStale = false, readFailure = null, data,
 }
 
 export type LocalAccess = { view: LocalView | null; attempted: string[]; pending: boolean; message: { kind: "status" | "alert"; text: string } | null; prepare: () => void; enterKey: (generation: Json) => void; settingsTouched?: () => void };
-export function HomeAccessPanel({ host, resources, navigating = false, act, readAccount, local }: { host: Json; resources: Json; navigating?: boolean; act: (command: string, args: Record<string, unknown>) => Promise<void>; readAccount: ReadAccountStatus; local?: LocalAccess }) {
+/** What Connection and access takes of the App's account controller (AccountControls.tsx useAccountController): its
+ * Sign in, Sign out and account check are admitted with the row's, the strip's and the line's, one at a time. */
+export type PanelAccount = Pick<AccountController, "acting" | "awaiting" | "run">;
+const PANEL_ACCOUNT_COMMANDS: Record<string, PanelAccountCommand> = { oauth_start: "sign-in", logout_home: "sign-out" };
+export function HomeAccessPanel({ host, resources, navigating = false, act, readAccount, account, local }: { host: Json; resources: Json; navigating?: boolean; act: (command: string, args: Record<string, unknown>) => Promise<void>; readAccount: ReadAccountStatus; account?: PanelAccount; local?: LocalAccess }) {
   const routing = host?.homeRouting, access = host?.homeAccess, oauth = host?.homeOAuth, generation = host?.generation;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const action = async (command: string, args: Record<string, unknown>) => {
     if (command === "select_home" && navigating) return;
+    const admitted = account && PANEL_ACCOUNT_COMMANDS[command];
     setBusy(true); setError("");
-    try { await act(command, args); } catch (e) { setError(String(e)); } finally { setBusy(false); }
+    try { if (admitted) await account.run(admitted, () => act(command, args)); else await act(command, args); } catch (e) { setError(String(e)); } finally { setBusy(false); }
   };
+  // Another account command under way anywhere, or a completed sign-in not yet confirmed: no sign-in is started here
+  // either, nor while the host reports an earlier one that has not ended.
+  const accountBusy = busy || !!account?.acting;
+  const awaiting = !!account?.awaiting;
   const entries: Json[] = (routing?.entries ?? []).filter((entry: Json) => entry.modeHomeClass === "account");
   // The sign-in leads only where it is what the person needs: no account, Codex didn't say, or not yet read.
   // Signed in, the panel leads with the account and Sign out, and signing in again is among the other options.
   const reading = accountReading(host);
-  const signedIn = reading === "chatgpt-account";
-  const offerSignIn = reading === "no-account" || reading === "unread" || DIDNT_SAY.includes(reading);
-  const signInDisabled = busy || routing?.activeModeHomeClass !== "account" || !generation;
+  const signedIn = !awaiting && reading === "chatgpt-account";
+  const offerSignIn = !awaiting && (reading === "no-account" || reading === "unread" || DIDNT_SAY.includes(reading));
+  const signInDisabled = accountBusy || awaiting || signInUnresolved(host) || routing?.activeModeHomeClass !== "account" || !generation;
   const signIn = (primary: boolean) => <button id={primary ? "workspace-sign-in" : undefined} className={primary ? "setup-primary" : undefined} disabled={signInDisabled} onClick={() => action("oauth_start", {generation,mode:"browser"})}>Sign in with your ChatGPT account (through Codex)…</button>;
-  const signOut = <button disabled={busy || !generation || routing?.activeModeHomeClass !== "account"} onClick={() => action("logout_home", {generation,modeHomeClass:routing.activeModeHomeClass})}>Sign out of ChatGPT…</button>;
+  const signOut = <button disabled={accountBusy || !generation || routing?.activeModeHomeClass !== "account"} onClick={() => action("logout_home", {generation,modeHomeClass:routing.activeModeHomeClass})}>Sign out of ChatGPT…</button>;
   return <section aria-label="Account connection"><h2>Connect to a model</h2>
     {!signedIn && offerSignIn && <p>Sign in with your ChatGPT account to reach a model.</p>}
     {routing?.activeModeHomeClass === "api-key" && <p role="status">Choose the account connection to continue. An older access home is retained without changing its saved configuration.</p>}
     {routing?.activeModeHomeClass === LOCAL_MODE && <p role="status">The local oMLX home is in use. ChatGPT sign-in applies to the account home.</p>}
     {routing?.activeModeHomeClass !== "account" && entries.map(entry => <article key={entry.modeHomeClass}><p>{entry.state}{entry.configurationLimit ? ` — ${entry.configurationLimit}` : ""}</p><details><summary>Connection source</summary><RecordedData value={entry.generation} /></details><button disabled={busy || navigating || routing?.activeModeHomeClass === entry.modeHomeClass} onClick={() => action("select_home", {modeHomeClass: entry.modeHomeClass})}>Use {idWords(entry.modeHomeClass)} home</button></article>)}
-    <AccountStatus host={host} navigating={navigating} busy={busy} read={readAccount}/>
+    <AccountStatus host={host} navigating={navigating} busy={accountBusy} read={readAccount} auto={!account} awaiting={awaiting}/>
     {signedIn && <p>{signOut}</p>}
     {routing?.activeModeHomeClass === "account" && <p aria-label="Provider in this home">In this home the App starts Codex on its built-in OpenAI provider, whatever default provider your own Codex settings name. Your Codex files are not changed.</p>}
     {routing?.activeModeHomeClass === "account" && <p aria-label="Where a sign-in will be kept">Before you sign in, you can see where Codex will keep your sign-in: press “Read effective storage and plugin settings” below.</p>}
     {offerSignIn && !signedIn && signIn(true)}
     <details><summary>Other sign-in options</summary>
     {(signedIn || !offerSignIn) && signIn(false)}
-    <button disabled={busy || routing?.activeModeHomeClass !== "account" || !generation} onClick={() => action("oauth_start", {generation,mode:"device-code"})}>Sign in through native device code…</button>
+    <button disabled={signInDisabled} onClick={() => action("oauth_start", {generation,mode:"device-code"})}>Sign in through native device code…</button>
     <button disabled={busy || routing?.activeModeHomeClass !== "account" || !generation || !oauth?.source?.presentationAvailable} onClick={() => action("oauth_present", {generation})}>Show pending native sign-in…</button>
     <button disabled={busy || routing?.activeModeHomeClass !== "account" || !generation || !oauth?.source?.cancelAvailable} onClick={() => action("oauth_cancel", {generation})}>Cancel original pending sign-in with native confirmation…</button>
     {!signedIn && signOut}</details>
@@ -1993,7 +2003,7 @@ export function App() {
     }
   };
   // Every status read is numbered when it starts and applied only if newer than the one shown (hostReads.ts).
-  const { host, hostReads, readHost, applyHost } = useOrderedHost();
+  const { host, hostReads, readHost, applyHost, accepted } = useOrderedHost();
   // Whether FIRST_READ_PATIENCE_MS has passed since launch; it only changes what the not-yet-read state says.
   const [firstReadSlow, setFirstReadSlow] = useState(false);
   useEffect(() => { const t = setTimeout(() => setFirstReadSlow(true), FIRST_READ_PATIENCE_MS); return () => clearTimeout(t); }, []);
@@ -2476,7 +2486,7 @@ export function App() {
   const reportUnsent = useCallback((owner: string, unsent: boolean) => { if (unsent) unsentWork.current.add(owner); else unsentWork.current.delete(owner); }, []);
   const launchViewDecided = useRef(false);
   // Per sign-in completion: the account read latest when it was first seen, and whether the App has moved for it.
-  const signInMoves = useRef(new Map<string, { before: string | null; moved: boolean }>());
+  const signInMoves = useRef(new Set<string>());
   const [signedInNotice, setSignedInNotice] = useState(false);
   const [composerOffer, setComposerOffer] = useState<ComposerOffer | null>(null);
   const composerOfferSequence = useRef(0);
@@ -3166,17 +3176,44 @@ export function App() {
     if (signInReading === "no-account") autoMove("settings", "workspace-sign-in");
     else if (signInReading === "chatgpt-account" && historyAtReady !== "stopped" && noConversationInHistory(host)) autoMove("conversation", "workspace-start");
   }, [host, signInReading, historyAtReady, requestWaiting, setupRequired, firstRead]); // eslint-disable-line react-hooks/exhaustive-deps
-  // A sign-in completed in this process and the read after it confirms an account: a new conversation, with a line
-  // saying so. Signing in is the act that asks for this, so the person's navigation does not block it; unsent work
-  // and a waiting request do. Once per completion.
-  const completion = signInCompletion(host);
+  // The account's actions, shared by the account row (in the navigator and in its collapsed strip), the workspace
+  // line and Connection and access: the present commands under their present conditions, each failure said on the App
+  // line. That line is the attempt's: a later attempt of the same action for the same Codex process and home that goes
+  // through retires it.
+  const accountLine = useRef<{ action: string; source: string; text: string } | null>(null);
+  const accountLineSay = (action: string, source: string, text: string) => { accountLine.current = { action, source, text }; setMessage(text); };
+  const accountLineRetire = (action: string, source: string) => {
+    const line = accountLine.current;
+    if (!line || line.action !== action || line.source !== source) return;
+    accountLine.current = null;
+    setMessage(shown => shown === line.text ? "" : shown);
+  };
+  const accountSource = (generation: Json, modeHomeClass: string) => JSON.stringify([generation ?? null, modeHomeClass ?? null]);
+  const accountCommands: AccountCommands = {
+    checkAgain: async (generation, modeHomeClass, isCurrent = () => true) => {
+      const source = accountSource(generation, modeHomeClass);
+      try { await readAccountStatus(generation, modeHomeClass, isCurrent); accountLineRetire("check-again", source); }
+      catch (error) { accountLineSay("check-again", source, `Check again: ${readingSentence(error) ?? String(error)}`); throw error; } },
+    startSignIn: async generation => {
+      const source = accountSource(generation, "account");
+      try { const outcome = await homeAction("oauth_start", { generation, mode: "browser" }); if (!accountDeclined("sign-in", outcome?.result)) accountLineRetire("sign-in", source); return outcome?.result; }
+      catch (error) { accountLineSay("sign-in", source, `oauth_start: ${String(error)}`); throw error; } },
+    signOut: async (generation, modeHomeClass) => {
+      const source = accountSource(generation, modeHomeClass);
+      try { const outcome = await homeAction("logout_home", { generation, modeHomeClass }); if (!accountDeclined("sign-out", outcome?.result)) accountLineRetire("sign-out", source); return outcome?.result; }
+      catch (error) { accountLineSay("sign-out", source, `logout_home: ${String(error)}`); throw error; } },
+    readStatus: async () => { const read = await readHost(invoke<Json>("host_status")); applyHost(read); return read.snapshot; },
+  };
+  // Each press is checked against the latest status the App has accepted, which may not be rendered yet.
+  const account = useAccountController(host, () => accepted() ?? currentHost.current, accountCommands, () => homePendingRef.current);
+  // A sign-in completed in this process and an account read made after it confirms an account (the account
+  // controller's proof, the one the row and the line use): a new conversation, with a line saying so. Signing in is the
+  // act that asks for this, so the person's navigation does not block it; unsent work and a waiting request do. Once
+  // per completion; never for a completion that was already there when this App view first saw the Codex process.
   useEffect(() => {
-    if (!completion) return;
-    const seen = signInMoves.current.get(completion);
-    if (!seen) { signInMoves.current.set(completion, { before: accountReadRef(host), moved: false }); return; }
-    // The read that confirms the account is one made after the completion was seen.
-    if (seen.moved || signInReading !== "chatgpt-account" || accountReadRef(host) === seen.before) return;
-    seen.moved = true;
+    const completion = account.confirmed;
+    if (!completion || signInMoves.current.has(completion)) return;
+    signInMoves.current.add(completion);
     if (holdsUnsent() || requestWaiting) return;
     // The empty new chat with its message box focused, as New chat shows it (the new conversation's settings line is
     // drawn only there), without counting as the person's navigation.
@@ -3187,15 +3224,10 @@ export function App() {
     conversationRevealSequence.current += 1;
     setConversationReveal({ sequence: conversationRevealSequence.current, target: "ordinary-composer-text" });
     setSignedInNotice(true);
-  }, [completion, host, signInReading, requestWaiting]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { if (signInReading !== "chatgpt-account") setSignedInNotice(false); }, [signInReading]);
-  // The account's actions, shared by the account row (in the navigator and in its collapsed strip) and the workspace
-  // line: the present commands under their present conditions, each failure said on the App line.
-  const accountCommands: AccountCommands = {
-    checkAgain: async (generation, modeHomeClass) => { try { await readAccountStatus(generation, modeHomeClass, () => true); } catch (error) { setMessage(`Check again: ${readingSentence(error) ?? String(error)}`); throw error; } },
-    startSignIn: async generation => { try { await homeAction("oauth_start", { generation, mode: "browser" }); } catch (error) { setMessage(`oauth_start: ${String(error)}`); throw error; } },
-    signOut: async (generation, modeHomeClass) => { try { await homeAction("logout_home", { generation, modeHomeClass }); } catch (error) { setMessage(`logout_home: ${String(error)}`); throw error; } } };
-  const account = useAccountController(host, () => currentHost.current, accountCommands);
+  }, [account.confirmed, requestWaiting]); // eslint-disable-line react-hooks/exhaustive-deps
+  // The signed-in line stands only while the account stands as read: not once the reading changes, nor beside a later
+  // completed sign-in that is not yet confirmed.
+  useEffect(() => { if (signInReading !== "chatgpt-account" || account.awaiting) setSignedInNotice(false); }, [signInReading, account.awaiting]);
   const changePermissionLevel = async (owner: string, scope: "default" | { conversation: string }, levelId: string) => {
     if (homePendingRef.current || owner !== levelOwner(currentHost.current)) throw Error("The Codex home changed. Choose the level again in the current view; nothing was changed.");
     let refreshFailed = false;
@@ -3239,11 +3271,10 @@ export function App() {
   // Where the account row says "Signed in" (one reading for both: Codex ready, no setup needed, a ChatGPT account
   // read, no completed sign-in still unconfirmed), the conversation carries no line about it. A sign-in Codex
   // reported completed, with no account read answered since, is not said as the earlier reading.
-  const signedInReady = accountRowWords(host, account.awaiting).signedIn;
-  const lineReading = account.awaiting && signInReading !== "reading" ? "unread" : signInReading;
+  const signedInReady = accountRowWords(host, account.completed).signedIn;
   const centreNotices = <>
-    {!signedInReady && <WorkspaceConnectionStatus state={host?.state} setupRequired={host?.desktopSetup?.launch?.state === "setup-required"} savedSetup={!!host?.desktopSetup?.pending} generationClosed={host?.generationClosed} startRefusal={host?.lastStartRefusal} codexHome={host?.codexHome} refusalCause={host?.startRefusalCause} build={host?.build} signIn={lineReading}
-      plan={reportedPlan(host)} codexError={account.awaiting ? null : accountReadError(host)} busy={account.acting || signInPending(host)}
+    {!signedInReady && <WorkspaceConnectionStatus source={accountSourceKey(host)} state={host?.state} setupRequired={host?.desktopSetup?.launch?.state === "setup-required"} savedSetup={!!host?.desktopSetup?.pending} generationClosed={host?.generationClosed} startRefusal={host?.lastStartRefusal} codexHome={host?.codexHome} refusalCause={host?.startRefusalCause} build={host?.build} signIn={signInReading}
+      completed={account.completed} plan={reportedPlan(host)} codexError={account.awaiting ? null : accountReadError(host)} busy={account.acting || signInUnresolved(host)}
       checkAgain={() => account.act("check-again", host)}
       // On Settings & tools with Connection and access open, that section carries the sign-in: one sign-in button on a
       // view, never two. Closed, the line carries it again, so the view always shows a way to sign in.
@@ -3280,7 +3311,7 @@ export function App() {
   const startNew: StartSettings = { role, model, blocked: startBlocked, start: startConversation,
     binding: JSON.stringify([editRevision.current, chooserHome.current.epoch, model, modelProvider, entryId, role, roleTouched, host?.generation ?? null, host?.homeRouting?.activeModeHomeClass ?? null]),
     noAccount: signInReading === "no-account" && !account.awaiting,
-    notice: signedInNotice ? <p role="status" aria-label="Signed in">You're signed in. Choose a model to start a conversation.</p> : undefined,
+    notice: signedInNotice && !account.awaiting ? <p role="status" aria-label="Signed in">You're signed in. Choose a model to start a conversation.</p> : undefined,
     rolePanel: <RoleChoice group="start-thread-role" roleSet={host?.roleSet} limits={host?.roleLimits} role={role} preselected={!roleTouched && !!role && role === host?.roleSet?.defaultRole} setRole={next => { expireEndpointPreview(); roleInitialized.current = true; setRoleTouched(true); setRole(next); }}/>,
     modelPanel: <div className="workspace-start-fields">
       <p><strong>How it connects</strong></p>
@@ -3394,7 +3425,7 @@ export function App() {
           {/* A setting, not a notice of the conversation: it stands with the other settings. */}
           <WorkflowAssuranceSetting setting={host?.workflowRoot?.assuranceSetting} act={async (command, args) => commandThenRefresh(() => invoke(command, args), refresh, () => setMessage(withRefreshFailure))}/>
           <WorkspaceDisclosure id="workspace-connection" title="Connection and access" description="Home, sign-in, provider setup and Codex controls" open={host?.state !== "ready" ? true : undefined} onToggle={setConnectionOpen}>
-            <HomeAccessPanel host={host} resources={{ ...host?.homeResources, namespaceProtection: host?.nativeNamespaces, keyAdmission: host?.keyNamespaceAdmission }} navigating={homePending} readAccount={readAccountStatus} local={localAccess} act={async (command, args) => { await homeAction(command, args); }}/>
+            <HomeAccessPanel host={host} resources={{ ...host?.homeResources, namespaceProtection: host?.nativeNamespaces, keyAdmission: host?.keyNamespaceAdmission }} navigating={homePending} readAccount={account.admitRead(readAccountStatus)} account={account} local={localAccess} act={async (command, args) => { await homeAction(command, args); }}/>
             <EffectiveAccessSettingsPanel host={host} navigating={homePending} refresh={refreshEffectiveAccessSettings}/>
   <CodexProcessControls host={host} busy={processBusy} act={(command, args) => { void processAct(command, args); }}/>
           </WorkspaceDisclosure>

@@ -35,8 +35,10 @@ needs:
     process and home, the App's reading of the account is reported (which of its readings holds,
     the plan and the account as Codex reports them, and the state of a sign-in that was started),
     with the commands that read the account again, start a sign-in and sign out, each taking the
-    Codex process it is for. The frame's account row and the line above the conversation show
-    that reading and offer those commands.
+    Codex process it is for, and the account reads the status lists are in the order the host
+    issued them. Between them, the frame's account row, its popover and the line above the
+    conversation show that reading and offer those commands, the sign-out in the popover; the
+    line is absent while the row says signed in.
   gating: false
 - from: DEL-01-06
   condition: The installed App has the same publisher identity in every release, so that a keychain
@@ -223,6 +225,10 @@ checks:
 - app/tests/prepared-message-navigation.test.mjs
 - app/tests/run-panel.test.mjs
 # The frame (AX-004): the three regions, the navigator, and the account row with its popover.
-# account-controls.test.mjs is shared with DEL-01-05 (the account's readings and commands).
+# account-controls.test.mjs is shared with DEL-01-05 (the account's readings and commands);
+# first-view.test.mjs covers the first view, the move after a sign-in and the line above the
+# conversation, and desktop-setup.test.mjs the frame while setup is needed.
 - app/tests/workspace-shell.test.mjs
 - app/tests/account-controls.test.mjs
+- app/tests/first-view.test.mjs
+- app/tests/desktop-setup.test.mjs

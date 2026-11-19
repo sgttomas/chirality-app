@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
-import { DIDNT_SAY, SIGN_IN_WORDS, planWords, type AccountReading } from "./AccountStatus";
+import { DIDNT_SAY, SIGN_IN_COMPLETED, SIGN_IN_WORDS, planWords, type AccountReading } from "./AccountStatus";
 import { AgentText } from "./AgentText";
 
 /** Presentation only: disclosures retain every child while closed. */
@@ -122,10 +122,16 @@ export function connectionWords(facts: ConnectionFacts): { title: string; guidan
 export function signInSentence(signIn: AccountReading, plan: string | null): string {
   return `${SIGN_IN_WORDS[signIn]}${signIn === "chatgpt-account" ? planWords(plan) : ""}`;
 }
-export function WorkspaceConnectionStatus({ state, setupRequired, savedSetup, generationClosed, startRefusal, codexHome, refusalCause, build, signIn = "unread", plan = null, codexError = null, busy = false, checkAgain, startSignIn }: ConnectionFacts & {
+export function WorkspaceConnectionStatus({ source = "", state, setupRequired, savedSetup, generationClosed, startRefusal, codexHome, refusalCause, build, signIn = "unread", completed = null, plan = null, codexError = null, busy = false, checkAgain, startSignIn }: ConnectionFacts & {
+  /** The Codex process and home this line is drawn for (AccountControls.tsx sourceKey): its controls are drawn anew
+   * for each, so a press that began on a control of one never lands on a control of another. */
+  source?: string;
   /** What the App has established of this connection's sign-in (AccountStatus.tsx, accountReading): the same
    * reading the account panel shows, so the two never disagree. */
   signIn?: AccountReading;
+  /** A sign-in Codex reports completed that no account read made after it has answered (the account controller's):
+   * the line says what the account row says, not the earlier reading, and offers Check again, never a sign-in. */
+  completed?: "checking" | "unread" | null;
   /** The plan Codex reports with a ChatGPT account (AccountStatus.tsx, reportedPlan). */
   plan?: string | null;
   /** Codex's own message where the account read answered with an error (AccountStatus.tsx, accountReadError). */
@@ -146,19 +152,22 @@ export function WorkspaceConnectionStatus({ state, setupRequired, savedSetup, ge
     setActing(true);
     try { await action(); } catch { /* the panel and the App line say what happened */ } finally { if (mounted.current) setActing(false); }
   };
-  const didntSay = ready && DIDNT_SAY.includes(signIn);
-  const offerSignIn = ready && signIn === "no-account" && !!startSignIn;
-  // While Codex is running, the line is the sign-in reading's own sentence (SIGN_IN_WORDS), which says Codex is running.
-  const title = connectionTitle ?? signInSentence(signIn, plan);
+  const held = ready && !!completed;
+  const didntSay = ready && !held && DIDNT_SAY.includes(signIn);
+  const offerCheck = (didntSay || (held && completed === "unread")) && !!checkAgain;
+  const offerSignIn = ready && !held && signIn === "no-account" && !!startSignIn;
+  // While Codex is running, the line is the sign-in reading's own sentence (SIGN_IN_WORDS), which says Codex is
+  // running; for a completed sign-in not yet confirmed, the account row's own sentence for it.
+  const title = connectionTitle ?? (held ? `Codex is running. ${SIGN_IN_COMPLETED[completed!].sentence}` : signInSentence(signIn, plan));
   const linkUseful = !cause || cause.link;
   return <section className="workspace-connection-status" aria-label="Workspace connection status">
     <p role="status" aria-live="polite"><strong>{title}</strong>{guidance ? <> <span>{guidance}</span></> : null}</p>
     {didntSay && codexError && <p aria-label="What Codex said"><AgentText value={codexError} source="codex"/></p>}
-    {didntSay && checkAgain && <p><button disabled={acting || busy} onClick={() => { void act(checkAgain); }}>Check again</button></p>}
-    {offerSignIn && <p><button className="setup-primary" disabled={acting || busy} onClick={() => { void act(startSignIn); }}>Sign in with your ChatGPT account (through Codex)…</button></p>}
+    {offerCheck && <p key={`check:${source}`}><button disabled={acting || busy} onClick={() => { void act(checkAgain); }}>Check again</button></p>}
+    {offerSignIn && <p key={`sign-in:${source}`}><button className="setup-primary" disabled={acting || busy} onClick={() => { void act(startSignIn); }}>Sign in with your ChatGPT account (through Codex)…</button></p>}
     {/* Only while no start is under way, and only for the home being shown. */}
     {homeRefusal && startRefusal?.reason
       && <p role="alert" aria-label="Why Codex was not started">{startRefusal.reason.startsWith("Codex was not started") ? startRefusal.reason : `Codex was not started: ${startRefusal.reason}`}</p>}
-    {!setupRequired && state && linkUseful && !offerSignIn && <a href={ready && signIn === "chatgpt-account" ? "#workspace-start" : "#workspace-connection"}>{ready && signIn === "chatgpt-account" ? "Choose a new conversation" : "Open connection controls"}</a>}
+    {!setupRequired && state && linkUseful && !offerSignIn && <a href={ready && !held && signIn === "chatgpt-account" ? "#workspace-start" : "#workspace-connection"}>{ready && !held && signIn === "chatgpt-account" ? "Choose a new conversation" : "Open connection controls"}</a>}
   </section>;
 }

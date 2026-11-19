@@ -9,8 +9,8 @@ import {installIdleNativeWaiting} from './support/idle-native-waiting.mjs';
 const document = installMiniDom();
 const React = (await import('react')).default;
 const {createRoot} = await import('react-dom/client');
-const {AccountRow, accountRowWords, accountAction, connectionFacts, useAccountController} = loadSrc('AccountControls');
-const {accountReading, DIDNT_SAY} = loadSrc('AccountStatus');
+const {AccountRow, accountRowWords, accountAction, connectionFacts, sourceKey, useAccountController} = loadSrc('AccountControls');
+const {accountReading, DIDNT_SAY, signInUnresolved} = loadSrc('AccountStatus');
 const {WorkspaceConnectionStatus, connectionWords} = loadSrc('DailyWorkspace');
 const {App} = loadSrc('App');
 
@@ -76,21 +76,37 @@ const NOT_READY = [
 const noCommands = () => ({async checkAgain() {}, async startSignIn() {}, async signOut() {}});
 const noReveals = {openSettings() {}, openConnection() {}};
 // One controller, as the App holds one, and the account rows that share it: the navigator's, and with `rows: 2` the
-// collapsed strip's beside it.
-function Surfaces({host, latest, commands, reveals, rows}) {
-  const account = useAccountController(host, latest, commands);
+// collapsed strip's beside it; with `line`, the workspace line above the conversation, wired as the App wires it.
+function Surfaces({host, latest, commands, reveals, rows, line, moving}) {
+  const account = useAccountController(host, latest, commands, moving);
   return React.createElement(React.Fragment, null, ...Array.from({length: rows}, (_, i) =>
-    React.createElement('div', {key: i, 'data-surface': String(i)}, React.createElement(AccountRow, {host, account, reveals}))));
+    React.createElement('div', {key: i, 'data-surface': String(i)}, React.createElement(AccountRow, {host, account, reveals}))),
+    line ? React.createElement(WorkspaceConnectionStatus, {key: 'line', ...connectionFacts(host), source: sourceKey(host), signIn: accountReading(host), completed: account.completed,
+      busy: account.acting || signInUnresolved(host), checkAgain: () => account.act('check-again', host), startSignIn: () => account.act('sign-in', host)}) : null);
 }
-async function mountRow(host, check, {commands = noCommands(), reveals = noReveals, rows = 1} = {}) {
+async function mountRow(host, check, {commands = noCommands(), reveals = noReveals, rows = 1, line = false, strict = false} = {}) {
   const container = document.createElement('div'); document.body.appendChild(container); const root = createRoot(container);
-  // `latest` is the App's current status when an action is sent: the status rendered, unless a test moves it ahead.
-  let current = host;
-  const render = async next => { current = next; await React.act(async () => root.render(React.createElement(Surfaces, {host: next, latest: () => current, commands, reveals, rows}))); };
+  // `latest` is the latest status the App has accepted when an action is sent: the status rendered, unless a test
+  // moves it ahead. The status read the controller asks for returns it, unless the commands say otherwise.
+  let current = host, moving = false, statusReads = 0;
+  const all = {readStatus: async () => current, ...commands};
+  const counted = {...all, readStatus: async () => { statusReads++; return all.readStatus(); }};
+  const view = next => { const surfaces = React.createElement(Surfaces, {host: next, latest: () => current, commands: counted, reveals, rows, line, moving: () => moving});
+    return strict ? React.createElement(React.StrictMode, null, surfaces) : surfaces; };
+  const render = async next => { current = next; await React.act(async () => root.render(view(next))); };
   const surface = i => container.childNodes[i];
-  try { await render(host); await check({container, render, surface, moveLatest: next => { current = next; }, open: async (within = container) => React.act(async () => props(rowOf(within)).onClick())}); }
+  try { await render(host); await check({container, render, surface, moveLatest: next => { current = next; }, setMoving: value => { moving = value; }, statusReads: () => statusReads,
+    open: async (within = container) => React.act(async () => props(rowOf(within)).onClick())}); }
   finally { await React.act(() => root.unmount()); document.body.removeChild(container); }
 }
+// The same status for another Codex process (a restart): every field naming the process names the new one.
+const g2 = {...g, spawnCounter: 2};
+const restartedAs = (status, generation = g2) => JSON.parse(JSON.stringify(status).replaceAll(JSON.stringify(g), JSON.stringify(generation)));
+// A status that also lists account reads issued before its latest one, as the host lists every read it issued.
+const withEarlier = (status, refs) => { const latest = status.homeAccess.observations.at(-1);
+  return {...status, homeAccess: {...status.homeAccess, observations: [...refs.map(ref => ({...latest, source: {...latest.source, requestRef: ref}})), latest]}}; };
+const deferred = () => { let resolve, reject; const promise = new Promise((a, b) => { resolve = a; reject = b; }); return {promise, resolve, reject}; };
+const lineOf = c => nodes(c, 'section').find(e => e.getAttribute('aria-label') === 'Workspace connection status');
 const oauth = (phase, over = {}) => ({homeOAuth: {state: 'source-observed', source: {generation: g, requestIdentity: 31, phase, mode: 'Browser', ...over}}});
 const completedOAuth = (ref = 'login-1') => oauth('CompletedSuccess', {observationRef: ref, actualWriteObserved: true});
 const SIGN_IN = 'Sign in with your ChatGPT account (through Codex)…';
@@ -213,8 +229,15 @@ test('the popover: the state, the present sentence, and one action for the state
     ['pending', oauth('Pending'), 'Waiting for sign-in to complete.', true],
     ['failed', oauth('CompletedFailure'), 'Sign-in did not complete. Private details are withheld.', false],
     ['rejected', oauth('StartRejected'), 'Sign-in did not complete. Private details are withheld.', false],
-    ['canceled', oauth('Pending', {cancelStatus: 'canceled'}), 'The pending sign-in was canceled. Account status is separate.', false],
-    ['nothing to cancel', oauth('Pending', {cancelStatus: 'notFound'}), 'Codex had no pending sign-in to cancel. Account status is separate.', false]]) {
+    // A cancel Codex answered ends the sign-in (oauth_control.rs cancel_completed: Cancelled for both answers).
+    ['canceled', oauth('Cancelled', {cancelStatus: 'canceled'}), 'The pending sign-in was canceled. Account status is separate.', false],
+    ['nothing to cancel', oauth('Cancelled', {cancelStatus: 'notFound'}), 'Codex had no pending sign-in to cancel. Account status is separate.', false],
+    // Every other phase the host reports is a sign-in not yet ended (hosting.rs oauth_terminal): no second is offered.
+    ['awaiting the write', oauth('AwaitingWrite'), 'Waiting for sign-in to complete.', true],
+    ['awaiting the reply', oauth('AwaitingReply'), 'Waiting for sign-in to complete.', true],
+    ['cancelling', oauth('Cancelling'), 'An earlier sign-in has not ended. Another can start once it has ended or been canceled.', true],
+    ['cancel outcome unknown', oauth('CancellationUnknown'), 'An earlier sign-in has not ended. Another can start once it has ended or been canceled.', true],
+    ['end unknown', oauth('Unknown'), 'An earlier sign-in has not ended. Another can start once it has ended or been canceled.', true]]) {
     await mountRow({...READINGS['no-account'], ...state}, async ({container, open}) => {
       await open();
       assert.ok(said(container).includes(words), name);
@@ -374,68 +397,100 @@ test('an action that was refused or failed is said beside it in the App\'s words
   }
 });
 
-test('a sign-in Codex reports completed is said as completed, never as the earlier reading, until the account read confirms it; then the popover closes', async () => {
-  const pending = {...READINGS['no-account'], ...oauth('Pending')};
-  // The status that reports the completion still carries the account read made before it.
-  const completedUnread = {...READINGS['no-account'], ...completedOAuth()};
-  const laterRead = (answer, outcome) => read({answer, outcome, source: {requestRef: 'read-2'}, host: {...base(), ...completedOAuth()}});
+test('a sign-in Codex reports completed is said as completed until an account read issued after it answers; a read made while it was pending, or one with no reference, is not that read', async () => {
+  const pending = withEarlier({...READINGS['no-account'], ...oauth('Pending')}, []);
+  // A status that reports the completion, with the account reads it lists (the latest last).
+  const after = (ref, answer, earlier = [], outcome) => withEarlier(read({answer, outcome, source: {requestRef: ref}, host: {...base(), ...completedOAuth()}}), earlier);
   const calls = [];
-  const commands = {...noCommands(), checkAgain: async () => { calls.push('checkAgain'); }, startSignIn: async () => { calls.push('startSignIn'); }};
-  await mountRow(pending, async ({container, open, render}) => {
+  let answer = deferred();
+  const commands = {...noCommands(), checkAgain: async () => { calls.push('checkAgain'); await answer.promise; }, startSignIn: async () => { calls.push('startSignIn'); }};
+  await mountRow(pending, async ({container, open, render, statusReads}) => {
     await open();
-    await render(completedUnread);
+    // The completion arrives in the same status as an account read issued while the sign-in was pending (read-2,
+    // answering a ChatGPT account): that read is not taken for the account after the sign-in.
+    await render(after('read-2', chatgpt(), ['read-1']));
+    assert.equal(rowOf(container).getAttribute('aria-label'), 'Account and settings, Sign-in completed', 'not "Signed in" from a read made before');
+    assert.equal(avatarOf(container).getAttribute('data-signed-in'), 'false');
     assert.ok(dialogOf(container), 'the completion alone does not close it');
-    assert.equal(rowOf(container).getAttribute('aria-label'), 'Account and settings, Sign-in completed');
-    assert.equal(nodes(rowOf(container), 'small')[0].textContent, 'Account not read yet');
-    assert.equal(avatarOf(container).getAttribute('data-signed-in'), 'false', 'not yet said as signed in');
-    assert.ok(said(container).includes('Codex reports the sign-in completed. The account has not been read since.'));
-    assert.doesNotMatch(dialogOf(container).textContent, /not signed in|Not signed in/, 'the earlier reading is not said');
-    assert.deepEqual(nodes(group(container, 'Account'), 'button').map(b => b.textContent), ['Check again'], 'the account is read, never signed in to again');
-    await React.act(async () => props(button(container, 'Check again')).onClick());
-    assert.deepEqual(calls, ['checkAgain']);
-    // The read after it is under way.
-    await render(laterRead(undefined, 'pending'));
+    // Seeing the completion, the controller reads the status once for the reads already issued, then the account
+    // once, without a press; while that read is out the account is being checked.
+    assert.equal(statusReads(), 1); assert.deepEqual(calls, ['checkAgain']);
     assert.equal(nodes(rowOf(container), 'small')[0].textContent, 'Checking the account…');
     assert.ok(said(container).includes('Codex reports the sign-in completed. Checking the account with Codex…'));
-    assert.deepEqual(nodes(group(container, 'Account'), 'button').map(b => b.textContent), []);
-    assert.ok(dialogOf(container));
-    // It confirms the account: closed, and the row says the state.
-    await render(laterRead(chatgpt()));
-    assert.ok(!dialogOf(container), 'closed when the read confirms the account');
+    assert.deepEqual(nodes(group(container, 'Account'), 'button').map(b => b.textContent), [], 'no action while it is checked');
+    // Its read has answered, but no status after it is shown yet: still not said, and Check again is offered, never a
+    // second sign-in.
+    await React.act(async () => answer.resolve());
+    assert.equal(nodes(rowOf(container), 'small')[0].textContent, 'Account not read yet');
+    assert.ok(said(container).includes('Codex reports the sign-in completed. The account has not been read since.'));
+    assert.doesNotMatch(dialogOf(container).textContent, /not signed in|Not signed in/);
+    assert.deepEqual(nodes(group(container, 'Account'), 'button').map(b => b.textContent), ['Check again']);
+    // A newer read the status lists without a reference proves nothing.
+    await render(after(undefined, chatgpt(), ['read-1', 'read-2']));
+    assert.equal(nodes(rowOf(container), 'strong')[0].textContent, 'Sign-in completed', 'a read without a reference is not the read after it');
+    // The status after the controller's read lists it (read-3): that is the read after the completion.
+    await render(after('read-3', chatgpt(), ['read-1', 'read-2']));
+    assert.ok(!dialogOf(container), 'closed when the read after it confirms the account');
     assert.equal(nodes(rowOf(container), 'strong')[0].textContent, 'Signed in');
     await open();
-    await render(laterRead(chatgpt()));
+    await render(after('read-3', chatgpt(), ['read-1', 'read-2']));
     assert.ok(dialogOf(container), 'the same completion does not close it again');
-    // The same completion seen again after a status in which it could not be read (Codex not ready for a moment)
-    // does not close a popover opened since.
-    await render({...laterRead(chatgpt()), state: 'starting'});
-    await render(laterRead(chatgpt()));
+    // The same completion seen again after a status in which it could not be read does not close a later opening.
+    await render({...after('read-3', chatgpt(), ['read-1', 'read-2']), state: 'starting'});
+    await render(after('read-3', chatgpt(), ['read-1', 'read-2']));
     assert.ok(dialogOf(container), 'a completion already seen never closes a later opening');
+    assert.equal(statusReads(), 1); assert.deepEqual(calls, ['checkAgain'], 'one account read for the completion');
   }, {commands});
   // The read after the completion answers that there is no account: said as that, with the sign-in offered again.
+  answer = deferred(); answer.resolve(); calls.length = 0;
   await mountRow(pending, async ({container, open, render}) => {
     await open();
-    await render(completedUnread);
-    await render(laterRead(null));
+    await render(after('read-1', null));
+    await render(after('read-2', null, ['read-1']));
     assert.equal(nodes(rowOf(container), 'strong')[0].textContent, 'Not signed in');
     assert.ok(button(container, SIGN_IN));
     assert.ok(dialogOf(container));
-  });
-  // The completion and the read that confirms it arrive in one status: signed in at once, and it closes.
+  }, {commands});
+  // The read after it fails: the reading is said as Codex didn't say, with Check again to try once more.
   await mountRow(pending, async ({container, open, render}) => {
     await open();
-    await render(laterRead(chatgpt()));
-    assert.ok(!dialogOf(container));
-    assert.equal(nodes(rowOf(container), 'strong')[0].textContent, 'Signed in');
-  });
-  // A completion already there when this App view first saw the Codex process was not watched completing: it is
-  // never awaited and never closes the popover.
-  await mountRow(completedUnread, async ({container, open, render}) => {
-    assert.equal(nodes(rowOf(container), 'strong')[0].textContent, 'Not signed in');
+    await render(after('read-1', null));
+    await render(after('read-2', undefined, ['read-1'], 'response-observed-error'));
+    assert.equal(nodes(rowOf(container), 'strong')[0].textContent, 'Sign-in unknown');
+    assert.ok(button(container, 'Check again'));
+  }, {commands});
+  // The status read for the baseline fails, before any account read: a clear retry, and the retry makes both reads.
+  let statusFails = true;
+  calls.length = 0;
+  await mountRow(pending, async ({container, open, render, statusReads}) => {
+    await open();
+    await render(after('read-1', null));
+    assert.deepEqual(calls, [], 'no account read without the baseline');
+    assert.equal(nodes(rowOf(container), 'small')[0].textContent, 'Account not read yet');
+    assert.ok(said(container).includes('Account status could not be confirmed. Try checking again; this does not mean you are signed out.'));
+    statusFails = false;
+    await React.act(async () => props(button(container, 'Check again')).onClick());
+    assert.equal(statusReads(), 2); assert.deepEqual(calls, ['checkAgain']);
+  }, {commands: {...commands, readStatus: async () => { if (statusFails) throw Error('invented status failure'); return after('read-1', null); }}});
+  // A completion already there when this App view first saw the Codex process was not watched completing: no status
+  // or account read is made for it, it moves and closes nothing, and the row says the reading the status shows.
+  calls.length = 0;
+  await mountRow(after('read-1', null), async ({container, open, render, statusReads}) => {
+    assert.equal(nodes(rowOf(container), 'strong')[0].textContent, 'Not signed in', 'what the status shows');
     await open();
     await render({...READINGS['chatgpt-account'], ...completedOAuth()});
     assert.ok(dialogOf(container));
-  });
+    assert.equal(statusReads(), 0); assert.deepEqual(calls, []);
+  }, {commands});
+  // Under React's strict rendering (renders and effects run twice): still one status read and one account read.
+  calls.length = 0;
+  await mountRow(pending, async ({container, render, statusReads}) => {
+    await render(after('read-2', chatgpt(), ['read-1']));
+    assert.equal(statusReads(), 1); assert.deepEqual(calls, ['checkAgain']);
+    assert.equal(nodes(rowOf(container), 'strong')[0].textContent, 'Sign-in completed');
+    await render(after('read-3', chatgpt(), ['read-1', 'read-2']));
+    assert.equal(nodes(rowOf(container), 'strong')[0].textContent, 'Signed in');
+  }, {commands, strict: true});
   // A sign-in that did not complete keeps it open, so its words and the retry stay reachable.
   await mountRow(pending, async ({container, open, render}) => {
     await open();
@@ -445,38 +500,71 @@ test('a sign-in Codex reports completed is said as completed, never as the earli
   });
 });
 
-test('focus is not lost: an action whose control the new state removes leaves focus in the popover, and a popover that closes by itself returns focus to the row only if it was inside', async () => {
+test('focus: the popover takes focus back only where the control that held it inside was removed, never because the body is active, and no focus it moves scrolls', async () => {
   const proto = Object.getPrototypeOf(document.createElement('div'));
   let focused = null;
-  proto.focus = function () { focused = this; };
+  const moves = [], scrolls = [];
+  proto.focus = function (options) { focused = this; moves.push(options); };
+  proto.scrollIntoView = function () { scrolls.push(this); };
   Object.defineProperty(document, 'activeElement', {configurable: true, get: () => focused ?? document.body});
-  const pending = {...READINGS['no-account'], ...oauth('Pending')};
-  const confirmed = read({answer: chatgpt(), source: {requestRef: 'read-2'}, host: {...base(), ...completedOAuth()}});
+  const pending = withEarlier({...READINGS['no-account'], ...oauth('Pending')}, []);
+  const confirmed = withEarlier(read({answer: chatgpt(), source: {requestRef: 'read-2'}, host: {...base(), ...completedOAuth()}}), ['read-1']);
+  const completedFirst = withEarlier(read({answer: null, host: {...base(), ...completedOAuth()}}), []);
+  const panelOf = c => dialogOf(c);
   try {
-    // Sign out: the Sign out control is replaced by the sign-in; focus goes to the popover.
+    // Sign out: the control that held focus is replaced by the sign-in; focus goes to the popover.
     await mountRow(READINGS['chatgpt-account'], async ({container, open, render}) => {
       await open();
+      const signOut = button(container, 'Sign out of ChatGPT…');
+      await React.act(async () => props(panelOf(container)).onFocus({target: signOut}));
       focused = null; // the pressed control is gone from the document: the browser leaves focus on the body
       await render(READINGS['no-account']);
       assert.ok(focused === dialogOf(container), 'focus is put on the popover');
+    });
+    // The body is active because the person moved focus away (to another window, or nowhere) while the control that
+    // held focus is still there: the popover does not take focus.
+    await mountRow(READINGS['no-account'], async ({container, open, render}) => {
+      await open();
+      await React.act(async () => props(panelOf(container)).onFocus({target: button(container, SIGN_IN)}));
+      focused = null;
+      await render({...READINGS['no-account']});
+      assert.ok(focused === null, 'focus the person moved is not taken');
     });
     // A sign-in confirmed while focus is inside: the popover closes and focus goes to the row.
     await mountRow(pending, async ({container, open, render}) => {
       await open();
       assert.ok(focused === dialogOf(container));
+      await render(completedFirst);
       await render(confirmed);
       assert.ok(!dialogOf(container)); assert.ok(focused === rowOf(container), 'focus returns to the row');
     });
-    // Confirmed while the person's focus is elsewhere (the window was left for the browser and they came back to
-    // another control): the popover closes and their focus is left alone.
+    // Confirmed while the person's focus is elsewhere: the popover closes and their focus is left alone.
     await mountRow(pending, async ({container, open, render}) => {
       await open();
+      await render(completedFirst);
       const elsewhere = document.createElement('button'); document.body.appendChild(elsewhere); focused = elsewhere;
       await render(confirmed);
       assert.ok(!dialogOf(container)); assert.ok(focused === elsewhere, 'focus elsewhere is not taken');
       document.body.removeChild(elsewhere);
     });
-  } finally { delete proto.focus; delete document.activeElement; }
+    // The row leaves view with focus inside: the popover closes and focus goes to the row without scrolling it back.
+    const rectProto = proto, saved = {innerWidth: window.innerWidth, innerHeight: window.innerHeight};
+    let rect = {top: 700, bottom: 756, left: 8};
+    rectProto.getBoundingClientRect = function () { return rect; };
+    Object.assign(window, {innerWidth: 1440, innerHeight: 900});
+    try {
+      await mountRow(READINGS['no-account'], async ({container, open, render}) => {
+        await open();
+        assert.ok(focused === dialogOf(container));
+        rect = {top: 940, bottom: 996, left: 8};
+        await render({...READINGS['no-account']});
+        assert.ok(!dialogOf(container)); assert.ok(focused === rowOf(container));
+      });
+    } finally { delete rectProto.getBoundingClientRect; Object.assign(window, saved); }
+    assert.ok(moves.length > 0);
+    assert.ok(moves.every(options => options?.preventScroll === true), 'every automatic focus is made without scrolling');
+    assert.equal(scrolls.length, 0, 'nothing is scrolled into view');
+  } finally { delete proto.focus; delete proto.scrollIntoView; delete document.activeElement; }
 });
 
 test('the popover opens beside the row and takes focus; Escape returns focus to the row; a press outside or focus leaving closes it', async () => {
@@ -560,8 +648,99 @@ test('the popover is placed within the window: above the row when there is more 
   } finally { delete proto.getBoundingClientRect; Object.assign(window, saved); }
 });
 
+test('a press that began on a control drawn for one Codex process never sends for its replacement, even where the replacement offers the same action in the same place', async () => {
+  const calls = [];
+  const commands = {checkAgain: async (...args) => { calls.push(['checkAgain', ...args]); }, startSignIn: async (...args) => { calls.push(['startSignIn', ...args]); }, signOut: async (...args) => { calls.push(['signOut', ...args]); }};
+  for (const [name, host, words] of [['sign-in', READINGS['no-account'], SIGN_IN], ['check again', READINGS.failed, 'Check again']]) {
+    await mountRow(host, async ({container, render}) => {
+      // The pointer goes down on the line's control; before it is released, the status for the restarted Codex
+      // process, whose account reads the same, is committed.
+      const pressed = nodes(lineOf(container), 'button').find(b => b.textContent === words);
+      const retained = props(pressed).onClick;
+      await render(restartedAs(host));
+      const now = nodes(lineOf(container), 'button').find(b => b.textContent === words);
+      assert.ok(now, `${name}: the replacement offers its own`);
+      assert.ok(now !== pressed, `${name}: a control drawn anew for the replacement`);
+      assert.ok(!container.contains(pressed), `${name}: the control the press began on is no longer in the document`);
+      // The release: the browser gives the click to the control the press began on only while it is in the document.
+      if (container.contains(pressed)) await React.act(async () => { await props(pressed).onClick(); });
+      assert.deepEqual(calls, [], `${name}: nothing is sent for the replacement`);
+      // A callback kept from the earlier control sends nothing either.
+      await React.act(async () => { await retained(); });
+      assert.deepEqual(calls, [], `${name}: nor by a retained callback`);
+      // The replacement's own control sends for the replacement.
+      await React.act(async () => { await props(now).onClick(); });
+      assert.deepEqual(calls.map(call => call[1]), [g2], `${name}: the replacement's control sends for it`);
+      calls.length = 0;
+    }, {commands, line: true, rows: 0});
+  }
+  // The latest status the App accepted names the replacement before it is rendered: a press on the control still
+  // shown sends nothing, from the line or from the popover.
+  await mountRow(READINGS['no-account'], async ({container, open, moveLatest}) => {
+    moveLatest(restartedAs(READINGS['no-account']));
+    await React.act(async () => { await props(nodes(lineOf(container), 'button').find(b => b.textContent === SIGN_IN)).onClick(); });
+    await open();
+    await React.act(async () => { await props(button(container, SIGN_IN)).onClick(); });
+    assert.deepEqual(calls, []);
+  }, {commands, line: true});
+});
+
+test('no account action is sent while the App is moving between homes', async () => {
+  const calls = [];
+  const commands = {checkAgain: async () => { calls.push('checkAgain'); }, startSignIn: async () => { calls.push('startSignIn'); }, signOut: async () => { calls.push('signOut'); }};
+  for (const [host, words] of [[READINGS['no-account'], SIGN_IN], [READINGS['chatgpt-account'], 'Sign out of ChatGPT…'], [READINGS.failed, 'Check again']]) {
+    await mountRow(host, async ({container, open, setMoving}) => {
+      await open();
+      setMoving(true);
+      await React.act(async () => { await props(button(container, words)).onClick(); });
+      assert.deepEqual(calls, [], words);
+      assert.ok(said(container).includes('The connection or the account changed before this was sent. Nothing was sent.'), words);
+      setMoving(false);
+      await React.act(async () => { await props(button(container, words)).onClick(); });
+      assert.equal(calls.length, 1, `${words}: sent once the move has ended`);
+      calls.length = 0;
+    }, {commands});
+  }
+});
+
+test('an outcome is said for the attempt that produced it: a confirmation the person declined in fixed App words, a late failure only for the process it was sent for', async () => {
+  // Declined at the native confirmation: the command resolves with its structured result, nothing was sent.
+  for (const [name, host, words, commands, sentence] of [
+    ['sign-in', READINGS['no-account'], SIGN_IN, {...noCommands(), startSignIn: async () => ({state: 'native start confirmation dismissed; no sign-in RPC'})}, 'Sign-in was not started.'],
+    ['sign-out', READINGS['chatgpt-account'], 'Sign out of ChatGPT…', {...noCommands(), signOut: async () => ({state: 'native confirmation cancelled; no logout request', assessment: {invented: 'host words'}})}, 'You were not signed out.']]) {
+    await mountRow(host, async ({container, open}) => {
+      await open();
+      await React.act(async () => { await props(button(container, words)).onClick(); });
+      const status = nodes(group(container, 'Account'), 'p').find(p => p.getAttribute('role') === 'status');
+      assert.equal(status?.textContent, sentence, name);
+      assert.doesNotMatch(dialogOf(container).textContent, /native|host words/, `${name}: no text the host supplied`);
+    }, {commands});
+  }
+  // Any other result is not a declined confirmation: nothing is said.
+  await mountRow(READINGS['no-account'], async ({container, open}) => {
+    await open();
+    await React.act(async () => { await props(button(container, SIGN_IN)).onClick(); });
+    assert.ok(!nodes(group(container, 'Account'), 'p').find(p => p.getAttribute('role') === 'status'));
+  }, {commands: {...noCommands(), startSignIn: async () => ({state: 'invented'})}});
+  // A failure that arrives after the Codex process was replaced is not said on the replacement, whose account reads
+  // the same; it is said for the process it was sent for.
+  for (const replaced of [true, false]) {
+    const late = deferred();
+    await mountRow(READINGS['no-account'], async ({container, open, render}) => {
+      await open();
+      await React.act(async () => { void props(button(container, SIGN_IN)).onClick(); });
+      if (replaced) await render(restartedAs(READINGS['no-account']));
+      await React.act(async () => { late.reject(Error('invented late failure')); await late.promise.catch(() => {}); });
+      if (!dialogOf(container)) await open();
+      const words = said(container);
+      if (replaced) assert.ok(!words.includes('The App could not confirm that a sign-in started.'), 'not said on the replacement');
+      else assert.ok(words.includes('The App could not confirm that a sign-in started.'), 'said for the process it was sent for');
+    }, {commands: {...noCommands(), startSignIn: () => late.promise}});
+  }
+});
+
 // ---- Through the mounted App: the commands each action issues, and where a failure is said ----
-async function mountedApp(initial, check, refuse = new Set(), held = {}) {
+async function mountedApp(initial, check, refuse = new Set(), held = {}, results = {}) {
   const container = document.createElement('div'); document.body.appendChild(container); const root = createRoot(container), calls = [];
   const previousGetById = document.getElementById;
   document.getElementById = id => container.querySelectorAll(node => node.getAttribute('id') === id)[0] ?? null;
@@ -573,13 +752,14 @@ async function mountedApp(initial, check, refuse = new Set(), held = {}) {
     if (command === 'decision_view') return {rows: []};
     if (command === 'native_confirmation_content') return [];
     if (command === 'read_home_access') return initial.homeAccess;
-    if (command === 'oauth_start' || command === 'logout_home') return {state: 'invented'};
+    if (command === 'oauth_start' || command === 'logout_home') return results[command] ?? {state: 'invented'};
     if (command === 'read_available_models') throw Error('no model list in this test');
     throw Error(`Unexpected command ${command}`);
   });
   try { await React.act(async () => root.render(React.createElement(App))); await check({container, calls}); }
   finally { const text = container.textContent; await React.act(() => root.unmount()); document.body.removeChild(container); idle.restore(text); document.getElementById = previousGetById; }
 }
+const byIdIn = (c, id) => c.querySelectorAll(n => n.getAttribute('id') === id)[0];
 const navigatorOf = c => c.querySelectorAll(n => n.getAttribute('aria-label') === 'Workspace Navigator')[0];
 const pressInPopover = async (c, words) => {
   await React.act(async () => props(rowOf(navigatorOf(c))).onClick());
@@ -655,4 +835,83 @@ test('mounted: the workspace line and the popover share one account action at a 
     await React.act(async () => { await props(inPopover).onClick(); });
     assert.deepEqual(issued(calls, 'oauth_start'), []);
   });
+});
+
+test('mounted: Connection and access shares the one admission with the row, the strip and the line, both ways', async () => {
+  const panel = c => c.querySelectorAll(n => n.getAttribute('aria-label') === 'Account connection')[0];
+  const inPanel = (c, words) => nodes(panel(c), 'button').find(b => b.textContent === words);
+  const inPopover = (c, words) => nodes(dialogOf(navigatorOf(c)), 'button').find(b => b.textContent === words);
+  const openPopover = async c => React.act(async () => props(rowOf(navigatorOf(c))).onClick());
+  const leaveSettings = async c => React.act(async () => props(nodes(c, 'button').find(b => b.getAttribute('role') === 'tab' && b.textContent === 'History')).onClick());
+  const lineButton = (c, words) => nodes(c.querySelectorAll(n => n.getAttribute('aria-label') === 'Workspace connection status')[0], 'button').find(b => b.textContent === words);
+  // A sign-out from the popover is under way: Connection and access neither sends another nor checks the account.
+  let release;
+  const signOutHeld = {logout_home: new Promise(r => { release = r; })};
+  await mountedApp(READINGS['chatgpt-account'], async ({container, calls}) => {
+    await openPopover(container);
+    await React.act(async () => { void props(inPopover(container, 'Sign out of ChatGPT…')).onClick(); });
+    assert.equal(issued(calls, 'logout_home').length, 1);
+    assert.equal(props(inPanel(container, 'Sign out of ChatGPT…')).disabled, true, 'shown under way in Connection and access');
+    await React.act(async () => { await props(inPanel(container, 'Sign out of ChatGPT…')).onClick(); });
+    assert.equal(issued(calls, 'logout_home').length, 1, 'one sign-out');
+    assert.equal(props(inPanel(container, 'Check account status')).disabled, true);
+    await React.act(async () => { await props(inPanel(container, 'Check account status')).onClick(); });
+    assert.equal(issued(calls, 'read_home_access').length, 0, 'no account read beside it');
+    await React.act(async () => { release(); await signOutHeld.logout_home; });
+  }, new Set(), signOutHeld);
+  // The reverse: Connection and access's sign-in is under way; the line and the popover send none.
+  const signInHeld = {oauth_start: new Promise(r => { release = r; })};
+  await mountedApp(READINGS['no-account'], async ({container, calls}) => {
+    await React.act(async () => { void props(byIdIn(container, 'workspace-sign-in')).onClick(); });
+    assert.equal(issued(calls, 'oauth_start').length, 1);
+    await leaveSettings(container);
+    assert.equal(props(lineButton(container, SIGN_IN)).disabled, true, 'the line shows it under way');
+    await React.act(async () => { await props(lineButton(container, SIGN_IN)).onClick(); });
+    await openPopover(container);
+    assert.equal(props(inPopover(container, SIGN_IN)).disabled, true, 'the popover shows it under way');
+    await React.act(async () => { await props(inPopover(container, SIGN_IN)).onClick(); });
+    await React.act(async () => { await props(inPanel(container, 'Sign in through native device code…')).onClick(); });
+    assert.equal(issued(calls, 'oauth_start').length, 1, 'one sign-in start');
+    await React.act(async () => { release(); await signInHeld.oauth_start; });
+  }, new Set(), signInHeld);
+  // The host reports an earlier sign-in that has not ended, in each such phase: no surface offers or sends another;
+  // Connection and access keeps its own controls for showing and canceling it.
+  for (const phase of ['AwaitingWrite', 'AwaitingReply', 'Pending', 'Cancelling', 'CancellationUnknown', 'Unknown']) {
+    await mountedApp({...READINGS['no-account'], ...oauth(phase, {presentationAvailable: true, cancelAvailable: true})}, async ({container, calls}) => {
+      for (const control of [byIdIn(container, 'workspace-sign-in'), inPanel(container, 'Sign in through native device code…')]) {
+        assert.equal(props(control).disabled, true, `${phase}: ${control.textContent}`);
+        await React.act(async () => { await props(control).onClick(); });
+      }
+      assert.equal(props(inPanel(container, 'Show pending native sign-in…')).disabled, false, `${phase}: it can still be shown`);
+      assert.equal(props(inPanel(container, 'Cancel original pending sign-in with native confirmation…')).disabled, false, `${phase}: it can still be canceled`);
+      await leaveSettings(container);
+      assert.equal(props(lineButton(container, SIGN_IN)).disabled, true, `${phase}: the line`);
+      await React.act(async () => { await props(lineButton(container, SIGN_IN)).onClick(); });
+      await openPopover(container);
+      assert.equal(props(inPopover(container, SIGN_IN)).disabled, true, `${phase}: the popover`);
+      await React.act(async () => { await props(inPopover(container, SIGN_IN)).onClick(); });
+      assert.deepEqual(issued(calls, 'oauth_start'), [], phase);
+    });
+  }
+});
+
+test('mounted: the App line an attempt left is retired once a later attempt of the same action for the same Codex process goes through', async () => {
+  const refuse = new Set(['oauth_start']);
+  await mountedApp(READINGS['no-account'], async ({container, calls}) => {
+    await pressInPopover(container, SIGN_IN);
+    assert.match(container.textContent, /oauth_start: Error: invented refusal/);
+    refuse.delete('oauth_start');
+    await React.act(async () => { await props(nodes(dialogOf(navigatorOf(container)), 'button').find(b => b.textContent === SIGN_IN)).onClick(); });
+    assert.equal(issued(calls, 'oauth_start').length, 2);
+    assert.doesNotMatch(container.textContent, /oauth_start: Error/, 'retired by the attempt that went through');
+  }, refuse);
+  // A sign-in declined at its confirmation did not go through: the earlier line stays.
+  const declining = new Set(['oauth_start']);
+  await mountedApp(READINGS['no-account'], async ({container}) => {
+    await pressInPopover(container, SIGN_IN);
+    declining.delete('oauth_start');
+    await React.act(async () => { await props(nodes(dialogOf(navigatorOf(container)), 'button').find(b => b.textContent === SIGN_IN)).onClick(); });
+    assert.match(container.textContent, /oauth_start: Error: invented refusal/, 'a declined attempt retires nothing');
+    assert.ok(nodes(group(dialogOf(navigatorOf(container)), 'Account'), 'p').some(p => p.textContent === 'Sign-in was not started.'));
+  }, declining, {}, {oauth_start: {state: 'native start confirmation dismissed; no sign-in RPC'}});
 });

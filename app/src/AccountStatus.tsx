@@ -17,15 +17,19 @@ export function reportedChatgptAccount(current: Json): string {
   const plan = PLAN_TYPES.includes(current?.nativeAccount?.planType) && current.nativeAccount.planType !== "unknown" ? current.nativeAccount.planType : null;
   return `${who} · plan ${plan ?? "not reported"}`;
 }
-function latestAccountRead(host: Json): Json {
+function accountReads(host: Json): Json[] {
   const mode = host?.homeRouting?.activeModeHomeClass, generation = host?.generation;
-  const rows = host?.homeAccess?.modeHomeClass === mode && Array.isArray(host?.homeAccess?.observations)
+  return host?.homeAccess?.modeHomeClass === mode && Array.isArray(host?.homeAccess?.observations)
     ? host.homeAccess.observations.filter((row: Json) => row?.source?.attemptedFrame?.method === "account/read"
       && sameActivityGeneration(row.source.generation, generation) && row.source.home === generation.home) : [];
-  return rows.at(-1);
 }
-/** The latest account read of this connection, by its request reference; null before any. */
-export const accountReadRef = (host: Json): string | null => latestAccountRead(host)?.source?.requestRef ?? null;
+const latestAccountRead = (host: Json): Json => accountReads(host).at(-1);
+const refOf = (row: Json): string | null => typeof row?.source?.requestRef === "string" && row.source.requestRef ? row.source.requestRef : null;
+/** The latest account read of this connection, by its request reference; null before any, or where it has none. */
+export const accountReadRef = (host: Json): string | null => refOf(latestAccountRead(host));
+/** Every account read of this connection the status lists, by request reference. The host lists each read as it is
+ * issued, in that order (runtime_session.rs read_native_home_access, account_view). */
+export const accountReadRefs = (host: Json): string[] => accountReads(host).map(refOf).filter((ref): ref is string => ref !== null);
 /** Codex's own message for the latest account read of this connection, where that read answered with an error. */
 export function accountReadError(host: Json): string | null {
   if (accountReading(host) !== "failed") return null;
@@ -125,14 +129,29 @@ export function signInCompletion(host: Json): string | null {
 /** What Codex reports of the sign-in started for the current process and home, where the host observed one: the one
  * reading behind the sign-in line of the account panel and of the account popover. A sign-in of an earlier process
  * or of another home is "none". */
-export type SignInPhase = "none" | "cancel-not-found" | "canceled" | "completed" | "failed" | "pending";
-export function signInPhase(host: Json): SignInPhase {
+export type SignInPhase = "none" | "cancel-not-found" | "canceled" | "completed" | "failed" | "pending" | "unresolved";
+/** The phases the host reports for a sign-in that has ended (hosting.rs oauth_terminal, account_oauth_observation). Any
+ * other phase it reports is a sign-in not yet ended, beside which the host refuses to start another. */
+const ENDED_PHASES = ["CompletedSuccess", "CompletedFailure", "Cancelled", "StartRejected"];
+/** The phases of a sign-in waiting for Codex or for the person (oauth_control.rs Phase). */
+const WAITING_PHASES = ["AwaitingWrite", "AwaitingReply", "Pending"];
+const observedSignIn = (host: Json): Json => {
   const generation = host?.generation, oauth = host?.homeOAuth, source = oauth?.source;
-  if (host?.state !== "ready" || host?.generationClosed || host?.homeRouting?.activeModeHomeClass !== "account"
-    || oauth?.state !== "source-observed" || !sameActivityGeneration(source?.generation, generation)) return "none";
+  return host?.state === "ready" && !host?.generationClosed && host?.homeRouting?.activeModeHomeClass === "account"
+    && oauth?.state === "source-observed" && sameActivityGeneration(source?.generation, generation) ? source : null;
+};
+export function signInPhase(host: Json): SignInPhase {
+  const source = observedSignIn(host);
+  if (!source) return "none";
   return source.cancelStatus === "notFound" ? "cancel-not-found" : source.cancelStatus === "canceled" ? "canceled"
     : source.phase === "CompletedSuccess" ? "completed" : ["CompletedFailure", "StartRejected"].includes(source.phase) ? "failed"
-    : source.phase === "Pending" ? "pending" : "none";
+    : WAITING_PHASES.includes(source.phase) ? "pending" : source.phase === "Cancelled" ? "none" : "unresolved";
+}
+/** The host reports a sign-in for the current process and home in a phase that has not ended (waiting, cancelling,
+ * or one whose end the host could not establish): no other sign-in is offered or sent beside it. */
+export function signInUnresolved(host: Json): boolean {
+  const source = observedSignIn(host);
+  return !!source && !ENDED_PHASES.includes(source.phase);
 }
 /** The App's sentence for each sign-in phase. */
 export const SIGN_IN_PHASE_WORDS: Record<SignInPhase, string> = {
@@ -142,16 +161,28 @@ export const SIGN_IN_PHASE_WORDS: Record<SignInPhase, string> = {
   completed: "Sign-in completed.",
   failed: "Sign-in did not complete. Private details are withheld.",
   pending: "Waiting for sign-in to complete.",
+  unresolved: "An earlier sign-in has not ended. Another can start once it has ended or been canceled.",
 };
 /** A sign-in Codex reports pending for the current process and home. */
 export const signInPending = (host: Json): boolean => signInPhase(host) === "pending";
+/** The App's words for a sign-in Codex reports completed while no account read made after it has answered: the
+ * account is being checked, or has not been read since. The row, its popover and the line above the conversation all
+ * say these, and none of them says the earlier reading. */
+export const SIGN_IN_COMPLETED: Record<"checking" | "unread", { detail: string; sentence: string }> = {
+  checking: { detail: "Checking the account…", sentence: "Codex reports the sign-in completed. Checking the account with Codex…" },
+  unread: { detail: "Account not read yet", sentence: "Codex reports the sign-in completed. The account has not been read since." },
+};
 /** The account panel's sentence for the current reading: for a ChatGPT account, the account as Codex reports it. */
 export function accountSummary(host: Json): string {
   const reading = accountReading(host);
   return reading === "chatgpt-account" ? `Codex reports a ChatGPT account for this connection: ${reportedChatgptAccount(host?.accountObservation)}.` : ACCOUNT_PANEL_WORDS[reading];
 }
 
-export function AccountStatus({ host, navigating, busy, read }: { host: Json; navigating: boolean; busy: boolean; read: ReadAccountStatus }) {
+/** The account panel. `auto` (default true): it reads the account itself when it sees a completed sign-in; the App
+ * passes false, since its account controller makes that read (AccountControls.tsx useAccountController). `awaiting`:
+ * the controller holds a completed sign-in that no account read made after it has answered, and the earlier reading
+ * is not said. */
+export function AccountStatus({ host, navigating, busy, read, auto = true, awaiting = false }: { host: Json; navigating: boolean; busy: boolean; read: ReadAccountStatus; auto?: boolean; awaiting?: boolean }) {
   const generation = host?.generation, mode = host?.homeRouting?.activeModeHomeClass;
   const ready = host?.state === "ready" && !host?.generationClosed && sameActivityGeneration(generation, generation)
     && ["account", "api-key"].includes(mode) && !navigating;
@@ -180,16 +211,16 @@ export function AccountStatus({ host, navigating, busy, read }: { host: Json; na
     && ((typeof identity === "string" && !!identity) || (typeof identity === "number" && Number.isSafeInteger(identity)));
   const completion = completed ? JSON.stringify([generation, source.observationRef, identity]) : null;
   useEffect(() => {
-    if (!completion || busy || pending.current || context.current.epoch !== epoch || checkedCompletions.current.has(completion)) return;
+    if (!auto || !completion || busy || pending.current || context.current.epoch !== epoch || checkedCompletions.current.has(completion)) return;
     checkedCompletions.current.add(completion);
     void check();
-  }, [completion, busy, readEpoch]);
+  }, [auto, completion, busy, readEpoch]); // eslint-disable-line react-hooks/exhaustive-deps
   const signIn = ready ? SIGN_IN_PHASE_WORDS[signInPhase(host)] : "";
   return <div aria-label="Account status">
     <h3>Account status</h3>
     {signIn && <p>{signIn}</p>}
     <p role="status">{!ready ? "Account status is unavailable while this connection is changing or stopped."
-      : readEpoch === epoch ? "Checking account status…" : failure?.epoch === epoch && failure.checkpoint === accountCheckpoint(host) ? failure.message : accountSummary(host)}</p>
+      : readEpoch === epoch ? "Checking account status…" : failure?.epoch === epoch && failure.checkpoint === accountCheckpoint(host) ? failure.message : awaiting ? SIGN_IN_COMPLETED.unread.sentence : accountSummary(host)}</p>
     <button disabled={!ready || busy || readEpoch !== null} onClick={check}>Check account status</button>
     <p>This check does not sign you in again. The email and plan are what Codex reports; the App does not verify identity or that the sign-in is still valid.</p>
   </div>;

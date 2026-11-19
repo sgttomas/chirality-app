@@ -57,6 +57,25 @@ test('a reply is applied only if its read started after the one whose reply is s
   } finally { await ui.close(); host.restore(); }
 });
 
+test('the latest status accepted is given at once, before it is rendered, and an older reply never replaces it', async () => {
+  const host = controlledHost(); const ui = await mount();
+  try {
+    assert.equal(ui.api.accepted(), null, 'none before a read is accepted');
+    const first = ui.api.readHost(window.__TAURI_INTERNALS__.invoke('host_status')), second = ui.api.readHost(window.__TAURI_INTERNALS__.invoke('host_status'));
+    host.pending[1].resolve({view: 'second'});
+    const read = await second;
+    await React.act(async () => {
+      assert.equal(ui.api.applyHost(read), true);
+      // Accepted, and not yet rendered: a press checked now is checked against it.
+      assert.deepEqual(ui.api.accepted(), {view: 'second'});
+      assert.equal(ui.text(), 'null', 'not rendered yet');
+    });
+    host.pending[0].resolve({view: 'first'});
+    await React.act(async () => { assert.equal(ui.api.applyHost(await first), false); });
+    assert.deepEqual(ui.api.accepted(), {view: 'second'}, 'an older reply is not accepted');
+  } finally { await ui.close(); host.restore(); }
+});
+
 // A host whose every command is held until the test settles it, in the order the test chooses.
 function heldHost() {
   const pending = [];

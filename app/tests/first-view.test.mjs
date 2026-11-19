@@ -478,8 +478,10 @@ test('the line gives way only where the row says "Signed in": not while the gene
     assert.equal(accountRowOf(ui.container).getAttribute('aria-label'), 'Account and settings, Sign-in completed');
     const line = connectionLine(ui.container)[0];
     assert.doesNotMatch(line.textContent, /You're not signed in|and you're signed in/);
-    assert.match(line.textContent, /The App hasn't established whether you're signed in/);
-    assert.deepEqual(elements(line, 'button').map(b => b.textContent), [], 'no sign-in is offered again');
+    // The line says what the row says of it, and offers Check again, never a second sign-in.
+    assert.match(line.textContent, /^Codex is running\. Codex reports the sign-in completed\. The account has not been read since\./);
+    assert.doesNotMatch(line.textContent, /Check or sign in|hasn't established/);
+    assert.deepEqual(elements(line, 'button').map(b => b.textContent), ['Check again'], 'no sign-in is offered again');
     assert.doesNotMatch(byId(ui.container, 'conversation').textContent, /Sign in with your ChatGPT account, then write/);
     await ui.observe(completed(signedIn(base(), {ref: 'read-after-sign-in'})));
     assert.equal(connectionLine(ui.container).length, 0);
@@ -516,4 +518,47 @@ test('while Codex is not connected, the empty conversation invites no first mess
       assert.equal(messageBox(ui.container).getAttribute('placeholder'), 'Connect to Codex to send…', name);
     });
   }
+});
+
+test('the move after a sign-in, the row and the line rest on one proof: an account read issued after the completion, not one made while it was pending', async () => {
+  const signedInLine = /You're signed in\. Choose a model to start a conversation\./;
+  await mountedApp(noAccount(), async ui => {
+    await ui.navigate('History');
+    // The completion arrives with a ChatGPT account read made while the sign-in was pending (read-2). The App reads
+    // the status and then the account itself; neither answer lists a later read here.
+    const reads = () => ui.calls.filter(c => c.command === 'read_home_access').length;
+    await ui.observe(completed(signedIn(base(), {ref: 'read-2'})));
+    assert.equal(reads(), 1, 'one account read for the completion, without a press');
+    assert.equal(accountRowOf(ui.container).getAttribute('aria-label'), 'Account and settings, Sign-in completed');
+    assert.equal(viewNow(ui), 'History', 'no move on a read made before the completion');
+    assert.match(connectionLine(ui.container)[0].textContent, /^Codex is running\. Codex reports the sign-in completed\./, 'the line says the same as the row');
+    // The status after the App's read lists it (read-3): the row says it, the line gives way and the App moves.
+    await ui.observe(completed(signedIn(base(), {ref: 'read-3'})));
+    assert.equal(accountRowOf(ui.container).getAttribute('aria-label'), 'Account and settings, Signed in');
+    assert.equal(connectionLine(ui.container).length, 0);
+    assert.equal(viewNow(ui), 'Conversation');
+    assert.match(ui.container.textContent, signedInLine);
+    // A later sign-in completes (login-2) beside the same account read: not yet confirmed, so the earlier notice
+    // that you're signed in does not stand beside it, and the line says the completion as the row does.
+    await ui.observe(completed(signedIn(base(), {ref: 'read-3'}), 'login-2'));
+    assert.equal(accountRowOf(ui.container).getAttribute('aria-label'), 'Account and settings, Sign-in completed');
+    assert.doesNotMatch(ui.container.textContent, signedInLine, 'the earlier notice does not survive an unconfirmed completion');
+    assert.match(connectionLine(ui.container)[0].textContent, /^Codex is running\. Codex reports the sign-in completed\./);
+    assert.equal(reads(), 2);
+  });
+});
+
+test('a new chat where Codex reports no account: the readiness, the Send button and the message box agree that sending waits for a sign-in, and the draft is kept', async () => {
+  await mountedApp(noAccount(), async ui => {
+    await ui.type('ordinary-composer-text', 'Draft before signing in');
+    const readiness = byId(ui.container, 'ordinary-send-readiness');
+    assert.equal(readiness.textContent, 'Sign in with your ChatGPT account before sending. Your draft stays here.');
+    assert.equal(readiness.getAttribute('class'), 'v4-composer-status', 'the readiness is in view');
+    const send = elements(ui.container, 'button').find(b => b.getAttribute('aria-describedby') === 'ordinary-send-readiness');
+    assert.equal(props(send).disabled, true, 'sending is not offered');
+    await React.act(async () => { props(send).onClick({preventDefault() {}}); });
+    assert.equal(messageBox(ui.container).getAttribute('placeholder'), 'Sign in to send…');
+    assert.equal(props(messageBox(ui.container)).value, 'Draft before signing in', 'the draft is kept');
+    assert.deepEqual(ui.calls.filter(c => /^conversation_|thread_start|start_thread/.test(c.command)), [], 'nothing is started');
+  });
 });

@@ -685,7 +685,7 @@
   "component": "AccountRow",
   "count": 1,
   "basis": "an App-owned literal vocabulary",
-  "reason": "words is accountRowWords(host, account.awaiting) (AccountControls.tsx), whose every state is an App literal or, while Codex is not ready, the title connectionWords returns (DailyWorkspace.tsx), itself only App literals. The guard does not follow a property of a call's result, nor an imported function."
+  "reason": "words is accountRowWords(host, account.completed) (AccountControls.tsx), whose every state is an App literal (\"Sign-in completed\" among them) or, while Codex is not ready, the title connectionWords returns (DailyWorkspace.tsx), itself only App literals. The guard does not follow a property of a call's result, nor an imported function."
  },
  {
   "file": "AccountControls.tsx",
@@ -694,7 +694,7 @@
   "component": "AccountRow",
   "count": 1,
   "basis": "an App-owned literal vocabulary",
-  "reason": "words is accountRowWords(host, account.awaiting) (AccountControls.tsx), whose every state is an App literal or, while Codex is not ready, the title connectionWords returns (DailyWorkspace.tsx), itself only App literals. The guard does not follow a property of a call's result, nor an imported function."
+  "reason": "words is accountRowWords(host, account.completed) (AccountControls.tsx), whose every state is an App literal (\"Sign-in completed\" among them) or, while Codex is not ready, the title connectionWords returns (DailyWorkspace.tsx), itself only App literals. The guard does not follow a property of a call's result, nor an imported function."
  },
  {
   "file": "AccountControls.tsx",
@@ -703,7 +703,7 @@
   "component": "AccountRow",
   "count": 1,
   "basis": "an App-owned literal vocabulary",
-  "reason": "words is accountRowWords(host, account.awaiting) (AccountControls.tsx), whose every state is an App literal or, while Codex is not ready, the title connectionWords returns (DailyWorkspace.tsx), itself only App literals. The guard does not follow a property of a call's result, nor an imported function."
+  "reason": "words is accountRowWords(host, account.completed) (AccountControls.tsx), whose every state is an App literal (\"Sign-in completed\" among them) or, while Codex is not ready, the title connectionWords returns (DailyWorkspace.tsx), itself only App literals. The guard does not follow a property of a call's result, nor an imported function."
  },
  {
   "file": "AccountControls.tsx",
@@ -712,6 +712,6 @@
   "component": "AccountRow",
   "count": 1,
   "basis": "an App-owned literal vocabulary",
-  "reason": "words is accountRowWords(host, account.awaiting) (AccountControls.tsx), whose every detail is an App literal, null, or \"Plan: \" followed by reportedPlan(host) (AccountStatus.tsx), which returns only an element of the App's own PLAN_TYPES list, else null. The guard does not follow a property of a call's result, nor an imported function."
+  "reason": "words is accountRowWords(host, account.completed) (AccountControls.tsx), whose every detail is an App literal (SIGN_IN_COMPLETED's among them, AccountStatus.tsx), null, or \"Plan: \" followed by reportedPlan(host) (AccountStatus.tsx), which returns only an element of the App's own PLAN_TYPES list, else null. The guard does not follow a property of a call's result, nor an imported function."
  }
 ]
