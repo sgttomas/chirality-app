@@ -771,6 +771,45 @@ fn a_failed_post_end_refresh_does_not_present_the_earlier_rows_as_current() {
     drop(f);
 }
 
+// The navigator never waits for the workflow root: held by another thread,
+// the read returns at once without the runs and says so; the rest is as usual.
+#[test]
+fn a_busy_workflow_root_gives_no_runs_and_does_not_wait() {
+    let f = Fixture::new("navigator-busy-root");
+    let launched = folder(&f.base, "proj");
+    crate::records_store::attach(&launched, true).unwrap();
+    open_run(&launched, "run:a", "thread:a");
+    as_at_launch();
+    let workflows = std::sync::Mutex::new(crate::runtime_session::WorkflowRootSession::default());
+    crate::runtime_session::reopen_recorded(&workflows, Ok(launched.as_path()), &[], &[]).unwrap();
+    let (held_tx, held_rx) = std::sync::mpsc::channel();
+    let (done_tx, done_rx) = std::sync::mpsc::channel::<()>();
+    let (read, waited) = std::thread::scope(|scope| {
+        let root = &workflows;
+        scope.spawn(move || {
+            let _held = root.lock().unwrap();
+            held_tx.send(()).unwrap();
+            // Released after the read, or after 10 seconds if the read waits.
+            let _ = done_rx.recv_timeout(std::time::Duration::from_secs(10));
+        });
+        held_rx.recv().unwrap();
+        let started = std::time::Instant::now();
+        let read = read_as_command(&launched, vec![fresh_home()], &workflows, &StatusSlot::default());
+        let waited = started.elapsed();
+        let _ = done_tx.send(());
+        (read, waited)
+    });
+    assert!(waited < std::time::Duration::from_secs(5), "the read waited {waited:?} for the workflow root");
+    let current = read.projects.iter().find(|p| p.current).unwrap();
+    assert_eq!(current.runs_read.outcome, RunsOutcome::NotRead { reason: ROOT_BUSY.into() });
+    assert!(entries(&read).all(|e| e.run.is_none()), "no entry carries a run");
+    assert_eq!((current.state, current.project_id.is_some()), (ProjectState::Open, true), "the attachment as usual");
+    assert_eq!(read.conversations.len(), 1, "the conversations as usual");
+    // Free again, the runs are given.
+    assert_eq!(launched_section(&read_as_command(&launched, vec![], &workflows, &StatusSlot::default())), (RunsOutcome::Read, true));
+    drop(f);
+}
+
 // Point 2: the attachment shown is host status's own observation while it is
 // fresh; only a stale or missing one makes the navigator take the status.
 #[test]

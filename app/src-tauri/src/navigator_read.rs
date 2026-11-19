@@ -66,6 +66,9 @@ pub const TITLE_CHARS: usize = 60;
 /// The `runsRead` reason of the launched project before the App's first
 /// reading of its recorded runs has finished.
 pub const RUNS_NOT_YET: &str = "Chirality has not yet read this project's recorded runs in this running App.";
+/// The `runsRead` reason of the launched project while the workflow root is
+/// busy, so its runs are not given in this answer.
+pub const ROOT_BUSY: &str = "Chirality is working on this project's runs; they are shown at the next reading.";
 /// The `stateReason` of a run this process holds whose operation is pending.
 pub const RUN_PENDING: &str = "An operation on this run is in progress in this running App, so its state is not known at this moment.";
 /// How old host status's last observation of the launched project may be
@@ -464,6 +467,8 @@ pub(crate) enum HeldReading {
     /// The latest reading failed: its reason and when it began. An earlier
     /// reading's rows are not given as current.
     Failed { reason: String, at: String },
+    /// The workflow root was busy, so nothing it holds was taken.
+    Busy,
     /// The reading held: when it began, its limits and history notices as
     /// worded, and its runs.
     Read { read_at: Option<String>, limits: Vec<String>, notices: Vec<String>, runs: Vec<RunInput> },
@@ -586,6 +591,7 @@ struct PlacedRun<'a> {
 fn held_runs(held: &HeldRuns) -> (RunsRead, Vec<RunInput>) {
     let (runs_read, mut runs) = match &held.recorded {
         HeldReading::NotYet => (RunsRead { outcome: RunsOutcome::NotRead { reason: RUNS_NOT_YET.into() }, read_at: None, limits: vec![] }, vec![]),
+        HeldReading::Busy => (RunsRead { outcome: RunsOutcome::NotRead { reason: ROOT_BUSY.into() }, read_at: None, limits: vec![] }, vec![]),
         HeldReading::Failed { .. } => (RunsRead { outcome: RunsOutcome::NotRead { reason: crate::runtime_session::REOPEN_NOT_READ_WORDS[1].into() }, read_at: None, limits: vec![] }, vec![]),
         HeldReading::Read { read_at, notices, .. } if notices.iter().any(|n| n == crate::records_store::HISTORY_CHANGED_VIEW) =>
             (RunsRead { outcome: RunsOutcome::NotRead { reason: crate::records_store::HISTORY_CHANGED_VIEW.into() }, read_at: read_at.clone(), limits: vec![] }, vec![]),
@@ -1240,9 +1246,17 @@ fn gather(sources: Sources) -> Gathered {
     }
     // One brief hold of the workflow root: the finished reports, the reading
     // of the recorded runs it holds and the runs this process holds.
-    let (finished, held) = {
-        let root = sources.workflows.lock().unwrap();
-        (views.iter().flat_map(|view| root.finished_offers_in(view)).collect(), root.navigator_held(&home_ids))
+    // Never waited for: Reopen, the history tick and an in-process end hold
+    // the root across record reads and flushes. While it is busy the runs are
+    // not given and the rest of the answer is.
+    let root = match sources.workflows.try_lock() {
+        Ok(root) => Some(root),
+        Err(std::sync::TryLockError::Poisoned(poisoned)) => Some(poisoned.into_inner()),
+        Err(std::sync::TryLockError::WouldBlock) => None,
+    };
+    let (finished, held) = match root {
+        Some(root) => (views.iter().flat_map(|view| root.finished_offers_in(view)).collect(), root.navigator_held(&home_ids)),
+        None => (vec![], HeldRuns { recorded: HeldReading::Busy, process: vec![] }),
     };
     let catalog = crate::workflow_workspace::production_catalog::ProductionCatalog::load()
         .map(|c| CatalogInput { identities: c.entries().filter_map(|e| serde_json::to_value(e.identity()).ok()).collect(), release: release_words(c.source()) })
