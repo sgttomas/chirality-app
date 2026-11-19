@@ -666,7 +666,7 @@ test('the earlier-request summary is a closed App sentence for every state: noth
     const request = {...outstandingRequest, state, supplierResolution: {cause: SUPPLIED}, settlement: {origin: {class: SUPPLIED, ruleName: SUPPLIED}}, endContext: SUPPLIED};
     assert.doesNotMatch(requestStateWords(request), new RegExp(SUPPLIED), String(state));
   }
-  assert.equal(cardState({state: 'resolved-by-supplier', supplierResolution: {cause: 'plain-cause'}}), 'Resolved by Codex before you answered (cause: plain-cause)', 'the card keeps the checked cause');
+  assert.equal(cardState({state: 'resolved-by-supplier', supplierResolution: {cause: 'plain-cause'}}), 'Resolved by Codex before you answered', 'the card\'s sentence is the closed one; the cause is beside it');
 });
 
 // ---- Only the person's own message is drawn as theirs ----
