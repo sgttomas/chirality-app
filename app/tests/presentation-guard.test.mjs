@@ -174,6 +174,43 @@ function roleElements(raw) {
   }
   return out;
 }
+// The elements open at a place in static markup, outermost first: { tag, attrs, end } (end: just after its opening tag).
+// React's static markup escapes "<" in text and quotes in attributes, so its tags can be read one by one.
+const VOID_ELEMENTS = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'source', 'track', 'wbr']);
+function openAt(raw, at) {
+  const stack = [];
+  for (const m of raw.slice(0, at).matchAll(/<(\/?)([a-zA-Z][a-zA-Z0-9-]*)((?:\s+[^\s=>/]+(?:="[^"]*")?)*)\s*(\/?)>/g)) {
+    const [, closing, tag, attrs, self] = m, name = tag.toLowerCase();
+    if (closing) { const i = stack.map(e => e.tag).lastIndexOf(name); if (i >= 0) stack.length = i; }
+    else if (!self && !VOID_ELEMENTS.has(name)) stack.push({tag: name, attrs, end: m.index + m[0].length});
+  }
+  return stack;
+}
+const classOf = attrs => (/\sclass="([^"]*)"/.exec(attrs)?.[1] ?? '').split(/\s+/);
+// An agent's message (AgentProse) and the person's own (PersonText) are attributed by where they stand, not only by
+// being present: each is a group named as text the App did not write, inside the speaker's bubble that encloses it
+// (never a bubble closed before it), whose own first child is its speaker label, so the group comes after that label;
+// the agent's prose in an assistant's bubble, the person's text in the person's bubble under "You"; never inside a
+// control or a control's role.
+function assertProseAttributed(raw, what) {
+  const proses = [...raw.matchAll(/<div role="group" aria-label="([^"]*)" class="agent-prose (chat-markdown|person-text)">/g)];
+  assert.equal((raw.match(/class="agent-prose/g) ?? []).length, proses.length, `${what}: the prose box's class on something that is not one`);
+  for (const m of proses) {
+    assert.match(m[1], /not the App&#x27;s words/, `${what}: prose not named as text the App did not write`);
+    const open = openAt(raw, m.index);
+    for (const element of open) {
+      const roles = (/\srole="([^"]*)"/.exec(element.attrs)?.[1] ?? '').trim().split(/\s+/);
+      assert.ok(!APP_ONLY.has(element.tag) && !roles.some(r => APP_ONLY_ROLES.has(r)), `${what}: prose inside a control: <${element.tag}${element.attrs}>`);
+    }
+    const bubble = open.findLast(element => element.tag === 'article' && classOf(element.attrs).includes('chat-bubble'));
+    assert.ok(bubble, `${what}: prose outside a speaker's bubble`);
+    const label = /^<p class="chat-speaker">([^<]+)<\/p>/.exec(raw.slice(bubble.end));
+    assert.ok(label && label[1].trim() !== '' && bubble.end + label[0].length <= m.index, `${what}: prose without its bubble's speaker label before it`);
+    const kinds = classOf(bubble.attrs);
+    if (m[2] === 'person-text') assert.ok(kinds.includes('chat-bubble--operator') && label[1] === 'You', `${what}: the person's text outside the person's bubble under "You"`);
+    else assert.ok(kinds.includes('chat-bubble--assistant'), `${what}: the agent's prose outside an assistant's bubble`);
+  }
+}
 function assertBoundary(markup, what) {
   // An option's value is the selector's opaque target, never drawn; its displayed text is checked.
   const raw = markup.replace(/(<option\b[^>]*?\svalue=")[^"]*(")/g, '$1$2');
@@ -181,15 +218,7 @@ function assertBoundary(markup, what) {
   assert.equal((raw.match(/class="agent-text(?: agent-text-block)?"/g) ?? []).length, boxes.length, `${what}: the box's class on something that is not a box`);
   assert.equal((raw.match(/class="agent-text-value"/g) ?? []).length, boxes.length, `${what}: a value with the box's class outside a box`);
   for (const [, name, style, label] of boxes) assert.ok(name.trim() !== '' && label.trim() !== '' && /(^|;)border:/.test(style), `${what}: a box without its source label, its accessibility name or its border`);
-  // An agent's message (AgentProse) and the person's own (PersonText): a group named as text the App did not write,
-  // after its bubble's speaker label.
-  const proses = [...raw.matchAll(/<div role="group" aria-label="([^"]*)" class="agent-prose (?:chat-markdown|person-text)">/g)];
-  assert.equal((raw.match(/class="agent-prose/g) ?? []).length, proses.length, `${what}: the prose box's class on something that is not one`);
-  for (const m of proses) {
-    assert.match(m[1], /not the App&#x27;s words/, `${what}: prose not named as the agent's`);
-    const bubble = raw.lastIndexOf('<article class="chat-bubble', m.index);
-    assert.ok(bubble >= 0 && /<p class="chat-speaker">[^<]+<\/p>/.test(raw.slice(bubble, m.index)), `${what}: prose without its speaker's label`);
-  }
+  assertProseAttributed(raw, what);
   const outside = outsideBoxes(raw);
   assert.ok(!outside.includes(MARK), `${what}: supplied text outside a box: …${outside.slice(Math.max(0, outside.indexOf(MARK) - 160), outside.indexOf(MARK) + 80)}…`);
   assert.ok(!raw.includes(RLO), `${what}: a direction override drawn as it is`);
@@ -217,13 +246,18 @@ const wellFormedBox = node => {
   return !!group && group.getAttribute?.('role') === 'group' && classes(group).includes('agent-text') && (group.getAttribute('aria-label') ?? '').trim() !== ''
     && String(group.style?.border ?? '').trim() !== '' && group.childNodes.some(c => classes(c).includes('agent-text-label') && (c.textContent ?? '').trim() !== '');
 };
-// An agent's message in the transcript (AgentProse): a group named as text the App did not write, in a speaker's bubble
-// whose label, shown above it, says whose text it is. Its prose holds no control or heading (the walk checks each element).
+// An agent's message in the transcript (AgentProse) or the person's own (PersonText): a group named as text the App did
+// not write, in the speaker's bubble that encloses it, whose first child is its speaker label, the group in a later
+// child; the agent's prose in an assistant's bubble, the person's text in the person's bubble under "You". Its prose
+// holds no control or heading, and it stands in none (the walk checks each element).
 const wellFormedProse = node => {
   if (node.getAttribute?.('role') !== 'group' || !classes(node).includes('agent-prose') || !/not the App's words/.test(node.getAttribute('aria-label') ?? '')) return false;
-  let bubble = node.parentNode;
-  while (bubble && !classes(bubble).includes('chat-bubble')) bubble = bubble.parentNode;
-  return !!bubble && bubble.childNodes.some(c => classes(c).includes('chat-speaker') && (c.textContent ?? '').trim() !== '');
+  let child = node, bubble = node.parentNode;
+  while (bubble && !classes(bubble).includes('chat-bubble')) { child = bubble; bubble = bubble.parentNode; }
+  if (!bubble || bubble.localName !== 'article') return false;
+  const label = bubble.childNodes.find(c => c.nodeType === 1);
+  if (!label || !classes(label).includes('chat-speaker') || (label.textContent ?? '').trim() === '' || child === label) return false;
+  return classes(node).includes('person-text') ? classes(bubble).includes('chat-bubble--operator') && label.textContent === 'You' : classes(bubble).includes('chat-bubble--assistant');
 };
 const SHOWN_ATTRIBUTES = name => name.startsWith('aria-') || ['title', 'alt', 'placeholder', 'label'].includes(name);
 function assertMounted(container, what) {
@@ -295,7 +329,7 @@ const {NativeRequestCard, WaitingRequestsIndicator, requestScopeKey} = loadSrc('
 const {NativeActivityView, RunStartMarker, RunEndMarker, RunLabel, StopLabel} = loadSrc('NativeActivity');
 const {StoredTurnPage, StoredItemPage, historyPageBinding, ContinuationContext} = loadSrc('NativeHistory');
 const {RunOffer} = loadSrc('RunOffers');
-const {AgentText} = loadSrc('AgentText');
+const {AgentText, AgentProse, PersonText} = loadSrc('AgentText');
 const g = {appSession: 's', home: 'h', spawnCounter: 1};
 const descendant = {threadId: 'C', parentThreadId: 'T', parentSource: 'collabAgentToolCall.senderThreadId', statusSource: 'collabAgentToolCall.agentsStates', lastObservedStatus: {status: 'running', message: 'child-status-message'},
   guidance: 'child-guidance', observationEnded: false, nativeThread: {id: 'C', agentRole: 'child-role', agentNickname: 'child-nickname'}};
@@ -622,3 +656,46 @@ async function drawnMountedOnly(surface) {
   try { await React.act(() => root.render(surface.draw())); assertMounted(container, 'self-check'); }
   finally { await React.act(() => root.unmount()); document.body.removeChild(container); }
 }
+
+test('rendered: prose is attributed by where it stands: outside a bubble, before its label, in the wrong bubble, inside a control or after a closed bubble, both detectors refuse it', async () => {
+  const agent = renderToStaticMarkup(React.createElement(AgentProse, {value: `**${MARK}**`}));
+  const person = renderToStaticMarkup(React.createElement(PersonText, {value: MARK}));
+  const label = words => `<p class="chat-speaker">${words}</p>`;
+  const assistant = inner => `<article class="chat-bubble chat-bubble--assistant" data-role="assistant" aria-label="Agent reply">${inner}</article>`;
+  const operator = inner => `<article class="chat-bubble chat-bubble--operator" data-role="operator" aria-label="Your message">${inner}</article>`;
+  // The positive controls: each where the transcript draws it.
+  assertBoundary(assistant(label('Agent') + `<div class="v4-agent-message">${agent}</div>`), 'agent prose in its bubble');
+  assertBoundary(operator(label('You') + `<div class="chat-user-text">${person}</div>`), 'the person\'s text in their bubble');
+  const rows = [
+    ['agent prose outside a bubble', `<div>${agent}</div>`],
+    ['the person\'s text outside a bubble', `<div>${person}</div>`],
+    ['agent prose before its label', assistant(agent + label('Agent'))],
+    ['the person\'s text before its label', operator(person + label('You'))],
+    ['agent prose in the person\'s bubble', operator(label('You') + agent)],
+    ['the person\'s text in an assistant\'s bubble', assistant(label('Agent') + person)],
+    ['the person\'s text under another label', operator(label('Input to this agent') + person)],
+    ['agent prose in a bubble with no label', assistant(`<div>${agent}</div>`)],
+    ['agent prose inside a button in its bubble', assistant(label('Agent') + `<button>${agent}</button>`)],
+    ['agent prose inside a summary in its bubble', assistant(label('Agent') + `<details><summary>${agent}</summary></details>`)],
+    ['agent prose inside a control role in its bubble', assistant(label('Agent') + `<div role="button">${agent}</div>`)],
+    ['agent prose after a closed bubble, borrowing its label', assistant(label('Agent')) + agent],
+    ['the person\'s text after a closed bubble, borrowing its label', operator(label('You')) + person],
+  ];
+  for (const [what, markup] of rows) assert.throws(() => assertBoundary(markup, what), /prose|person's text|agent's prose|control/, `static: ${what}`);
+  // Mounted: the same rows built as elements.
+  const h = React.createElement;
+  const proseEl = () => h(AgentProse, {value: `**${MARK}**`}), personEl = () => h(PersonText, {value: MARK});
+  const speaker = words => h('p', {className: 'chat-speaker'}, words);
+  const bubble = (kind, ...children) => h('article', {className: `chat-bubble chat-bubble--${kind}`}, ...children);
+  await drawnMountedOnly({draw: () => h('div', null, bubble('assistant', speaker('Agent'), h('div', null, proseEl())), bubble('operator', speaker('You'), h('div', null, personEl())))});
+  const mountedRows = [
+    ['agent prose outside a bubble', () => h('div', null, proseEl())],
+    ['agent prose before its label', () => bubble('assistant', proseEl(), speaker('Agent'))],
+    ['agent prose in the person\'s bubble', () => bubble('operator', speaker('You'), proseEl())],
+    ['the person\'s text in an assistant\'s bubble', () => bubble('assistant', speaker('Agent'), personEl())],
+    ['the person\'s text under another label', () => bubble('operator', speaker('Input to this agent'), personEl())],
+    ['agent prose inside a button in its bubble', () => bubble('assistant', speaker('Agent'), h('button', null, proseEl()))],
+    ['agent prose after a closed bubble', () => h('div', null, bubble('assistant', speaker('Agent')), proseEl())],
+  ];
+  for (const [what, draw] of mountedRows) await assert.rejects(drawnMountedOnly({draw}), undefined, `mounted: ${what}`);
+});

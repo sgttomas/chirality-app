@@ -48,3 +48,5 @@ export const SUBAGENT_ACTIVITY = { started: "started", interacted: "interacted",
 export const THREAD_STATUS = { notLoaded: "not loaded", idle: "idle", systemError: "system error", active: "active" } as const;
 /** A descendant's last observed status: CollabAgentStatus, or ThreadStatus's type. */
 export const CHILD_STATUS = { pendingInit: "starting", running: "running", interrupted: "interrupted", completed: "completed", errored: "errored", shutdown: "shut down", notFound: "not found", notLoaded: "not loaded", idle: "idle", systemError: "system error", active: "active" } as const;
+// A message's input that is not text (Codex app-server UserInput), named by its kind.
+export const USER_INPUT_KIND = { image: "An image reference", localImage: "A local image reference", skill: "A skill reference", mention: "A mention" } as const;

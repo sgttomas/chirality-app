@@ -52,7 +52,9 @@ function standIn({threads = [], selections = [], runs = [], projectLibraryAvaila
     if (command === 'native_confirmation_content') return [];
     if (command === 'read_available_models') return {state: 'observed', generation: args.generation, modeHomeClass: args.modeHomeClass, serverProvider: 'openai', serverProviderState: 'named', complete: true, limits: [], models: []};
     if (command === 'thread_start') {
-      if (fail.start === 'refused') throw Error('Native start refused before send');
+      // A refusal the host makes before anything is dispatched (App.tsx START_REFUSED_BEFORE_DISPATCH), and a rejection it does not class.
+      if (fail.start === 'refused') throw Error('thread start in progress');
+      if (fail.start === 'rejected') throw Error('Invented rejection the App does not class');
       if (fail.start === 'unknown') return {result: {thread: {}}};
       state.snapshot.threads = [...state.snapshot.threads, thread('created')];
       return {startGeneration: g, result: {thread: {id: 'created'}}};
@@ -136,6 +138,43 @@ async function mounted(host, check) {
 }
 const TEXT = 'Plan the survey summary from notes/ é 家';
 
+test('the message box takes the height of its draft, measured again as the draft changes', async () => {
+  const proto = Object.getPrototypeOf(document.createElement('textarea'));
+  // The mini-DOM measures nothing: a stand-in measure of one 22px line per line of the draft.
+  Object.defineProperty(proto, 'scrollHeight', {configurable: true, get() { return 22 * String(props(this)?.value ?? '').split('\n').length; }});
+  try {
+    await mounted(standIn(), async ui => {
+      await ui.newChat();
+      await ui.write('one line');
+      assert.ok(chatInput(ui.c).style.height === '22px', `one line: ${chatInput(ui.c).style.height}`);
+      await ui.write('one\ntwo\nthree');
+      assert.ok(chatInput(ui.c).style.height === '66px', `three lines: ${chatInput(ui.c).style.height}`);
+      await ui.write('');
+      assert.ok(chatInput(ui.c).style.height === '22px', `emptied: ${chatInput(ui.c).style.height}`);
+    });
+  } finally { delete proto.scrollHeight; }
+});
+
+test('picking a workflow lands in the message box; removing the pick moves nothing', async () => {
+  const proto = Object.getPrototypeOf(document.createElement('textarea')); const focused = [], scrolled = [];
+  const previous = {focus: proto.focus, scroll: proto.scrollIntoView};
+  proto.focus = function () { focused.push(this); }; proto.scrollIntoView = function () { scrolled.push(this); };
+  try {
+    await mounted(standIn(), async ui => {
+      await ui.newChat();
+      focused.length = 0; scrolled.length = 0;
+      await ui.pick();
+      assert.ok(focused.length === 1 && focused[0].getAttribute('id') === 'ordinary-composer-text', 'the message box takes the focus once');
+      assert.ok(scrolled.length === 1 && scrolled[0] === focused[0], 'and is brought into view');
+      focused.length = 0; scrolled.length = 0;
+      const remove = ui.composer().querySelectorAll(n => n.localName === 'button' && /^Remove /.test(n.getAttribute('aria-label') ?? ''))[0];
+      assert.ok(!!remove, 'the chip offers its removal');
+      await React.act(async () => props(remove).onClick());
+      assert.ok(focused.length === 0 && scrolled.length === 0, 'removing the pick moves neither focus nor the view');
+    });
+  } finally { proto.focus = previous.focus; proto.scrollIntoView = previous.scroll; }
+});
+
 test('a new chat: the first press starts the conversation and chooses the included workflow, then stops to show its tools; the second prepares and sends it once', async () => {
   await mounted(standIn(), async ui => {
     await ui.newChat();
@@ -202,9 +241,16 @@ test('a failure at each step keeps the text, says what happened, issues nothing 
   await mounted(standIn({fail: {start: 'refused'}}), async ui => {
     await ui.newChat(); await ui.pick(); await ui.write(TEXT); await ui.press();
     assert.deepEqual(ui.names(), ['thread_start']);
-    assert.match(ui.alert(), /Couldn't start the conversation: Native start refused before send\. Nothing was sent\./);
+    assert.match(ui.alert(), /Couldn't start the conversation: thread start in progress\. Nothing was sent\./);
     assert.equal(props(chatInput(ui.c)).value, TEXT);
     assert.ok(labelled(ui.c, 'Workflow for this message'), 'the pick is still shown');
+  });
+  // Step 1 rejected in words the App does not class as a refusal before dispatch: not confirmed, never "nothing started".
+  await mounted(standIn({fail: {start: 'rejected'}}), async ui => {
+    await ui.newChat(); await ui.pick(); await ui.write(TEXT); await ui.press();
+    assert.deepEqual(ui.names(), ['thread_start']);
+    assert.match(ui.alert(), /The App couldn't confirm the conversation started; it may exist\. The workflow wasn't sent\./);
+    assert.doesNotMatch(ui.alert(), /Couldn't start the conversation/);
   });
   // Step 1 not confirmed.
   await mounted(standIn({fail: {start: 'unknown'}}), async ui => {
@@ -212,6 +258,20 @@ test('a failure at each step keeps the text, says what happened, issues nothing 
     assert.deepEqual(ui.names(), ['thread_start']);
     assert.match(ui.alert(), /The App couldn't confirm the conversation started; it may exist\. The workflow wasn't sent\./);
     assert.equal(props(chatInput(ui.c)).value, TEXT);
+    // One may exist, so another start waits for the person: Start run is not offered, the pause is said, and the
+    // rejected case above is held the same way.
+    const paused = () => labelled(ui.c, 'Starting is paused');
+    assert.ok(!!paused(), 'the pause is said');
+    assert.ok(props(ui.send()).disabled === true, 'Start run is not offered while the start is in doubt');
+    assert.match(ui.composer().textContent, /A conversation may already have started\. Choose it on the left, or say to start another\./);
+    await React.act(async () => { await props(ui.send()).onClick({preventDefault() {}}); });
+    assert.deepEqual(ui.names(), ['thread_start'], 'a press while paused starts nothing');
+    // The person says to start another: the pause ends, and only then does a press start one.
+    await React.act(async () => props(buttonIn(paused(), 'Start another conversation')).onClick());
+    assert.ok(!paused(), 'the pause is gone once the person says so');
+    assert.ok(props(ui.send()).disabled !== true, 'Start run is offered again');
+    assert.equal(props(chatInput(ui.c)).value, TEXT);
+    assert.ok(labelled(ui.c, 'Workflow for this message'), 'the pick is kept');
   });
   // Step 3 refused: the conversation exists and is shown; the next press chooses again, in it.
   const host = standIn({fail: {select: 'Native history context is busy; refresh the workflow choice'}});

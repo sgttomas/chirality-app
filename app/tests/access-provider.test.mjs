@@ -14,7 +14,7 @@ import {loadSrc} from './support/load-src.mjs';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {installIdleNativeWaiting} from './support/idle-native-waiting.mjs';
 import './support/rust-prebuild.mjs';
-import { chatInput, sendButton } from './support/conversation-view.mjs';
+import { chatInput, inSetting, inView, sendButton, startModelField } from './support/conversation-view.mjs';
 const app=new URL('../',import.meta.url),out=mkdtempSync(`${tmpdir()}/access-provider-private-`);
 const document=installMiniDom();
 const {createRoot}=await import('react-dom/client');
@@ -195,13 +195,18 @@ test('Start says why it is unavailable until a model is chosen; the only connect
   // The start is the first message's Send; why it is unavailable is the composer's readiness line, which describes it.
   const line=()=>c.querySelectorAll(node=>node.getAttribute('id')==='ordinary-send-readiness')[0];
   const shownWhy=()=>line()?.getAttribute('class')==='visually-hidden'?undefined:line()?.textContent;
-  assert.equal(button(c,ROUTE),undefined,'no toggle for the only connection');
-  assert.match(c.textContent,/Connects with your ChatGPT account \(built-in OpenAI\) — the only connection this version offers\./);
   await change(chatInput(c),'First message');
-  assert.equal(props(sendButton(c)).disabled,true);assert.match(shownWhy(),/^Choose a model\. Your draft stays here\.$/);
+  // In view, under the message box, while no model is chosen: not only inside the model panel.
+  assert.equal(props(sendButton(c)).disabled,true);assert.match(shownWhy(),/^Not started — no model selected\. Choose a model below\. Your draft stays here\.$/);
+  assert.ok(inView(line()),'the reason is in view');
+  // The connection and the model are in the settings line's Model panel: opened first, then read there, in view.
+  const inUse=await inSetting(c,React.act,'Model',node=>node.getAttribute?.('aria-label')==='Connection in use');
+  assert.ok(inUse,'the only connection is shown in use, in the open Model panel');
+  assert.match(inUse.textContent,/Connects with your ChatGPT account \(built-in OpenAI\) — the only connection this version offers\./);
+  assert.equal(button(c,ROUTE),undefined,'no toggle for the only connection');
   assert.doesNotMatch(c.textContent,/Choose how this conversation connects/,'no connection to choose while the only connection is in use');
   assert.equal(props(sendButton(c))['aria-describedby'],'ordinary-send-readiness');
-  await change(labelled(c,'input','Model '),'person-model');
+  await change(await startModelField(c,React.act),'person-model');
   assert.equal(props(sendButton(c)).disabled,false);assert.equal(shownWhy(),undefined,'no reason is shown while Send can start it');
   assert.equal(line().textContent,'Ready to start a new conversation and send it your text.','the line still says, to a screen reader, what Send will do');
   assert.equal(calls.filter(call=>!['host_status','decision_view','native_confirmation_content'].includes(call.command)).length,0,'choosing issues nothing');

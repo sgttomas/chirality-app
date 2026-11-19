@@ -23,6 +23,8 @@ for line in sys.stdin:
   for frame in f['params']['frames']: emit(frame)
   emit({'id':f['id'],'result':{}})
  elif m=='config/read': emit({'id':f['id'],'result':{'config':{},'origins':{}}})
+ elif m is None and 'result' in f:
+  with open(sys.argv[0]+'.replies','a') as out: out.write(line)
 "#).unwrap();
         use std::os::unix::fs::PermissionsExt;
         std::fs::set_permissions(&bin, std::fs::Permissions::from_mode(0o700)).unwrap();
@@ -104,6 +106,73 @@ fn actual_two_home_waiting_overview_dto() {
         native.finish("mounted-App-fixture", claim["intentId"].as_str().unwrap()).unwrap();
     }
     println!("WAITING_REQUESTS_DTO:{}", json!({"account":account,"api-key":key,"navigation":{"account":open_account,"api-key":open_key,"unnamed":open_unnamed},"native":{"entries":entries,"intents":intents}}));
+}
+
+/// A question raised in an ordinary conversation, as the pinned Codex sends it with the question feature on
+/// (`isBlocking` false): counted for its conversation while it waits, at whatever moment it is read, not counted
+/// once the person has answered, and not counted once its Codex has stopped with it unanswered.
+#[test]
+fn an_ordinary_conversations_question_is_counted_until_answered_or_until_its_codex_stops() {
+    let mut f = Fixture::new();
+    let ordinary = |id: &str| { let mut q = question(json!(id), Some("shared-thread")); q["params"]["isBlocking"] = json!(false); q["params"]["questions"][0]["isOther"] = json!(true); q };
+    f.emit(HomeClass::Account, vec![ordinary("answered"), ordinary("left")]);
+    let count = |f: &mut Fixture| { let status = f.status(HomeClass::Account); status["waitingRequests"]["groups"].as_array().unwrap().iter().filter(|g| g["threadId"] == "shared-thread" && g["modeHomeClass"] == "account").filter_map(|g| g["count"].as_u64()).sum::<u64>() };
+    let deadline = Instant::now() + Duration::from_secs(2);
+    while count(&mut f) != 2 && Instant::now() < deadline { std::thread::sleep(Duration::from_millis(5)); }
+    assert_eq!(count(&mut f), 2);
+    std::thread::sleep(Duration::from_millis(300));
+    assert_eq!(count(&mut f), 2, "time passing answers nothing");
+    let host = Arc::clone(&f.router.entry(HomeClass::Account).unwrap().host);
+    let generation = host.snapshot()["generation"].clone();
+    let given = json!({"answers":{"q":{"answers":["An answer in the person's own words"]}}});
+    let reply = host.answer_server_request(&generation, &json!("answered"), &given, "person-via-interaction", Some("person:synthetic (identity not verified)")).unwrap();
+    assert_eq!(reply["replyWriteResult"], "written");
+    assert_eq!(count(&mut f), 1, "the answered question no longer waits; the other still does");
+    let entry = |id: &str| host.snapshot()["serverRequests"].as_array().unwrap().iter().find(|r| r["requestIdentity"] == id).cloned().unwrap();
+    assert_eq!((entry("answered")["state"].as_str(), entry("left")["state"].as_str()), (Some("answered"), Some("outstanding")));
+    host.stop("person:fixture", "codex-stop").unwrap();
+    assert_eq!(count(&mut f), 0, "a question whose Codex has stopped is not waiting on the person");
+    assert_eq!(entry("left")["state"], "ended-unanswered");
+    assert!(host.answer_server_request(&generation, &json!("left"), &given, "person-via-interaction", Some("person:synthetic (identity not verified)")).is_err(), "and takes no answer");
+}
+
+/// A secret answer sent from the card, through the answer command and the host's own writer to the pipe: Codex
+/// is sent the answer as given, with no confirmation opened, and nothing the App keeps or returns holds its value.
+#[test]
+fn a_secret_answer_sent_from_the_card_reaches_codex_as_given_and_is_kept_without_its_value() {
+    let f = Fixture::new();
+    let mut asked = question(json!("secret-asked"), Some("shared-thread"));
+    asked["params"]["isBlocking"] = json!(false);
+    asked["params"]["questions"][0]["isSecret"] = json!(true);
+    asked["params"]["questions"][0]["isOther"] = json!(true);
+    f.emit(HomeClass::Account, vec![asked]);
+    let host = Arc::clone(&f.router.entry(HomeClass::Account).unwrap().host);
+    let deadline = Instant::now() + Duration::from_secs(2);
+    while host.snapshot()["serverRequests"].as_array().unwrap().is_empty() && Instant::now() < deadline { std::thread::sleep(Duration::from_millis(5)); }
+    let generation = host.snapshot()["generation"].clone();
+    let context = json!({"generation":generation,"hostState":"ready","displayName":"Fixture Person","osAccount":"fixture-user","codexAccount":null,"accountRevision":1});
+    let (id, secret) = (json!("secret-asked"), "invented-private-answer");
+    let given = json!({"answers":{"q":{"answers":[secret]}}});
+    let result = crate::native_request_answer::answer_with_choice(&generation, &id, &given, Some("question-answers"),
+        || (host.snapshot(), context.clone()),
+        |_| panic!("a question's answer opened a native confirmation"),
+        |actor| host.answer_server_request(&generation, &id, &given, "person-via-interaction", Some(actor))).unwrap();
+    assert_eq!(result["replyWriteResult"], "written");
+    assert!(!result.to_string().contains(secret), "the command's result does not hold the secret value");
+    let replies = f.root.join("peer.py.replies");
+    let deadline = Instant::now() + Duration::from_secs(2);
+    // The peer writes each reply it receives as one whole line; wait for a whole line, not for the file.
+    let whole = || std::fs::read_to_string(&replies).ok().filter(|text| text.ends_with('\n'));
+    while whole().is_none() && Instant::now() < deadline { std::thread::sleep(Duration::from_millis(5)); }
+    std::thread::sleep(Duration::from_millis(100)); // and long enough that a second write of it would be seen
+    let received: Vec<Value> = whole().expect("the peer received a reply").lines().map(|l| serde_json::from_str(l).unwrap()).collect();
+    assert_eq!(received, vec![json!({"id":"secret-asked","result":given})], "the pipe received the answer as given, once");
+    let kept = host.snapshot();
+    assert!(!kept.to_string().contains(secret), "nothing the host shows holds the secret value");
+    let entry = kept["serverRequests"].as_array().unwrap().iter().find(|r| r["requestIdentity"] == "secret-asked").cloned().unwrap();
+    assert_eq!(entry["state"], "answered");
+    assert_eq!(entry["settlement"]["redaction"]["questionIds"], json!(["q"]));
+    assert!(entry["settlement"].get("nativeContent").is_none());
 }
 
 #[test]

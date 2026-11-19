@@ -34,6 +34,30 @@ stays here; reconnect or inspect History rather than repeatedly pressing Send.
 Attachment submissions keep the entire selected order and never fall back to a
 text-only send after a refusal.
 
+## When the agent asks you a question
+
+When Codex offers the conversation's agent the question tool, the agent can
+ask you through a request at any permission level. The question appears in the
+conversation with the choices the agent offers and room for an answer in your
+own words, and the conversation is counted among what is waiting on you until
+you answer or decline. Nothing answers for you: the turn waits, however long
+you take, and closing the window answers nothing.
+
+Three limits apply:
+
+- Only the conversation's own agent can ask this way. An agent it delegated
+  work to cannot; it has to return its question to the agent you are talking
+  with.
+- A question that is still waiting when Codex stops (you stop or restart
+  Codex, quit the App, or Codex ends unexpectedly) is not asked again
+  afterwards. Chirality shows the question as a past request when its record
+  is available and shows the turn status Codex reports. If the turn was last
+  observed in progress and no later status is available, its outcome is
+  unknown. Send a message to continue.
+- An agent may also ask in a message. Chirality shows the message and uses
+  Codex's reported turn status. Only a request makes the question count as
+  waiting for your answer.
+
 ## Interrupt one observed live turn
 
 1. Choose the conversation whose work you intend to interrupt.

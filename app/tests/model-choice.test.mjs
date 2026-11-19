@@ -9,7 +9,7 @@ import {agentBlocks, agentBlockText} from './support/agent-text.mjs';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {installIdleNativeWaiting} from './support/idle-native-waiting.mjs';
 import {choiceLists, chooseIn, chosenIn} from './support/choices.mjs';
-import { conversationView, chatInput, newChatButton, sendButton, startWithFirstMessage } from './support/conversation-view.mjs';
+import { conversationView, chatInput, newChatButton, sendButton, startAnotherAfterPause, startWithFirstMessage } from './support/conversation-view.mjs';
 const document = installMiniDom();
 const React = (await import('react')).default;
 const {createRoot} = await import('react-dom/client');
@@ -214,6 +214,8 @@ test('a long already-safe App response keeps its distinct tail in optional detai
     assert.doesNotMatch(nodes(feedback, 'p')[0].textContent, /success|completed|accepted/i);
     assert.ok(nodes(feedback, 'p').some(node => node.textContent === 'acknowledged: false'));
     assert.ok(nodes(feedback, 'p').some(node => node.textContent === 'error: Explicit negative acknowledgment.'));
+    // The negative acknowledgement left that start unconfirmed, so the person says to start another first.
+    assert.ok(await startAnotherAfterPause(ui.c, React.act));
     refuse = true; await ui.press('Start thread');
     assert.equal(nodes(feedback, 'details').length, 0);
     assert.match(nodes(feedback, 'p')[0].textContent, /Explicit fixture refusal; nothing admitted\./);
@@ -335,6 +337,8 @@ test('keyed oMLX: prepare, native key entry, local home Start and return to acco
     assert.deepEqual({model:start[0].args.model, modelProvider:start[0].args.modelProvider, entryId:start[0].args.entryId, modeHomeClass:start[0].args.modeHomeClass, generation:start[0].args.generation},
       {model:LOCAL.model, modelProvider:LOCAL.providerId, entryId:'local-provider-keyed', modeHomeClass:'local-provider', generation:lg});
     await ui.press('Use account home');
+    // The started conversation is chosen but not listed by the snapshot: the next conversation's choice is shown in New chat.
+    await React.act(async () => { props(newChatButton(ui.c)).onClick(); });
     assert.ok(button(ui.c, 'Use my ChatGPT account (built-in OpenAI)'), 'account route is available again beside the retained local home');
     assert.ok(button(ui.c, 'Use local oMLX home'));
     assert.equal(button(ui.c, 'Use api-key home'), undefined);
