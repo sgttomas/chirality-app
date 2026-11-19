@@ -115,7 +115,10 @@ async function mounted(options,check){
  const navigate=v=>{
   // Going to the conversation is following a link to it, through the workspace's own reveal.
   if(v==='conversation'){const a=document.createElement('a');a.setAttribute('href','#conversation');const main=elements(c,'main')[0];main.appendChild(a);try{props(main).onClick({target:a,currentTarget:main,preventDefault(){}});}finally{main.removeChild(a);}return;}
-  const t=elements(c,'button').find(e=>e.getAttribute('role')==='tab'&&({run:'Run a workflow',make:'Make a workflow',history:'History',settings:'Settings & tools','conversation-tools':'Conversation tools'})[v]===e.textContent);assert.ok(t,`view ${v}`);flushSync(()=>props(t).onClick());};
+  // A view under More: the More tab, then its entry in More's list.
+  const under=['make','history','conversation-tools'].includes(v);
+  const t=elements(c,'button').find(e=>e.getAttribute('role')==='tab'&&({'current-run':'Run',workflows:'Workflows',settings:'Settings & tools'})[under?'more':v]===e.textContent||(under&&e.getAttribute('role')==='tab'&&e.textContent==='More'));assert.ok(t,`view ${v}`);flushSync(()=>props(t).onClick());
+  if(under){const entry=elements(c,'button').find(e=>e.getAttribute('data-more-view')===v);assert.ok(entry,`More's ${v}`);flushSync(()=>props(entry).onClick());}};
  const press=async(label,within=c)=>label==='Start thread'?startWithFirstMessage(c,React.act).then(started=>assert.ok(started,label)):React.act(()=>{
   let e=button(within,label);
   if(!e){const hidden=elements(within,'button').find(b=>b.textContent===label);const v=hidden&&viewOf(hidden);if(v){navigate(v);e=button(within,label);}}
@@ -485,9 +488,11 @@ const byId=(c,id)=>c.querySelectorAll(e=>e.getAttribute('id')===id)[0];
 const disclosureOpen=e=>e.open??e.hasAttribute('open');
 const displayed=e=>{for(let n=e;n;n=n.parentNode){if(props(n)?.hidden)return false;if(n!==e&&n.localName==='details'&&!disclosureOpen(n))return false;}return true;};
 async function toggleDisclosure(c,id,open){await React.act(()=>{const e=byId(c,id);assert.equal(e?.localName,'details',id);e.open=open;});}
-// The person selects a right panel tab.
+// The person selects a right panel tab; "More › X" is the More tab, then X in More's list.
 async function selectTab(c,label){
- const tab=elements(c,'button').find(e=>e.getAttribute('role')==='tab'&&e.textContent===label);assert.ok(tab,label);await React.act(()=>props(tab).onClick());
+ const [name,under]=label.split(' › ');
+ const tab=elements(c,'button').find(e=>e.getAttribute('role')==='tab'&&e.textContent===name);assert.ok(tab,label);await React.act(()=>props(tab).onClick());
+ if(under){const entry=elements(c,'button').find(e=>e.getAttribute('data-more-view')&&e.childNodes[0]?.textContent===under);assert.ok(entry,label);await React.act(()=>props(entry).onClick());}
 }
 // A "#target" link followed through the workspace root's own handler.
 async function followLinkTo(c,target){
@@ -510,11 +515,11 @@ test('daily workspace keeps A/C/B/D, exact composer, chooser, global draft and l
   for(const panel of panels){await toggleDisclosure(ui.c,panel.getAttribute('id'),true);await toggleDisclosure(ui.c,panel.getAttribute('id'),false);}
   assert.equal(ui.calls.length,before,'disclosure navigation performs no RPC');assert.equal(ui.composer(),original);assert.equal(byId(ui.c,'file-acts'),filePanel);assert.equal(props(scope).value,'Unsent file-review scope','the secondary child retains its own local state');assert.equal(props(name).value,'Unsent local name');ui.assertIndependent();assert.ok(displayed(review),'native confirmation is outside secondary disclosures');
   // Right panel tabs: the conversation stays shown beside each; a tab not selected is hidden without unmounting anything.
-  const composerShown=displayed(original);await selectTab(ui.c,'Run a workflow');assert.equal(displayed(original),composerShown,'selecting a tab leaves the conversation beside it as it was');assert.ok(displayed(region(ui.c,'Run a workflow')));
+  const composerShown=displayed(original);await selectTab(ui.c,'Workflows');assert.equal(displayed(original),composerShown,'selecting a tab leaves the conversation beside it as it was');assert.ok(displayed(region(ui.c,'Workflows')));
   assert.equal(ui.composer(),original,'the composer stays mounted');assert.equal(props(elements(original,'textarea')[0]).value,'Edited daily-workspace message');
   assert.ok(displayed(review),'native confirmation content stays visible in every view');
-  await selectTab(ui.c,'Settings & tools');await toggleDisclosure(ui.c,'workspace-records',true);assert.equal(displayed(region(ui.c,'Run a workflow')),false,'the tab not selected is hidden');
-  assert.ok(byId(ui.c,'view-run'),'and stays mounted');assert.ok(displayed(byId(ui.c,'workspace-records')));assert.ok(displayed(byId(ui.c,'conversation')),'the conversation stays shown');
+  await selectTab(ui.c,'Settings & tools');await toggleDisclosure(ui.c,'workspace-records',true);assert.equal(displayed(region(ui.c,'Workflows')),false,'the tab not selected is hidden');
+  assert.ok(byId(ui.c,'view-library'),'and stays mounted');assert.ok(displayed(byId(ui.c,'workspace-records')));assert.ok(displayed(byId(ui.c,'conversation')),'the conversation stays shown');
   const reveal=[];original.parentNode.scrollIntoView=()=>{assert.ok(displayed(original));reveal.push(original);};await ui.open();
   assert.deepEqual(reveal,[original]);assert.equal(ui.selected(),key('B'));assert.equal(ui.composer(),original);assert.equal(props(elements(original,'textarea')[0]).value,'Edited daily-workspace message');assert.equal(chosenIn(choiceList(original,'Send to')),key('D'));ui.assertIndependent();
   await ui.press('Send',original);assert.match(original.textContent,/Sending; waiting/);const pendingCalls=ui.calls.length;
@@ -548,7 +553,7 @@ for(const state of ['absent','ready'])test(`first use with Codex ${state} expose
 test('file-act anchors reveal the same mounted secondary panel with no command or source selection',async()=>{
  await mounted({},async ui=>{
   const panel=byId(ui.c,'file-acts');assert.ok(panel);const disclosure=byId(ui.c,'workspace-files');assert.equal(disclosureOpen(disclosure),false);const before=ui.calls.length;
-  await selectTab(ui.c,'Make a workflow');await toggleDisclosure(ui.c,'workflow-studio',true);
+  await selectTab(ui.c,'More › Make a workflow');await toggleDisclosure(ui.c,'workflow-studio',true);
   await followWorkspaceLink(ui.c,'Review a workspace draft file for a separate standing act');assert.equal(disclosureOpen(disclosure),true);assert.ok(displayed(panel),'the link shows the settings view that holds the panel');assert.equal(byId(ui.c,'file-acts'),panel);assert.equal(ui.calls.length,before);ui.assertIndependent();
  });
 });
@@ -651,11 +656,11 @@ test('History navigation reveals and focuses existing history without reading or
  await mounted({},async ui=>{
   const history=byId(ui.c,'workspace-history');const summary=history.childNodes.find(n=>n.localName==='summary');let focused=0;summary.focus=()=>focused++;
   await toggleDisclosure(ui.c,'workspace-history',false);const before=ui.calls.length;
-  await selectTab(ui.c,'History');assert.ok(displayed(history),'the History tab shows it');assert.equal(ui.calls.length,before,'selecting the tab reads nothing');
-  await selectTab(ui.c,'Run a workflow');assert.equal(displayed(history),false);
+  await selectTab(ui.c,'More › History');assert.ok(displayed(history),'History under More shows it');assert.equal(ui.calls.length,before,'selecting the tab reads nothing');
+  await selectTab(ui.c,'Workflows');assert.equal(displayed(history),false);
   // A link to it, followed through the workspace root, selects its tab, opens and focuses it.
   await followLinkTo(ui.c,'workspace-history');assert.equal(disclosureOpen(history),true);assert.equal(focused,1);assert.ok(displayed(history));
-  assert.equal(elements(ui.c,'button').find(b=>b.getAttribute('role')==='tab'&&b.getAttribute('aria-selected')==='true')?.textContent,'History');
+  assert.equal(elements(ui.c,'button').find(b=>b.getAttribute('role')==='tab'&&b.getAttribute('aria-selected')==='true')?.textContent,'More','History is under More');
   assert.equal(ui.calls.length,before);ui.assertIndependent();
  });
 });

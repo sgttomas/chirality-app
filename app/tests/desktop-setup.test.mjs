@@ -595,7 +595,7 @@ test('the mounted App shows only the welcome while setup is required and keeps c
   try {
     await React.act(()=>root.render(React.createElement(App)));
     assert.ok(region(c,'Welcome'));assert.equal(hiddenUp(region(c,'Welcome')),false);
-    for(const label of ['Workspace Navigator','Workspace connection status','Run a workflow','Right panel','Activity status'])assert.equal(hiddenUp(region(c,label)),true,label);
+    for(const label of ['Workspace Navigator','Workspace connection status','Workflows','Right panel','Activity status'])assert.equal(hiddenUp(region(c,label)),true,label);
     assert.equal(nodes(c,'main')[0].getAttribute('class'),'shell shell--stone','the welcome takes the whole window: no three-region shell');
     assert.equal(hiddenUp(region(c,'Content named by an open native confirmation')),false,'native confirmation content stays visible');
     host.state='ready';host.desktopSetup={...packet.retained.initial};host.generation={appSession:'s',home:'h',spawnCounter:1};
@@ -672,7 +672,7 @@ const brand=c=>nodes(c,'header').find(n=>n.getAttribute('class')==='woven-naviga
 const workspaceAbsent=(c,state)=>{
   assert.ok(!brand(c),`${state}: the workspace's brand is not in the document`);
   assert.equal(c.querySelectorAll(n=>(n.getAttribute('class')??'').split(' ').includes('woven-workspace')).length,0,`${state}: no regions and no strip, hidden or not`);
-  for(const label of ['Workspace Navigator','Workspace connection status','Run a workflow','Workspace tools','Right panel','Activity status','Welcome'])assert.ok(!region(c,label),`${state}: ${label}`);
+  for(const label of ['Workspace Navigator','Workspace connection status','Workflows','Workspace tools','Right panel','Activity status','Welcome'])assert.ok(!region(c,label),`${state}: ${label}`);
   assert.equal(c.querySelectorAll(n=>n.getAttribute('id')==='view-conversation').length,0,`${state}: no workspace view, hidden or not`);
 };
 const readyHost=()=>({state:'ready',generation:{appSession:'s',home:'h',spawnCounter:1},threads:[],desktopSetup:{...packet.retained.initial},roleLimits:{account:{roles:[]}}});
@@ -695,7 +695,7 @@ test('the first read decides: setup required shows the welcome with the workspac
     assert.ok(!!region(c,'Welcome'));
     assert.ok(nodes(c,'h1').some(n=>n.textContent==='Welcome to Chirality'));
     const hiddenUp=node=>{for(let n=node;n;n=n.parentNode)if(props(n)?.hidden)return true;return false;};
-    for(const label of ['Workspace Navigator','Workspace connection status','Run a workflow','Right panel','Activity status'])assert.equal(hiddenUp(region(c,label)),true,label);
+    for(const label of ['Workspace Navigator','Workspace connection status','Workflows','Right panel','Activity status'])assert.equal(hiddenUp(region(c,label)),true,label);
     assert.equal(nodes(c,'main')[0].getAttribute('class'),'shell shell--stone','the welcome takes the whole window');
   });
 });

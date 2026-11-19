@@ -3739,3 +3739,18 @@ div.woven-chat-section-heading--folder:hover { background:transparent; }
 .chat-composer-line > button.chat-workflow-button:hover { color:var(--ink); }
 .chat-composer-line > button[type="submit"].v4-send-run { width:auto; height:30px; padding:0 14px 0 12px; border-radius:999px; display:inline-flex; align-items:center; gap:7px; font-weight:600; font-size:12.5px; white-space:nowrap; }
 .v4-mark { display:inline-block; width:7px; height:7px; transform:rotate(45deg); border:1.5px solid currentColor; border-radius:1px; flex:none; }
+/* v4: the right panel's More tab (WorkspaceShell.tsx MoreList): a short plain list of the views still in their
+   earlier form, each a button with one line; a chosen view has the way back to the list above it. */
+#view-more { padding:14px 4px 20px; }
+.v4-more ul { margin:0; padding:0; list-style:none; display:grid; gap:2px; }
+.daily-workspace .v4-more .v4-more-entry { width:100%; display:grid; gap:2px; padding:10px 12px; border:0; border-radius:8px; background:transparent; color:var(--ink); text-align:left; font-weight:400; }
+.daily-workspace .v4-more .v4-more-entry:hover { background:var(--surface); }
+.v4-more .v4-more-entry strong { font-size:14px; font-weight:500; }
+.v4-more .v4-more-entry span { font-size:12.5px; line-height:1.4; color:var(--ink-soft); }
+.v4-more-back { display:flex; align-items:center; gap:8px; padding:8px 4px 6px; border-bottom:1px solid var(--rule); margin-bottom:10px; font-size:12.5px; color:var(--ink-faint); }
+.daily-workspace .v4-more-back .v4-plain { height:28px; padding:0 8px; border:0; border-radius:6px; background:transparent; color:var(--ink-soft); font-size:12.5px; }
+.daily-workspace .v4-more-back .v4-plain:hover { color:var(--ink); background:var(--surface); }
+/* The Run tab's line for a conversation with a workflow chosen and no run of it. */
+.v4-runview .run-tab-chosen { font-size:14px; color:var(--ink); }
+.method-library-actions { display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 10px; }
+.daily-workspace .method-library-actions button { padding:4px 10px; font-size:12.5px; }

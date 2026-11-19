@@ -4,14 +4,17 @@ import {readFileSync} from 'node:fs';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {loadSrc} from './support/load-src.mjs';
 import {agentBlocks, agentBlockText} from './support/agent-text.mjs';
-import {choiceLists, chooseIn} from './support/choices.mjs';
 
-// J1 guided path over the workflow studio's existing state and commands.
-// Controlled host views only: no native App, supplier, model or person act.
+// J1 over the right panel's Run and Workflows tabs and the composer's chip, which hold
+// what the Run a workflow guide held. Controlled host views only: no native App,
+// supplier, model or person act.
 installMiniDom();
 const React = (await import('react')).default;
 const {createRoot} = await import('react-dom/client');
-const {RunWorkflowGuide, runReading, runTurnNotices, turnStatusWords, guideResultWords} = loadSrc('RunJourney');
+const {GuideResult, runReading, runTurnNotices, turnStatusWords, guideResultWords} = loadSrc('RunJourney');
+const {RunTab} = loadSrc('RunTab');
+const {WorkflowLibrary} = loadSrc('WorkflowLibrary');
+const {PickChip, pickIncluded, pickListed} = loadSrc('WorkflowPick');
 const UNKNOWN = {state:'native workflow-text send outcome unknown; original source retained', limit:'reply lost'};
 const REFUSED = {state:'native workflow-text turn/start refused by Codex; original source retained', limit:'invented refusal'};
 const NOT_CONFIRMED = 'start not confirmed (turn refused or outcome unknown); not opened, not live';
@@ -52,18 +55,29 @@ const all = (c, tag) => c.querySelectorAll(node => node.localName === tag);
 const button = (c, label) => all(c, 'button').find(node => node.textContent === label);
 const region = (c, label) => c.querySelectorAll(node => node.getAttribute('aria-label') === label)[0];
 
-async function mount(view) {
-  const c = document.createElement('div'); const root = createRoot(c); const calls = []; let thread = view.thread ?? ''; let text = '';
-  const shown = [];
-  const render = () => root.render(React.createElement(RunWorkflowGuide, {data:view.data, host:view.host, thread, busy:false, text, showConversation:view.navigate ? (id, target) => shown.push([id, target]) : undefined,
-    chooseThread:value => { thread = value; calls.push({choose:value}); render(); }, setText:value => { text = value; render(); },
-    act:async (command, args) => { calls.push({command, args}); }, outcome:view.outcome ?? null}));
+// The guide's steps now stand in three places, each mounted alone here over the same invented views: the Run tab (the
+// open conversation's run), the Workflows tab (this project's workflows) and the composer's chip (the picked workflow).
+// The single press that chooses, prepares and starts is the composer's Start run (tests/workflow-pick-run.test.mjs).
+async function mountWith(component, view, propsOf) {
+  const c = document.createElement('div'); const root = createRoot(c); const calls = []; const shown = [];
+  const render = () => root.render(React.createElement(component, propsOf(view, calls, shown)));
   await React.act(async () => render());
-  return {c, calls, shown, press:async label => { const node = button(c, label); assert.ok(node, label); assert.equal(!!props(node).disabled, false, `${label} enabled`); await React.act(async () => props(node).onClick()); },
-    type:async value => { const area = all(c, 'textarea')[0]; await React.act(async () => props(area).onChange({target:{value}})); },
+  return {c, calls, shown,
+    press:async (label, within = c) => { const node = button(within, label); assert.ok(node, label); assert.equal(!!props(node).disabled, false, `${label} enabled`); await React.act(async () => props(node).onClick()); },
+    click:async node => React.act(async () => props(node).onClick()),
     rerender:async next => { Object.assign(view, next); await React.act(async () => render()); },
     close:async () => React.act(async () => root.unmount())};
 }
+const mountRun = view => mountWith(RunTab, view, (v, calls, shown) => ({data:v.data, host:v.host, thread:v.thread ?? 'T1', busy:!!v.busy, viewStale:!!v.viewStale,
+  readFailure:v.readFailure ?? null, outcome:v.outcome ?? null, showConversation:v.navigate ? (id, target) => shown.push([id, target]) : undefined,
+  act:async (command, args) => { calls.push({command, args}); }}));
+const mountLibrary = view => mountWith(WorkflowLibrary, view, (v, calls) => ({data:v.data, host:v.host, busy:!!v.busy, pick:v.pick ?? null, outcome:v.outcome ?? null,
+  setPick:pick => { calls.push({pick}); }, act:async (command, args) => { calls.push({command, args}); }}));
+const mountChip = view => mountWith(PickChip, view, v => ({pick:v.pick, host:{...v.host, workflowRoot:v.data}, thread:v.thread ?? 'T1', disabled:false, remove:() => {}}));
+// The chip shows a selection only where it is the pick by its whole source: the project library's source root included.
+const selectedHere = () => [{...selected()[0], selection:{...selected()[0].selection, identity:{...selected()[0].selection.identity, source_root:'project'}}}];
+const projectPick = () => pickListed(data().libraries[0].registered[0], data().libraries[0], host());
+const mountResult = view => mountWith(GuideResult, view, v => ({label:'Last result', outcome:v.outcome ?? null, only:v.only}));
 
 test('run readings keep waiting, working, failed, interrupted-start and finished distinct', () => {
   const h = host({serverRequests:[{state:'outstanding', nativeParameters:{threadId:'T1'}}]});
@@ -92,155 +106,161 @@ test('run readings keep waiting, working, failed, interrupted-start and finished
   }
   for (const reading of [sent]) assert.doesNotMatch(reading.title + reading.detail, /finished|completed/i);
 });
-test('initial WR admission refusal disables the original start and offers fresh preparation',async()=>{
+test('a prepared run whose start record was not admitted says so in the Run tab, which offers no start', async () => {
   const limit='Workflow start record not saved; nothing was sent; start again to record it. Its bytes are held in this App process only and lost on quit; cannot be saved from within the App.';
-  const view=await mount({thread:'T1',host:host(),data:data({selections:selected(),runs:[{reference:'run:unsaved',home:'account',generation:g,conversation:'T1',workflow:{name:'resolve-spacing'},lifecycle:{state:PREPARED},publication:{admissionRefusal:limit},status:{sent:false,limit}}]})});
+  const view=await mountRun({host:host(),data:data({selections:selected(),runs:[{reference:'run:unsaved',home:'account',generation:g,conversation:'T1',workflow:{name:'resolve-spacing'},lifecycle:{state:PREPARED},publication:{admissionRefusal:limit},status:{sent:false,limit}}]})});
   try {
-    assert.equal(props(button(view.c,'Start the run')).disabled,true);
+    assert.equal(button(view.c,'Start the run'),undefined,'the original start is not offered: the press is the composer\'s Start run, which prepares afresh');
     assert.match(region(view.c,'Run progress').textContent,/not saved.*lost on quit/);
-    await view.press('Prepare this run again');
-    assert.equal(view.calls.at(-1).command,'workflow_prepare_run');
+    assert.deepEqual(view.calls,[]);
   } finally {await view.close();}
 });
 
-test('before Codex or a project is available the next step names a concrete action and issues nothing', async () => {
-  const ui = await mount({host:host({state:'absent', generation:null}), data:data({projectLibraryAvailable:false, activeLibrary:null})});
-  assert.match(region(ui.c, 'Run a workflow').textContent, /Next: Connect Codex first/);
-  assert.ok(all(ui.c, 'a').some(a => a.getAttribute('href') === '#desktop-setup'), 'no project names Desktop setup');
-  assert.equal(button(ui.c, 'Show this project\'s workflows'), undefined);
-  assert.equal(props(button(ui.c, 'Prepare this run')).disabled, true);
-  await ui.rerender({host:host(), data:data({projectLibraryAvailable:false, activeLibrary:null})});
-  assert.match(region(ui.c, 'Run a workflow').textContent, /Next: No project folder is set\. Choose one in Desktop setup; it applies the next time you open the App\./);
-  assert.deepEqual(ui.calls, []);
+test('before Codex or a project is available, the Workflows tab says what to do and issues nothing', async () => {
+  const ui = await mountLibrary({host:host({state:'absent', generation:null}), data:data({projectLibraryAvailable:false, activeLibrary:null})});
+  try {
+    assert.ok(all(ui.c, 'a').some(a => a.getAttribute('href') === '#desktop-setup'), 'no project names Desktop setup');
+    assert.equal(button(ui.c, 'Show this project\'s workflows'), undefined);
+    assert.match(region(ui.c, 'Workflows').textContent, /No project folder is set for this App yet\. Choose a project in Desktop setup — the choice applies when you next open the App\./);
+    await ui.rerender({host:host({state:'absent'}), data:data({activeLibrary:null})});
+    assert.equal(props(button(ui.c, 'Show this project\'s workflows')).disabled, true, 'Codex not connected: the project library is not opened');
+    await ui.click(button(ui.c, 'Show this project\'s workflows'));
+    await ui.rerender({host:host()});
+    assert.equal(!!props(button(ui.c, 'Show this project\'s workflows')).disabled, false);
+    assert.deepEqual(ui.calls, []);
+  } finally { await ui.close(); }
 });
 
-test('an existing registered workflow is found, chosen for a conversation and prepared then started with the person\'s text', async () => {
-  const ui = await mount({host:host(), data:data({activeLibrary:null})});
-  await ui.press('Show this project\'s workflows');
-  assert.deepEqual(ui.calls.at(-1), {command:'workflow_open_project_library', args:{}});
-  await ui.rerender({data:data()});
-  assert.match(region(ui.c, 'Run a workflow').textContent, /Next: Choose the conversation that will run the workflow/);
-  assert.equal(props(button(ui.c, 'Use resolve-spacing')).disabled, true, 'a selection needs the conversation that keeps it');
-  assert.equal(button(ui.c, 'Use old-method'), undefined, 'a non-selectable revision offers no Use');
-  assert.match(region(ui.c, 'Workflows ready to use').textContent, /store copy missing/);
-  const select = choiceLists(ui.c)[0]; await React.act(async () => chooseIn(select, 'T1'));
-  await ui.press('Use resolve-spacing');
-  assert.deepEqual(ui.calls.at(-1), {command:'workflow_select_listed', args:{libraryRef:'lib:project', name:'resolve-spacing', revision:'rev-2-abcdef0123456789'}});
-  await ui.rerender({data:data({selections:selected()})});
-  assert.match(region(ui.c, 'Workflow chosen for this run').textContent, /resolve-spacing — project library, revision 2 rev-2-abcdef….*Ready to run/);
-  const needs = region(ui.c, 'What this workflow needs').textContent;
-  for (const name of ['run', 'spacing-limit', 'supports-table']) assert.ok(needs.includes(name), name);
-  await ui.type('Use the invented north wing spacing limit of 3 m.');
-  await ui.press('Prepare this run');
-  assert.deepEqual(ui.calls.at(-1), {command:'workflow_prepare_run', args:{generation:g, threadId:'T1', personText:'Use the invented north wing spacing limit of 3 m.'}});
+test('an existing registered workflow is found in the Workflows tab and picked, the chip says what it needs, and the Run tab reads its run', async () => {
+  const lib = await mountLibrary({host:host(), data:data({activeLibrary:null})});
+  try {
+    await lib.press('Show this project\'s workflows');
+    assert.deepEqual(lib.calls.at(-1), {command:'workflow_open_project_library', args:{}});
+    await lib.rerender({data:data()});
+    const card = region(lib.c, 'Project workflow resolve-spacing');
+    assert.equal(!!props(button(card, 'Use in message')).disabled, false, 'a pick needs no conversation: Start run chooses it for the conversation it starts or is in');
+    const old = region(lib.c, 'Project workflow old-method');
+    assert.equal(props(button(old, 'Use in message')).disabled, true, 'a non-selectable revision cannot be picked');
+    assert.match(old.textContent, /store copy missing/);
+    await lib.click(button(card, 'Use in message'));
+    const {pick} = lib.calls.at(-1);
+    assert.deepEqual([pick.kind, pick.libraryRef, pick.name, pick.revision], ['listed', 'lib:project', 'resolve-spacing', 'rev-2-abcdef0123456789'], 'the pick names the library and revision shown');
+    assert.equal(lib.calls.filter(call => call.command).length, 1, 'picking issues no command');
+  } finally { await lib.close(); }
+  const chip = await mountChip({host:host(), data:data({selections:selectedHere()}), pick:projectPick()});
+  try {
+    const needs = region(chip.c, 'What this workflow needs').textContent;
+    for (const name of ['run', 'spacing-limit', 'supports-table']) assert.ok(needs.includes(name), name);
+  } finally { await chip.close(); }
   const prepared = {reference:'run-1', conversation:'T1', home:'account', generation:g, workflow:{name:'resolve-spacing'}, lifecycle:{state:PREPARED}, status:{sent:false}, compatibility:[{preparation:{declaration}}]};
-  await ui.rerender({data:data({selections:selected(), runs:[prepared]})});
-  assert.equal(button(ui.c, 'Prepare this run'), undefined);
-  assert.match(region(ui.c, 'Run progress').textContent, /Ready to start/);
-  await ui.press('Start the run');
-  assert.deepEqual(ui.calls.at(-1), {command:'workflow_send_run', args:{runRef:'run-1'}});
-  const results = region(ui.c, 'Where the results go').textContent;
-  assert.match(results, /report-file — declared path reports\/spacing\.md: The written report/);
-  const guide = region(ui.c, 'Run a workflow').textContent;
-  assert.match(guide, /Project folder: \/invented\/work-project/);
-  assert.doesNotMatch(results, /\/invented\/project/, 'the opened library folder is never presented as the results location');
-  assert.match(guide, /hasn't checked that any of them exist/);
+  const run = await mountRun({host:host(), data:data({selections:selected(), runs:[prepared]})});
+  try {
+    assert.match(region(run.c, 'Run progress').textContent, /Ready to start/);
+    assert.equal(button(run.c, 'Prepare this run'), undefined); assert.equal(button(run.c, 'Start the run'), undefined, 'the press is the composer\'s Start run');
+    const results = region(run.c, 'Where the results go').textContent;
+    assert.match(results, /report-file — declared path reports\/spacing\.md: The written report/);
+    const tab = region(run.c, 'Run').textContent;
+    assert.match(tab, /the project folder \/invented\/work-project/);
+    assert.doesNotMatch(tab, /\/invented\/project/, 'the opened library folder is never presented as the results location');
+    assert.match(tab, /hasn't checked that any of them exist/);
+    assert.deepEqual(run.calls, []);
+  } finally { await run.close(); }
 });
 
-test('an open run reports questions, offers End this run and refuses a second prepare; a finished run says so', async () => {
+test('an open run in the Run tab reports questions, offers End run and the agent\'s finished report; a finished run says so', async () => {
   const open = {reference:'run-1', conversation:'T1', home:'account', generation:g, source:'sent', workflow:{name:'resolve-spacing'}, lifecycle:{state:OPEN}, status:{}};
-  const ui = await mount({thread:'T1', host:host({serverRequests:[{state:'outstanding', nativeParameters:{threadId:'T1'}}]}), data:data({selections:selected(), runs:[open]})});
-  assert.match(region(ui.c, 'Run progress').textContent, /Waiting for your answer/);
-  assert.equal(props(button(ui.c, 'Prepare this run')).disabled, true, 'an open run is not prepared again from the guide');
-  assert.ok(all(region(ui.c, 'Run progress'), 'a').some(a => a.getAttribute('href') === '#conversation'));
-  assert.equal(button(ui.c, 'End as completed, on the agent\'s report'), undefined, 'no completed end without the host\'s finished offer');
-  await ui.press('End this run');
-  assert.deepEqual(ui.calls.at(-1), {command:'workflow_end_run', args:{runRef:'run-1', finishedReport:null}});
-  const message = {threadId:'T1', turnId:'turn-9', itemId:'m'};
-  await ui.rerender({data:data({selections:selected(), runs:[open], offers:[{message, finished:{run:'run-1', statement:'Workflow finished: project:resolve-spacing'}}, {message:{threadId:'T1'}, finished:{run:'run-other', statement:'x'}}]})});
-  assert.match(region(ui.c, 'Agent finished report').textContent, /The agent wrote “Workflow finished: project:resolve-spacing”/);
-  await ui.press('End as completed, on the agent\'s report');
-  assert.deepEqual(ui.calls.at(-1), {command:'workflow_end_run', args:{runRef:'run-1', finishedReport:message}}, 'the existing completed path carries the host\'s exact report message');
-  await ui.rerender({host:host(), data:data({selections:selected(), runs:[{...open, lifecycle:{state:'ended by the person', end:{cause:'completed'}}}]})});
-  assert.match(region(ui.c, 'Run progress').textContent, /Ended as completed\./);
-  assert.equal(button(ui.c, 'End this run'), undefined);
-  assert.equal(props(button(ui.c, 'Prepare this run')).disabled, false, 'after the end a new run may be prepared');
-  const other = {...open, reference:'run-x', conversation:'T2'};
-  await ui.rerender({data:data({selections:selected(), runs:[other]})});
-  assert.match(region(ui.c, 'Run a workflow').textContent, /No run in this conversation yet/, 'another conversation\'s run is not shown as this one');
+  const ui = await mountRun({host:host({serverRequests:[{state:'outstanding', nativeParameters:{threadId:'T1'}}]}), data:data({selections:selected(), runs:[open]})});
+  try {
+    assert.match(region(ui.c, 'Run progress').textContent, /Waiting for your answer/);
+    assert.ok(all(region(ui.c, 'Run'), 'a').some(a => a.getAttribute('href') === '#conversation'), 'without App navigation, a link to the conversation');
+    assert.equal(button(ui.c, 'End run as completed'), undefined, 'no completed end without the host\'s finished offer');
+    await ui.press('End run');
+    assert.deepEqual(ui.calls.at(-1), {command:'workflow_end_run', args:{runRef:'run-1', finishedReport:null}});
+    const message = {threadId:'T1', turnId:'turn-9', itemId:'m'};
+    await ui.rerender({data:data({selections:selected(), runs:[open], offers:[{message, finished:{run:'run-1', statement:'Workflow finished: project:resolve-spacing'}}, {message:{threadId:'T1'}, finished:{run:'run-other', statement:'x'}}]})});
+    assert.match(region(ui.c, 'Agent finished report').textContent, /The agent wrote Workflow finished: project:resolve-spacing/);
+    await ui.press('End run as completed');
+    assert.deepEqual(ui.calls.at(-1), {command:'workflow_end_run', args:{runRef:'run-1', finishedReport:message}}, 'the existing completed path carries the host\'s exact report message');
+    await ui.rerender({host:host(), data:data({selections:selected(), runs:[{...open, lifecycle:{state:'ended by the person', end:{cause:'completed'}}}]})});
+    assert.match(region(ui.c, 'Run progress').textContent, /Ended as completed\./);
+    assert.equal(button(ui.c, 'End run'), undefined);
+    const other = {...open, reference:'run-x', conversation:'T2'};
+    await ui.rerender({data:data({selections:selected(), runs:[other]})});
+    assert.ok(region(ui.c, 'Run progress') === undefined, 'another conversation\'s run is not shown as this one');
+    assert.match(region(ui.c, 'Run').textContent, /resolve-spacing is chosen for this conversation\. No run has been started\./);
+  } finally { await ui.close(); }
 });
 
-test('an unregistered library entry is reviewed singly; the bundled candidate is shown as not runnable without a selecting control', async () => {
-  const ui = await mount({thread:'T1', host:host(), data:data()});
-  const review = region(ui.c, 'Workflows that need a first review');
-  assert.match(review.textContent, /draft-free-entry/); assert.doesNotMatch(review.textContent, /broken/);
-  await ui.press('Review draft-free-entry for first use…');
-  assert.deepEqual(ui.calls.at(-1), {command:'workflow_review_library_entries', args:{libraryRef:'lib:project', listingRef:'listing-1', entryRefs:['entry-1']}});
-  await ui.press('Look for other workflows in this library');
-  assert.deepEqual(ui.calls.at(-1), {command:'workflow_library_entries_refresh', args:{libraryRef:'lib:project'}});
-  const guide = region(ui.c, 'Run a workflow');
-  const included = region(guide, 'Included workflow coordinated-knowledge-work');
-  assert.match(included.textContent, /Can't be used in this App: production bundle candidate; not a published release\./, 'the host reason is said beside the workflow');
-  assert.equal(all(guide, 'button').some(b => b.textContent.includes('coordinated-knowledge-work')), false);
-  await ui.rerender({data:data({productionCatalog:{standing:'released', entries:[{name:'coordinated-knowledge-work', revision:'bundled-rev-0123456789', runnable:true, runLimit:null}]}})});
-  await ui.press('Use coordinated-knowledge-work');
-  assert.deepEqual(ui.calls.at(-1), {command:'workflow_select_production_bundle', args:{name:'coordinated-knowledge-work'}}, 'a host-runnable bundled entry uses the existing bundled selection');
-  await ui.rerender({data:data()});
-  await ui.rerender({data:data({selections:selected(false)})});
-  assert.match(region(ui.c, 'Run a workflow').textContent, /Next: resolve-spacing can't run: not registered/);
-  assert.equal(props(button(ui.c, 'Prepare this run')).disabled, true);
-  await ui.rerender({data:data({selections:selected(), reviews:[{reference:'rev-ref', status:{presentation:{entries:[]}}}], activeReview:'rev-ref'})});
-  assert.ok(all(ui.c, 'a').some(a => a.getAttribute('href') === '#workflow-reviews'));
+test('an unregistered library entry is reviewed singly in the Workflows tab; an included workflow the host does not run cannot be picked', async () => {
+  const ui = await mountLibrary({host:host(), data:data()});
+  try {
+    const entry = region(ui.c, 'Project workflow draft-free-entry');
+    assert.ok(entry); assert.ok(region(ui.c, 'Project workflow broken') === undefined, 'an entry that cannot be reviewed is not offered');
+    await ui.press('Review for first use…', entry);
+    assert.deepEqual(ui.calls.at(-1), {command:'workflow_review_library_entries', args:{libraryRef:'lib:project', listingRef:'listing-1', entryRefs:['entry-1']}});
+    await ui.press('Look for other workflows in this library');
+    assert.deepEqual(ui.calls.at(-1), {command:'workflow_library_entries_refresh', args:{libraryRef:'lib:project'}});
+    const included = region(ui.c, 'Included workflow coordinated-knowledge-work');
+    assert.match(included.textContent, /Can't be used in this App: production bundle candidate; not a published release\./, 'the host reason is said beside the workflow');
+    assert.equal(props(button(included, 'Use in message')).disabled, true);
+    await ui.rerender({data:data({productionCatalog:{standing:'released', entries:[{name:'coordinated-knowledge-work', revision:'bundled-rev-0123456789', runnable:true, runLimit:null}]}})});
+    await ui.click(button(region(ui.c, 'Included workflow coordinated-knowledge-work'), 'Use in message'));
+    assert.deepEqual([ui.calls.at(-1).pick.kind, ui.calls.at(-1).pick.name], ['included', 'coordinated-knowledge-work'], 'a host-runnable included workflow is picked; Start run selects it');
+    await ui.rerender({data:data({reviews:[{reference:'rev-ref', status:{presentation:{entries:[]}}}], activeReview:'rev-ref'})});
+    assert.ok(all(ui.c, 'a').some(a => a.getAttribute('href') === '#workflow-reviews'));
+    assert.equal(ui.calls.filter(call => call.command).length, 2, 'only the review and the refresh issued commands');
+  } finally { await ui.close(); }
 });
 
-test('a stale workflow source disables every guide command', async () => {
-  const ui = await mount({thread:'T1', host:host({workflowRoot:{context:{sourceRef:'other', generation:g}}}), data:data({selections:selected()})});
-  assert.match(region(ui.c, 'Run a workflow').textContent, /Next: The workflow view is out of date/);
-  assert.match(region(ui.c, 'Workflows ready to use').textContent, /resolve-spacing · revision 2 — chosen/);
-  assert.equal(button(ui.c, 'Use resolve-spacing'), undefined, 'the chosen revision is not offered again');
-  const labels = ['Reload this project\'s workflows', 'Review draft-free-entry for first use…', 'Look for other workflows in this library', 'Prepare this run'];
+test('a stale workflow source disables every command of the Workflows and Run tabs', async () => {
   const stale = host({workflowRoot:{context:{sourceRef:'other', generation:g}}});
-  const prepared = {reference:'run-p', conversation:'T1', home:'account', generation:g, workflow:{name:'resolve-spacing'}, lifecycle:{state:PREPARED}, status:{sent:false}};
-  const open = {reference:'run-o', conversation:'T1', home:'account', generation:g, source:'s', lifecycle:{state:OPEN}, status:{}};
-  const clickAll = async list => { for (const label of list) { const node = button(ui.c, label); assert.ok(node, label); assert.equal(props(node).disabled, true, label);
+  const lib = await mountLibrary({host:stale, data:data({selections:selected()})});
+  const clickAll = async (ui, labels) => { for (const label of labels) { const node = button(ui.c, label); assert.ok(node, label); assert.equal(props(node).disabled, true, label);
     await React.act(async () => props(node).onClick()); } };
-  await clickAll(labels);
-  await ui.rerender({host:stale, data:data({selections:selected(), runs:[prepared]})}); await clickAll(['Start the run']);
-  await ui.rerender({host:stale, data:data({selections:selected(), runs:[open], offers:[{message:{threadId:'T1'}, finished:{run:'run-o', statement:'s'}}]})}); await clickAll(['End this run', 'End as completed, on the agent\'s report']);
-  assert.equal(props(choiceLists(ui.c)[0]).disabled, true, 'the conversation choice follows the same guard');
-  assert.deepEqual(ui.calls, [], 'a retained click on a stale control dispatches nothing');
+  try {
+    assert.match(region(lib.c, 'Workflows').textContent, /The workflow view is out of date/);
+    await clickAll(lib, ['Reload this project\'s workflows', 'Review for first use…', 'Look for other workflows in this library']);
+    assert.equal(props(button(region(lib.c, 'Project workflow resolve-spacing'), 'Use in message')).disabled, true, 'picking waits for a current view too');
+    assert.deepEqual(lib.calls, [], 'a retained click on a stale control dispatches nothing');
+  } finally { await lib.close(); }
+  const open = {reference:'run-o', conversation:'T1', home:'account', generation:g, source:'s', lifecycle:{state:OPEN}, status:{}};
+  const run = await mountRun({host:stale, data:data({selections:selected(), runs:[open], offers:[{message:{threadId:'T1'}, finished:{run:'run-o', statement:'s'}}]})});
+  try {
+    await clickAll(run, ['End run', 'End run as completed']);
+    assert.deepEqual(run.calls, []);
+  } finally { await run.close(); }
 });
 
-test('an unknown start outcome is not resent without the person reading the conversation; a definite refusal may be prepared again', async () => {
+test('a start of unknown outcome and a refused start are said in the Run tab', async () => {
   const unknown = {reference:'run-u', conversation:'T1', home:'account', generation:g, source:'src', lifecycle:{state:NOT_CONFIRMED}, status:UNKNOWN};
-  const ui = await mount({thread:'T1', host:host(), data:data({selections:selected(), runs:[unknown]})});
-  assert.match(region(ui.c, 'Run a workflow').textContent, /Next: Read the conversation: the last start's outcome is unknown and it may have run\./);
-  assert.match(region(ui.c, 'Run progress').textContent, /Start not confirmed — outcome unknown/);
-  assert.ok(all(region(ui.c, 'Run progress'), 'a').some(a => a.getAttribute('href') === '#conversation'));
-  const prepare = button(ui.c, 'Prepare this run'); assert.equal(props(prepare).disabled, true);
-  await React.act(async () => props(prepare).onClick()); assert.deepEqual(ui.calls, []);
-  const ack = all(ui.c, 'input').find(node => props(node)?.type === 'checkbox');
-  await React.act(async () => props(ack).onChange({target:{checked:true}}));
-  await ui.press('Prepare this run');
-  assert.equal(ui.calls.at(-1).command, 'workflow_prepare_run', 'only after the explicit acknowledgement');
-  await ui.rerender({data:data({selections:selected(), runs:[unknown, {...unknown, reference:'run-u2'}]})});
-  assert.equal(props(button(ui.c, 'Prepare this run')).disabled, true, 'the acknowledgement named the earlier run only');
-  await ui.rerender({data:data({selections:selected(), runs:[{...unknown, status:REFUSED}]})});
-  assert.equal(all(ui.c, 'input').some(node => props(node)?.type === 'checkbox'), false);
-  assert.equal(props(button(ui.c, 'Prepare this run')).disabled, false);
-  assert.match(region(ui.c, 'Run progress').textContent, /Codex refused to start the run/);
+  const ui = await mountRun({host:host(), data:data({selections:selected(), runs:[unknown]})});
+  try {
+    assert.match(region(ui.c, 'Run progress').textContent, /Start not confirmed — outcome unknown/);
+    assert.ok(all(region(ui.c, 'Run'), 'a').some(a => a.getAttribute('href') === '#conversation'));
+    assert.equal(button(ui.c, 'Prepare this run'), undefined, 'the acknowledgement and a new run are the composer\'s Start run\'s');
+    await ui.rerender({data:data({selections:selected(), runs:[{...unknown, status:REFUSED}]})});
+    assert.match(region(ui.c, 'Run progress').textContent, /Codex refused to start the run/);
+    assert.deepEqual(ui.calls, []);
+  } finally { await ui.close(); }
 });
 
-test("with App navigation, the run's conversation is shown — its requests when Codex is waiting — and nothing is sent", async () => {
+test("with App navigation, the Run tab shows the run's conversation — its requests when Codex is waiting — and nothing is sent", async () => {
   const open = {reference:'run-1', conversation:'T2', home:'account', generation:g, source:'sent', workflow:{name:'resolve-spacing'}, lifecycle:{state:OPEN}, status:{}};
-  const ui = await mount({navigate:true, thread:'T2', host:host({serverRequests:[{state:'outstanding', nativeParameters:{threadId:'T2'}}]}), data:data({selections:selected(), runs:[open]})});
-  assert.equal(all(region(ui.c, 'Run progress'), 'a').length, 0, 'no bare scroll link that could show another conversation');
-  await ui.press('Answer in the conversation');
-  assert.deepEqual(ui.shown, [['T2', 'conversation-requests']]);
-  await ui.rerender({host:host()});
-  await ui.press('Show the conversation');
-  assert.deepEqual(ui.shown.at(-1), ['T2', 'conversation']);
-  assert.deepEqual(ui.calls, [], 'navigation issues no host command');
+  const ui = await mountRun({navigate:true, thread:'T2', host:host({serverRequests:[{state:'outstanding', nativeParameters:{threadId:'T2'}}]}), data:data({selections:selected(), runs:[open]})});
+  try {
+    assert.equal(all(region(ui.c, 'Run'), 'a').filter(a => a.getAttribute('href') === '#conversation').length, 0, 'no bare scroll link that could show another conversation');
+    await ui.press('Answer in the conversation');
+    assert.deepEqual(ui.shown, [['T2', 'conversation-requests']]);
+    // Codex reports the conversation active: the tab offers to show it.
+    await ui.rerender({host:host({threads:[{threadId:'T1', generation:g, model:'invented-model', status:{type:'idle'}}, {threadId:'T2', generation:g, model:'invented-model', status:{type:'active', activeFlags:[]}}]})});
+    await ui.press('Show the conversation');
+    assert.deepEqual(ui.shown.at(-1), ['T2', 'conversation']);
+    // Its turn ended: Reply shows the conversation too.
+    await ui.rerender({host:host()});
+    await ui.press('Reply');
+    assert.deepEqual(ui.shown.at(-1), ['T2', 'conversation']);
+    assert.deepEqual(ui.calls, [], 'navigation issues no host command');
+  } finally { await ui.close(); }
 });
 
 test('conversation labels use a supplied title or preview, otherwise a session-local ordinal, never an invented title', () => {
@@ -255,45 +275,32 @@ test('conversation labels use a supplied title or preview, otherwise a session-l
 });
 
 // Native J1 baseline facts (main 9248a36e): the last-result line showed raw
-// host JSON, a newer registered revision was noted only in the studio, Use
-// labels hid the revision, and focus fell to the page after Prepare and Start.
-test('the last result is in words with the reply under details, a newer revision is offered here, and revisions are told apart', async () => {
+// host JSON, a newer registered revision was noted only in the studio, and Use
+// labels hid the revision. The result line is each tab's GuideResult; the newer
+// revision is the chip's (tests/workflow-pick-run.test.mjs).
+test('the last result is in words with the reply under details, and same-name revisions are told apart in the Workflows tab', async () => {
+  const ui = await mountResult({outcome:{command:'workflow_select_listed', message:'{"state":"selected","reference":"sel-1"}', failed:false, settled:true}});
+  try {
+    const last = region(ui.c, 'Last result');
+    assert.match(last.textContent, /^Chose the workflow for this conversation\.What the App reported/, 'words first; the exact reply under details');
+    assert.equal(agentBlockText(agentBlocks(last)[0]), '{"state":"selected","reference":"sel-1"}', 'the exact reply, in a marked box');
+    assert.equal(all(last, 'p')[0].textContent, 'Chose the workflow for this conversation.');
+    await ui.rerender({outcome:{command:'workflow_send_run', message:'Error: invented refusal text', failed:true, settled:true}});
+    assert.equal(region(ui.c, 'Last result').textContent, "Couldn't start the run: invented refusal text", 'an unrecognised refusal stays in the App\'s words');
+    await ui.rerender({outcome:{command:'workflow_send_run', message:'', failed:false, settled:false}});
+    assert.ok(region(ui.c, 'Last result') === undefined, 'nothing is claimed before the result arrives');
+  } finally { await ui.close(); }
   const twoRevisions = data({libraries:[{...data().libraries[0], registered:[
     {name:'resolve-spacing', sequence:2, revision:'rev-2-abcdef0123456789', label:'registered — selectable', selectable:true},
     {name:'resolve-spacing', sequence:3, revision:'rev-3-abcdef0123456789', label:'registered — selectable', selectable:true}]}]});
-  const newer = {notice:'Revision 3 of resolve-spacing is registered', revision:'rev-3-abcdef0123456789', sequence:3, selectable:true, offered:'Select revision 3'};
-  const view = {host:host(), data:{...twoRevisions, selections:[{...selected()[0], selection:{...selected()[0].selection, newerRevision:newer}}]}, thread:'T1',
-    outcome:{command:'workflow_select_listed', message:'{"state":"selected","reference":"sel-1"}', failed:false, settled:true}};
-  const ui = await mount(view);
-  const last = region(ui.c, 'Run a workflow — last result');
-  assert.match(last.textContent, /^Chose the workflow for this conversation\.What the App reported/, 'words first; the exact reply under details');
-  assert.equal(agentBlockText(agentBlocks(last)[0]), '{"state":"selected","reference":"sel-1"}', 'the exact reply, in a marked box');
-  assert.equal(all(last, 'p')[0].textContent, 'Chose the workflow for this conversation.');
-  await ui.rerender({outcome:{command:'workflow_send_run', message:'Error: invented refusal text', failed:true, settled:true}});
-  assert.equal(region(ui.c, 'Run a workflow — last result').textContent, "Couldn't start the run: invented refusal text", 'an unrecognised refusal stays in the App\'s words');
-  await ui.rerender({outcome:{command:'workflow_send_run', message:'', failed:false, settled:false}});
-  assert.equal(region(ui.c, 'Run a workflow — last result'), undefined, 'nothing is claimed before the result arrives');
-  const note = region(ui.c, 'Newer revision for this conversation');
-  assert.match(note.textContent, /A newer revision of resolve-spacing is registered \(Revision 3 of resolve-spacing is registered\)\. This conversation keeps using the one shown above until you choose the newer one\./);
-  await ui.press('Select revision 3');
-  assert.deepEqual(ui.calls.at(-1), {command:'workflow_follow_newer_revision', args:{selectionRef:'sel-1', revision:'rev-3-abcdef0123456789'}});
-  assert.ok(button(ui.c, 'Use resolve-spacing revision 3'), 'same-name rows name their revision');
-});
-
-test('after Prepare the Start button has the focus, and after Start the run progress', async () => {
-  const proto = Object.getPrototypeOf(document.createElement('div')); const focused = []; const previous = proto.focus;
-  proto.focus = function () { focused.push(this); };
+  const lib = await mountLibrary({host:host(), data:twoRevisions});
   try {
-    const view = {host:host(), data:data({selections:selected()}), thread:'T1'};
-    const ui = await mount(view);
-    await ui.type('Fix the spacing in reports/');
-    await ui.press('Prepare this run');
-    await ui.rerender({data:data({selections:selected(), runs:[{reference:'run-1', conversation:'T1', home:'account', generation:g, workflow:{name:'resolve-spacing'}, lifecycle:{state:PREPARED}}]})});
-    assert.equal(focused.at(-1)?.textContent, 'Start the run', 'Prepare lands on Start');
-    await ui.press('Start the run');
-    await ui.rerender({data:data({selections:selected(), runs:[{reference:'run-1', conversation:'T1', home:'account', generation:g, source:'s', workflow:{name:'resolve-spacing'}, lifecycle:{state:OPEN}}]})});
-    assert.equal(focused.at(-1)?.getAttribute('aria-label'), 'Run progress', 'Start lands on the run progress');
-  } finally { proto.focus = previous; }
+    const cards = lib.c.querySelectorAll(node => node.getAttribute('aria-label') === 'Project workflow resolve-spacing');
+    assert.equal(cards.length, 2);
+    const metas = cards.map(card => all(card, 'small')[0].textContent);
+    assert.ok(metas.every(meta => /another revision has the same name/.test(meta)), 'same-name cards say so');
+    assert.notEqual(metas[0], metas[1], 'and name their revision');
+  } finally { await lib.close(); }
 });
 
 // Rows as runtime_session's run view gives them (generation, home, conversation,
@@ -302,65 +309,60 @@ test('after Prepare the Start button has the focus, and after Start the run prog
 // preparationOrder (local to one home and conversation).
 const runRow = over => ({reference:'run', conversation:'T1', home:'account', generation:g, source:'s', turn:'t', compatibility:[{preparation:{declaration}}],
   workflow:{name:'resolve-spacing', origin:'project', revision:'rev-1-0123456789ab', sourceRoot:'project'}, lifecycle:{state:'ended', end:{cause:'completed'}}, ...over});
-test('Results orders this conversation\'s runs only by the host\'s preparationOrder, never by array position, and says when order is not known', async () => {
+test('the Run tab orders this conversation\'s runs only by the host\'s preparationOrder, never by array position, and says when order is not known', async () => {
   const {runEvidenceAnchor} = loadSrc('RunJourney');
   const ordered = [runRow({reference:'run-b', preparationOrder:1, lifecycle:{state:'ended', end:{cause:'ended by the person'}}}), runRow({reference:'run-c', preparationOrder:2, lifecycle:{state:'ended', end:{cause:'completed'}}}),
     runRow({reference:'run-a', preparationOrder:0}), runRow({reference:'run-other', conversation:'T2', preparationOrder:5}), runRow({reference:'run-prep', preparationOrder:3, source:undefined, lifecycle:{state:PREPARED}})];
-  const ui = await mount({host:host(), data:data({selections:selected(), runs:ordered}), thread:'T1', navigate:true});
-  const labels = () => region(ui.c, 'Runs in this conversation').querySelectorAll(node => node.localName === 'li' && (node.getAttribute('aria-label') ?? '').startsWith('Run ')).map(node => node.getAttribute('aria-label'));
-  assert.deepEqual(labels(), ['Run run-c', 'Run run-b', 'Run run-a'], 'highest preparationOrder first, whatever the array order');
-  assert.match(region(ui.c, 'Run progress').textContent, /Ready to start/, 'the current run is the highest order (the prepared one), not the last array row');
-  assert.match(region(ui.c, 'Run run-c').textContent, /resolve-spacing \(rev-1-012345…\) · Ended as completed\..*It declares: .*report-file \(reports\/spacing\.md\)\..*the App hasn't checked them/);
-  assert.equal(all(region(ui.c, 'Run run-c'), 'a').find(node => node.textContent.startsWith('Open this run\'s recorded evidence')).getAttribute('href'), `#${runEvidenceAnchor('run-c')}`);
-  await React.act(async () => props(button(region(ui.c, 'Run run-c'), 'Show the conversation')).onClick());
-  assert.deepEqual(ui.shown.at(-1), ['T1', undefined]);
-  // Without the field, nothing is sorted and no latest run is chosen.
-  await ui.rerender({data:data({selections:selected(), runs:[runRow({reference:'run-y'}), runRow({reference:'run-x', lifecycle:{state:OPEN}})]})});
-  assert.deepEqual(labels(), ['Run run-y', 'Run run-x'], 'the host\'s order is kept, unsorted');
-  assert.match(region(ui.c, 'Runs in this conversation').textContent, /The App doesn't know these runs' order/);
-  assert.match(region(ui.c, 'Run progress')?.textContent ?? region(ui.c, 'Run a workflow').textContent, /several runs, and the App can't tell which one is the latest|several runs whose order the App can't tell/);
-  assert.equal(props(button(ui.c, 'Prepare this run')).disabled, true, 'an open run among them still holds a new preparation');
-  assert.match(region(ui.c, 'Run a workflow').textContent, /Next: A run in this conversation is still open, and the App can't tell which run is latest/, 'Next does not offer a preparation that is held');
-  await ui.rerender({data:data({selections:selected(), runs:[runRow({reference:'run-y'}), runRow({reference:'run-u', lifecycle:{state:NOT_CONFIRMED}, status:UNKNOWN})]})});
-  assert.match(region(ui.c, 'Run a workflow').textContent, /Next: Read the conversation: a start here has an unknown outcome and may have run; the App can't tell which run is latest\./, 'no "last start" claim without an order');
-  assert.equal(ui.calls.filter(call => call.command).length, 0, 'finding results issues nothing');
+  const ui = await mountRun({host:host(), data:data({selections:selected(), runs:ordered}), navigate:true});
+  try {
+    const labels = () => region(ui.c, 'Runs in this conversation').querySelectorAll(node => node.localName === 'li' && (node.getAttribute('aria-label') ?? '').startsWith('Run ')).map(node => node.getAttribute('aria-label'));
+    assert.deepEqual(labels(), ['Run run-c', 'Run run-b', 'Run run-a'], 'highest preparationOrder first, whatever the array order');
+    assert.match(region(ui.c, 'Run progress').textContent, /Ready to start/, 'the current run is the highest order (the prepared one), not the last array row');
+    assert.match(region(ui.c, 'Run run-c').textContent, /resolve-spacing \(rev-1-012345…\) · Ended as completed\..*It declares: .*report-file \(reports\/spacing\.md\)\..*the App hasn't checked them/);
+    assert.equal(all(region(ui.c, 'Run run-c'), 'a').find(node => node.textContent.startsWith('Open this run\'s recorded evidence')).getAttribute('href'), `#${runEvidenceAnchor('run-c')}`);
+    await React.act(async () => props(button(region(ui.c, 'Run run-c'), 'Show the conversation')).onClick());
+    assert.deepEqual(ui.shown.at(-1), ['T1', undefined]);
+    // Without the field, nothing is sorted and no latest run is chosen.
+    await ui.rerender({data:data({selections:selected(), runs:[runRow({reference:'run-y'}), runRow({reference:'run-x', lifecycle:{state:OPEN}})]})});
+    assert.deepEqual(labels(), ['Run run-y', 'Run run-x'], 'the host\'s order is kept, unsorted');
+    assert.match(region(ui.c, 'Runs in this conversation').textContent, /The App doesn't know these runs' order/);
+    assert.match(region(ui.c, 'Run').textContent, /several runs, and the App can't tell which one is the latest/);
+    assert.ok(region(ui.c, 'Run progress') === undefined, 'no run is read as the current one');
+    assert.equal(ui.calls.length, 0, 'finding results issues nothing');
+  } finally { await ui.close(); }
 });
 
-test('a run from an earlier Codex session with the same thread ID is never current; recorded runs match the full workflow source', async () => {
+test('a run from an earlier Codex session with the same thread ID is never current in the Run tab, and says where to find it', async () => {
   const g1 = g, g2 = {...g, spawnCounter:2};
   const restarted = host({generation:g2, workflowRoot:{context:{sourceRef:'src', generation:g2}}, threads:[{threadId:'T1', generation:g2, model:'invented-model', status:{type:'idle'}}]});
   const runs = [runRow({reference:'run-old', generation:g1, preparationOrder:0}), runRow({reference:'run-new', generation:g2, preparationOrder:1}), runRow({reference:'run-key-home', home:'api-key', generation:{...g2, home:'api-key'}})];
-  const sel = [{sourceRef:'src', threadId:'T1', selection:{...selected()[0].selection, identity:{kind:'registered', name:'resolve-spacing', origin:'project', source_root:'project', revision:'rev-2-abcdef0123456789'}}}];
-  const reopened = {standing:'s', runs:[
-    {run:'rec-same', conversation:'thread-old', state:'ended', workflow:{kind:'registered', name:'resolve-spacing', origin:'project', source_root:'project', revision:'rev-0-aaaaaaaaaaaa'}},
-    {run:'rec-other-root', conversation:'x', state:'ended', workflow:{kind:'registered', name:'resolve-spacing', origin:'project', source_root:'other-project', revision:'r'}},
-    {run:'rec-no-root', conversation:'y', state:'ended', workflow:{name:'resolve-spacing', origin:'project', revision:'r'}},
-    {run:'run-new', conversation:'T1', state:'open', workflow:{kind:'registered', name:'resolve-spacing', origin:'project', source_root:'project'}}]};
-  const ui = await mount({host:restarted, data:data({context:{sourceRef:'src', generation:g2}, selections:sel, runs, reopened}), thread:'T1', navigate:true});
-  const current = region(ui.c, 'Runs in this conversation');
-  assert.ok(current.querySelectorAll(node => node.getAttribute('aria-label') === 'Run run-new')[0], 'the current-session run is current');
-  assert.equal(current.querySelectorAll(node => node.getAttribute('aria-label') === 'Run run-old')[0], undefined, 'the earlier session\'s run is not current');
-  const earlier = region(ui.c, 'Runs whose conversation isn\'t loaded');
-  assert.match(earlier.textContent, /Earlier runs with this conversation ID, from a Codex session that isn't loaded now:Recorded conversation T1/);
-  assert.match(region(ui.c, 'Run run-old').textContent, /find it in History/);
-  assert.equal(button(region(ui.c, 'Run run-old'), 'Show the conversation'), undefined, 'no navigation into the same-ID current conversation');
-  assert.equal(region(ui.c, 'Run run-key-home'), undefined, 'another home\'s run is not listed');
-  const recorded = region(ui.c, 'Recorded runs of this workflow').textContent;
-  assert.match(recorded, /rec-same · revision rev-0-aaaaaa… · ended · recorded conversation thread-old/);
-  assert.doesNotMatch(recorded, /rec-other-root|rec-no-root|run-new/, 'another source root, an incomplete source and a live run are not this family');
+  const ui = await mountRun({host:restarted, data:data({context:{sourceRef:'src', generation:g2}, selections:selected(), runs}), navigate:true});
+  try {
+    assert.match(region(ui.c, 'Run').textContent, /Ended as completed/, 'the current-session run is current');
+    assert.ok(region(ui.c, 'Run run-old') === undefined, 'the earlier session\'s run is not current, nor listed as this conversation\'s');
+    assert.ok(region(ui.c, 'Run run-key-home') === undefined, 'another home\'s run is not listed');
+    assert.ok(region(ui.c, 'Runs in this conversation') === undefined);
+  } finally { await ui.close(); }
+  // Its reading says where to find its conversation; the workflow studio, under More, lists it at its evidence.
+  const open = runReading(runRow({reference:'run-old', generation:g1, lifecycle:{state:OPEN}}), restarted);
+  assert.equal(open.title, 'Open in an earlier Codex session');
+  assert.match(open.detail, /Find its conversation in History, under More\./);
 });
 
-test('after Codex restarts and the run\'s conversation is not loaded, its runs stay findable as not loaded', async () => {
+test('after Codex restarts and the run\'s conversation is not loaded, its runs stay findable in the workflow studio', async () => {
+  const {WorkflowRootPanel} = loadSrc('App');
+  const {runEvidenceAnchor} = loadSrc('RunJourney');
   const g2 = {...g, spawnCounter:2};
-  const runs = [{reference:'run-1', conversation:'T1', home:'account', generation:g, source:'s', workflow:{name:'resolve-spacing', origin:'project', revision:'rev-1-0123456789ab'}, lifecycle:{state:'ended', end:{cause:'completed'}}},
-    {reference:'run-other-home', conversation:'T9', home:'api-key', source:'s', workflow:{name:'resolve-spacing'}, lifecycle:{state:'ended', end:{cause:'completed'}}}];
+  const runs = [{reference:'run-1', conversation:'T1', home:'account', generation:g, source:'s', workflow:{name:'resolve-spacing', origin:'project', revision:'rev-1-0123456789ab'}, lifecycle:{state:'ended', end:{cause:'completed'}}}];
   const restarted = host({generation:g2, workflowRoot:{context:{sourceRef:'src', generation:g2}}, threads:[{threadId:'T5', generation:g2, model:'invented-model', status:{type:'idle'}}]});
-  const ui = await mount({host:restarted, data:data({context:{sourceRef:'src', generation:g2}, runs}), navigate:true});
-  const unloaded = region(ui.c, 'Runs whose conversation isn\'t loaded');
-  assert.ok(unloaded, 'the earlier run is still listed');
-  assert.match(region(ui.c, 'Run run-1').textContent, /Ended as completed\..*Its conversation isn't loaded in this Codex session; find it in History\./);
-  assert.equal(button(region(ui.c, 'Run run-1'), 'Show the conversation'), undefined, 'no navigation to a conversation that isn\'t loaded');
-  assert.equal(region(ui.c, 'Run run-other-home'), undefined, 'another home\'s run is not listed');
+  const view = data({context:{sourceRef:'src', generation:g2}, runs, drafts:{drafts:[]}});
+  const c = document.createElement('div'); const root = createRoot(c);
+  await React.act(async () => root.render(React.createElement(WorkflowRootPanel, {data:view, host:restarted, view:'make', act:async () => { throw Error('no command'); }})));
+  assert.ok(c.querySelectorAll(node => node.getAttribute('id') === runEvidenceAnchor('run-1'))[0], 'the earlier run is still listed, at its evidence');
+  await React.act(async () => root.unmount());
+  const run = await mountRun({host:restarted, thread:'T5', data:view});
+  try { assert.ok(region(run.c, 'Run progress') === undefined, 'another conversation\'s run, of an earlier session, is not the open conversation\'s'); }
+  finally { await run.close(); }
 });
 
 test('an open run from an earlier Codex session never takes a same-ID conversation\'s current activity', () => {
@@ -379,13 +381,13 @@ test('an open run from an earlier Codex session never takes a same-ID conversati
 });
 
 // Constructed source replacements over the retained host/runRow shapes above.
-// Mount the whole guide: these are DOM readings/navigation boundaries, not
+// Mount the Run tab: these are DOM readings/navigation boundaries, not
 // direct runReading calls, native history, or a newly executed producer.
 for (const [replacement, currentGeneration] of [
   ['spawn', {...g, spawnCounter:2}],
   ['App session', {...g, appSession:'constructed-new-session'}],
   ['home', {...g, home:'constructed-other-home'}],
-]) test(`an open run survives ${replacement} replacement without borrowing same-ID live activity`, async () => {
+]) test(`an open run survives ${replacement} replacement without borrowing same-ID live activity in the Run tab`, async () => {
   const original = runRow({reference:'open-original', lifecycle:{state:OPEN}, preparationOrder:0});
   const originalBytes = JSON.stringify(original);
   const snapshot = (generation, state, requests = []) => host({generation,
@@ -393,32 +395,24 @@ for (const [replacement, currentGeneration] of [
     threads:[{threadId:'T1', generation, model:'invented-model', status:{type:state}}],
     serverRequests:requests});
   const projection = (generation, runs) => data({context:{sourceRef:'src', generation}, selections:selected(), runs});
-  const ui = await mount({thread:'T1', navigate:true, host:snapshot(g, 'active'), data:projection(g, [original])});
+  const ui = await mountRun({navigate:true, host:snapshot(g, 'active'), data:projection(g, [original])});
   try {
     assert.match(region(ui.c, 'Run progress').textContent, /Codex reports this conversation active/);
-    assert.match(region(ui.c, 'Run open-original').textContent, /Codex reports this conversation active/);
     const replacementQuestion = {generation:currentGeneration, state:'outstanding', nativeParameters:{threadId:'T1'}};
     // The open row is unchanged while both the current source and its same-ID
     // activity are replaced. No ended result or new-run order is fabricated.
     await ui.rerender({host:snapshot(currentGeneration, 'active', [replacementQuestion]), data:projection(currentGeneration, [original])});
-    assert.equal(region(ui.c, 'Run progress'), undefined, 'the old open row is not current progress');
-    if (replacement === 'home') {
-      assert.equal(region(ui.c, 'Run open-original'), undefined, 'the old home is not listed as this home');
-      assert.equal(region(ui.c, "Runs whose conversation isn't loaded"), undefined);
-    } else {
-      const old = region(ui.c, 'Run open-original');
-      assert.match(old.textContent, /Open in an earlier Codex session/);
-      assert.doesNotMatch(old.textContent, /Waiting for your answer|Working/);
-      assert.equal(button(old, 'Show the conversation'), undefined, 'cannot navigate into the replacement same-ID chat');
-      assert.ok(all(old, 'a').some(a => a.getAttribute('href')?.startsWith('#run-evidence-')), 'recorded evidence stays reachable');
-    }
+    assert.ok(region(ui.c, 'Run progress') === undefined, 'the old open row is not current progress');
+    assert.ok(region(ui.c, 'Run open-original') === undefined, 'nor listed as the open conversation\'s run');
+    assert.doesNotMatch(region(ui.c, 'Run').textContent, /Waiting for your answer|Needs answer|Working/);
+    assert.equal(button(ui.c, 'Answer in the conversation'), undefined, 'cannot navigate into the replacement same-ID chat on the old run\'s account');
     assert.deepEqual(ui.calls, []); assert.deepEqual(ui.shown, [], 'replacement alone never opens or answers a conversation');
     // Positive control: a separately constructed run of the exact new source
     // can read that source's waiting/working states; it does not rebind old.
     const current = runRow({reference:'open-current', generation:currentGeneration, home:currentGeneration.home, lifecycle:{state:OPEN}, preparationOrder:1});
     await ui.rerender({data:projection(currentGeneration, [original, current])});
     assert.match(region(ui.c, 'Run progress').textContent, /Waiting for your answer/);
-    assert.match(region(ui.c, 'Run open-current').textContent, /Waiting for your answer/);
+    assert.ok(region(ui.c, 'Run open-original') === undefined, 'the old row is still not this source\'s');
     await ui.press('Answer in the conversation');
     assert.deepEqual(ui.shown, [['T1', 'conversation-requests']]);
     await ui.rerender({host:snapshot(currentGeneration, 'active')});
@@ -428,17 +422,27 @@ for (const [replacement, currentGeneration] of [
   } finally { await ui.close(); }
 });
 
-
 test('project and library locations stay distinct without a matching project folder', async () => {
-  const ui=await mount({host:host({currentAppProjectContext:{reference:'opaque-project'}}),data:data()});
-  const location=region(ui.c,'Project location');
-  assert.match(location.textContent,/Project is set; its folder name is unavailable/);
-  assert.doesNotMatch(location.textContent,/Project folder:.*invented/);
-  assert.ok(all(location,'details').every(n=>!props(n).open));
-  for(const step of ['project','conversation','workflow','inputs','start','progress','results']) assert.ok(ui.c.querySelectorAll(n=>n.getAttribute('aria-labelledby')===`run-${step}-heading`).length);
-  await ui.rerender({host:host({currentAppProjectContext:null})});
-  assert.match(region(ui.c,'Project location').textContent,/project workflow library is available/);
-  assert.deepEqual(ui.calls,[]);await ui.close();
+  const {appProjectFolder, ProjectLibraryContext} = loadSrc('WorkflowContext');
+  const opaque = host({currentAppProjectContext:{reference:'opaque-project', sourceCaption:'configured App directory', standing:'s'}, workflowRoot:data()});
+  assert.equal(appProjectFolder(opaque), null, 'an opaque project reference gives no folder');
+  const c = document.createElement('div'); const root = createRoot(c);
+  await React.act(async () => root.render(React.createElement(ProjectLibraryContext, {host:opaque})));
+  const shown = region(c, 'Project and opened library');
+  assert.match(region(shown, 'Fixed App project display').textContent, /configured App directory; folder display unavailable/);
+  assert.doesNotMatch(region(shown, 'Fixed App project display').textContent, /invented/);
+  assert.match(shown.textContent, /project library · \/invented\/project/, 'the opened library is said apart from the project');
+  assert.ok(all(shown, 'details').every(n => !props(n).open));
+  await React.act(async () => root.render(React.createElement(ProjectLibraryContext, {host:host({currentAppProjectContext:null, workflowRoot:data()})})));
+  assert.match(region(c, 'Fixed App project display').textContent, /^Unavailable — explicit App project reference not established\./, 'no project: said, and no library folder offered in its place');
+  await React.act(async () => root.unmount());
+  // The Run tab says only that the library location does not establish where results go.
+  const run = await mountRun({host:host({currentAppProjectContext:{reference:'opaque-project'}}), data:data({selections:selected(), runs:[runRow({reference:'run-1', preparationOrder:0})]})});
+  try {
+    assert.match(region(run.c, 'Run').textContent, /The App has not reported a matching project folder; the library location alone does not establish output locations\./);
+    assert.doesNotMatch(region(run.c, 'Run').textContent, /\/invented\/project/);
+    assert.deepEqual(run.calls, []);
+  } finally { await run.close(); }
 });
 
 test('raw action responses are optional while an exception stays directly readable', async () => {
@@ -456,108 +460,109 @@ test('raw action responses are optional while an exception stays directly readab
 // replaces the launch observation source with it after a saved desktop setup.
 const SAVED = 'explicit saved desktop request, revalidated this launch';
 const launchFrom = (source, root = '/invented/work-project') => ({launchAppProjectObservation:{source, nativeRoot:path(root), associationStanding:'a'}});
-test('a saved desktop setup shows the project folder only when its projection matches the frozen reference', async () => {
-  const ui=await mount({host:host({attachmentSelections:launchFrom(SAVED)}),data:data()});
-  assert.match(region(ui.c,'Project location').textContent,/Project folder: \/invented\/work-project/);
-  await ui.rerender({host:host({attachmentSelections:launchFrom(SAVED,'/invented/other-project')})});
-  assert.match(region(ui.c,'Project location').textContent,/Project is set; its folder name is unavailable/,'a mismatched saved-desktop projection supplies no folder');
-  assert.doesNotMatch(region(ui.c,'Project location').textContent,/other-project/);
-  for(const source of ['explicit saved desktop request','another producer',undefined]){
-    await ui.rerender({host:host({attachmentSelections:launchFrom(source)})});
-    assert.match(region(ui.c,'Project location').textContent,/Project is set; its folder name is unavailable/,`unknown source ${source} supplies no folder`);
-  }
-  assert.deepEqual(ui.calls,[]);await ui.close();
+test('a saved desktop setup gives the project folder only when its projection matches the frozen reference', async () => {
+  const {appProjectFolder} = loadSrc('WorkflowContext');
+  assert.equal(appProjectFolder(host({attachmentSelections:launchFrom(SAVED)})), '/invented/work-project');
+  assert.equal(appProjectFolder(host({attachmentSelections:launchFrom(SAVED, '/invented/other-project')})), null, 'a mismatched saved-desktop projection supplies no folder');
+  for (const source of ['explicit saved desktop request', 'another producer', undefined])
+    assert.equal(appProjectFolder(host({attachmentSelections:launchFrom(source)})), null, `unknown source ${source} supplies no folder`);
+  // Where it is said: the Run tab's Details, beside what the workflow declares.
+  const run = await mountRun({host:host({attachmentSelections:launchFrom(SAVED)}), data:data({selections:selected(), runs:[runRow({reference:'run-1', preparationOrder:0})]})});
+  try {
+    assert.match(region(run.c, 'Run').textContent, /inside the project folder \/invented\/work-project/);
+    await run.rerender({host:host({attachmentSelections:launchFrom(SAVED, '/invented/other-project')})});
+    assert.doesNotMatch(region(run.c, 'Run').textContent, /other-project/);
+    assert.match(region(run.c, 'Run').textContent, /The App has not reported a matching project folder/);
+    assert.deepEqual(run.calls, []);
+  } finally { await run.close(); }
 });
 
 // Walk of the development App at main 4bb28164: a press that met a passing
-// history reader failed with the host's own words under Progress, a start the
-// App could not record left "Check your inputs, then start the run", and an
+// history reader failed with the host's own words under Progress, and an
 // included workflow showed a library's "newer revisions can't be checked".
-test('a refused press is said in plain words under Next only where nothing was done, and an included workflow shows no library revision note', async () => {
+// The result line is each tab's GuideResult; the chosen workflow is the chip's.
+test('a refused press is said in plain words only where nothing was done; the chip describes the chosen workflow and its role line', async () => {
   const busy = {command:'workflow_select_production_bundle', message:'Error: Native history context is busy; refresh the workflow choice', failed:true, settled:true};
-  const ui = await mount({host:host(), data:data(), thread:'T1', outcome:busy});
-  const last = region(ui.c, 'Run a workflow — last result');
-  assert.equal(all(last, 'p')[0].textContent, "Couldn't choose the included workflow: the App was busy reading conversation history, so nothing was done. Press the button again.");
-  assert.match(last.textContent, /What the App reported/, 'the exact reply stays under details');
-  assert.equal(agentBlockText(agentBlocks(last).at(-1)), 'Native history context is busy; refresh the workflow choice', 'the exact reply, in a marked box');
-  assert.equal(last.getAttribute('role'), 'alert');
-  const section = region(ui.c, 'Run a workflow');
-  const children = Array.from(section.childNodes);
-  assert.equal(children.indexOf(last), children.findIndex(node => /^Next:/.test(node.textContent)) + 1, 'the result follows the Next line, before the steps');
-  // The App's own refusal before any host command is issued.
-  await ui.rerender({outcome:{command:'workflow_open_project_library', message:'Error: Workflow source or chat changed; refresh the displayed choice before acting', failed:true, settled:true}});
-  assert.match(region(ui.c, 'Run a workflow — last result').textContent, /^Couldn't show this project's workflows: the conversation chosen here is no longer open in this view, so nothing was done\. Choose the conversation again/);
-  // Plain words only for the exact message from a command that checks first.
-  // A start refused after its records were written is never "nothing was done".
-  for (const [command, message] of [
-    ['workflow_send_run', 'refused-not-sent: turn/start generation changed before request registration'],
-    ['workflow_send_run', 'Workflow native generation changed; refresh the displayed choice'],
-    ['workflow_end_run', 'Native history context is busy; refresh the workflow choice'],
-    ['workflow_prepare_run', 'Workflow App source changed; nothing selected or prepared'],
-    ['workflow_prepare_run', 'the Native history context is busy; refresh the workflow choice, later'],
-  ]) {
-    await ui.rerender({outcome:{command, message:`Error: ${message}`, failed:true, settled:true}});
-    const words = region(ui.c, 'Run a workflow — last result').textContent;
-    assert.ok(words.includes(message), `${command}: the App's own words are shown`);
-    assert.doesNotMatch(words, /nothing was done|nothing was changed|nothing was sent|Press the button again/, `${command}: ${message}`);
-  }
-  await ui.rerender({outcome:{command:'workflow_send_run', message:'Error: refused-not-sent: turn/start generation changed before request registration', failed:true, settled:true}});
-  assert.equal(region(ui.c, 'Run a workflow — last result').textContent, "Couldn't start the run: refused-not-sent: turn/start generation changed before request registration", 'a failed start points nowhere: the result is also shown while Progress is withheld');
+  const ui = await mountResult({outcome:busy});
+  try {
+    const last = region(ui.c, 'Last result');
+    assert.equal(all(last, 'p')[0].textContent, "Couldn't choose the included workflow: the App was busy reading conversation history, so nothing was done. Press the button again.");
+    assert.match(last.textContent, /What the App reported/, 'the exact reply stays under details');
+    assert.equal(agentBlockText(agentBlocks(last).at(-1)), 'Native history context is busy; refresh the workflow choice', 'the exact reply, in a marked box');
+    assert.equal(last.getAttribute('role'), 'alert');
+    // The App's own refusal before any host command is issued.
+    await ui.rerender({outcome:{command:'workflow_open_project_library', message:'Error: Workflow source or chat changed; refresh the displayed choice before acting', failed:true, settled:true}});
+    assert.match(region(ui.c, 'Last result').textContent, /^Couldn't show this project's workflows: the conversation chosen here is no longer open in this view, so nothing was done\. Choose the conversation again/);
+    // Plain words only for the exact message from a command that checks first.
+    // A start refused after its records were written is never "nothing was done".
+    for (const [command, message] of [
+      ['workflow_send_run', 'refused-not-sent: turn/start generation changed before request registration'],
+      ['workflow_send_run', 'Workflow native generation changed; refresh the displayed choice'],
+      ['workflow_end_run', 'Native history context is busy; refresh the workflow choice'],
+      ['workflow_prepare_run', 'Workflow App source changed; nothing selected or prepared'],
+      ['workflow_prepare_run', 'the Native history context is busy; refresh the workflow choice, later'],
+    ]) {
+      await ui.rerender({outcome:{command, message:`Error: ${message}`, failed:true, settled:true}});
+      const words = region(ui.c, 'Last result').textContent;
+      assert.ok(words.includes(message), `${command}: the App's own words are shown`);
+      assert.doesNotMatch(words, /nothing was done|nothing was changed|nothing was sent|Press the button again/, `${command}: ${message}`);
+    }
+    await ui.rerender({outcome:{command:'workflow_send_run', message:'Error: refused-not-sent: turn/start generation changed before request registration', failed:true, settled:true}, only:['workflow_send_run']});
+    assert.equal(region(ui.c, 'Last result').textContent, "Couldn't start the run: refused-not-sent: turn/start generation changed before request registration", 'a failed start points nowhere');
+  } finally { await ui.close(); }
 
+  // The chip, for an included workflow chosen for the conversation: its source and revision, and its role line.
   const included = {kind:'workflow', origin:'bundled', source_root:'invented-library:library-v9.9.9', name:'coordinated-knowledge-work', revision:'3730d84debb5aa', revision_method:'invented/v1', derived_from:null};
   const bundled = [{...selected()[0], selection:{...selected()[0].selection, identity:included,
     newerRevision:{limit:"the selection's library is not open in this App session; newer revisions not read"}}}];
-  const catalogue = source => ({standing:'s', ...(source ? {source} : {}), entries:[{name:included.name, revision:included.revision, identity:included, runnable:true}]});
-  await ui.rerender({data:data({selections:bundled, productionCatalog:catalogue()}), outcome:null});
-  assert.doesNotMatch(section.textContent, /can't be checked/, 'an included workflow has no library revisions to follow');
-  assert.match(region(ui.c, 'Workflow chosen for this run').textContent, /^coordinated-knowledge-work — included with the App, revision 3730d84debb5…\. Ready to run\./, 'source and revision of an included workflow, with no library named');
-  await ui.rerender({data:data({selections:bundled, productionCatalog:catalogue({tag:'library-v9.9.9'})})});
-  assert.match(region(ui.c, 'Workflow chosen for this run').textContent, /^coordinated-knowledge-work — included with the App, from Chirality Library 9\.9\.9, revision 3730d84debb5…\./);
-  // The role line: the conversation's role beside the roles the Library lists for the chosen included workflow.
-  const withRoles = source => ({...catalogue(source), entries:[{...catalogue(source).entries[0], roles:['TASK', 'WORKING_ITEMS']}]});
-  const roleLine = () => region(ui.c, "Role and the workflow's listed roles");
-  await ui.rerender({data:data({selections:bundled, productionCatalog:withRoles({tag:'library-v9.9.9'})})});
-  assert.equal(roleLine().textContent, "This conversation's role is not known to this App process. The Library lists coordinated-knowledge-work for: TASK, WORKING_ITEMS.", 'a conversation row with no role established by the App');
-  await ui.rerender({host:host({threads:[{threadId:'T1', generation:g, model:'invented-model', status:{type:'idle'}, appRole:{standing:'app-observed', role:'HELP_HUMAN', supply_ref:'sup:1'}}, {threadId:'T2', generation:g, model:'invented-model', status:{type:'idle'}, appRole:{standing:'app-observed', role:'TASK'}}]})});
-  assert.equal(roleLine().textContent, 'This conversation is in the role HELP_HUMAN. The Library lists coordinated-knowledge-work for: TASK, WORKING_ITEMS.', 'the chosen conversation\'s own role, not another conversation\'s');
-  await ui.rerender({host:host()});
-  // Review round 1: the development holding copy also has the bundled origin, with another source root.
-  const development = [{...bundled[0], selection:{...bundled[0].selection, identity:{...included, source_root:'chirality-root', revision:'1b1733864cd8aa'}}}];
-  await ui.rerender({data:data({selections:development, productionCatalog:catalogue({tag:'library-v9.9.9'})})});
-  const other = region(ui.c, 'Workflow chosen for this run').textContent;
-  assert.match(other, /^coordinated-knowledge-work — a bundled copy \(source chirality-root\), revision 1b1733864cd8…\./, 'a selection that is not a catalogue entry is described by its own source');
-  assert.doesNotMatch(other, /included with the App|Chirality Library/);
-  assert.equal(roleLine(), undefined, 'a selection that is not a catalogue entry gets no role line: the Library\'s list is the catalogue\'s');
-  await ui.rerender({data:data({selections:bundled, productionCatalog:catalogue()})});
-  await ui.rerender({data:data({selections:[{...bundled[0], selection:{...bundled[0].selection, identity:{name:'resolve-spacing', origin:'project', revision:'rev-2-abcdef0123456789'}}}]})});
-  assert.match(section.textContent, /Newer revisions of resolve-spacing can't be checked/, 'a library workflow still says when newer revisions could not be read');
-  await ui.close();
+  const catalogue = (source, over = {}) => ({standing:'s', ...(source ? {source} : {}), entries:[{name:included.name, revision:included.revision, identity:included, runnable:true, ...over}]});
+  const pickOf = view => pickIncluded(view.productionCatalog.entries[0], view.productionCatalog, host());
+  const first = data({selections:bundled, productionCatalog:catalogue({tag:'library-v9.9.9'})});
+  const chip = await mountChip({host:host(), data:first, pick:pickOf(first)});
+  try {
+    assert.doesNotMatch(chip.c.textContent, /can't be checked/, 'an included workflow has no library revisions to follow');
+    assert.match(region(chip.c, 'Workflow picked').textContent, /^coordinated-knowledge-work.*Chirality Library 9\.9\.9 · 3730d84debb5…/, 'source and revision of an included workflow');
+    assert.ok(region(chip.c, 'Text of coordinated-knowledge-work'), 'its text can be read from the chip');
+    const roleLine = () => region(chip.c, "Role and the workflow's listed roles");
+    assert.ok(roleLine() === undefined, 'no roles listed, no role line');
+    await chip.rerender({data:data({selections:bundled, productionCatalog:catalogue({tag:'library-v9.9.9'}, {roles:['TASK', 'WORKING_ITEMS']})})});
+    assert.equal(roleLine().textContent, "This conversation's role is not known to this App process. The Library lists coordinated-knowledge-work for: TASK, WORKING_ITEMS.", 'a conversation row with no role established by the App');
+    await chip.rerender({host:host({threads:[{threadId:'T1', generation:g, model:'invented-model', status:{type:'idle'}, appRole:{standing:'app-observed', role:'HELP_HUMAN', supply_ref:'sup:1'}}, {threadId:'T2', generation:g, model:'invented-model', status:{type:'idle'}, appRole:{standing:'app-observed', role:'TASK'}}]})});
+    assert.equal(roleLine().textContent, 'This conversation is in the role HELP_HUMAN. The Library lists coordinated-knowledge-work for: TASK, WORKING_ITEMS.', 'the conversation\'s own role, not another conversation\'s');
+    // Review round 1: the development holding copy also has the bundled origin, with another source root. It is not the
+    // included workflow picked, so the chip says nothing of it as the pick's selection.
+    await chip.rerender({host:host(), data:data({selections:[{...bundled[0], selection:{...bundled[0].selection, identity:{...included, source_root:'chirality-root', revision:'1b1733864cd8aa'}}}], productionCatalog:catalogue({tag:'library-v9.9.9'}, {roles:['TASK']})})});
+    assert.ok(roleLine() === undefined, 'a selection that is not the catalogue entry picked gets no role line');
+    assert.match(chip.c.textContent, /Press Start run to see the tools it needs/, 'nor any of the selection\'s facts');
+  } finally { await chip.close(); }
+  // A library workflow still says when newer revisions could not be read.
+  const limited = [{...selectedHere()[0], selection:{...selectedHere()[0].selection, newerRevision:{limit:'library busy; newer revisions not read now'}}}];
+  const project = await mountChip({host:host(), data:data({selections:limited}), pick:projectPick()});
+  try { assert.match(project.c.textContent, /Newer revisions of resolve-spacing can't be checked: library busy; newer revisions not read now/); }
+  finally { await project.close(); }
 });
 
-test('a prepared run the host did not send says what happened in plain words and then the host\'s own recovery text', async () => {
+test('a prepared run the host did not send says in the Run tab what happened in plain words and then the host\'s own recovery text', async () => {
   const unsent = (state, limit, retry) => ({reference:'run-1', conversation:'T1', home:'account', generation:g, preparationOrder:0, workflow:{name:'resolve-spacing'}, lifecycle:{state:PREPARED}, status:{sent:false, state, limit, ...(retry ? {retry} : {})}});
-  const ui = await mount({host:host(), data:data({selections:selected(), runs:[unsent('WR pre-send publication failed; nothing sent', 'nothing written: no records store', 'Retry publishes the same original records; sending stays a separate once-only step')]}), thread:'T1'});
-  const section = region(ui.c, 'Run a workflow');
-  assert.match(section.textContent, /Next: The run didn't start\. Progress says why and what to do\./);
-  assert.equal(region(ui.c, 'Run progress').textContent.split(' Start the run')[0].replace(/^Not started\./, '').trim().startsWith("Nothing was sent. The App couldn't finish saving the run's record. What the App says to do: Retry publishes the same original records; sending stays a separate once-only step. The App reported: WR pre-send publication failed; nothing sent: nothing written: no records store"), true);
-  assert.ok(button(ui.c, 'Start the run'), 'the prepared run can be started again');
-  for (const [state, what] of [
-    ['generated supporting files changed or unavailable; nothing sent', /Nothing was sent\. The App couldn't verify the copy of the workflow's supporting files that this run was prepared with\./],
-    ['selected revision source changed or unavailable; nothing sent', /Nothing was sent\. The App couldn't verify the chosen workflow for this run\./],
-    ['workflow approval changed since preparation; nothing sent', /Nothing was sent\. The App couldn't apply the same workflow approval it applied when you prepared this run\./],
-  ]) {
-    await ui.rerender({data:data({selections:selected(), runs:[unsent(state, 'invented cause', 'invented host recovery text')]})});
-    const progress = region(ui.c, 'Run progress').textContent;
-    assert.match(progress, what, state); assert.match(progress, /What the App says to do: invented host recovery text\. The App reported: /, 'the next action is the host\'s own');
-    assert.doesNotMatch(progress, /Prepare the run again|Start the run again|Choose the workflow again/, 'the guide prescribes nothing the host did not');
-  }
-  await ui.rerender({data:data({selections:selected(), runs:[unsent('a state the guide does not know', 'invented cause')]})});
-  const unknown = region(ui.c, 'Run progress').textContent;
-  assert.match(unknown, /^Not started\. The App reports that this run was not sent\. The App reported: a state the guide does not know: invented cause/);
-  assert.doesNotMatch(unknown, /Nothing was sent\.|What the App says to do/, 'an unknown state is given no words the host did not establish');
-  await ui.press('Prepare this run again');
-  assert.equal(ui.calls.at(-1).command, 'workflow_prepare_run', 'preparing again stays offered; the host accepts it while a prepared run is unsent');
-  await ui.close();
+  const ui = await mountRun({host:host(), data:data({selections:selected(), runs:[unsent('WR pre-send publication failed; nothing sent', 'nothing written: no records store', 'Retry publishes the same original records; sending stays a separate once-only step')]})});
+  try {
+    assert.equal(region(ui.c, 'Run progress').textContent.replace(/^Not started\./, '').trim().startsWith("Nothing was sent. The App couldn't finish saving the run's record. What the App says to do: Retry publishes the same original records; sending stays a separate once-only step. The App reported: WR pre-send publication failed; nothing sent: nothing written: no records store"), true);
+    for (const [state, what] of [
+      ['generated supporting files changed or unavailable; nothing sent', /Nothing was sent\. The App couldn't verify the copy of the workflow's supporting files that this run was prepared with\./],
+      ['selected revision source changed or unavailable; nothing sent', /Nothing was sent\. The App couldn't verify the chosen workflow for this run\./],
+      ['workflow approval changed since preparation; nothing sent', /Nothing was sent\. The App couldn't apply the same workflow approval it applied when you prepared this run\./],
+    ]) {
+      await ui.rerender({data:data({selections:selected(), runs:[unsent(state, 'invented cause', 'invented host recovery text')]})});
+      const progress = region(ui.c, 'Run progress').textContent;
+      assert.match(progress, what, state); assert.match(progress, /What the App says to do: invented host recovery text\. The App reported: /, 'the next action is the host\'s own');
+      assert.doesNotMatch(region(ui.c, 'Run').textContent, /Prepare the run again|Start the run again|Choose the workflow again/, 'the tab prescribes nothing the host did not');
+    }
+    await ui.rerender({data:data({selections:selected(), runs:[unsent('a state the guide does not know', 'invented cause')]})});
+    const unknown = region(ui.c, 'Run progress').textContent;
+    assert.match(unknown, /^Not started\. The App reports that this run was not sent\. The App reported: a state the guide does not know: invented cause/);
+    assert.doesNotMatch(unknown, /Nothing was sent\.|What the App says to do/, 'an unknown state is given no words the host did not establish');
+    assert.deepEqual(ui.calls, []);
+  } finally { await ui.close(); }
 });
 
 // Review rounds 1 and 2 of pull request 241, the question asked of every
@@ -575,48 +580,45 @@ test('a result line says only what the command established', () => {
 // Review rounds 2 and 3 of pull request 241: after a start that succeeded, a
 // view from before the press read "Ready to start", "Nothing has been sent
 // yet" and offered Start again; with a marker set, other steps still showed
-// cached states as current.
-test('while its view may be from before the last press, the guide shows none of its steps and offers nothing', async () => {
+// cached states as current. The Run tab holds the run now.
+test('while its view may be from before the last press, the Run tab shows none of the run and offers nothing', async () => {
   const preparedRun = {reference:'run-1', conversation:'T1', home:'account', generation:g, preparationOrder:0, workflow:{name:'resolve-spacing'}, lifecycle:{state:PREPARED}, status:{}};
+  const open = {...preparedRun, source:'s', lifecycle:{state:OPEN}};
   const earlier = {reference:'run-0', conversation:'T1', home:'account', generation:{...g, spawnCounter:0}, source:'s', workflow:{name:'resolve-spacing'}, lifecycle:{state:OPEN}};
-  const view = {data:data({selections:selected(), runs:[preparedRun, earlier]}), outcome:{command:'workflow_send_run', message:'{"state":"native workflow-text turn observed; run opened"}', failed:false, settled:true}};
-  const c = document.createElement('div'); const root = createRoot(c); const calls = [];
-  const render = (viewStale, busy = false) => React.act(async () => root.render(React.createElement(RunWorkflowGuide, {data:view.data, host:host(), thread:'T1', busy, text:'', viewStale,
-    chooseThread:() => {}, setText:() => {}, act:async (command, args) => { calls.push({command, args}); }, outcome:view.outcome, showConversation:() => {}})));
-  await render(false);
-  assert.ok(button(c, 'Start the run'), 'the view alone offers Start');
-  assert.match(region(c, 'Run a workflow').textContent, /Ready to run\./);
-  await render(true);
-  const section = region(c, 'Run a workflow');
-  assert.match(section.textContent, /^Run a workflowNext: What this view showed may be from before the App's last operation finished\. The App is not showing its steps until it has read its state again after that; it reads again by itself\./);
-  assert.doesNotMatch(section.textContent, /The last read failed/, 'no failure is said when no read failed');
-  assert.match(region(c, 'Run a workflow — last result').textContent, /^Start requested\.(?! See Progress)/, 'the press\'s own result stays');
-  assert.doesNotMatch(region(c, 'Run a workflow — last result').textContent.split('What the App reported')[0], /Progress|below/, 'without its pointer to Progress, which is withheld');
-  assert.deepEqual(all(section, 'button').map(node => node.textContent), ['Show the conversation'], 'no start, prepare, end or choice is offered');
-  assert.equal(all(section, 'li').length, 0, 'none of the steps is shown');
-  assert.doesNotMatch(section.textContent, /Ready to start|Ready to run|has not been sent|Nothing has been sent yet|Prepared resolve-spacing|Open —|Working/, 'nothing cached is shown as current, earlier runs included');
-  // A status read that failed since is said in the guide itself, where the person is looking.
-  await React.act(async () => root.render(React.createElement(RunWorkflowGuide, {data:view.data, host:host(), thread:'T1', busy:false, text:'', viewStale:true, readFailure:'Error: invented status failure',
-    chooseThread:() => {}, setText:() => {}, act:async () => {}, outcome:view.outcome, showConversation:() => {}})));
-  assert.match(region(c, 'Run a workflow').textContent, /it reads again by itself\.The last read failed: Error: invented status failure/);
-  // While the press is still in progress the steps stay, disabled, and its result is not yet said.
-  await render(true, true);
-  assert.equal(region(c, 'Run a workflow — last result'), undefined, 'no result is claimed beside steps from before the press');
-  for (const node of all(region(c, 'Run a workflow'), 'button')) if (!/Show the conversation/.test(node.textContent)) assert.equal(props(node).disabled, true, `${node.textContent} is disabled while the press is in progress`);
-  await render(false);
-  assert.ok(button(c, 'Start the run'), 'once a read started after the press is applied, the view is shown again');
-  assert.ok(region(c, 'Run a workflow — last result'));
-  assert.deepEqual(calls, []);
-  await React.act(async () => root.unmount());
+  const ended = {command:'workflow_end_run', message:'{"state":"ended by the person"}', failed:false, settled:true};
+  const ui = await mountRun({data:data({selections:selected(), runs:[open, earlier]}), host:host(), outcome:ended, navigate:true});
+  try {
+    assert.ok(button(ui.c, 'End run'), 'the view alone offers End run');
+    assert.match(region(ui.c, 'Run progress').textContent, /^Open/);
+    await ui.rerender({viewStale:true});
+    const section = region(ui.c, 'Run');
+    assert.match(section.textContent, /^What this view showed may be from before the App's last operation finished\. The App is not showing its steps until it has read its state again after that; it reads again by itself\./);
+    assert.doesNotMatch(section.textContent, /The last read failed/, 'no failure is said when no read failed');
+    assert.ok(region(ui.c, 'Run — last result'), 'the press\'s own result stays');
+    assert.deepEqual(all(section, 'button').map(node => node.textContent), [], 'no end or other control is offered');
+    assert.doesNotMatch(section.textContent, /Ready to start|has not been sent|Nothing has been sent yet|Open —|Working|resolve-spacing/, 'nothing cached is shown as current, earlier runs included');
+    // A status read that failed since is said in the tab itself, where the person is looking.
+    await ui.rerender({readFailure:'Error: invented status failure'});
+    assert.match(region(ui.c, 'Run').textContent, /it reads again by itself\.The last read failed: Error: invented status failure/);
+    // While the press is still in progress the run stays, its controls disabled, and its result is not yet said.
+    await ui.rerender({readFailure:null, busy:true});
+    assert.ok(region(ui.c, 'Run — last result') === undefined, 'no result is claimed beside a run read from before the press');
+    for (const node of all(region(ui.c, 'Run'), 'button')) if (!/Show the conversation|Answer|Reply/.test(node.textContent)) assert.equal(props(node).disabled, true, `${node.textContent} is disabled while the press is in progress`);
+    await ui.rerender({busy:false, viewStale:false, data:data({selections:selected(), runs:[preparedRun]})});
+    assert.match(region(ui.c, 'Run progress').textContent, /Ready to start/, 'once a read started after the press is applied, the run is shown again');
+    assert.ok(region(ui.c, 'Run — last result'));
+    assert.deepEqual(ui.calls, []);
+  } finally { await ui.close(); }
 });
 
-test('a library folder the App could not list is said where the list would be', async () => {
+test('a library folder the App could not list is said in the Workflows tab where the list would be', async () => {
   const base = data().libraries[0];
   const unavailable = {...base, entryListing:{state:'unavailable', reference:'listing-2', libraryRef:'lib:project', entries:[], limits:['library entry folder unreadable: invented cause']}};
-  const ui = await mount({thread:'T1', host:host(), data:data({libraries:[unavailable]})});
-  assert.match(region(ui.c, 'Run a workflow').textContent, /The App couldn't look in this library's folder for other workflows: library entry folder unreadable: invented cause/);
-  assert.equal(region(ui.c, 'Workflows that need a first review'), undefined);
-  await ui.close();
+  const ui = await mountLibrary({host:host(), data:data({libraries:[unavailable]})});
+  try {
+    assert.match(region(ui.c, 'Workflows').textContent, /The App couldn't look in this library's folder for other workflows: library entry folder unreadable: invented cause/);
+    assert.ok(region(ui.c, 'Project workflow draft-free-entry') === undefined, 'no entry to review is offered');
+  } finally { await ui.close(); }
 });
 
 // Each reading of an open run says what Codex reported for this conversation and nothing that would follow from it.
@@ -750,22 +752,24 @@ test('an open run says each error notice the App holds with its turn and that tu
   assert.deepEqual(runTurnNotices({...run, generation:g2}, activeHost(view([notice('A', 40)]))), [], 'a run of an earlier Codex session');
   assert.deepEqual(runTurnNotices({...run, lifecycle:{state:PREPARED}}, activeHost(view([notice('A', 40)]))), []);
 
-  // In the guide, each case asserts what is shown.
+  // In the Run tab, each case asserts what is shown.
   const LABEL = 'Error notices the App holds for this conversation', LAST = 'The conversation\'s activity shows each notice the App has kept, with its turn.';
   const STATUS = {inProgress:'in progress', completed:'completed', failed:'failed', interrupted:'interrupted'};
-  const ui = await mount({host:activeHost(view([notice('B', 40), notice('B', 41, {ordinalInTurn:2})], [held('A', 'completed', 100), held('B', 'inProgress', 200)])), data:data({selections:selected(), runs:[run]}), thread:'T1'});
+  const ui = await mountRun({host:activeHost(view([notice('B', 40), notice('B', 41, {ordinalInTurn:2})], [held('A', 'completed', 100), held('B', 'inProgress', 200)])), data:data({selections:selected(), runs:[run]})});
   const notices = () => region(ui.c, LABEL), lines = () => all(notices(), 'p').map(p => p.textContent);
   const line = n => `The App holds an error notice from Codex for turn ${n.turnId} of this conversation${n.count > 1 ? `; it is the latest of ${n.count} for that turn` : ''}: ${n.words} ${n.retry}${n.turnStatus ? ` The App holds Codex's report of that turn as ${STATUS[n.turnStatus]}.` : ''}`;
   assert.deepEqual(lines(), ['The App holds an error notice from Codex for turn B of this conversation; it is the latest of 2 for that turn: Reconnecting... 41 — Connection failed: error sending request Codex said it will retry. The App holds Codex\'s report of that turn as in progress.', LAST]);
-  // A held notice with its turn, not an alert on the run: a note, no alert and no live region on it, in it or around it up to the guide, and outside the state box and its marking.
+  // A held notice with its turn, not an alert on the run: a note, no alert and no live region on it, in it or around it up to the tab, and outside the state box and its marking.
   const noteLike = () => {
-    assert.equal(props(notices()).role, 'note'); assert.equal(props(notices()).className, undefined);
+    assert.equal(props(notices()).role, 'note'); assert.doesNotMatch(String(props(notices()).className ?? ''), /alert|fail|error|warn/, 'no alert or failure marking');
     const live = node => { const p = props(node) ?? {}; return p.role === 'alert' || p.role === 'status' || p['aria-live'] !== undefined; };
     assert.equal(live(notices()), false); assert.equal(notices().querySelectorAll(live).length, 0, 'nothing inside the note is announced as it changes');
     for (let node = notices().parentNode; node && node !== ui.c; node = node.parentNode) assert.equal(live(node), false, 'no live region around the note');
     assert.equal(ui.c.querySelectorAll(node => props(node)?.role === 'alert').length, 0);
-    assert.equal(region(ui.c, 'Run progress').querySelectorAll(node => node === notices()).length, 0, 'not inside the state box');
-    assert.doesNotMatch(region(ui.c, 'Run progress').textContent, /error notice|Reconnecting/, 'the notice is no part of the run\'s state');
+    for (const box of ['Run state', 'Run progress']) {
+      assert.ok(region(ui.c, box).querySelectorAll(node => node === notices()).length === 0, `not inside ${box}`);
+      assert.doesNotMatch(region(ui.c, box).textContent, /error notice|Reconnecting/, 'the notice is no part of the run\'s state');
+    }
   };
   noteLike();
   assert.match(region(ui.c, 'Run progress').textContent, /^Open — Codex reports this conversation active\./, 'the state Codex reported stays as reported');
@@ -798,5 +802,5 @@ test('an open run says each error notice the App holds with its turn and that tu
     await ui.rerender({host:activeHost(nativeView)});
     assert.equal(notices(), undefined);
   }
-  await ui.close?.();
+  await ui.close();
 });

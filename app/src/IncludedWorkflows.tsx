@@ -1,5 +1,5 @@
-import { safeName, idWords, numberWords, wordOf } from "./AgentText";
-import { useState, type ReactNode } from "react";
+import { numberWords, wordOf } from "./AgentText";
+import { type ReactNode } from "react";
 
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 const list = (value: Json): Json[] => (Array.isArray(value) ? value : []);
@@ -104,72 +104,12 @@ function libraryPathsSentence(paths: string[], from: string): ReactNode {
  * entry whose files name Library paths. Nothing for an entry that names none,
  * or for a selection that is not a catalogue entry.
  */
-export function LibraryPathsBesideWorkflow({ entry, source }: { entry: Json; source: Json }) {
+export function LibraryPathsBesideWorkflow({ entry, source, all = false }: { entry: Json; source: Json; all?: boolean }) {
   const paths = libraryPathsOf(entry);
   if (!entry || !paths.length) return null;
-  return <p role="note" aria-label="Library paths the workflow names">{libraryPathsSentence(paths, librarySourceWords(source))}</p>;
-}
-
-function About({ entry, source, textControl, open }: { entry: Json; source: Json; textControl?: ReactNode; open: boolean }) {
-  const paths = libraryPathsOf(entry);
-  const roles = list(entry?.roles).filter(role => typeof role === "string");
-  const from = librarySourceWords(source);
-  return <details open={open ? true : undefined}><summary>About {safeName(entry.name)}</summary>
-    <p>Source: {from ? `${from}, included with the App` : "included with the App"}. Revision <code title={idWords(entry.revision)}>{text(entry.revision).slice(0, 12)}…</code></p>
-    {textControl}
-    {roles.length > 0 && <p>The Library lists it for these roles: {roles.join(", ")}.</p>}
-    {entry?.compatibility === "legacy" && <p>The Library marks it as legacy.</p>}
-    {paths.length > 0 && <>
-      <p>{libraryPathsSentence(paths, from)}</p>
-      {paths.length > 1 && <details><summary>All {numberWords(paths.length)} paths</summary><ul>{paths.map(path => <li key={path}><code>{path}</code></li>)}</ul></details>}
-    </>}
-  </details>;
-}
-
-/**
- * The workflows included with the App, grouped and searchable, each with the
- * Library's one-sentence description. Choosing calls the guide's own command;
- * nothing here reads requirements from a workflow's text. Where the guide
- * offers it, each entry's About holds the control to read the workflow's own
- * text (`readText`); an entry whose text is held (`holdsText`) is shown open,
- * so that text is still in view when the list is drawn again.
- */
-export function IncludedWorkflows({ catalog, chosen, disabled, needsConversation, choose, readText, holdsText }: {
-  catalog: Json; chosen?: Json; disabled: boolean; needsConversation: boolean; choose: (name: string) => void;
-  readText?: (entry: Json) => ReactNode; holdsText?: (entry: Json) => boolean;
-}) {
-  const [search, setSearch] = useState("");
-  const entries = list(catalog?.entries);
-  if (!entries.length) return null;
-  const from = librarySourceWords(catalog?.source);
-  const searching = search.trim() !== "";
-  const found = entries.filter(entry => matchesSearch(entry, search));
-  const sections = includedSections(found);
-  // Chosen is said only of the entry the selection is, by its whole identity,
-  // and only when the host admits that selection to run. A copy with the same
-  // identity that the host does not admit leaves the included entry's Use.
-  const chosenEntry = chosen?.runnable === true ? includedEntryOf(catalog, chosen) : undefined;
-  const isChosen = (entry: Json) => chosenEntry === entry;
-  const holds = (entry: Json) => holdsText?.(entry) === true;
-  const row = (entry: Json) => {
-    const shownName = text(entry?.navigation?.displayName) || text(entry.name);
-    return <li key={text(entry.name)} aria-label={`Included workflow ${safeName(entry.name)}`}>
-      <strong>{shownName}</strong>{shownName !== entry.name && <> (<code>{text(entry.name)}</code>)</>}{entry.description ? <> — {text(entry.description)}</> : null}{" "}
-      {isChosen(entry) ? <em>Chosen.</em>
-        : entry.runnable === true ? <button disabled={disabled || needsConversation} onClick={() => choose(entry.name)}>Use {safeName(entry.name)}</button>
-        : entry.runnable === false ? <small>Can't be used in this App: {text(entry.runLimit) || text(catalog?.standing) || "the App reports it as not runnable"}.</small>
-        : <small>The App hasn't reported whether this workflow can be used here.</small>}
-      <About entry={entry} source={catalog?.source} textControl={readText?.(entry)} open={holds(entry)}/>
-    </li>;
-  };
-  return <div aria-label="Workflows included with the App">
-    <p>Included with the App: {entries.length === 1 ? "1 workflow" : `${entries.length} workflows`}{from ? ` from ${from}` : ""}.{needsConversation ? " Choose a conversation above to use one." : ""}</p>
-    {(entries.length > 6 || searching) && <label>Find a workflow <input type="search" value={search} onChange={event => setSearch(event.target.value)} spellCheck={false} autoCapitalize="off" autoCorrect="off"/></label>}
-    {searching && <p role="status">{found.length === 0 ? "No included workflow matches. Try fewer or other words." : `${found.length} of ${entries.length} match.`}</p>}
-    {entries.length <= 6 ? <ul>{[...found].sort(byPlace).map(row)}</ul>
-      : sections.map(section => <details key={section.key} open={searching || section.key === START || section.entries.some(isChosen) || section.entries.some(holds) ? true : undefined}>
-        <summary>{section.label} ({numberWords(section.entries.length)})</summary>
-        <ul>{section.entries.map(row)}</ul>
-      </details>)}
-  </div>;
+  return <>
+    <p role="note" aria-label="Library paths the workflow names">{libraryPathsSentence(paths, librarySourceWords(source))}</p>
+    {/* Every path, where the card's Details are read (the former Run a workflow guide's About listed them). */}
+    {all && paths.length > 1 && <details><summary>All {numberWords(paths.length)} paths</summary><ul>{paths.map(path => <li key={path}><code>{path}</code></li>)}</ul></details>}
+  </>;
 }

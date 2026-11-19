@@ -74,6 +74,13 @@ function standIn({threads = [], selections = [], runs = [], projectLibraryAvaila
       return {reference, state: 'original registered selection prepared; WR records pending; not sent'};
     }
     if (command === 'conversation_send_text') return {result: {}};
+    if (command === 'workflow_follow_newer_revision') {
+      if (fail.follow) throw Error(fail.follow);
+      const row = root.selections.find(r => r.threadId === args.context.threadId);
+      const newer = row.selection.newerRevision;
+      select(args.context.threadId, {...row.selection.identity, revision: newer.revision});
+      return {choiceChat: {sourceRef: 'src', threadId: args.context.threadId}};
+    }
     if (command === 'workflow_send_run') {
       const row = run(args.runRef);
       if (fail.send === 'before') throw Error('Original run operation pending');
@@ -302,12 +309,12 @@ test('a selection the host does not admit stops the press with the host\'s reaso
   });
 });
 
-test('an open conversation\'s run that is still open stops Start run, as the Run guide does', async () => {
+test('an open conversation\'s run that is still open stops Start run, as the Run guide did, and says where to end it', async () => {
   const open = [{reference: 'run:workflow:0', conversation: 'T1', home: g.home, generation: g, source: {}, lifecycle: {state: OPEN}, preparationOrder: 0, status: {}, workflow: {name: 'plan-work'}}];
   await mounted(standIn({threads: ['T1'], runs: open}), async ui => {
     await ui.choose('T1'); await ui.pick(); await ui.write(TEXT);
     assert.equal(!!props(ui.send()).disabled, true);
-    assert.match(ui.c.textContent, /A workflow run is still open in this conversation\. End it under Run a workflow before starting another\./);
+    assert.match(ui.c.textContent, /A workflow run is still open in this conversation\. End it with End run in the Run tab before starting another\./);
     assert.deepEqual(ui.issued(), []);
   });
   // A run opened after the view was drawn: the press reads the host first and stops before choosing anything.
@@ -317,8 +324,25 @@ test('an open conversation\'s run that is still open stops Start run, as the Run
     later.snapshot.workflowRoot.runs = open;
     await ui.press();
     assert.deepEqual(ui.issued(), []);
-    assert.match(ui.alert(), /A workflow run is still open in this conversation\. End it under Run a workflow before starting another\. Nothing was sent\./);
+    assert.match(ui.alert(), /A workflow run is still open in this conversation\. End it with End run in the Run tab before starting another\. Nothing was sent\./);
     assert.equal(props(chatInput(ui.c)).value, TEXT);
+  });
+  // Runs whose order the App can't tell (no preparationOrder): an open one among them still holds a new run, and a start
+  // of unknown outcome among them is said without a "last start" claim (ported from the Run a workflow guide's Results test).
+  const unordered = over => [{reference: 'run:workflow:y', conversation: 'T1', home: g.home, generation: g, source: {}, lifecycle: {state: 'ended', end: {cause: 'completed'}}, status: {}, workflow: {name: 'plan-work'}},
+    {reference: 'run:workflow:x', conversation: 'T1', home: g.home, generation: g, source: {}, status: {}, workflow: {name: 'plan-work'}, ...over}];
+  await mounted(standIn({threads: ['T1'], runs: unordered({lifecycle: {state: OPEN}})}), async ui => {
+    await ui.choose('T1'); await ui.pick(); await ui.write(TEXT);
+    assert.equal(!!props(ui.send()).disabled, true, 'an open run among them still holds a new preparation');
+    assert.match(ui.c.textContent, /A workflow run is still open in this conversation\./);
+    assert.deepEqual(ui.issued(), []);
+  });
+  await mounted(standIn({threads: ['T1'], runs: unordered({lifecycle: {state: 'start not confirmed (turn refused or outcome unknown); not opened, not live'}, status: {state: 'native workflow-text send outcome unknown; original source retained'}})}), async ui => {
+    await ui.choose('T1'); await ui.pick(); await ui.write(TEXT);
+    assert.equal(!!props(ui.send()).disabled, true);
+    assert.match(ui.c.textContent, /Read the conversation: a start here has an unknown outcome and may have run; the App can't tell which run is latest\./, 'no "last start" claim without an order');
+    assert.doesNotMatch(ui.c.textContent, /the last start's outcome/);
+    assert.deepEqual(ui.issued(), []);
   });
 });
 
@@ -371,7 +395,7 @@ test('the pick survives switching tabs; the Workflows button shows the tab; with
     assert.equal(props(tab('view-workflows')).hidden, false);
     assert.equal(props(tab('view-library')).hidden, false, 'the Workflows tab is shown');
     await ui.pick();
-    await React.act(async () => props(tab('right-tab-history')).onClick?.());
+    await React.act(async () => props(tab('right-tab-more')).onClick?.());
     assert.ok(labelled(ui.c, 'Workflow for this message'), 'the pick is kept while another tab is shown');
     // Remove at the chip: the composer is the ordinary one, and its Send issues the ordinary send only.
     await React.act(async () => props(buttonIn(ui.composer(), 'Remove plan-work')).onClick());
@@ -399,5 +423,159 @@ test('no supplied text is inside a control: the chip names the workflow outside 
       for (const attribute of ['aria-label', 'title', 'placeholder']) assert.doesNotMatch(node.getAttribute(attribute) ?? '', /Allow once/);
     }
     assert.doesNotMatch(props(chatInput(ui.c)).placeholder, /Allow once/);
+  });
+});
+
+// ---- The right panel's tab after Start run, and on opening a conversation (App.tsx moveToRun) ----
+const selectedTab = c => c.querySelectorAll(n => n.getAttribute?.('role') === 'tab' && n.getAttribute('aria-selected') === 'true')[0]?.textContent;
+const waitingRequest = threadId => ({recordKind: 'server-request-entry', generation: g, requestIdentity: 'q1', method: 'item/tool/requestUserInput', classification: 'known-answerable', originClass: 'person-input',
+  nativeParameters: {threadId, turnId: 't', itemId: 'i', isBlocking: false, questions: [{id: 'q', header: 'Scope', question: 'Which folder?', isOther: false, isSecret: false, options: [{label: 'reports/', description: 'Reports'}]}]},
+  state: 'outstanding', replyWriteResult: 'not-attempted', acknowledgmentObservation: {status: 'not-observed'}});
+const navigatorRow = (c, id) => c.querySelectorAll(n => n.localName === 'button' && n.getAttribute?.('data-session-id') === id)[0];
+const openRun = conversation => ({reference: `run:${conversation}`, conversation, home: g.home, generation: g, source: {}, lifecycle: {state: OPEN}, preparationOrder: 0, status: {}, workflow: {name: 'plan-work'}});
+
+test('the right panel shows Workflows at launch, and Run once Start run has started a run; the first press and a stopped press leave it as it is', async () => {
+  await mounted(standIn(), async ui => {
+    assert.equal(selectedTab(ui.c), 'Workflows', 'at launch');
+    await ui.newChat(); await ui.pick(); await ui.write(TEXT);
+    await ui.press();
+    assert.deepEqual(ui.names(), ['thread_start', 'workflow_select_production_bundle']);
+    assert.equal(selectedTab(ui.c), 'Workflows', 'the first press chose the workflow and stopped: no run, no move');
+    await ui.press();
+    assert.deepEqual(ui.names().slice(-2), ['workflow_prepare_run', 'workflow_send_run']);
+    assert.equal(selectedTab(ui.c), 'Run', 'the run started: the Run tab');
+    assert.equal(props(ui.c.querySelectorAll(n => n.getAttribute?.('id') === 'view-current-run')[0]).hidden, false);
+  });
+  await mounted(standIn({threads: ['T1'], fail: {prepare: 'Workflow App source changed; nothing selected or prepared'}}), async ui => {
+    await ui.choose('T1'); await ui.pick(); await ui.write(TEXT); await ui.press(); await ui.press();
+    assert.match(ui.alert(), /run wasn't prepared/);
+    assert.equal(selectedTab(ui.c), 'Workflows', 'a press that stopped moves nothing');
+  });
+});
+
+test('after Start run, unsent work in another view or a request waiting on the person keeps the right panel where it is', async () => {
+  // Unsent work: a draft name typed in the workflow studio, under More.
+  await mounted(standIn({threads: ['T1']}), async ui => {
+    await ui.choose('T1'); await ui.pick(); await ui.write(TEXT);
+    await React.act(async () => props(fieldAfter(ui.c, 'New draft name')).onChange({target: {value: 'unsent-draft-name'}}));
+    await ui.press(); await ui.press();
+    assert.deepEqual(ui.names().slice(-2), ['workflow_prepare_run', 'workflow_send_run']);
+    assert.equal(selectedTab(ui.c), 'Workflows', 'the person\'s unsent work is not left behind');
+  });
+  // A request waiting on the person, in another conversation.
+  const host = standIn({threads: ['T1', 'T2']});
+  host.snapshot.serverRequests = [waitingRequest('T2')];
+  await mounted(host, async ui => {
+    await ui.choose('T1'); await ui.pick(); await ui.write(TEXT); await ui.press(); await ui.press();
+    assert.deepEqual(ui.names().slice(-2), ['workflow_prepare_run', 'workflow_send_run']);
+    assert.equal(selectedTab(ui.c), 'Workflows', 'a request waits on the person: the App stays');
+  });
+});
+
+test('opening a conversation that has a run shows the Run tab; one with none leaves the panel; unsent text or a waiting request blocks the move', async () => {
+  await mounted(standIn({threads: ['T1', 'T2'], runs: [openRun('T2')]}), async ui => {
+    const before = ui.issued().length;
+    await React.act(async () => props(navigatorRow(ui.c, 'T1')).onClick());
+    assert.equal(selectedTab(ui.c), 'Workflows', 'no run: left as it is');
+    await React.act(async () => props(ui.c.querySelectorAll(n => n.getAttribute?.('id') === 'right-tab-more')[0]).onClick());
+    await React.act(async () => props(navigatorRow(ui.c, 'T2')).onClick());
+    assert.equal(selectedTab(ui.c), 'Run', 'a run: the Run tab');
+    assert.equal(ui.issued().length, before, 'opening issues no command');
+  });
+  await mounted(standIn({threads: ['T1', 'T2'], runs: [openRun('T2')]}), async ui => {
+    await ui.write('A draft not yet sent');
+    await React.act(async () => props(navigatorRow(ui.c, 'T2')).onClick());
+    assert.equal(selectedTab(ui.c), 'Workflows', 'unsent text: no move');
+    assert.equal(props(chatInput(ui.c)).value, 'A draft not yet sent');
+  });
+  const host = standIn({threads: ['T1', 'T2'], runs: [openRun('T2')]});
+  host.snapshot.serverRequests = [waitingRequest('T1')];
+  await mounted(host, async ui => {
+    await React.act(async () => props(navigatorRow(ui.c, 'T2')).onClick());
+    assert.equal(selectedTab(ui.c), 'Workflows', 'a request waits on the person: no move');
+  });
+});
+
+// ---- The run guide's "follow the newer revision", at the chip ----
+const listedChosen = (newer, over = {}) => [{sourceRef: 'src', threadId: 'T1', selection: {reference: 'sel-0', runnable: true, currentLimit: null, assurance: null, declaration: undeclared,
+  identity: identity('site-check', {origin: 'project', source_root: PROJECT, revision: registered.revision}), newerRevision: newer, ...over}}];
+const NEWER = {sequence: 3, revision: 'site-check-3-rev-0123456789abcdef', notice: 'newer revision 3 available', selectable: true, offered: 'Select revision 3'};
+const withRevision3 = host => { host.snapshot.workflowRoot.libraries = [{...library, registered: [registered, {...registered, sequence: 3, revision: NEWER.revision}]}]; return host; };
+const detailsOf = c => labelled(c, 'Workflow for this message');
+
+test('the chip\'s Details offers the guide\'s newer-revision command under its conditions, and the pick follows the revision', async () => {
+  const host = withRevision3(standIn({threads: ['T1'], selections: listedChosen(NEWER)}));
+  await mounted(host, async ui => {
+    await ui.choose('T1'); await ui.pick('Project workflow site-check'); await ui.write(TEXT);
+    const note = labelled(detailsOf(ui.c), 'Newer revision for this conversation');
+    assert.ok(note, 'the note is at the chip');
+    assert.match(note.textContent, /A newer revision of site-check is registered \(newer revision 3 available\)\. This conversation keeps the one it has until you choose the newer one\./);
+    const use = buttonIn(note, 'Use the newer revision');
+    assert.equal(!!props(use).disabled, false);
+    assert.deepEqual(ui.issued(), [], 'reading the note issues nothing');
+    await React.act(async () => { await props(use).onClick(); });
+    assert.deepEqual(ui.names(), ['workflow_follow_newer_revision']);
+    const args = ui.issued()[0].args;
+    assert.deepEqual({...args, context: undefined}, {selectionRef: 'sel-0', revision: NEWER.revision, context: undefined}, 'the guide\'s arguments');
+    assert.equal(args.context.threadId, 'T1'); assert.equal(args.context.selectionRef, 'sel-0');
+    assert.match(detailsOf(ui.c).textContent, /Moved this conversation to the newer revision\./);
+    assert.match(detailsOf(ui.c).textContent, /revision 3/, 'the pick is now the revision followed');
+    await ui.press();
+    assert.deepEqual(ui.names(), ['workflow_follow_newer_revision', 'workflow_prepare_run', 'workflow_send_run'], 'Start run does not choose the earlier revision again');
+  });
+  // The host's refusal is said in the guide's words; nothing else is issued.
+  const refused = withRevision3(standIn({threads: ['T1'], selections: listedChosen(NEWER), fail: {follow: 'The selection changed since the notice was shown; nothing selected'}}));
+  await mounted(refused, async ui => {
+    await ui.choose('T1'); await ui.pick('Project workflow site-check');
+    await React.act(async () => { await props(buttonIn(detailsOf(ui.c), 'Use the newer revision')).onClick(); });
+    assert.match(detailsOf(ui.c).textContent, /Couldn't move to the newer revision: The selection changed since the notice was shown; nothing selected/);
+    assert.deepEqual(ui.names(), ['workflow_follow_newer_revision']);
+    assert.match(detailsOf(ui.c).textContent, /revision 2/, 'the pick is unchanged');
+  });
+});
+
+test('the newer revision at the chip: not selectable says the host\'s words with no command; a limit is said, except for a bundled selection; a stale source disables it', async () => {
+  await mounted(withRevision3(standIn({threads: ['T1'], selections: listedChosen({...NEWER, selectable: false, offered: 'registered — re-confirm to use in this App session'})})), async ui => {
+    await ui.choose('T1'); await ui.pick('Project workflow site-check');
+    const note = labelled(detailsOf(ui.c), 'Newer revision for this conversation');
+    assert.match(note.textContent, /registered — re-confirm to use in this App session\./);
+    assert.equal(buttonIn(note, 'Use the newer revision'), undefined, 'not selectable: no command offered');
+  });
+  await mounted(standIn({threads: ['T1'], selections: listedChosen({limit: 'library busy; newer revisions not read now'})}), async ui => {
+    await ui.choose('T1'); await ui.pick('Project workflow site-check');
+    assert.match(detailsOf(ui.c).textContent, /Newer revisions of site-check can't be checked: library busy; newer revisions not read now/);
+  });
+  const bundled = [{sourceRef: 'src', threadId: 'T1', selection: {reference: 'sel-0', identity: identity('plan-work'), runnable: true, currentLimit: null, declaration: undeclared,
+    newerRevision: {limit: "the selection's library is not open in this App session; newer revisions not read"}}}];
+  await mounted(standIn({threads: ['T1'], selections: bundled}), async ui => {
+    await ui.choose('T1'); await ui.pick();
+    assert.ok(detailsOf(ui.c));
+    assert.doesNotMatch(detailsOf(ui.c).textContent, /can't be checked|newer revision/i, 'an included workflow has no library revisions to follow');
+  });
+  // The shown workflow source is not the host's (its Codex generation differs): the command is not offered as usable.
+  const stale = withRevision3(standIn({threads: ['T1'], selections: listedChosen(NEWER)}));
+  await mounted(stale, async ui => {
+    await ui.choose('T1'); await ui.pick('Project workflow site-check');
+    const use = () => buttonIn(detailsOf(ui.c), 'Use the newer revision');
+    assert.equal(!!props(use()).disabled, false);
+    stale.snapshot.workflowRoot.context = {...stale.snapshot.workflowRoot.context, generation: {...g, spawnCounter: 9}};
+    await ui.tick();
+    if (use()) { assert.equal(!!props(use()).disabled, true, 'disabled while the source is not current'); await React.act(async () => { await props(use()).onClick(); }); }
+    assert.deepEqual(ui.names(), [], 'nothing issued');
+  });
+});
+
+test('a required tool reported missing is said at the chip and never blocks Start run (DEL-02-03 REQ-001)', async () => {
+  const tool = {name:'delegate', purpose:'Use delegate.', necessity:'required', stages:['Method'], class:'harness_capability', capability:'agent-delegation'};
+  const declaration = {reading:'recognized', findings:[], categories:{required_tools:'recognized'}, elements:{required_tools:[{value:tool, reading:'recognized', findings:[]}]}};
+  const compatibility = {preparation:{declaration, requirements:[{outcome:'missing', reason:"the conversation's model reports multiAgentVersion disabled (NPTD §7.1 (1))"}],
+    check:{result:'unsupported', tools:[]}, basis:{acting_pin:'App Codex 0.169.0', surface:'X'}}, statement:'requirement check …', advisory:true};
+  const chosen = [{sourceRef:'src', threadId:'T1', selection:{reference:'sel-0', identity:identity('plan-work'), runnable:true, currentLimit:null, declaration, compatibility}}];
+  await mounted(standIn({threads:['T1'], selections:chosen}), async ui => {
+    await ui.choose('T1'); await ui.pick(); await ui.write(TEXT);
+    assert.match(labelled(ui.c, 'Workflow for this message').textContent, /missing: delegate\./);
+    assert.equal(!!props(ui.send()).disabled, false, 'Start run is offered');
+    await ui.press();
+    assert.deepEqual(ui.names(), ['workflow_prepare_run', 'workflow_send_run']);
   });
 });

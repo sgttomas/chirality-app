@@ -199,14 +199,14 @@ function draftStep(draft: Json, data: Json, host: Json, doubts: BringBackDoubt[]
 
 const EXISTING = "an existing draft continues below";
 /** A saved trial whose original source isn't established (after a relaunch): the available next actions, not just the refusal. */
-const COLD_TRIAL = "This saved trial can't be brought back here. Try the draft again in a fresh conversation above, or look at the earlier conversation in History.";
+const COLD_TRIAL = "This saved trial can't be brought back here. Try the draft again in a fresh conversation above, or look at the earlier conversation in History, under More.";
 
 function nextFor(draft: Json): { words: string; href: string; link: string } {
   switch (draft?.state) {
     case "not valid": return { words: "The App can't review it yet. Ask the agent to fix the findings below, then look again.", href: "#conversation", link: "Go to the conversation" };
     case "under review": return { words: "A review is open. Read it and confirm registration in the App's dialog — or close it to keep working.", href: "#workflow-reviews", link: "Open the review" };
     case "changed since review": return { words: "The files changed after review. Review again before registering.", href: "#workflow-drafts", link: "Open the draft" };
-    case "registered, unchanged since": return { words: "Registered. You can now use it from Run a workflow.", href: "#run-workflow", link: "Run a workflow" };
+    case "registered, unchanged since": return { words: "Registered. You can now pick it under Workflows.", href: "#view-library", link: "Workflows" };
     case "removed": return { words: "The draft folder is gone.", href: "#workflow-drafts", link: "Open the draft list" };
     default: return { words: "Optionally try it (with the authoring agent, or in a fresh conversation), then review it for registration. Only your confirmation registers it.", href: "#workflow-drafts", link: "Try or review it" };
   }

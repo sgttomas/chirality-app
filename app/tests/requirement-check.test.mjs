@@ -3,14 +3,14 @@ import assert from 'node:assert/strict';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {loadSrc} from './support/load-src.mjs';
 
-// DEL-02-03 REQ-001 / AC-001: the chosen workflow's required-tool check in the
-// "Run a workflow" guide, before the start. Controlled host views only (the
+// DEL-02-03 REQ-001 / AC-001: the chosen workflow's required-tool check at the
+// composer's chip, before the start. Controlled host views only (the
 // shapes the host's CK-1 view carries); no native App, supplier or model.
 installMiniDom();
 const React = (await import('react')).default;
 const {createRoot} = await import('react-dom/client');
 const {RequirementCheck} = loadSrc('RequirementCheck');
-const {RunWorkflowGuide} = loadSrc('RunJourney');
+const {PickChip} = loadSrc('WorkflowPick');
 
 const tool = (name, over) => ({name, purpose:`Use ${name}.`, necessity:'required', stages:['Method'], ...over});
 const harness = (name, capability, over = {}) => tool(name, {class:'harness_capability', capability, ...over});
@@ -94,57 +94,54 @@ test('a host operation with no connected application never reads available', asy
   await none.close();
 });
 
-test('the guide shows the check in the Workflow step, before Inputs, and never disables the start for it', async () => {
-  const g = {home:'account', appSession:'s1', spawnCounter:1};
-  const declaration = declared([harness('delegate', 'agent-delegation')]);
-  const host = {state:'ready', generation:g, workflowRoot:{context:{sourceRef:'src', generation:g}}, threads:[{threadId:'T1', generation:g, status:{type:'idle'}}], serverRequests:[]};
-  const data = {context:{sourceRef:'src', generation:g}, projectLibraryAvailable:true, activeLibrary:'lib',
-    libraries:[{reference:'lib', origin:'project', registered:[{name:'review', sequence:1, revision:'rev-1', selectable:true}]}],
-    selections:[{sourceRef:'src', threadId:'T1', selection:{state:'selected', reference:'sel', runnable:true, identity:{name:'review', origin:'project', revision:'rev-1'},
-      declaration, compatibility:view(declaration, [['missing', "the conversation's model reports multiAgentVersion disabled (NPTD §7.1 (1))"]], 'unsupported')}}],
-    runs:[], reviews:[]};
+// The check's place now: the composer's chip for the picked workflow (WorkflowPick.tsx PickChip), shown once the
+// workflow is chosen for the conversation and before anything is sent. That a missing tool never blocks Start run is
+// asserted on the mounted composer in workflow-pick-run.test.mjs.
+const g = {home:'account', appSession:'s1', spawnCounter:1};
+const chip = async (selection, pick, catalog) => {
+  const host = {state:'ready', generation:g, threads:[{threadId:'T1', generation:g, status:{type:'idle'}}], serverRequests:[],
+    workflowRoot:{context:{sourceRef:'src', generation:g}, selections:[{sourceRef:'src', threadId:'T1', selection}], productionCatalog:catalog,
+      activeLibrary:'lib', libraries:[{reference:'lib', origin:'project', sourceRoot:'project', registered:[{name:'review', sequence:1, revision:'rev-1', selectable:true}]}]}};
   const c = document.createElement('div'); const root = createRoot(c);
-  await React.act(async () => root.render(React.createElement(RunWorkflowGuide, {data, host, thread:'T1', busy:false, text:'', chooseThread:() => {}, setText:() => {}, act:async () => {}})));
-  const steps = c.querySelectorAll(node => node.localName === 'li' && node.getAttribute('aria-labelledby')?.startsWith('run-'));
-  const workflow = steps.find(node => node.getAttribute('aria-labelledby') === 'run-workflow-heading');
-  assert.ok(workflow.querySelectorAll(node => node.getAttribute('aria-label') === 'Tools this workflow needs').length === 1);
-  assert.match(workflow.textContent, /Missing: this conversation's model doesn't offer sub-agents\./);
-  const order = steps.map(node => node.getAttribute('aria-labelledby'));
-  assert.ok(order.indexOf('run-workflow-heading') < order.indexOf('run-inputs-heading'));
-  const prepare = c.querySelectorAll(node => node.localName === 'button' && node.textContent === 'Prepare this run')[0];
-  const props = prepare[Object.keys(prepare).find(k => k.startsWith('__reactProps$'))];
-  assert.equal(!!props.disabled, false, 'a missing tool never blocks the start');
-  await React.act(async () => root.unmount());
+  await React.act(async () => root.render(React.createElement(PickChip, {pick, host, thread:'T1', disabled:false, remove:() => {}})));
+  const details = c.querySelectorAll(node => node.localName === 'details' && node.getAttribute('class') === 'v4-pick-details')[0];
+  return {c, details, close:() => React.act(async () => root.unmount())};
+};
+
+test('the chip shows the check for the chosen workflow before anything is sent: a line of what is missing, the full check under Details', async () => {
+  const declaration = declared([harness('delegate', 'agent-delegation')]);
+  const selection = {state:'selected', reference:'sel', runnable:true, identity:{name:'review', origin:'project', source_root:'project', revision:'rev-1'},
+    declaration, compatibility:view(declaration, [['missing', "the conversation's model reports multiAgentVersion disabled (NPTD §7.1 (1))"]], 'unsupported')};
+  const pick = {kind:'listed', name:'review', revision:'rev-1', libraryRef:'lib', sequence:1, label:'', title:'review', from:'project workflow library', scope:''};
+  const ui = await chip(selection, pick);
+  assert.match(ui.c.querySelectorAll(node => node.getAttribute('class') === 'v4-pick-note')[0].textContent, /^Required tools: 0 available; missing: delegate\./, 'the line beside the chip names what is missing');
+  assert.ok(ui.details.querySelectorAll(node => node.getAttribute('aria-label') === 'Tools this workflow needs').length === 1, 'the check itself, under Details');
+  assert.match(ui.details.textContent, /Missing: this conversation's model doesn't offer sub-agents\./);
+  assert.deepEqual(ui.c.querySelectorAll(node => node.localName === 'button').map(b => b.getAttribute('aria-label')), ['Remove review'], 'the chip offers no control the check could disable');
+  await ui.close();
 });
 
 // LIM-008 beside the chosen workflow: the About disclosure's own sentence, for an
 // included workflow whose files name Library paths; nothing for one that names none.
 test('beside the chosen included workflow, the Library paths its files name are said in About\'s words, and nothing when it names none', async () => {
-  const g = {home:'account', appSession:'s1', spawnCounter:1};
   const ROOT = 'synthetic-bundled-root', METHOD = 'synthetic-method';
   const identity = name => ({kind:'workflow', origin:'bundled', source_root:ROOT, name, revision:`${name}-rev`, revision_method:METHOD});
   const entry = (name, paths) => ({name, revision:`${name}-rev`, origin:'bundled', identity:identity(name), runnable:true, roles:[], libraryPathsNamed:paths,
     navigation:{displayName:name, category:'core', tier:'primary', order:1, group:{id:'g', label:'Invented group'}}, description:`Invented ${name}.`});
   const undeclared = {reading:'undeclared', findings:[], categories:{}, elements:{}};
-  const guide = async (name, paths) => {
-    const host = {state:'ready', generation:g, workflowRoot:{context:{sourceRef:'src', generation:g}}, threads:[{threadId:'T1', generation:g, status:{type:'idle'}}], serverRequests:[]};
-    const data = {context:{sourceRef:'src', generation:g}, projectLibraryAvailable:false, libraries:[], runs:[], reviews:[],
-      productionCatalog:{source:{tag:'library-v9.9.9'}, entries:[entry(name, paths)]},
-      selections:[{sourceRef:'src', threadId:'T1', selection:{state:'selected', reference:'sel', runnable:true, identity:identity(name), declaration:undeclared}}]};
-    const c = document.createElement('div'); const root = createRoot(c);
-    await React.act(async () => root.render(React.createElement(RunWorkflowGuide, {data, host, thread:'T1', busy:false, text:'', chooseThread:() => {}, setText:() => {}, act:async () => {}})));
-    const workflow = c.querySelectorAll(node => node.localName === 'li' && node.getAttribute('aria-labelledby') === 'run-workflow-heading')[0];
-    const beside = workflow.querySelectorAll(node => node.getAttribute('aria-label') === 'Library paths the workflow names');
-    return {workflow, beside, close:() => React.act(async () => root.unmount())};
+  const at = async (name, paths) => {
+    const ui = await chip({state:'selected', reference:'sel', runnable:true, identity:identity(name), declaration:undeclared},
+      {kind:'included', name, revision:`${name}-rev`, title:name, from:'Chirality Library 9.9.9', scope:''}, {source:{tag:'library-v9.9.9'}, entries:[entry(name, paths)]});
+    return {...ui, beside:ui.details.querySelectorAll(node => node.getAttribute('aria-label') === 'Library paths the workflow names')};
   };
-  const named = await guide('alpha-check', ['tools/validation/check_a.py', 'tools/validation/check_b.py']);
+  const named = await at('alpha-check', ['tools/validation/check_a.py', 'tools/validation/check_b.py']);
   assert.equal(named.beside.length, 1);
   assert.equal(named.beside[0].textContent, "This workflow's files name 2 paths of Chirality Library 9.9.9 that are not included in the App (for example tools/validation/check_a.py). The App has not checked whether a run uses them.");
-  assert.match(named.workflow.textContent, /required tools aren't declared/, 'beside the requirement check, which still reads as not declared');
+  assert.match(named.details.textContent, /required tools aren't declared/, 'beside the requirement check, which still reads as not declared');
   await named.close();
-  const none = await guide('plain', []);
+  const none = await at('plain', []);
   assert.equal(none.beside.length, 0, 'nothing for a workflow that names no Library path');
-  assert.doesNotMatch(none.workflow.textContent, /files name|not included in the App/);
+  assert.doesNotMatch(none.details.textContent, /files name|not included in the App/);
   await none.close();
 });
 

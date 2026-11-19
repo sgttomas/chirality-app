@@ -44,7 +44,7 @@ export function revealWorkspaceTarget(id: string, focus = false): void {
   }
   target?.scrollIntoView?.({ block: "start" });
 }
-const targets = new Set(["waiting-on-you", "view-run", "view-make", "run-workflow", "make-workflow", "workflow-drafts", "desktop-setup", "workflow-reviews", "conversation", "workflow-studio", "workspace-start", "workspace-connection", "workspace-tools", "workspace-history", "file-acts", "other-requests"]);
+const targets = new Set(["waiting-on-you", "view-library", "view-more", "view-make", "make-workflow", "workflow-drafts", "desktop-setup", "workflow-reviews", "conversation", "workflow-studio", "workspace-start", "workspace-connection", "workspace-tools", "workspace-history", "file-acts", "other-requests"]);
 /** The workspace root's click handler: a "#target" link to a known target reveals it instead of navigating. */
 export function revealWorkspaceLink(event: MouseEvent<HTMLElement>): void {
   for (let node = event.target as HTMLElement | null; node && node !== event.currentTarget; node = node.parentNode as HTMLElement | null) {

@@ -2,7 +2,7 @@ import { idWords, numberWords, safeName } from "./AgentText";
 import { workflowContext } from "./workflowSelection";
 import { WorkflowTextControl, useWorkflowTexts, type WorkflowTexts } from "./WorkflowText";
 import { LibraryPathsBesideWorkflow, includedSections, librarySourceWords, matchesSearch } from "./IncludedWorkflows";
-import { VIEW_NOT_REFRESHED, registeredRevisionAnchor } from "./RunJourney";
+import { GuideResult, VIEW_NOT_REFRESHED, registeredRevisionAnchor, type GuideOutcome } from "./RunJourney";
 import { isIncludedPick, isListedPick, pickIncluded, pickListed, type WorkflowPick } from "./WorkflowPick";
 import { useState } from "react";
 
@@ -23,19 +23,27 @@ function InspectToggle({ shown, disabled, read, hide }: { shown: boolean; disabl
   return <button type="button" aria-expanded={shown} disabled={disabled && !shown} onClick={shown ? hide : read}>Inspect</button>;
 }
 
+/** The commands the tab issues for this project's workflows: the former Run a workflow guide's own, with its arguments. */
+export const PROJECT_COMMANDS = ["workflow_open_project_library", "workflow_library_entries_refresh", "workflow_review_library_entries"];
+
 /**
  * The right panel's Workflows tab, in 3.0.1's form: a search, the workflows included with the App in the Library's
  * own groups, and this project's workflows, each a card with Inspect and the toggle that picks it for the next
  * message. A pick needs no conversation: the composer's Start run chooses it for the conversation it starts or is in.
- * The tab issues no host command of its own besides Inspect's read.
+ * Besides Inspect's read, the tab issues only the former Run a workflow guide's commands for this project's workflows (show
+ * them, look for others in the library, review one for first use), under the guide's conditions: never while busy or
+ * while the shown workflow source is not the host's, and the project's library only while Codex is ready.
  */
-export function WorkflowLibrary({ data, host, busy, pick = null, setPick, viewStale = false, readFailure = null }: {
+export function WorkflowLibrary({ data, host, busy, pick = null, setPick, act, outcome = null, viewStale = false, readFailure = null }: {
   data: Json; host: Json; busy: boolean; pick?: WorkflowPick | null; setPick?: (pick: WorkflowPick | null) => void; viewStale?: boolean; readFailure?: string | null;
+  act?: (command: string, args: Record<string, unknown>) => unknown; outcome?: GuideOutcome | null;
 }) {
   const [search, setSearch] = useState("");
   const texts = useWorkflowTexts();
   const sourceCurrent = !!data?.context?.sourceRef && host?.workflowRoot?.context?.sourceRef === data.context.sourceRef && same(data.context.generation, host?.generation);
   const canAct = !busy && sourceCurrent;
+  const ready = host?.state === "ready" && host?.generationClosed !== true;
+  const perform = (command: string, args: Record<string, unknown>) => { if (canAct && act) void act(command, args); };
   // Picking is offered while the shown source is the host's; it waits for nothing else, since it sends nothing.
   const canPick = sourceCurrent && !!setPick;
   const catalog = data?.productionCatalog;
@@ -92,7 +100,7 @@ export function WorkflowLibrary({ data, host, busy, pick = null, setPick, viewSt
         <p>Revision <code title={idWords(entry?.revision)}>{text(entry?.revision).slice(0, 12)}…</code></p>
         {roles.length > 0 && <p>The Library lists it for these roles: {roles.join(", ")}.</p>}
         {entry?.compatibility === "legacy" && <p>The Library marks it as legacy.</p>}
-        <LibraryPathsBesideWorkflow entry={entry} source={catalog?.source}/>
+        <LibraryPathsBesideWorkflow entry={entry} source={catalog?.source} all/>
       </details>
     </li>;
   };
@@ -118,14 +126,21 @@ export function WorkflowLibrary({ data, host, busy, pick = null, setPick, viewSt
   const unregisteredCard = (entry: Json) => <li key={entry.reference} className="method-card" aria-label={`Project workflow ${safeName(entry.name)}`}>
     <div className="method-card-heading"><strong>{text(entry.name)}</strong></div>
     <p className="method-card-meta"><small>{libraryWords}</small></p>
-    <p className="method-card-limit" role="note">In the folder but not yet approved for use here. <a href="#run-workflow">Review it under Run a workflow</a></p>
+    <p className="method-card-limit" role="note">In the folder but not yet approved for use here. Read it once and confirm it in the App's dialog; nothing runs during the review.</p>
+    {act && <div className="method-card-actions">
+      <button type="button" disabled={!canAct} onClick={() => perform("workflow_review_library_entries", { libraryRef: active.reference, listingRef: listing.reference, entryRefs: [entry.reference] })}>Review for first use…</button>
+    </div>}
   </li>;
 
   const projectNote = !active
     ? projectAvailable
-      ? <p className="method-library-note">This App has a project folder. Its workflows are kept in its .chirality folder. <a href="#run-workflow">Show them under Run a workflow</a></p>
+      ? <p className="method-library-note">This App has a project folder. Its workflows are kept in its .chirality folder.</p>
       : <p className="method-library-note">No project folder is set for this App yet. <a href="#desktop-setup">Choose a project in Desktop setup</a> — the choice applies when you next open the App.</p>
     : registered.length === 0 && unregistered.length === 0 && Array.isArray(active.registered) ? <p className="method-library-note">No workflow in this library has been approved for use yet.</p> : null;
+  const projectActions = act && (projectAvailable || active) ? <p className="method-library-actions">
+    {projectAvailable && <button type="button" disabled={!canAct || !ready} onClick={() => { if (ready) perform("workflow_open_project_library", {}); }}>{active ? "Reload this project's workflows" : "Show this project's workflows"}</button>}
+    {active && <button type="button" disabled={!canAct} onClick={() => perform("workflow_library_entries_refresh", { libraryRef: active.reference })}>Look for other workflows in this library</button>}
+  </p> : null;
 
   return <section className="method-library" aria-label="Workflows" aria-busy={busy}>
     <input type="search" className="method-library-search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search workflows" aria-label="Search workflows"
@@ -147,6 +162,8 @@ export function WorkflowLibrary({ data, host, busy, pick = null, setPick, viewSt
     <section className="method-library-group" aria-labelledby="method-group-project">
       <h3 id="method-group-project">This project</h3>
       {projectNote}
+      {projectActions}
+      {!busy && <GuideResult label="Workflows — last result" outcome={outcome} only={PROJECT_COMMANDS} stepsShown={false}/>}
       {active && !Array.isArray(active.registered) && active.registered?.limit && <p role="note">This library's list of approved workflows can't be read: {text(active.registered.limit)}</p>}
       {active && listing?.libraryRef === active.reference && listing?.state === "unavailable" && <p role="note">The App couldn't look in this library's folder for other workflows{list(listing.limits).length ? `: ${list(listing.limits).map(text).join("; ")}` : "."}</p>}
       {pendingReview && <p role="note">A review is open. <a href="#workflow-reviews">Read it and confirm</a> to approve the workflow for use.</p>}

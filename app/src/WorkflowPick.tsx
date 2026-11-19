@@ -2,13 +2,15 @@
 // workflow in the Workflows tab, write what it should work on, press once). The pick is the renderer's alone: the host
 // keeps a workflow selection only for a conversation that exists and has no command that clears one, so nothing is
 // sent or stored when a workflow is picked or removed. The press issues the Run guide's own commands, in its order and
-// under its guards (RunJourney.tsx RunWorkflowGuide), each awaited once and none retried.
+// under its guards (the former Run a workflow guide's, which this replaced), each awaited once and none retried.
 import { safeName, idWords } from "./AgentText";
-import { chatWorkflow, workflowArguments, workflowAssurance } from "./workflowSelection";
+import { chatWorkflow, workflowArguments, workflowAssurance, workflowContext } from "./workflowSelection";
+import { WorkflowTextControl, useWorkflowTexts } from "./WorkflowText";
 import { LibraryPathsBesideWorkflow, RoleBesideWorkflow, includedEntryOf, librarySourceWords } from "./IncludedWorkflows";
 import { RequirementCheck, toolReading } from "./RequirementCheck";
 import { INPUT_KIND, declaredRows, guideResultWords, orderRuns, runReading, startRefused } from "./RunJourney";
 import { hostMessage } from "./TrialComposer";
+import { useEffect, useState } from "react";
 
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 const list = (value: Json): Json[] => (Array.isArray(value) ? value : []);
@@ -85,7 +87,7 @@ export function pickedSelection(host: Json, thread: string, pick: WorkflowPick):
 }
 
 /**
- * What the Run guide holds about a conversation's runs that decides whether a run may start there (RunWorkflowGuide:
+ * What the Run guide held about a conversation's runs that decides whether a run may start there (as it read them:
  * runs of the exact current generation, home and thread; the latest by preparationOrder; a start whose outcome is
  * unknown; a run open or sent and not yet confirmed).
  */
@@ -158,7 +160,8 @@ export type PickRunOutcome =
   | { state: "stopped"; words: string; opened?: string };
 
 /** The step words shown while the press runs. */
-export const PICK_STEPS = { start: "Starting the conversation…", choose: "Choosing the workflow…", prepare: "Preparing the run…", send: "Starting the run…" } as const;
+export const PICK_STEPS = { start: "Starting the conversation…", choose: "Choosing the workflow…", prepare: "Preparing the run…", send: "Starting the run…",
+  follow: "Moving to the newer revision…" } as const;
 const NOTHING_SENT = "Nothing was sent.";
 /** The host's refusals a person can meet here before anything was done, in short words (the guide's REFUSAL_WORDS
  * name the same exact replies); any other reply is shown as the host gave it. */
@@ -218,7 +221,7 @@ export async function runPickedWorkflow(run: PickRun): Promise<PickRunOutcome> {
     try { host = await run.read(); } catch { return stop(`The App couldn't read its state, so it didn't start the run. ${NOTHING_SENT}`); }
     if (pickScope(host) !== scope) return changed();
     const runs = conversationRuns(host, conversation);
-    if (runs.inProgress) return stop(`A workflow run is still open in this conversation. End it under Run a workflow before starting another. ${NOTHING_SENT}`);
+    if (runs.inProgress) return stop(`A workflow run is still open in this conversation. End it with End run in the Run tab before starting another. ${NOTHING_SENT}`);
     if (runs.unresolvedStart && run.acknowledged !== runs.holdKey) return stop(`Read the conversation: a start here has an unknown outcome and may have run. ${NOTHING_SENT}`);
   }
   const name = pick.title;
@@ -295,9 +298,70 @@ export async function runPickedWorkflow(run: PickRun): Promise<PickRunOutcome> {
 
 // ---- What the person sees beside the chip ----
 
-/** The chip, and beside it what the App holds about the picked workflow for the conversation the press would use. */
-export function PickChip({ pick, host, thread, disabled, remove }: { pick: WorkflowPick; host: Json; thread: string; disabled: boolean; remove: () => void }) {
+/** What following a newer revision from the chip needs: the composer's host command (it reads the status after), a read of
+ * host_status, the composer's step line, and the pick to replace with the revision followed. */
+export type PickFollow = {
+  act: (command: string, args: Record<string, unknown>) => Promise<Json>;
+  read?: () => Promise<Json>;
+  step: (words: string) => void;
+  repick: (pick: WorkflowPick) => void;
+};
+const FOLLOW = "workflow_follow_newer_revision";
+
+/**
+ * The run guide's "follow the newer revision", at the chip: where the conversation's chosen workflow (the picked one)
+ * has a newer registered revision, the guide's note, and its command with the guide's arguments under the guide's
+ * conditions (not while busy, not while the shown workflow source or Codex session is not the host's; offered only
+ * where the host says the newer revision is selectable). A limit on reading newer revisions is said as the guide said
+ * it, except for a bundled selection, which has no library revisions to follow. Once followed, the pick becomes the
+ * revision followed, so that Start run does not choose the earlier one again.
+ */
+type FollowResult = { words: string; failed: boolean } | null;
+function NewerRevision({ pick, host, thread, selection, disabled, follow, setResult }: { pick: WorkflowPick; host: Json; thread: string; selection: Json; disabled: boolean; follow?: PickFollow;
+  setResult: (result: FollowResult) => void }) {
   const root = host?.workflowRoot;
+  const newer = selection?.newerRevision;
+  if (!newer || newer.limit && selection.identity?.origin === "bundled") return null;
+  const name = text(selection.identity?.name);
+  if (newer.limit) return <p role="note">Newer revisions of <strong>{name}</strong> can't be checked: {text(newer.limit)}</p>;
+  const sourceCurrent = !!root?.context?.sourceRef && same(root.context.generation, host?.generation);
+  const canFollow = !disabled && sourceCurrent && !!follow;
+  const said = (message: string, failed: boolean) => {
+    const words = guideResultWords({ command: FOLLOW, message, failed, settled: true }, false);
+    setResult(words ? { words: words.words, failed } : null);
+  };
+  const press = async () => {
+    if (!canFollow || !follow) return;
+    let request: Record<string, unknown>;
+    try { request = workflowArguments(FOLLOW, { selectionRef: selection.reference, revision: newer.revision }, root, host, thread); }
+    catch (error) { said(`Error: ${hostMessage(error)}`, true); return; }
+    follow.step(PICK_STEPS.follow);
+    let refused: unknown = null, after: Json = null;
+    try {
+      try { await follow.act(FOLLOW, request); } catch (error) { refused = error ?? "the App gave no reason"; }
+      if (refused === null && follow.read) { try { after = await follow.read(); } catch { after = null; } }
+    } finally { follow.step(""); }
+    if (refused !== null) { said(`Error: ${hostMessage(refused)}`, true); return; }
+    said("", false);
+    if (pick.kind !== "listed") return;
+    const library = list(after?.workflowRoot?.libraries).find((row: Json) => row?.reference === pick.libraryRef);
+    const row = list(library?.registered).find((entry: Json) => entry?.name === pick.name && entry?.revision === newer.revision);
+    follow.repick(row ? pickListed(row, library, after) : { ...pick, revision: text(newer.revision), sequence: Number.isSafeInteger(newer.sequence) ? newer.sequence : undefined, label: "", scope: pickScope(after ?? host) });
+  };
+  return <div role="note" aria-label="Newer revision for this conversation">
+    <p>A newer revision of <strong>{name}</strong> is registered ({text(newer.notice)}). This conversation keeps the one it has until you choose the newer one.</p>
+    {newer.selectable === true ? <p><button type="button" disabled={!canFollow} onClick={() => { void press(); }}>Use the newer revision</button></p> : <p><small>{text(newer.offered)}.</small></p>}
+  </div>;
+}
+
+/** The chip, and beside it what the App holds about the picked workflow for the conversation the press would use. */
+export function PickChip({ pick, host, thread, disabled, remove, follow }: { pick: WorkflowPick; host: Json; thread: string; disabled: boolean; remove: () => void; follow?: PickFollow }) {
+  const root = host?.workflowRoot;
+  // The last press of "Use the newer revision", said under the note; it stays once the note goes with the revision followed.
+  const [followed, setFollowed] = useState<FollowResult>(null);
+  // Another workflow picked (not the same one at the revision followed): the result was of the earlier one.
+  const pickedWorkflow = JSON.stringify([pick.kind, pick.name, pick.libraryRef ?? null, thread]);
+  useEffect(() => { setFollowed(null); }, [pickedWorkflow]);
   const selection = thread ? pickedSelection(host, thread, pick) : undefined;
   const revision = pick.kind === "listed" && pick.sequence !== undefined ? `revision ${pick.sequence}` : null;
   const entry = pick.kind === "included" ? list(root?.productionCatalog?.entries).find((row: Json) => row?.name === pick.name && row?.revision === pick.revision) : undefined;
@@ -305,7 +369,13 @@ export function PickChip({ pick, host, thread, disabled, remove }: { pick: Workf
   const declaration = selection ? declarationOf(selection) : undefined;
   const inputs = declaredRows(declaration, "expected_inputs");
   const conversation = list(host?.threads).find((row: Json) => row.threadId === thread && same(row.generation, host?.generation));
-  const newer = selection?.newerRevision;
+  // The chosen workflow's own text, read as the conversation's selection (the former guide's read, under its conditions).
+  const texts = useWorkflowTexts();
+  const sourceCurrent = !!root?.context?.sourceRef && same(root.context.generation, host?.generation);
+  const librarySource = librarySourceWords(root?.productionCatalog?.source);
+  const chosenSource = !selection ? "" : includedEntryOf(root?.productionCatalog, selection) ? `included with the App${librarySource ? `, from ${librarySource}` : ""}`
+    : selection.identity?.origin === "bundled" ? `a bundled copy${selection.identity?.source_root ? ` (source ${text(selection.identity.source_root)})` : ""}`
+    : `${text(selection.identity?.origin)} library`;
   return <div className="v4-pick" aria-label="Workflow for this message">
     <ul className="method-chip-list" aria-label="Workflow picked">
       <li className="method-chip"><span>{pick.title}</span><small>{pick.from} · {revision ?? <code title={idWords(pick.revision)}>{pick.revision.slice(0, 12)}…</code>}</small>
@@ -318,11 +388,14 @@ export function PickChip({ pick, host, thread, disabled, remove }: { pick: Workf
       {inputs.length > 0 && <ul aria-label="What this workflow needs">{inputs.map((input: Json, index: number) => <li key={index}>
         <strong>{text(input.name)}</strong> ({input.necessity === "optional" ? "optional" : "required"}; {INPUT_KIND[text(input.kind)] ?? text(input.kind)}): {text(input.meaning)}{input.absence_effect ? ` If you leave it out: ${text(input.absence_effect)}` : ""}</li>)}</ul>}
       {selection && !inputs.length && <p>This workflow doesn't list required inputs. Describe what it should work on.</p>}
+      {selection && <WorkflowTextControl slot={`chosen:${text(root?.context?.sourceRef)}:${thread}`} identity={selection.identity} source={chosenSource} texts={texts}
+        disabled={disabled || !sourceCurrent} target={{ kind: "selection", revision: selection.identity?.revision }} context={() => workflowContext(root, host, thread)}/>}
       {selection && <RequirementCheck selection={selection}/>}
       {selection && <RoleBesideWorkflow entry={includedEntryOf(root?.productionCatalog, selection)} conversation={conversation}/>}
       {selection && selection.identity?.origin !== "bundled" && <p role="note" aria-label="Approval evidence">{workflowAssurance(selection.assurance)}</p>}
       {!selection && pick.kind === "listed" && pick.label && <p>{pick.label}.</p>}
-      {selection && newer && !newer.limit && <p role="note">A newer revision of <strong>{text(selection.identity?.name)}</strong> is registered ({text(newer.notice)}). This conversation keeps using the one shown above until you choose the newer one.</p>}
+      {selection && <NewerRevision pick={pick} host={host} thread={thread} selection={selection} disabled={disabled} follow={follow} setResult={setFollowed}/>}
+      {followed && <p role={followed.failed ? "alert" : "status"}>{followed.words}</p>}
       {entry && <LibraryPathsBesideWorkflow entry={entry} source={root?.productionCatalog?.source}/>}
       <p>Revision <code>{pick.revision}</code></p>
     </details>

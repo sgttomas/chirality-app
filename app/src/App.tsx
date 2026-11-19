@@ -36,7 +36,7 @@ import { BringBackComposer, CleanTrialPanel, DelegatedTrialComposer, composersFo
 import { preparedMessages, preparedMessageLimit, type PreparedMessage } from "./preparedMessages";
 import { ConversationContext, ProjectLibraryContext, appProjectFolder, conversationFromKey, workflowSourceLimit } from "./WorkflowContext";
 import { WorkspaceDisclosure, WorkspaceConnectionStatus, revealWorkspaceTarget, revealWorkspaceLink, registerWorkspaceViews } from "./DailyWorkspace";
-import { ActivityStrip, WorkspaceShell, isRightPanelTab, turnPhase, type RightPanelTab, RIGHT_PANEL_TABS, type TabSelection } from "./WorkspaceShell";
+import { ActivityStrip, MoreBack, MoreList, MORE_VIEWS, WorkspaceShell, isMoreView, isRightPanelTab, turnPhase, type MoreView, type RightPanelTab, RIGHT_PANEL_TABS, type TabSelection } from "./WorkspaceShell";
 import { AccountRow, Navigator, folderName, navigatorEntries, navigatorProjects, type NavigatorEntry } from "./Navigator";
 import { flushSync } from "react-dom";
 import { UnsentWork, useReportUnsent } from "./unsentWork";
@@ -47,7 +47,7 @@ import { readingAfterWrite, readingSentence } from "./readingSentences";
 import { REFRESH_FAILED, commandThenRefresh, observationLine, observationText, refreshAfterAction, withRefreshFailure } from "./statusRefresh";
 import { FirstUseSetup } from "./FirstUse";
 import { AccountStatus, DIDNT_SAY, accountReadError, accountReadRef, accountReading, reportedPlan, signInCompletion, type ReadAccountStatus } from "./AccountStatus";
-import { RunWorkflowGuide, registeredRevisionAnchor, runEvidenceAnchor, stripRun } from "./RunJourney";
+import { registeredRevisionAnchor, runEvidenceAnchor, stripRun } from "./RunJourney";
 import { RunTab } from "./RunTab";
 import { WorkflowLibrary } from "./WorkflowLibrary";
 import { PICK_STEPS, PickChip, conversationRuns, pickLimit, pickScope, runPickedWorkflow, type PickRunOutcome, type WorkflowPick } from "./WorkflowPick";
@@ -153,7 +153,7 @@ export type StartOutcome = { opened: string } | { failed: string } | { notConfir
 /** The new conversation's own settings, which the App holds: its role and model, with their panels. */
 export type StartSettings = { role: string; model: string; blocked: string; rolePanel: ReactNode; modelPanel: ReactNode; notice?: ReactNode; start: () => Promise<StartOutcome | null> };
 
-export function ConversationPanel({ reportChooser, localRoute = null, focusComposer, startAct, composerOffer, host, threadKey, setThreadKey, answer, readRequest, replyObservations, runAct, trialRunAct, send, observeOrdinaryView, steer, submitAttachments, observeAttachmentView, interrupt, checkPlanMode, codexBusy, forkConversation, handoffSend, handoffRead, activityNavigationRef, activityLink, preparedReveal, toolsHost = null, showTools, before, attachments, actionOutcome, startNew, pick = null, setPick, clearPick, pickDropped = false, showWorkflows, readStatus }: { /** Receives the view's own choice of a conversation while the view takes a choice, else null. */
+export function ConversationPanel({ reportChooser, localRoute = null, focusComposer, startAct, composerOffer, host, threadKey, setThreadKey, answer, readRequest, replyObservations, runAct, trialRunAct, send, observeOrdinaryView, steer, submitAttachments, observeAttachmentView, interrupt, checkPlanMode, codexBusy, forkConversation, handoffSend, handoffRead, activityNavigationRef, activityLink, preparedReveal, toolsHost = null, showTools, before, attachments, actionOutcome, startNew, pick = null, setPick, clearPick, pickDropped = false, showWorkflows, onRunStarted, readStatus }: { /** Receives the view's own choice of a conversation while the view takes a choice, else null. */
   reportChooser?: (choose: ((key: string) => void) | null) => void; localRoute?: LocalView | null; focusComposer?: number; startAct?: RunAct; composerOffer?: ComposerOffer | null; preparedReveal?: PreparedComposerReveal | null; activityNavigationRef?: Ref<NativeActivityHandle>; activityLink?: RequestActivityLink; forkConversation?: (generation: Json, sourceThread: string) => Promise<void>; handoffSend?: (id: string, text: string) => Promise<HandoffSendOutcome>; handoffRead?: (id: string) => Promise<HandoffSendOutcome>; codexBusy: boolean; host: Json; threadKey: string; setThreadKey: (key: string) => void; trialRunAct?: RunAct; answer: RequestAnswer; readRequest?: ReadRequestCustody; replyObservations?: Record<string, RequestReplyObservation>; runAct: RunAct; checkPlanMode: (generation: Json) => Promise<void>; submitAttachments: (generation: Json, thread: string, expected: string | null, text: string, owner: string, revision: number, refs: string[]) => Promise<Json>; observeAttachmentView?: (request: AttachmentRequest) => Promise<void>; send: (generation: Json, thread: string, text: string, mode?: "plan" | "default", model?: string, effort?: string) => Promise<Json>; observeOrdinaryView?: (request: OrdinaryTextRequest, isCurrent: () => boolean) => Promise<void>; steer: (generation: Json, thread: string, expected: string, text: string) => Promise<boolean | void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<boolean | void>;
   /** The right panel's "Conversation tools" element, where the conversation's other tools are drawn; without it they are drawn after the transcript. */
   toolsHost?: HTMLElement | null;
@@ -175,6 +175,8 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
   pickDropped?: boolean;
   /** Shows the right panel's Workflows tab. */
   showWorkflows?: () => void;
+  /** Start run has started a run: the App shows the Run tab (App.tsx moveToRun). */
+  onRunStarted?: () => void;
   /** Reads host_status and applies it, resolving to the snapshot read. */
   readStatus?: () => Promise<Json> }) {
   const [turnId, setTurnId] = useState<string>("");
@@ -513,7 +515,7 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
     : projectMissing ? <>A run needs a project folder. <a href="#desktop-setup">Choose one in Desktop setup</a>; it applies the next time you open the App.</>
     : !selected ? (startNew?.blocked ? `${startNew.blocked}${text ? " Your draft stays here." : ""}` : !text ? "Say what the workflow should work on." : "Ready to start a new conversation and run the workflow.")
     : heldHereNow ? "An earlier message to this conversation wasn't confirmed and may have been sent. Read the conversation, then confirm below before sending again. Your text is kept."
-    : pickRuns?.inProgress ? "A workflow run is still open in this conversation. End it under Run a workflow before starting another."
+    : pickRuns?.inProgress ? "A workflow run is still open in this conversation. End it with End run in the Run tab before starting another."
     : pickHeld ? (pickRuns?.latest ? "Read the conversation: the last start's outcome is unknown and it may have run."
       : "Read the conversation: a start here has an unknown outcome and may have run; the App can't tell which run is latest.")
     : !text ? "Say what the workflow should work on."
@@ -536,6 +538,7 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
     if (outcome.state === "started") {
       if (textRevision.current === revision) setText(current => current === draft ? "" : current);
       clearPick?.(picked);
+      onRunStarted?.();
     } else if (outcome.state === "review") setPickOutcome({ owner: outcome.opened ?? owner, kind: "status", words: "Read what it needs, then press Start run. Nothing has been sent." });
     else if (outcome.state === "stopped") setPickOutcome({ owner: outcome.opened ?? owner, kind: "alert", words: outcome.words });
   };
@@ -544,7 +547,7 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
       : startNew.blocked ? `${startNew.blocked}${text ? " Your draft stays here." : ""}`
       : !text ? "Write a message to start a new conversation."
       : "Ready to start a new conversation and send it your text.")
-    : !selected ? "Choose a current conversation, start a new one, or continue one from History. Your draft is not sent by choosing."
+    : !selected ? "Choose a current conversation, start a new one, or continue one from History, under More. Your draft is not sent by choosing."
     : busy ? "An operation is pending. New messages are paused until its result is received."
     : unconfirmed.some(row => !row.acknowledged && row.request.threadId === selected.threadId) ? "An earlier message to this conversation wasn't confirmed and may have been sent. Read the conversation, then confirm below before sending again. Your text is kept."
     : !text ? "Write a message to send to the selected conversation."
@@ -740,7 +743,8 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
       {error && <p role="alert">{error} No automatic retry.</p>}
     </div>
     <form className="chat-input-row" onSubmit={event => { event.preventDefault(); submit(); }}>
-      {pick && <PickChip pick={pick} host={host} thread={selected?.threadId ?? ""} disabled={!!busy} remove={() => setPick?.(null)}/>}
+      {pick && <PickChip pick={pick} host={host} thread={selected?.threadId ?? ""} disabled={!!busy} remove={() => setPick?.(null)}
+        follow={{ act: (command, args) => (startAct ?? runAct)(command, args), read: readStatus, step: setBusy, repick: next => setPick?.(next) }}/>}
       <div className="chat-composer-line">
         <textarea id="ordinary-composer-text" ref={composerField} rows={1} aria-label="Chat input" aria-describedby="ordinary-send-readiness" disabled={!!busy} value={text}
           placeholder={pick ? "What should the workflow work on?" : running && steeringTarget ? "Add to the running turn…" : selected ? `Message ${speaker}…` : "Write your first message…"}
@@ -1413,19 +1417,15 @@ export function WorkflowRootPanel({ viewStale = false, readFailure = null, data,
     {view !== undefined && <div id="view-current-run" data-workspace-view="current-run" hidden={view !== "current-run"}>
     <RunTab data={data} host={host} thread={openThread} act={action} busy={busy} outcome={guideOutcome} showConversation={showConversation} viewStale={viewStale} readFailure={readFailure}/>
     </div>}
-    <div id="view-run" data-workspace-view="run" hidden={view !== undefined && view !== "run"}>
-    <RunWorkflowGuide data={data} host={host} thread={thread} chooseThread={chooseWorkflowChat} act={action} busy={busy} text={text} setText={setText}
-      outcome={guideOutcome} showConversation={showConversation} viewStale={viewStale} readFailure={readFailure}/>
-    </div>
     {/* The Workflows tab picks a workflow for the next message; the composer's Start run uses the pick. */}
     {view !== undefined && <div id="view-library" data-workspace-view="workflows" hidden={view !== "workflows"}>
-    <WorkflowLibrary data={data} host={host} busy={busy} pick={pick} setPick={setPick} viewStale={viewStale} readFailure={readFailure}/>
+    <WorkflowLibrary data={data} host={host} busy={busy} pick={pick} setPick={setPick} act={action} outcome={guideOutcome} viewStale={viewStale} readFailure={readFailure}/>
     </div>}
     <div id="view-make" data-workspace-view="make" hidden={view !== undefined && view !== "make"}>
     {offerComposer && <MakeWorkflowGuide data={data} host={host} act={action} busy={busy} outcome={guideOutcome} viewStale={viewStale} readFailure={readFailure} offerComposer={offerComposer} openPreparedMessage={openPreparedMessage} showConversation={showConversation} findInHistory={findInHistory}/>}
     </div>
-    {/* The detailed studio follows the guides, collapsed, in both workflow views. */}
-    <details id="workflow-studio" className="workspace-disclosure workspace-advanced" data-workspace-view="make" open={view === undefined ? true : undefined} hidden={view === "workflows" || view === "current-run"}>
+    {/* The detailed studio follows the Make a workflow guide, collapsed, under More. */}
+    <details id="workflow-studio" className="workspace-disclosure workspace-advanced" data-workspace-view="make" open={view === undefined ? true : undefined} hidden={view !== undefined && view !== "make"}>
     <summary><strong>Advanced: workflow studio</strong><span>Every selection, library, draft, trial, review, registration and run control in detail</span></summary>
     <div className="workspace-disclosure-content">
     <h2>Workflow selection and native registration</h2>
@@ -1544,8 +1544,9 @@ export function WorkflowRootPanel({ viewStale = false, readFailure = null, data,
     </article>;})}
     </div>
     </details>
-    {/* The studio's record reads and the last press's exact reply follow the guides; the Workflows tab says its own result. */}
-    <div hidden={view === "workflows"}>
+    {/* The studio's record reads and the last press's exact reply follow the studio, under More's Make a workflow only:
+        the Run tab shows the open conversation's run and the Workflows tab says its own result. */}
+    <div data-workspace-view="make" hidden={view !== undefined && view !== "make"}>
     <button disabled={busy} onClick={()=>action("workflow_read_records",{})}>Read recorded workflow supply (durable, read-only)</button>
     <CompareResult result={draftsState.compared}/>
     <button disabled={busy} onClick={()=>action("workflow_reopen",{})}>Reopen recorded workflow runs (read-only)</button>
@@ -2356,7 +2357,10 @@ export function App() {
   // Views (WorkspaceShell): the Conversation view is always shown in the centre; the others are the right panel's
   // tabs, one selected at a time, all mounted. Showing a tab opens the right region if it is collapsed. An intent that
   // navigates sets its view in the same update as its own state, so the reveal that follows finds its target visible.
-  const [rightTab, setRightTab] = useState<RightPanelTab>("run");
+  // At launch the right panel shows Workflows: the first journey begins by picking a workflow there.
+  const [rightTab, setRightTab] = useState<RightPanelTab>("workflows");
+  // Under More: the view chosen from its list (Make a workflow, History, Conversation tools), or null for the list.
+  const [moreView, setMoreView] = useState<MoreView | null>(null);
   // The workflow picked in the Workflows tab for the next message (WorkflowPick.tsx): the renderer's alone, nothing
   // sent or stored. It is dropped when the workflow source, the Codex generation or the home changes, since its name
   // may then no longer name the same workflow; the composer says so in one line.
@@ -2368,9 +2372,10 @@ export function App() {
   // The conversation view's own choice of a conversation, as it reports it (null while it takes none).
   const [conversationChooser, setConversationChooser] = useState<{ choose: ((key: string) => void) | null }>({ choose: null });
   const [rightCollapsed, setRightCollapsed] = useState(false);
-  // The "Conversation tools" tab's element: the conversation view draws its other tools there.
+  // The "Conversation tools" element under More: the conversation view draws its other tools there.
   const [toolsHost, setToolsHost] = useState<HTMLElement | null>(null);
   const rightTabRef = useRef<RightPanelTab>(rightTab);
+  const moreViewRef = useRef<MoreView | null>(moreView);
   const rightCollapsedRef = useRef(rightCollapsed);
   rightCollapsedRef.current = rightCollapsed;
   // Whether the person has navigated since launch: every view change but the App's own moves (autoMove) is theirs.
@@ -2380,14 +2385,23 @@ export function App() {
   // person's own focus or press inside it. It is always shown, so going there selects nothing; it stands where "the
   // Conversation view is shown" stood before the views shared the window, for the App's own model read below.
   const [conversationVisited, setConversationVisited] = useState(false);
-  // The conversation view needs nothing done to show it; a tab is selected and its region opened.
+  // The conversation view needs nothing done to show it; a tab is selected and its region opened. A view under More
+  // (Make a workflow, History, Conversation tools) selects More with that view shown; More itself shows its list.
   const selectView = (next: string, sync = false) => {
     if (next === "conversation") { setConversationVisited(true); return; }
-    if (!isRightPanelTab(next)) return;
-    if (rightTabRef.current === next && !rightCollapsedRef.current) return;
-    rightTabRef.current = next; rightCollapsedRef.current = false;
-    const apply = () => { setRightTab(next); setRightCollapsed(false); };
+    const tab: RightPanelTab | null = isMoreView(next) ? "more" : isRightPanelTab(next) ? next : null;
+    if (!tab) return;
+    const more: MoreView | null = isMoreView(next) ? next : null;
+    if (rightTabRef.current === tab && (tab !== "more" || moreViewRef.current === more) && !rightCollapsedRef.current) return;
+    rightTabRef.current = tab; moreViewRef.current = more; rightCollapsedRef.current = false;
+    const apply = () => { setRightTab(tab); setMoreView(more); setRightCollapsed(false); };
     if (sync) flushSync(apply); else apply();
+  };
+  // A choice in More's list, or its way back: the person's own navigation.
+  const chooseMore = (next: MoreView | null) => {
+    navigated.current = true;
+    if (next) { selectView(next, true); revealWorkspaceTarget(MORE_VIEWS.find(entry => entry.id === next)?.target ?? "", false); }
+    else selectView("more", true);
   };
   const showView = (next: string) => { navigated.current = true; selectView(next); };
   // The person's own focus or press inside the conversation view: they have gone to the conversation.
@@ -2403,6 +2417,17 @@ export function App() {
     navigated.current = true;
     selectView(next, true);
     if (by === "press") revealWorkspaceTarget(RIGHT_PANEL_TABS.find(tab => tab.id === next)?.target ?? "", false);
+  };
+  // The App's own moves to the Run tab, and the only ones it makes after launch: when the composer's Start run has
+  // started a run, and when the person opens a conversation that has a run (one the status strip names). Each is
+  // asked for here and made after the render that follows (below), under the present guards.
+  const [runTabMove, setRunTabMove] = useState(0);
+  const moveToRun = () => setRunTabMove(count => count + 1);
+  // The person opened a conversation: the Run tab where it has a run; otherwise the panel is left as it is.
+  const openedConversation = (key: string) => {
+    const opened = conversationFromKey(key), now = currentHost.current;
+    if (!opened || JSON.stringify(opened.generation) !== JSON.stringify(now?.generation)) return;
+    if (stripRun(now?.workflowRoot, now, opened.threadId)) moveToRun();
   };
   // Closing or opening the right panel is the person's own navigation.
   const collapseRight = (collapsed: boolean) => { navigated.current = true; setRightCollapsed(collapsed); };
@@ -2484,6 +2509,7 @@ export function App() {
   // select it, show the Conversation view and focus its message box.
   const openAdmittedConversation = (key: string) => {
     setThreadKey(key);
+    openedConversation(key);
     showView("conversation");
     conversationRevealSequence.current += 1;
     setConversationReveal({ sequence: conversationRevealSequence.current, target: "ordinary-composer-text" });
@@ -3109,8 +3135,8 @@ export function App() {
   const holdsUnsent = () => unsentWork.current.size > 0 || preparedMessages(currentHost.current).length > 0;
   const signInReading = accountReading(host);
   // The first view at launch follows state once, when the launch's account reading arrives: no account, Settings &
-  // tools at the sign-in; signed in with no conversation yet in this project's history, a new conversation;
-  // otherwise, while the read is under way, or when Codex didn't say, Run a workflow stays. Signed in, the App's own
+  // tools at the sign-in; signed in with no conversation yet in this project's history, a new conversation (the right
+  // panel left as it is); otherwise, while the read is under way, or when Codex didn't say, Workflows stays. Signed in, the App's own
   // history list read at ready is waited for, and only its reaching the end with none listed counts as no
   // conversation: one that stopped short, or never ran, establishes nothing. Never after the person has navigated
   // (including while the history list is still being read), and never over unsent work or a waiting request. Only the
@@ -3153,6 +3179,12 @@ export function App() {
     setSignedInNotice(true);
   }, [completion, host, signInReading, requestWaiting]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (signInReading !== "chatgpt-account") setSignedInNotice(false); }, [signInReading]);
+  // The moves to the Run tab asked for above: never over unsent work or a waiting request. Made after the render that
+  // follows the request, so a composer that has just sent its text no longer reports it as unsent.
+  useEffect(() => {
+    if (!runTabMove || holdsUnsent() || requestWaiting) return;
+    selectView("current-run");
+  }, [runTabMove]); // eslint-disable-line react-hooks/exhaustive-deps
   const changePermissionLevel = async (owner: string, scope: "default" | { conversation: string }, levelId: string) => {
     if (homePendingRef.current || owner !== levelOwner(currentHost.current)) throw Error("The Codex home changed. Choose the level again in the current view; nothing was changed.");
     let refreshFailed = false;
@@ -3281,7 +3313,7 @@ export function App() {
         <WaitingOnYou readings={waitingReads} view={host?.nativeView} busy={homePending} onOpen={() => { void readFleetOnOpen(); }} openGroup={group => { void openRequests(group); }} go={goToWaiting}/>
         </div>}
         {firstRead === "read" && <WorkspaceShell hidden={setupRequired} rightTab={rightTab} onRightTab={selectTab} rightCollapsed={rightCollapsed} setRightCollapsed={collapseRight}
-          navigator={<Navigator projects={projects} selectedKey={threadKey} choose={conversationChooser.choose ? key => { navigated.current = true; conversationChooser.choose?.(key); } : null} answer={answerIn} newChat={newChat} openSettings={openSettings}/>}
+          navigator={<Navigator projects={projects} selectedKey={threadKey} choose={conversationChooser.choose ? key => { navigated.current = true; conversationChooser.choose?.(key); openedConversation(key); } : null} answer={answerIn} newChat={newChat} openSettings={openSettings}/>}
           collapsedNavigator={openNavigator => <div className="woven-collapsed-strip" aria-label="Collapsed chat navigation">
             {projects.some(project => project.entries.some(entry => entry.needsAnswer)) ? <button type="button" aria-label="Needs answer" onClick={openNavigator}>!</button> : null}
             <button type="button" aria-label="New chat" disabled={!conversationChooser.choose} onClick={newChat}>＋</button>
@@ -3290,7 +3322,7 @@ export function App() {
           strip={<ActivityStrip phase={statusCurrent ? turnPhase(shownRow, !!shownRow && waitingThreads.has(shownRow.threadId)) : null}
             run={statusCurrent && !shownBeforePress(hostReads) && selectedThread ? stripRun(host?.workflowRoot, host, selectedThread) : null}/>}
           centre={<div id="view-conversation" data-workspace-view="conversation" className="v4-centre" onFocus={enterConversation} onPointerDown={enterConversation}>
-            <ConversationPanel pick={pick} setPick={setPick} clearPick={done => setPickState(current => current === done ? null : current)} pickDropped={pickDropped} showWorkflows={() => showView("workflows")}
+            <ConversationPanel pick={pick} setPick={setPick} clearPick={done => setPickState(current => current === done ? null : current)} pickDropped={pickDropped} showWorkflows={() => showView("workflows")} onRunStarted={moveToRun}
               readStatus={async () => { const read = await readHost(invoke<Json>("host_status")); applyHost(read); return read.snapshot; }} toolsHost={toolsHost} showTools={showToolsTarget} before={centreNotices} attachments={attachmentPanel} actionOutcome={actionOutcome} startNew={startNew} reportChooser={choose => setConversationChooser({ choose })} localRoute={fixedLocal} focusComposer={conversationReveal?.target === "ordinary-composer-text" ? conversationReveal.sequence : undefined} composerOffer={composerOffer} preparedReveal={preparedReveal} activityNavigationRef={activityNavigationRef} activityLink={activityLink} forkConversation={forkConversation} handoffSend={(id, text) => handoffAction("continue_as_send", { id, text })} handoffRead={id => handoffAction("continue_as_send_read", { id })} codexBusy={processBusy} host={host} threadKey={threadKey} setThreadKey={setThreadKey} answer={answerRequest} readRequest={readRequestCustody} replyObservations={replyObservations} runAct={runAct} trialRunAct={trialRunAct} startAct={startRunAct} send={ordinarySend} observeOrdinaryView={observeOrdinaryView} checkPlanMode={async (generation) => {
           // The check's own failure stands, with the fixed line after it when the refresh failed too.
           // A completed check whose refresh fails rejects with the fixed line alone: its result is
@@ -3322,17 +3354,22 @@ export function App() {
       }}/>
           </div>}
           right={<div className="daily-workspace">
-        <div id="view-conversation-tools" data-workspace-view="conversation-tools" className="workspace-view workspace-view-narrow" hidden={rightTab !== "conversation-tools"}>
+        {/* More: its list, or the view chosen from it with the way back. Every view stays mounted. */}
+        <div id="view-more" data-workspace-view="more" className="workspace-view workspace-view-narrow" hidden={rightTab !== "more" || moreView !== null}>
+          <MoreList choose={chooseMore}/>
+        </div>
+        {rightTab === "more" && moreView && <MoreBack view={moreView} back={() => chooseMore(null)}/>}
+        <div id="view-conversation-tools" data-workspace-view="conversation-tools" className="workspace-view workspace-view-narrow" hidden={rightTab !== "more" || moreView !== "conversation-tools"}>
           <h2>Conversation tools</h2>
           <div ref={setToolsHost}/>
         </div>
-        <div id="view-workflows" className="workspace-view workspace-view-narrow" hidden={rightTab !== "current-run" && rightTab !== "run" && rightTab !== "make" && rightTab !== "workflows"}>
+        <div id="view-workflows" className="workspace-view workspace-view-narrow" hidden={rightTab !== "current-run" && rightTab !== "workflows" && !(rightTab === "more" && moreView === "make")}>
           <div className="workspace-primary-column" aria-label="Workflow studio">
-            <WorkflowRootPanel pick={pick} setPick={setPick} viewStale={shownBeforePress(hostReads)} readFailure={hostReads.failure} findInHistory={findInHistory} view={rightTab} showConversation={showConversation} offerComposer={offerComposer} data={host?.workflowRoot} host={host} operationalReference={threadKey ? conversationFromKey(threadKey) ?? undefined : null} openFileAct={openArrivalFileAct} fileActBusy={fileActBusy} act={(command, args) => { const refusal = bringBackRefusal(command, args, currentHost.current); return refusal ? Promise.reject(Error(refusal)) : invoke<Json>(command, args); }} observeView={refresh} openPreparedMessage={item => { void openPreparedMessage(item); }}/>
+            <WorkflowRootPanel pick={pick} setPick={setPick} viewStale={shownBeforePress(hostReads)} readFailure={hostReads.failure} findInHistory={findInHistory} view={rightTab === "more" ? moreView ?? "more" : rightTab} showConversation={showConversation} offerComposer={offerComposer} data={host?.workflowRoot} host={host} operationalReference={threadKey ? conversationFromKey(threadKey) ?? undefined : null} openFileAct={openArrivalFileAct} fileActBusy={fileActBusy} act={(command, args) => { const refusal = bringBackRefusal(command, args, currentHost.current); return refusal ? Promise.reject(Error(refusal)) : invoke<Json>(command, args); }} observeView={refresh} openPreparedMessage={item => { void openPreparedMessage(item); }}/>
         {preparedNotice && <p role="status">{preparedNotice}</p>}
           </div>
         </div>
-        <div id="view-history" data-workspace-view="history" className="workspace-view workspace-view-narrow" hidden={rightTab !== "history"}>
+        <div id="view-history" data-workspace-view="history" className="workspace-view workspace-view-narrow" hidden={rightTab !== "more" || moreView !== "history"}>
           <WorkspaceDisclosure id="workspace-history" title="History and recovery" description="Read prior conversations and inspect recovery custody" open>
             <RecoveryCustodyPanel key={JSON.stringify([host?.homeRouting?.activeModeHomeClass, host?.generation])} modeHomeClass={host?.homeRouting?.activeModeHomeClass} generation={host?.generation ?? null} nativeHistoryGeneration={host?.nativeHistory?.generation ?? null} read={() => invoke("read_recovery_custody", { modeHomeClass: host?.homeRouting?.activeModeHomeClass, generation: host?.generation ?? null })} readRequests={(cursor: Json) => invoke("read_recovery_request_history", { modeHomeClass: host?.homeRouting?.activeModeHomeClass, generation: host?.generation ?? null, cursor: cursor ?? null })} retry={(threadId: string) => invoke("recovery_retry", { modeHomeClass: host?.homeRouting?.activeModeHomeClass, generation: host?.generation ?? null, threadId })}/>
         <HistoryPanel host={host} refresh={refresh} threadKey={threadKey} setThreadKey={setThreadKey} captureContinueNavigation={captureContinueNavigation} openConversation={openAdmittedConversation} searchHint={historyHint}/>

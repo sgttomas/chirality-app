@@ -13,11 +13,13 @@ const text = (value: Json): string => value === null || value === undefined ? ""
 const starts = (value: Json, prefix: string) => typeof value === "string" && value.startsWith(prefix);
 const same = (a: Json, b: Json) => JSON.stringify(a) === JSON.stringify(b);
 
-/** The one command the tab issues: the Run guide's own end of a run, through the same `act`. */
+/** The one command the tab issues: the end of a run as the former Run a workflow guide issued it, through the same `act`. */
 export const RUN_TAB_COMMANDS = ["workflow_end_run"];
 /** The tab's empty states. */
 export const NO_CONVERSATION = "Open or start a conversation to see its run.";
 export const NO_RUN = "No workflow run in this conversation.";
+/** A workflow chosen for the conversation and no run of it: the conversation's own words (App.tsx), after the name. */
+export const CHOSEN_NO_RUN = " is chosen for this conversation. No run has been started.";
 
 /** Where a run's workflow comes from, in the guide's words: an included workflow by its whole identity as the run's
  * text records it, else a bundled copy, else the library it came from. */
@@ -87,11 +89,18 @@ export function RunTab({ data, host, thread, act, busy, outcome, showConversatio
 
   const { runs, latest, orderUnknown, finishedOffer, word } = conversationRun(data, host, thread);
   const failure = readFailure && <p role="alert" aria-label="Last status read failed">The App's last read of its state failed ({readFailure}). What is shown here was read before that.</p>;
-  if (!word) return <section className="v4-runview run-tab" aria-label="Run">
-    {failure}
-    <p className="run-tab-empty">{NO_RUN}</p>
-    <p><button type="button" className="v4-plain run-tab-choose" onClick={() => revealWorkspaceTarget("view-library", true)}>Choose a workflow</button></p>
-  </section>;
+  if (!word) {
+    // As the conversation says it: a workflow chosen for it, and no run of this conversation recorded at all.
+    const held = chatWorkflow(data, data?.context?.sourceRef, thread);
+    const chosenName = held && held.state !== "not-selected" && typeof held.identity?.name === "string" && held.identity.name
+      && !list(data?.runs).some((run: Json) => run.conversation === thread) ? held.identity.name : null;
+    return <section className="v4-runview run-tab" aria-label="Run">
+      {failure}
+      {chosenName ? <p className="run-tab-chosen" role="note" aria-label="Workflow chosen, not started"><strong>{chosenName}</strong>{CHOSEN_NO_RUN}</p>
+        : <><p className="run-tab-empty">{NO_RUN}</p>
+          <p><button type="button" className="v4-plain run-tab-choose" onClick={() => revealWorkspaceTarget("view-library", true)}>Choose a workflow</button></p></>}
+    </section>;
+  }
 
   // As the guide: never while busy, never while the shown workflow source or Codex session differs from the host's.
   const sourceCurrent = !!data?.context?.sourceRef && host?.workflowRoot?.context?.sourceRef === data.context.sourceRef && same(data.context.generation, host?.generation);
@@ -162,13 +171,16 @@ export function RunTab({ data, host, thread, act, busy, outcome, showConversatio
       {reading && <p aria-label="Run progress"><strong>{reading.title}.</strong> {reading.detail}</p>}
       {orderUnknown && <p>This conversation has several runs, and the App can't tell which one is the latest.</p>}
       {open && <p><small>Ending here records that you ended it — not that it completed. To stop only Codex's current step, use Stop in the conversation; the run stays open.</small></p>}
+      {/* Each declared output with its meaning, in the guide's words (the list above gives the name and path only). */}
+      {outputs.some((output: Json) => output.meaning) && <ul aria-label="Where the results go">{outputs.map((output: Json, index: number) => <li key={index}>
+        <strong>{text(output.name)}</strong>{output.path ? <> — declared path <code>{text(output.path)}</code></> : ""}{output.meaning ? `: ${text(output.meaning)}` : ""}</li>)}</ul>}
       {latest && <p><small>These are what the workflow declares it produces; the App hasn't checked that any of them exist. {projectFolder !== null ? <>A relative declared path is the workflow's own wording; the App doesn't establish whether it is inside the project folder <code>{projectFolder}</code>.</> : "The App has not reported a matching project folder; the library location alone does not establish output locations."} The conversation's activity shows file changes reported by Codex; it does not establish every file changed by commands or tools.</small></p>}
       {(others.ordered.length + others.unordered.length) > 0 && <ul aria-label="Runs in this conversation">
-        {others.ordered.map((run: Json) => <RunResult key={text(run.reference)} run={run} host={host} loaded showConversation={showConversation}/>)}
+        {others.ordered.map((run: Json) => <RunResult key={text(run.reference)} run={run} host={host} showConversation={showConversation}/>)}
         {others.unordered.length > 0 && <li><small>{others.ordered.length ? "These runs' order isn't known:" : others.unordered.length > 1 ? "The App doesn't know these runs' order:" : ""}</small></li>}
-        {others.unordered.map((run: Json) => <RunResult key={text(run.reference)} run={run} host={host} loaded showConversation={showConversation}/>)}
+        {others.unordered.map((run: Json) => <RunResult key={text(run.reference)} run={run} host={host} showConversation={showConversation}/>)}
       </ul>}
-      {latest && <p><a href={`#${runEvidenceAnchor(latest.reference)}`}>Open this run's recorded evidence (in the workflow studio, under Make a workflow)</a></p>}
+      {latest && <p><a href={`#${runEvidenceAnchor(latest.reference)}`}>Open this run's recorded evidence (in the workflow studio, under More › Make a workflow)</a></p>}
     </details>
   </section>;
 }

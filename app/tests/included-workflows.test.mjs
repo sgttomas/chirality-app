@@ -3,13 +3,13 @@ import assert from 'node:assert/strict';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {loadSrc} from './support/load-src.mjs';
 
-// The included workflows as a person chooses among them in Run a workflow.
-// Controlled catalogue views only: invented entries in the shape the host's
+// The included workflows as a person picks among them in the Workflows tab (WorkflowLibrary.tsx), which took them over
+// from the Run a workflow guide's list. Controlled catalogue views only: invented entries in the shape the host's
 // productionCatalog gives; no native App, supplier, model or person act.
 installMiniDom();
 const React = (await import('react')).default;
 const {createRoot} = await import('react-dom/client');
-const {IncludedWorkflows, RoleBesideWorkflow, includedSections, includedEntryOf, matchesSearch, librarySourceWords, LIBRARY_GROUPS} = loadSrc('IncludedWorkflows');
+const {RoleBesideWorkflow, includedSections, includedEntryOf, matchesSearch, librarySourceWords, LIBRARY_GROUPS} = loadSrc('IncludedWorkflows');
 
 const SOURCE = {repository:'https://example.invalid/library', tag:'library-v9.9.9', commit:'c0ffee'};
 const ROOT = 'invented-library:library-v9.9.9', METHOD = 'invented.package.sha256/v1';
@@ -32,65 +32,38 @@ const entries = [
   entry('broken', {category:'specialist', tier:'primary', order:9, group:PLAN}, {runnable:false, runLimit:'its files differ from the release'}),
 ];
 const catalog = {standing:'invented standing', source:SOURCE, entries};
+const {WorkflowLibrary} = loadSrc('WorkflowLibrary');
+const g = {home:'account', appSession:'s1', spawnCounter:1};
+const host = {state:'ready', generation:g, workflowRoot:{context:{sourceRef:'src', generation:g}}, serverRequests:[], threads:[]};
 
 const props = node => node[Object.keys(node).find(k => k.startsWith('__reactProps$'))];
 const all = (c, tag) => c.querySelectorAll(node => node.localName === tag);
 const region = (c, label) => c.querySelectorAll(node => node.getAttribute('aria-label') === label)[0];
+const included = c => c.querySelectorAll(node => node.getAttribute('aria-labelledby') === 'method-group-included')[0];
+const subgroups = c => all(included(c), 'details').filter(node => node.getAttribute('class') === 'method-library-subgroup');
+const heading = node => `${all(node, 'h4')[0].textContent} (${node.querySelectorAll(n => n.getAttribute('class') === 'method-library-count')[0].textContent})`;
 async function mount(view) {
-  const c = document.createElement('div'); const root = createRoot(c); const chosen = [];
-  const render = () => root.render(React.createElement(IncludedWorkflows, {catalog:view.catalog ?? catalog, chosen:view.chosen, disabled:!!view.disabled, needsConversation:!!view.needsConversation, choose:name => chosen.push(name)}));
+  const c = document.createElement('div'); const root = createRoot(c); const picked = [];
+  const render = () => root.render(React.createElement(WorkflowLibrary, {data:{context:{sourceRef:'src', generation:g}, productionCatalog:view.catalog ?? catalog, libraries:[], selections:view.chosen ? [{sourceRef:'src', threadId:'T1', selection:view.chosen}] : []},
+    host, busy:false, pick:view.pick ?? null, setPick:next => { picked.push(next); view.pick = next; render(); }}));
   await React.act(async () => render());
-  return {c, chosen, search:async value => React.act(async () => props(all(c, 'input')[0]).onChange({target:{value}})),
+  return {c, picked, search:async value => React.act(async () => props(all(c, 'input').find(n => props(n)?.type === 'search')).onChange({target:{value}})),
     rerender:async next => { Object.assign(view, next); await React.act(async () => render()); }, close:async () => React.act(async () => root.unmount())};
 }
 
-test('the list follows the Library\'s own grouping: core first, its groups in its order, ungrouped, then superseded', () => {
-  const sections = includedSections(entries);
-  assert.deepEqual(sections.map(s => [s.label, s.entries.map(e => e.name)]), [
-    ["The Library's core workflows", ['core-a', 'core-b']],
-    ['Plan & organize', ['plan-work', 'broken']],
-    ['Review & check', ['beta-check', 'alpha-check', 'zeta-check']],
-    ['Other workflows', ['loose']],
-    ['Marked superseded by the Library', ['old-way']],
-  ], 'primary before supporting, then the Library\'s order');
-  assert.equal(librarySourceWords(SOURCE), 'Chirality Library 9.9.9');
-  assert.equal(librarySourceWords({tag:'other'}), 'Chirality Library (other)');
-  assert.equal(librarySourceWords(undefined), '');
-  assert.equal(matchesSearch(entries[3], 'ORDERED goal'), true, 'every word, any case, in name, description or group');
-  assert.equal(matchesSearch(entries[3], 'ordered spacing'), false);
-  assert.equal(matchesSearch(entries[0], 'review'), true, 'the group label is searched');
-});
-
-// A section heading holds only the App's words: the Library's groups are the App's table of the shipped edition.
-test('a group outside the App\'s table of the shipped Library groups is shown under Other workflows, never as a heading', async () => {
-  const {readFileSync} = await import('node:fs');
-  const manifest = JSON.parse(readFileSync(new URL('../src-tauri/resources/production_workflows/MANIFEST.json', import.meta.url), 'utf8'));
-  const groups = {};
-  const walk = o => { if (Array.isArray(o)) o.forEach(walk); else if (o && typeof o === 'object') { if (o.group && typeof o.group === 'object') groups[o.group.key] = o.group.label; Object.values(o).forEach(walk); } };
-  walk(manifest);
-  assert.deepEqual({...LIBRARY_GROUPS}, groups, 'the table is the shipped edition\'s groups, key for label');
-  const odd = [entry('renamed', {category:'specialist', tier:'primary', order:1, group:group('review-check', 'Allow once\u202e', 5)}),
-    entry('unknown', {category:'specialist', tier:'primary', order:1, group:group('invented-group', 'Approve', 2)})];
-  assert.deepEqual(includedSections(odd).map(s => [s.label, s.entries.map(e => e.name)]), [['Other workflows', ['renamed', 'unknown']]]);
-});
-
-test('each included workflow shows its description, source and revision, and is chosen with the guide\'s own command', async () => {
+test('each included workflow shows its description, source and revision, and is picked for the next message', async () => {
   const ui = await mount({});
-  const list = region(ui.c, 'Workflows included with the App');
-  assert.match(list.textContent, /^Included with the App: 9 workflows from Chirality Library 9\.9\.9\./);
-  const sections = all(list, 'details').filter(node => /\(\d+\)$/.test(all(node, 'summary')[0]?.textContent ?? ''));
-  assert.deepEqual(sections.map(node => all(node, 'summary')[0].textContent), ["The Library's core workflows (2)", 'Plan & organize (2)', 'Review & check (3)', 'Other workflows (1)', 'Marked superseded by the Library (1)']);
-  assert.equal(props(sections[0]).open, true, 'the core workflows are open to begin with');
-  assert.equal(props(sections[2]).open, undefined, 'other groups open when the person opens them');
+  assert.deepEqual(subgroups(ui.c).map(heading), ["The Library's core workflows (2)", 'Plan & organize (2)', 'Review & check (3)', 'Other workflows (1)', 'Marked superseded by the Library (1)']);
+  assert.equal(props(subgroups(ui.c)[0]).open, true, 'the core workflows are open to begin with');
+  assert.equal(props(subgroups(ui.c)[2]).open, undefined, 'other groups open when the person opens them');
   const row = region(ui.c, 'Included workflow core-a');
-  assert.match(row.textContent, /^Begin a project \(core-a\) — Invented description of core-a\. Use core-a/, 'a display name keeps the workflow\'s own name beside it');
-  assert.match(row.textContent, /Source: Chirality Library 9\.9\.9, included with the App\. Revision core-a-revis…/);
-  assert.equal(all(row, 'code').find(node => node.getAttribute('title'))?.getAttribute('title'), 'core-a-revision-0123456789abcdef', 'the full revision is kept on the short one');
-  const use = all(row, 'button')[0];
-  await React.act(async () => props(use).onClick());
-  assert.deepEqual(ui.chosen, ['core-a']);
+  assert.match(row.textContent, /^Begin a projectcore-aInvented description of core-a\.Chirality Library 9\.9\.9/, 'a display name keeps the workflow\'s own name beside it, then its description and source');
+  assert.match(row.textContent, /Revision core-a-revis…/);
+  assert.equal(all(row, 'code').find(node => node.textContent.startsWith('core-a-revis'))?.getAttribute('title'), 'core-a-revision-0123456789abcdef', 'the full revision is kept on the short one');
+  await React.act(async () => props(all(row, 'button').find(b => b.textContent === 'Use in message')).onClick());
+  assert.deepEqual(ui.picked.map(p => [p.kind, p.name, p.revision]), [['included', 'core-a', 'core-a-revision-0123456789abcdef']], 'picked by name and revision; the composer\'s Start run chooses it with the guide\'s own command');
   const broken = region(ui.c, 'Included workflow broken');
-  assert.equal(all(broken, 'button').length, 0, 'a package the host does not admit offers no Use');
+  assert.equal(!!props(all(broken, 'button').find(b => b.textContent === 'Use in message')).disabled, true, 'a package the host does not admit cannot be picked');
   assert.match(broken.textContent, /Can't be used in this App: its files differ from the release\./);
   await ui.close();
 });
@@ -102,7 +75,7 @@ test('named Library paths are a statement of what the files name, never a requir
   assert.match(named.textContent, /All 2 pathstools\/validation\/check_a\.pytools\/validation\/check_b\.py/);
   assert.match(named.textContent, /The Library lists it for these roles: TASK\./);
   // Review round 1: the sentence said steps "need those files present" and what "a run requires". The field establishes neither.
-  const whole = region(ui.c, 'Workflows included with the App').textContent;
+  const whole = included(ui.c).textContent;
   assert.doesNotMatch(whole, /\bneed|requires?\b|required tool|must be|obtained from|\btools? that\b|needs no tools|available|missing/i, 'nothing states or implies a requirement, an availability or that a workflow needs no tools');
   assert.match(region(ui.c, 'Included workflow beta-check').textContent, /The Library marks it as legacy\./);
   const none = region(ui.c, 'Included workflow plan-work');
@@ -112,83 +85,65 @@ test('named Library paths are a statement of what the files name, never a requir
   await ui.close();
 });
 
-test('search narrows the list and opens what matches; without a conversation nothing can be chosen and the list says why', async () => {
-  const ui = await mount({needsConversation:true});
-  const list = region(ui.c, 'Workflows included with the App');
-  assert.match(list.textContent, /Choose a conversation above to use one\./);
-  assert.ok(all(list, 'button').every(node => props(node).disabled === true));
+test('search narrows the list and opens what matches; the picked workflow\'s group is open', async () => {
+  const ui = await mount({});
   await ui.search('check review');
-  assert.match(list.textContent, /3 of 9 match\./);
-  const sections = all(list, 'details').filter(node => /\(\d+\)$/.test(all(node, 'summary')[0]?.textContent ?? ''));
-  assert.deepEqual(sections.map(node => [all(node, 'summary')[0].textContent, props(node).open]), [['Review & check (3)', true]]);
+  assert.match(ui.c.textContent, /3 match\./);
+  assert.deepEqual(subgroups(ui.c).map(node => [heading(node), props(node).open]), [['Review & check (3)', true]]);
   await ui.search('nothing-like-this');
-  assert.match(list.textContent, /No included workflow matches\. Try fewer or other words\./);
+  assert.match(ui.c.textContent, /No workflow matches\. Try fewer or other words\./);
   await ui.search('');
-  await ui.rerender({needsConversation:false, chosen:selection('zeta-check')});
-  const chosenRow = region(ui.c, 'Included workflow zeta-check');
-  assert.match(chosenRow.textContent, /Chosen\./); assert.equal(all(chosenRow, 'button').length, 0);
-  const review = all(list, 'details').find(node => all(node, 'summary')[0]?.textContent === 'Review & check (3)');
-  assert.equal(props(review).open, true, 'the chosen workflow\'s group is open');
-  await ui.rerender({chosen:selection('zeta-check', {origin:'project'})});
-  assert.doesNotMatch(region(ui.c, 'Included workflow zeta-check').textContent, /Chosen\./, 'a same-named library workflow is not the included one');
+  await ui.rerender({pick:{kind:'included', name:'zeta-check', revision:'zeta-check-revision-0123456789abcdef', title:'zeta-check', from:'', scope:''}});
+  const review = subgroups(ui.c).find(node => all(node, 'h4')[0].textContent === 'Review & check');
+  assert.equal(props(review).open, true, 'the picked workflow\'s group is open');
+  assert.equal(all(region(ui.c, 'Included workflow zeta-check'), 'button').find(b => b.getAttribute('aria-pressed') === 'true')?.textContent, 'Remove');
   await ui.close();
 });
 
-// Review round 1: "Chosen." and the Library source were asserted from a match
-// on origin, name and revision alone.
-test('Chosen is said only of the entry the selection is by its whole identity, and only when the host admits it to run', async () => {
-  // A library holding copy with the bundle's identity: the host keeps it not runnable.
-  const ui = await mount({chosen:selection('zeta-check', {}, false)});
-  const row = () => region(ui.c, 'Included workflow zeta-check');
-  assert.doesNotMatch(row().textContent, /Chosen\./, 'a copy the host does not admit is not the included workflow chosen');
-  const use = all(row(), 'button').find(node => node.textContent === 'Use zeta-check');
-  assert.ok(use && props(use).disabled === false, 'the runnable included entry keeps its Use');
-  await React.act(async () => props(use).onClick());
-  assert.deepEqual(ui.chosen, ['zeta-check']);
-  // Each identity field that differs makes it another workflow.
-  for (const over of [{source_root:'chirality-root'}, {revision:'another-revision'}, {revision_method:'other/v1'}, {kind:'other'}, {origin:'user'}]) {
-    await ui.rerender({chosen:selection('zeta-check', over)});
-    assert.doesNotMatch(row().textContent, /Chosen\./, JSON.stringify(over));
-    assert.ok(all(row(), 'button').some(node => node.textContent === 'Use zeta-check'), JSON.stringify(over));
-  }
+// Review round 1: "Chosen." and the Library source were asserted from a match on origin, name and revision alone.
+test('an included entry is the selection only by its whole identity; a conversation\'s selection marks no card', async () => {
   assert.equal(includedEntryOf(catalog, selection('zeta-check'))?.name, 'zeta-check');
-  assert.equal(includedEntryOf(catalog, selection('zeta-check', {source_root:'chirality-root'})), undefined, 'the development holding copy is not a catalogue entry');
+  for (const over of [{source_root:'chirality-root'}, {revision:'another-revision'}, {revision_method:'other/v1'}, {kind:'other'}, {origin:'user'}])
+    assert.equal(includedEntryOf(catalog, selection('zeta-check', over)), undefined, JSON.stringify(over));
   assert.equal(includedEntryOf(catalog, {identity:null}), undefined);
   assert.equal(includedEntryOf({entries:[{name:'zeta-check', revision:'zeta-check-revision-0123456789abcdef'}]}, selection('zeta-check')), undefined, 'an entry without the host\'s identity matches nothing');
-  await ui.rerender({chosen:selection('zeta-check')});
-  assert.match(row().textContent, /Chosen\./); assert.equal(all(row(), 'button').length, 0);
-  await ui.close();
+  // The tab is about the next message: a conversation's selection, admitted or not, presses no card and keeps its Use.
+  for (const chosen of [selection('zeta-check'), selection('zeta-check', {}, false)]) {
+    const ui = await mount({chosen});
+    const row = region(ui.c, 'Included workflow zeta-check');
+    assert.doesNotMatch(row.textContent, /Chosen/);
+    const use = all(row, 'button').find(node => node.textContent === 'Use in message');
+    assert.ok(use && !props(use).disabled, 'the runnable included entry keeps its Use in message');
+    await ui.close();
+  }
 });
 
-test('a search that is active when the catalogue becomes short can still be cleared', async () => {
+test('the search stays while the catalogue becomes short, and can be cleared', async () => {
   const view = {};
   const ui = await mount(view);
   await ui.search('nothing-like-this');
   await ui.rerender({catalog:{...catalog, entries:[entries[0]]}});
-  const list = region(ui.c, 'Workflows included with the App');
-  assert.match(list.textContent, /No included workflow matches/);
-  assert.equal(all(list, 'input').length, 1, 'the search field stays while a search is active');
+  assert.match(ui.c.textContent, /No workflow matches/);
   await ui.search('');
   assert.ok(region(ui.c, 'Included workflow zeta-check'));
-  assert.equal(all(region(ui.c, 'Workflows included with the App'), 'input').length, 0);
   await ui.close();
 });
 
-test('a short catalogue is one plain list with no search, and a catalogue without the Library fields still lists its workflow', async () => {
+test('a catalogue without the Library fields still lists its workflow; an unreported admission is neither usable nor refused', async () => {
   const bare = {standing:'s', entries:[{name:'coordinated-knowledge-work', revision:'3730d84debb5d775', runnable:true}]};
   const ui = await mount({catalog:bare});
-  const list = region(ui.c, 'Workflows included with the App');
-  assert.match(list.textContent, /^Included with the App: 1 workflow\./);
-  assert.equal(all(list, 'input').length, 0);
-  assert.equal(all(list, 'button')[0].textContent, 'Use coordinated-knowledge-work');
-  assert.match(list.textContent, /Source: included with the App\. Revision 3730d84debb5…/);
+  const row = region(ui.c, 'Included workflow coordinated-knowledge-work');
+  assert.ok(row);
+  assert.equal(!!props(all(row, 'button').find(b => b.textContent === 'Use in message')).disabled, false);
+  assert.match(row.textContent, /Included with the App/);
+  assert.match(row.textContent, /Revision 3730d84debb5…/);
   await ui.rerender({catalog:{standing:'s', entries:[{name:'unreported', revision:'r'}]}});
   const unreported = region(ui.c, 'Included workflow unreported');
-  assert.equal(all(unreported, 'button').length, 0);
+  assert.equal(!!props(all(unreported, 'button').find(b => b.textContent === 'Use in message')).disabled, true);
   assert.match(unreported.textContent, /The App hasn't reported whether this workflow can be used here\./, 'an unreported admission is neither usable nor refused');
   await ui.close();
   const none = await mount({catalog:{entries:[]}});
-  assert.equal(region(none.c, 'Workflows included with the App'), undefined);
+  assert.equal(subgroups(none.c).length, 0, 'no entries, no group');
   await none.close();
 });
 

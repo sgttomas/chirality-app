@@ -202,15 +202,6 @@
   "reason": "r is an element of CONVERSATION_ROLES, the literal list at ConversationRoles.tsx:23. The guard does not take a .map callback's element of a literal array as App-made."
  },
  {
-  "file": "IncludedWorkflows.tsx",
-  "where": "<summary>",
-  "expr": "section.label",
-  "component": "IncludedWorkflows",
-  "count": 1,
-  "basis": "an App-owned literal vocabulary",
-  "reason": "section.label is a literal set in includedSections (IncludedWorkflows.tsx: core, superseded, other) or a word of LIBRARY_GROUPS, the App's table of the shipped Library groups, taken by wordOf only when the entry's key and label are both in it; included-workflows.test.mjs shows any other group goes under Other workflows. The guard does not follow a field of a returned object."
- },
- {
   "file": "MakeJourney.tsx",
   "where": "<a>",
   "expr": "next.link",
@@ -290,15 +281,6 @@
   "count": 1,
   "basis": "an editable value permitted in that field",
   "reason": "A field holding only what the person typed: state set only by this field's onChange (App.tsx:1455). The guard matches setters by name, and name is also bound in WorkflowRootPanel."
- },
- {
-  "file": "RunJourney.tsx",
-  "where": "@value",
-  "expr": "personText",
-  "component": "RunWorkflowGuide",
-  "count": 1,
-  "basis": "an editable value permitted in that field",
-  "reason": "A field holding only what the person typed: App's text state, passed down as setText; setText(e.target.value) is its only call here and at App.tsx:1143. The guard does not follow a setter passed as a prop."
  },
  {
   "file": "ConversationRoles.tsx",
@@ -613,7 +595,25 @@
   "component": "RightPanel",
   "count": 1,
   "basis": "an App-owned literal vocabulary",
-  "reason": "t is an element of RIGHT_PANEL_TABS, a literal array of literal labels (WorkspaceShell.tsx:8-15). The guard does not take a .map callback's element of a literal array as App-made."
+  "reason": "t is an element of RIGHT_PANEL_TABS, a literal array of literal labels (WorkspaceShell.tsx:7-12). The guard does not take a .map callback's element of a literal array as App-made."
+ },
+ {
+  "file": "WorkspaceShell.tsx",
+  "where": "<button>",
+  "expr": "entry.label",
+  "component": "MoreList",
+  "count": 1,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "entry is an element of MORE_VIEWS, a literal array of literal labels and lines (WorkspaceShell.tsx:20-24), so entry.label is one of those literals. The guard does not take a .map callback's element of a literal array as App-made."
+ },
+ {
+  "file": "WorkspaceShell.tsx",
+  "where": "<button>",
+  "expr": "entry.line",
+  "component": "MoreList",
+  "count": 1,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "entry is an element of MORE_VIEWS, a literal array of literal labels and lines (WorkspaceShell.tsx:20-24), so entry.line is one of those literals. The guard does not take a .map callback's element of a literal array as App-made."
  },
  {
   "file": "WorkspaceShell.tsx",
@@ -622,7 +622,7 @@
   "component": "RightPanel",
   "count": 1,
   "basis": "an App-owned literal vocabulary",
-  "reason": "tab is one of the literal ids of RIGHT_PANEL_TABS (WorkspaceShell.tsx:8-15, typed RightPanelTab), so this names exactly one of the tab buttons written in the same file, id right-tab-<id>, whose content is that tab's literal label. The guard takes only a literal id list."
+  "reason": "tab is one of the literal ids of RIGHT_PANEL_TABS (WorkspaceShell.tsx:7-12, typed RightPanelTab), so this names exactly one of the tab buttons written in the same file, id right-tab-<id>, whose content is that tab's literal label. The guard takes only a literal id list."
  },
  {
   "file": "App.tsx",
@@ -685,6 +685,6 @@
   "component": "WorkflowLibrary",
   "count": 1,
   "basis": "an App-owned literal vocabulary",
-  "reason": "section is an element of includedSections(found) (imported from IncludedWorkflows.tsx), so section.label is a literal set there (core, superseded, other) or a word of LIBRARY_GROUPS, the App's table of the shipped Library groups, taken by wordOf only when the entry's key and label are both in it, as the IncludedWorkflows entry above records; workflow-library-tab.test.mjs shows an unknown group under Other workflows here. The guard does not follow a field of a returned object."
+  "reason": "section is an element of includedSections(found) (imported from IncludedWorkflows.tsx), so section.label is a literal set there (core, superseded, other) or a word of LIBRARY_GROUPS, the App's table of the shipped Library groups, taken by wordOf only when the entry's key and label are both in it; workflow-library-tab.test.mjs shows an unknown group under Other workflows here. The guard does not follow a field of a returned object."
  }
 ]

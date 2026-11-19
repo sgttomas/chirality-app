@@ -1,5 +1,5 @@
-// Mounted App: the Run a workflow guide's conversation actions select the
-// run's own conversation and reveal it (its requests when Codex is waiting).
+// Mounted App: the Run tab's conversation actions reveal the run's own
+// conversation, the one open in the centre (its requests when Codex is waiting).
 // Companion reads return only an already-masked memory snapshot; they perform
 // no workflow action and issue no history request. They are allowed separately
 // from the actions these navigation assertions forbid.
@@ -31,7 +31,7 @@ const host = {state:'ready', generation:g, threads:[thread('T1'), thread('T2')],
     state:'outstanding', replyWriteResult:'not-attempted', acknowledgmentObservation:{status:'not-observed'}}],
   workflowRoot:{context:{sourceRef:'src', generation:g}, projectLibraryAvailable:true, activeLibrary:null, libraries:[], selections:[], runs:[open], drafts:{drafts:[]}}};
 
-test('Answer in the conversation selects the run conversation and reveals its requests, issuing no action', async () => {
+test('Answer in the conversation, in the Run tab, keeps the run\'s conversation shown and reveals its requests, issuing no action', async () => {
   const c = document.createElement('div'); document.body.appendChild(c); const root = createRoot(c); const calls = [];
   const revealed = []; const previous = {getElementById:document.getElementById, setInterval:globalThis.setInterval, clearInterval:globalThis.clearInterval};
   document.getElementById = id => { revealed.push(id); return c.querySelectorAll(n => n.getAttribute('id') === id)[0] ?? null; };
@@ -47,10 +47,11 @@ test('Answer in the conversation selects the run conversation and reveals its re
     await React.act(async () => root.render(React.createElement(App)));
     const conversationSelect = () => choiceLists(conversationView(c))[0];
     assert.equal(chosenIn(conversationSelect()), '', 'no operational conversation is chosen yet');
-    const guideSelect = choiceList(c, 'Conversation to run it in');
-    await React.act(async () => chooseIn(guideSelect, 'T2'));
+    // The Run tab shows the run of the conversation open in the centre: the person opens T2 from the navigator.
+    await React.act(async () => props(nodes(c, 'button').find(n => n.getAttribute('data-session-id') === 'T2')).onClick());
+    const runTab = c.querySelectorAll(n => n.getAttribute('id') === 'view-current-run')[0];
     const before = calls.length;
-    await React.act(async () => props(button(c, 'Answer in the conversation')).onClick());
+    await React.act(async () => props(button(runTab, 'Answer in the conversation')).onClick());
     assert.equal(chosenIn(conversationSelect()), key('T2'), 'the run conversation is now the shown conversation');
     assert.ok(revealed.includes('conversation-requests'), 'its requests are revealed');
     assert.match(c.querySelectorAll(n => n.getAttribute('id') === 'conversation-requests')[0].textContent, /Which folder\?/);
@@ -93,7 +94,8 @@ test('the ready trial link lands inside the clean trial composer, which says in 
     assert.equal(prevented, true);
     // The prepared composer is among the conversation's tools: the reveal selects their tab, and the composer is shown.
     assert.ok(shown(panel), 'the composer is shown');
-    assert.equal(selectedTab(c), 'Conversation tools', 'the right panel shows the tab that holds it');
+    assert.equal(selectedTab(c), 'More', 'the right panel shows the tab that holds it');
+    assert.ok(shown(c.querySelectorAll(n => n.getAttribute('id') === 'view-conversation-tools')[0]), 'with Conversation tools chosen under it');
     assert.equal(panel.getAttribute('tabindex'), '-1', 'focus lands on the composer itself, not the conversation select above it');
     main.removeChild(link);
     assert.deepEqual(calls.filter(cmd => !['host_status', 'decision_view', 'native_confirmation_content', 'request_answer_companions'].includes(cmd)), [], 'following the link issues no action');
@@ -155,7 +157,7 @@ test('a saved trial conversation opens History with only its ID in the search: n
     const look = nodes(guide, 'button').find(n => n.textContent === 'Look for it in History');
     assert.ok(look);
     await React.act(async () => props(look).onClick());
-    assert.equal(selectedTab(c), 'History', 'History is shown');
+    assert.equal(selectedTab(c), 'More', 'History, under More, is shown');
     assert.ok(shown(c.querySelectorAll(n => n.getAttribute('id') === 'view-history')[0]), 'its view is not hidden');
     const search = c.querySelectorAll(n => n.localName === 'input' && n.getAttribute('aria-describedby') === 'history-search-count')[0];
     assert.equal(props(search).value, 'thread-old-trial', 'its search holds the saved ID');
@@ -164,7 +166,7 @@ test('a saved trial conversation opens History with only its ID in the search: n
   } finally { const text = c.textContent; await React.act(() => root.unmount()); document.body.removeChild(c); idle.restore(text); Object.assign(globalThis, {setInterval:previous.setInterval, clearInterval:previous.clearInterval}); document.getElementById = previous.getElementById; }
 });
 
-test('a registered revision to re-confirm links from Run to its own row in the workflow studio, issuing no action', async () => {
+test('a registered revision to re-confirm links from Workflows to its own row in the workflow studio, issuing no action', async () => {
   const c = document.createElement('div'); document.body.appendChild(c); const root = createRoot(c);
   const previous = {getElementById:document.getElementById, setInterval:globalThis.setInterval, clearInterval:globalThis.clearInterval};
   document.getElementById = id => c.querySelectorAll(n => n.getAttribute('id') === id)[0] ?? null;
@@ -190,7 +192,7 @@ test('a registered revision to re-confirm links from Run to its own row in the w
     assert.match(row.textContent, /re-confirmation/);
     assert.ok(nodes(row, 'button').some(b => b.textContent === 'Refine from the revision store…'));
     const link = nodes(c, 'a').find(a => a.textContent === 'Re-confirm load-check in the workflow studio');
-    assert.ok(link, 'the Run guide offers the re-confirmation route');
+    assert.ok(link, 'the Workflows tab offers the re-confirmation route');
     assert.equal(link.getAttribute('href'), `#${anchor}`);
     const main = nodes(c, 'main')[0];
     let prevented = false;

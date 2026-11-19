@@ -3,21 +3,43 @@ import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, ty
 type Json = any;
 
 /** The right panel's tabs: the App's views other than the conversation, in this order, each with the element a
- * person lands on when they select it; the last holds the conversation's own tools that its centre view does not
- * show (its role and continuation options, trials, the detailed panels). */
+ * person lands on when they select it. "More" holds the views still in their earlier form (MORE_VIEWS). */
 export const RIGHT_PANEL_TABS = [
   { id: "current-run", label: "Run", target: "view-current-run" },
-  { id: "run", label: "Run a workflow", target: "view-run" },
   { id: "workflows", label: "Workflows", target: "view-library" },
-  { id: "make", label: "Make a workflow", target: "view-make" },
-  { id: "history", label: "History", target: "workspace-history" },
   { id: "settings", label: "Settings & tools", target: "workspace-tools" },
-  { id: "conversation-tools", label: "Conversation tools", target: "view-conversation-tools" },
+  { id: "more", label: "More", target: "view-more" },
 ] as const;
 export type RightPanelTab = typeof RIGHT_PANEL_TABS[number]["id"];
 /** How a tab was selected: pressed, or reached by the arrow keys while moving along the tabs. */
 export type TabSelection = "press" | "keys";
 export const isRightPanelTab = (view: string): view is RightPanelTab => RIGHT_PANEL_TABS.some(tab => tab.id === view);
+
+/** The views under "More", in this order: each its view name (the data-workspace-view a reveal reads), its label, one
+ * line of what is there, and the element a person lands on when they choose it. */
+export const MORE_VIEWS = [
+  { id: "make", label: "Make a workflow", line: "Drafts, trials and reviews, and the workflow studio with every detailed control.", target: "view-make" },
+  { id: "history", label: "History", line: "Earlier conversations, and recovery.", target: "workspace-history" },
+  { id: "conversation-tools", label: "Conversation tools", line: "The open conversation's role, permission level, prepared messages and trials.", target: "view-conversation-tools" },
+] as const;
+export type MoreView = typeof MORE_VIEWS[number]["id"];
+export const isMoreView = (view: string): view is MoreView => MORE_VIEWS.some(entry => entry.id === view);
+
+/** More's list: one button for each view under it, with its line. */
+export function MoreList({ choose }: { choose: (view: MoreView) => void }) {
+  return <nav className="v4-more" aria-label="More">
+    <ul>{MORE_VIEWS.map(entry => <li key={entry.id}>
+      <button type="button" className="v4-more-entry" data-more-view={entry.id} onClick={() => choose(entry.id)}><strong>{entry.label}</strong><span>{entry.line}</span></button>
+    </li>)}</ul>
+  </nav>;
+}
+/** Above a view under More: the way back to More's list, and the view's name. */
+export function MoreBack({ view, back }: { view: MoreView; back: () => void }) {
+  return <div className="v4-more-back">
+    <button type="button" className="v4-plain" onClick={back}><span aria-hidden="true">‹ </span>More</button>
+    <span>{MORE_VIEWS.find(entry => entry.id === view)?.label}</span>
+  </div>;
+}
 
 /** What the status strip says for the conversation shown in the centre. */
 export type TurnPhase = "working" | "waiting" | "idle" | null;

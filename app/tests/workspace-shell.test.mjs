@@ -14,7 +14,7 @@ const React = (await import('react')).default;
 const {createRoot} = await import('react-dom/client');
 const {App} = loadSrc('App');
 const {navigatorEntries, navigatorProjects, folderName} = loadSrc('Navigator');
-const {RIGHT_PANEL_TABS, RightPanel, turnPhase, shellLayout} = loadSrc('WorkspaceShell');
+const {RIGHT_PANEL_TABS, MORE_VIEWS, RightPanel, turnPhase, shellLayout} = loadSrc('WorkspaceShell');
 const {choiceLabels} = loadSrc('AgentText');
 const {threadChoices} = loadSrc('presentation');
 
@@ -65,6 +65,10 @@ const row = (c, id) => rows(c).find(b => b.getAttribute('data-session-id') === i
 const needsAnswer = (c, id) => row(c, id).parentNode.childNodes.find(b => b.localName === 'button' && b.textContent === 'Needs answer');
 const tabs = c => nodes(c, 'button').filter(b => b.getAttribute('role') === 'tab');
 const selectedTab = c => tabs(c).find(b => b.getAttribute('aria-selected') === 'true')?.textContent;
+// More's list and the view chosen from it (WorkspaceShell.tsx MoreList, MoreBack).
+const moreEntries = c => nodes(c, 'button').filter(b => b.getAttribute('data-more-view'));
+const chooseMore = (c, view) => React.act(async () => props(moreEntries(c).find(b => b.getAttribute('data-more-view') === view)).onClick());
+const pressTab = (c, label) => React.act(async () => props(tabs(c).find(t => t.textContent === label)).onClick());
 const conversationChosen = c => chosenIn(choiceLists(conversationView(c))[0]);
 const strip = c => labelled(c, 'Activity status');
 
@@ -176,17 +180,21 @@ test('mounted: the status strip speaks only for the conversation chosen in the c
   });
 });
 
-test('mounted: the right panel\'s tabs show the App\'s other views and the conversation\'s tools, all mounted; a reveal selects the tab that holds its target', async () => {
+test('mounted: the right panel\'s tabs show the App\'s other views, all mounted; a reveal selects the tab that holds its target', async () => {
   await mountApp(baseHost(), async ({c, calls}) => {
-    assert.deepEqual(tabs(c).map(t => t.textContent), ['Run', 'Run a workflow', 'Workflows', 'Make a workflow', 'History', 'Settings & tools', 'Conversation tools']);
+    assert.deepEqual(tabs(c).map(t => t.textContent), ['Run', 'Workflows', 'Settings & tools', 'More']);
     assert.deepEqual(RIGHT_PANEL_TABS.map(t => t.label), tabs(c).map(t => t.textContent));
-    assert.equal(selectedTab(c), 'Run a workflow', 'at launch, with nothing to move for');
-    const views = {'Run':'view-current-run', 'Run a workflow':'view-run', 'Workflows':'view-library', 'Make a workflow':'view-make', 'History':'view-history', 'Settings & tools':'workspace-tools', 'Conversation tools':'view-conversation-tools'};
+    assert.equal(selectedTab(c), 'Workflows', 'at launch, with nothing to move for');
+    const more = tabs(c).find(t => t.textContent === 'More');
+    assert.equal(more.childNodes.length, 1, 'More is quiet: its word and nothing beside it'); assert.equal(more.getAttribute('class'), null);
+    const views = {'Run':'view-current-run', 'Workflows':'view-library', 'Settings & tools':'workspace-tools', 'More':'view-more'};
+    const under = ['view-make', 'view-history', 'view-conversation-tools'];
     for (const tab of tabs(c)) {
       await React.act(async () => props(tab).onClick());
       assert.equal(selectedTab(c), tab.textContent);
       assert.equal(byId(c, 'right-view-content').getAttribute('aria-labelledby'), tab.getAttribute('id'));
       for (const [label, id] of Object.entries(views)) assert.equal(shown(byId(c, id)), label === tab.textContent, `${tab.textContent}: ${label}`);
+      for (const id of under) assert.equal(shown(byId(c, id)), false, `${tab.textContent}: ${id} is shown only when chosen under More`);
       assert.ok(shown(byId(c, 'view-conversation')), 'the conversation stays shown beside every tab');
     }
     // A reveal in the conversation leaves the right panel as it is.
@@ -197,11 +205,11 @@ test('mounted: the right panel\'s tabs show the App\'s other views and the conve
     await React.act(async () => props(labelled(c, 'Collapse right panel')).onClick());
     assert.ok(!shown(labelled(c, 'Right panel')), 'collapsed'); assert.ok(byId(c, 'workspace-tools'), 'every view stays mounted while collapsed');
     await React.act(async () => revealWorkspaceTarget('workspace-history', true));
-    assert.ok(shown(labelled(c, 'Right panel')), 'opened by the reveal'); assert.equal(selectedTab(c), 'History');
+    assert.ok(shown(labelled(c, 'Right panel')), 'opened by the reveal'); assert.equal(selectedTab(c), 'More', 'History is under More');
     assert.ok(shown(byId(c, 'workspace-history')));
     // Arrow keys move between tabs, as in 3.0.1.
     const tablist = labelled(c, 'Right panel views');
-    await React.act(async () => props(tablist).onKeyDown({key:'ArrowRight', preventDefault() {}}));
+    await React.act(async () => props(tablist).onKeyDown({key:'ArrowLeft', preventDefault() {}}));
     assert.equal(selectedTab(c), 'Settings & tools');
     await React.act(async () => props(tablist).onKeyDown({key:'Home', preventDefault() {}}));
     assert.equal(selectedTab(c), 'Run', 'the first tab');
@@ -225,7 +233,7 @@ test('mounted: closing the right panel collapses its region, and the toggle ther
     await React.act(async () => props(labelled(c, 'Collapse right panel')).onClick());
     assert.equal(columns(), '292px 12px minmax(420px, 1fr) 12px 56px');
     const label = c.querySelectorAll(n => n.getAttribute('class') === 'woven-collapsed-label')[0];
-    assert.equal(label.textContent, 'Run a workflow', 'the collapsed region names the selected tab');
+    assert.equal(label.textContent, 'Workflows', 'the collapsed region names the selected tab');
     await React.act(async () => props(labelled(c, 'Open right panel')).onClick());
     assert.equal(columns(), '292px 12px minmax(420px, 1fr) 12px 480px');
     assert.equal(labelled(c, 'Open right panel'), undefined);
@@ -251,7 +259,7 @@ test('mounted: New chat shows the empty conversation with its message box focuse
     await React.act(async () => props(nodes(navigator(c), 'button').find(b => b.textContent === '＋ New chat')).onClick());
     assert.equal(conversationChosen(c), '', 'no conversation is chosen'); assert.ok(byId(c, 'workspace-start'), 'the settings line is the new conversation\'s');
     assert.equal(focused, 1, 'the message box is focused');
-    assert.equal(selectedTab(c), 'Run a workflow', 'the right panel is left as it is');
+    assert.equal(selectedTab(c), 'Workflows', 'the right panel is left as it is');
     await React.act(async () => props(labelled(navigator(c), 'Settings & tools')).onClick());
     assert.equal(selectedTab(c), 'Settings & tools'); assert.ok(revealed.includes('workspace-tools'));
     assert.ok(shown(byId(c, 'workspace-tools')));
@@ -266,7 +274,7 @@ test('mounted: the removed navigation and heading are gone; their links\' target
     assert.equal(nodes(c, 'header').filter(h => h.getAttribute('class') === 'woven-navigator-brand' && h.textContent === 'Chirality').length, 1, 'the brand, in the navigator');
     const main = nodes(c, 'main')[0];
     assert.equal(main.getAttribute('class'), 'shell shell--workspace shell--stone');
-    for (const [target, tab] of [['view-make', 'Make a workflow'], ['workspace-tools', 'Settings & tools'], ['view-run', 'Run a workflow'], ['workspace-history', 'History'], ['conversation', 'History']]) {
+    for (const [target, tab] of [['view-make', 'More'], ['workspace-tools', 'Settings & tools'], ['view-library', 'Workflows'], ['workspace-history', 'More'], ['conversation', 'More']]) {
       const a = document.createElement('a'); a.setAttribute('href', `#${target}`); main.appendChild(a);
       let prevented = false;
       await React.act(async () => props(main).onClick({target:a, currentTarget:main, preventDefault:() => { prevented = true; }}));
@@ -330,9 +338,9 @@ test('mounted: selecting a tab lands as its link did, opening its disclosure; on
   await mountApp(baseHost(), async ({c}) => {
     const history = byId(c, 'workspace-history');
     history.open = false;
-    await React.act(async () => props(tabs(c).find(t => t.textContent === 'Run a workflow')).onClick());
-    await React.act(async () => props(tabs(c).find(t => t.textContent === 'History')).onClick());
-    assert.equal(history.open, true, 'History is open again when its tab is selected');
+    await pressTab(c, 'Workflows');
+    await pressTab(c, 'More'); await chooseMore(c, 'history');
+    assert.equal(history.open, true, 'History is open again when it is chosen under More');
     const view = byId(c, 'view-conversation');
     assert.equal(typeof props(view).onFocus, 'function'); assert.equal(typeof props(view).onPointerDown, 'function');
     for (let n = view.parentNode; n && n !== c; n = n.parentNode) {
@@ -345,7 +353,7 @@ test('mounted: selecting a tab lands as its link did, opening its disclosure; on
 
 test('where the regions stack, the panel offers no expand control', () => {
   const c = document.createElement('div'); document.body.appendChild(c); const root = createRoot(c);
-  const render = onExpand => React.act(() => root.render(React.createElement(RightPanel, {tab:'run', onTab() {}, expanded:false, onExpand, onClose() {}, hidden:false})));
+  const render = onExpand => React.act(() => root.render(React.createElement(RightPanel, {tab:'workflows', onTab() {}, expanded:false, onExpand, onClose() {}, hidden:false})));
   render(null);
   assert.equal(labelled(c, 'Expand panel'), undefined);
   assert.ok(labelled(c, 'Collapse right panel'));
@@ -398,17 +406,87 @@ test('mounted: moving along the tabs by the arrow keys opens nothing; a link tha
     const history = byId(c, 'workspace-history');
     history.open = false;
     const list = c.querySelectorAll(n => n.getAttribute('role') === 'tablist')[0];
-    await React.act(async () => props(tabs(c).find(t => t.textContent === 'Run a workflow')).onClick());
-    for (let i = 0; i < tabs(c).length && selectedTab(c) !== 'History'; i++) await React.act(async () => props(list).onKeyDown({key:'ArrowRight', preventDefault() {}}));
-    assert.equal(selectedTab(c), 'History', 'the arrow keys reach History');
+    await pressTab(c, 'Run');
+    for (let i = 0; i < tabs(c).length && selectedTab(c) !== 'More'; i++) await React.act(async () => props(list).onKeyDown({key:'ArrowRight', preventDefault() {}}));
+    assert.equal(selectedTab(c), 'More', 'the arrow keys reach More');
+    assert.ok(shown(byId(c, 'view-more')), 'which shows its list'); assert.equal(shown(byId(c, 'view-history')), false);
     assert.equal(history.open, false, 'and leave closed what the person closed');
-    await React.act(async () => props(tabs(c).find(t => t.textContent === 'History')).onClick());
-    assert.equal(history.open, true, 'pressing the tab opens it');
+    await chooseMore(c, 'history');
+    assert.equal(history.open, true, 'choosing History under More opens it');
     const view = byId(c, 'view-conversation');
     const link = {tagName:'A', parentNode:view};
     const before = calls.length;
     await React.act(async () => props(view).onFocus({target:link}));
     await React.act(async () => props(view).onPointerDown({target:link}));
     assert.deepEqual(calls.slice(before).map(x => x.command).filter(x => x !== 'host_status'), [], 'nothing is read for a link that leads elsewhere');
+  });
+});
+
+// ---- More: the views still in their earlier form, behind one quiet tab ----
+test('mounted: More shows a short list of its three views, each a button with one line; choosing one shows it with a way back to the list', async () => {
+  await mountApp(baseHost(), async ({c, calls}) => {
+    await pressTab(c, 'More');
+    assert.ok(shown(byId(c, 'view-more')), 'the list');
+    assert.deepEqual(moreEntries(c).map(b => b.childNodes[0].textContent), ['Make a workflow', 'History', 'Conversation tools']);
+    assert.deepEqual(moreEntries(c).map(b => b.childNodes[1].textContent), MORE_VIEWS.map(v => v.line), 'one line each of what is there');
+    const ids = {make:'view-make', history:'view-history', 'conversation-tools':'view-conversation-tools'};
+    const before = calls.length;
+    for (const [view, id] of Object.entries(ids)) {
+      await chooseMore(c, view);
+      assert.equal(selectedTab(c), 'More', `${view}: More stays the selected tab`);
+      assert.equal(shown(byId(c, 'view-more')), false, `${view}: the list gives way to the view`);
+      for (const other of Object.values(ids)) assert.equal(shown(byId(c, other)), other === id, `${view}: ${other}`);
+      const back = nodes(c, 'button').find(b => b.textContent === '‹ More' && shown(b));
+      assert.ok(back, `${view}: the way back`);
+      await React.act(async () => props(back).onClick());
+      assert.ok(shown(byId(c, 'view-more')), `${view}: back at the list`);
+      for (const other of Object.values(ids)) assert.equal(shown(byId(c, other)), false);
+    }
+    // Pressing the More tab while a view under it is shown goes back to the list.
+    await chooseMore(c, 'history'); await pressTab(c, 'More');
+    assert.ok(shown(byId(c, 'view-more'))); assert.equal(shown(byId(c, 'view-history')), false);
+    assert.deepEqual(calls.slice(before).filter(x => !['host_status', 'decision_view', 'native_confirmation_content', 'request_answer_companions', 'read_available_models'].includes(x.command)), [], 'choosing issues no command');
+  });
+});
+
+// One reveal for each kind of target inside More: each selects More, shows the view that holds it and reveals it.
+const runRow = {reference:'run-1', conversation:'T1', home:'account', generation:g, source:'s', lifecycle:{state:'ended', end:{cause:'completed'}}, workflow:{name:'invented-flow', origin:'project', revision:'r'}, status:{}};
+for (const [kind, target, view] of [
+  ['the conversation\'s permission level', 'conversation-level', 'view-conversation-tools'],
+  ['the conversation tools (prepared messages and trials are drawn there)', 'conversation-tools-content', 'view-conversation-tools'],
+  ['history and recovery', 'workspace-history', 'view-history'],
+  ['a draft', 'workflow-drafts', 'view-make'],
+  ['a review', 'workflow-reviews', 'view-make'],
+  ['the workflow studio', 'workflow-studio', 'view-make'],
+  ['a run\'s recorded evidence', 'run-evidence', 'view-make'],
+  ['a recorded run reopened from project records', 'reopened-evidence', 'view-make'],
+]) test(`mounted: a reveal of ${kind} selects More and shows its view`, async () => {
+  const {runEvidenceAnchor} = loadSrc('RunJourney');
+  const host = baseHost();
+  host.workflowRoot = {...host.workflowRoot, runs:[runRow], reopened:{standing:'invented', runs:[{run:'rec-1', conversation:null, state:'ended'}]}};
+  const id = target === 'run-evidence' ? runEvidenceAnchor('run-1') : target === 'reopened-evidence' ? runEvidenceAnchor('rec-1') : target;
+  await mountApp(host, async ({c}) => {
+    await pressTab(c, 'Run');
+    assert.ok(byId(c, id), `${id} is mounted`);
+    const {revealWorkspaceTarget} = loadSrc('DailyWorkspace');
+    await React.act(async () => revealWorkspaceTarget(id, true));
+    assert.equal(selectedTab(c), 'More', kind);
+    assert.ok(shown(byId(c, view)), `${kind}: ${view} is shown`);
+    assert.equal(shown(byId(c, 'view-more')), false, 'not the list');
+    for (let n = byId(c, id); n && n !== c; n = n.parentNode) if (n.localName === 'details') assert.equal(n.open, true, `${kind}: its disclosures are opened`);
+  });
+});
+
+test('mounted: the Run tab and the Workflows tab show none of the workflow studio; it is under More with Make a workflow', async () => {
+  const host = baseHost();
+  host.workflowRoot = {...host.workflowRoot, runs:[runRow], reopened:{standing:'invented', runs:[]}};
+  await mountApp(host, async ({c}) => {
+    const studio = ['Read recorded workflow supply (durable, read-only)', 'Reopen recorded workflow runs (read-only)'];
+    const studioShown = () => nodes(c, 'button').filter(b => studio.includes(b.textContent) && shown(b)).length + (shown(byId(c, 'workflow-studio')) ? 1 : 0)
+      + c.querySelectorAll(n => n.localName === 'h3' && n.textContent === 'Recorded runs (reopened from project records)' && shown(n)).length;
+    for (const tab of ['Run', 'Workflows', 'Settings & tools']) { await pressTab(c, tab); assert.equal(studioShown(), 0, tab); }
+    await pressTab(c, 'More'); await chooseMore(c, 'make');
+    assert.equal(nodes(c, 'button').filter(b => studio.includes(b.textContent) && shown(b)).length, 2, 'the record reads are with the studio');
+    assert.ok(shown(byId(c, 'workflow-studio')));
   });
 });

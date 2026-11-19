@@ -79,13 +79,13 @@ test('each draft state names its own next step; registration is never claimed be
     [{state:'draft'}, /draft — not registered.*Only your confirmation registers it/, '#workflow-drafts'],
     [{state:'under review', content:{value:'abcdef0123456789'}}, /under review.*A review was started, but its confirmation isn't available here now/, '#workflow-reviews'],
     [{state:'changed since review'}, /changed since review.*Review again before registering/, '#workflow-drafts'],
-    [{state:'registered, unchanged since'}, /registered, unchanged since.*use it from Run a workflow/, '#run-workflow'],
+    [{state:'registered, unchanged since'}, /registered, unchanged since.*Registered\. You can now pick it under Workflows\./, '#view-library'],
   ];
   for (const [draft, words, href] of cases) {
     await ui.rerender({data:data({drafts:{drafts:[{name:'spacing-check', ...draft}]}})});
     const status = region(ui.c, 'Draft status');
     assert.match(status.textContent, words, draft.state); assert.ok(all(status, 'a').some(a => a.getAttribute('href') === href), `${draft.state} → ${href}`);
-    if (draft.state !== 'registered, unchanged since') assert.doesNotMatch(status.textContent, /Registered\. You can now use it/, draft.state);
+    if (draft.state !== 'registered, unchanged since') assert.doesNotMatch(status.textContent, /Registered\. You can now pick it/, draft.state);
     const step = next(ui.c).trim();
     assert.ok(step.startsWith('spacing-check: '), `the top Next names the draft's own step (${draft.state})`);
     assert.ok(status.textContent.includes(step.slice('spacing-check: '.length)), `the top Next is the draft's current step, not a stale one (${draft.state})`);
@@ -439,7 +439,7 @@ test('returning to a draft: Continue lands on its current step, a saved conversa
     assert.match(focused.at(-1)?.textContent ?? '', /^spacing-check: draft/);
     await ui.choose(key('T1'));
     const row = region(ui.c, 'Trial 2 of spacing-check');
-    assert.match(row.textContent, /This saved trial can't be brought back here\. Try the draft again in a fresh conversation above, or look at the earlier conversation in History\./);
+    assert.match(row.textContent, /This saved trial can't be brought back here\. Try the draft again in a fresh conversation above, or look at the earlier conversation in History, under More\./);
     assert.match(row.textContent, new RegExp(`Why${COLD.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`), 'the exact host reason stays under Why');
     assert.equal(props(all(row, 'button').find(node => node.textContent.startsWith('Bring trial 2 back'))).disabled, true, 'the saved link is not made live');
     const before = ui.calls.length;

@@ -14,7 +14,6 @@ const {createRoot} = await import('react-dom/client');
 const {WorkflowLibrary} = loadSrc('WorkflowLibrary');
 const {pickScope} = loadSrc('WorkflowPick');
 const {includedSections} = loadSrc('IncludedWorkflows');
-const {RunWorkflowGuide} = loadSrc('RunJourney');
 const {WorkflowRootPanel} = loadSrc('App');
 
 const g = {home:'account', appSession:'s1', spawnCounter:1};
@@ -58,10 +57,12 @@ const notes = c => c.querySelectorAll(node => node.getAttribute('class') === 'me
 async function mount(view) {
   const c = document.createElement('div'); const root = createRoot(c); const picks = [];
   // The pick is the App's state; here the test holds it, as App.tsx does, and every setPick is recorded.
+  const calls = [];
   const render = () => root.render(React.createElement(WorkflowLibrary, {data:view.data ?? data(), host:view.host ?? host(), busy:!!view.busy, pick:view.pick ?? null,
-    setPick:next => { picks.push(next); view.pick = next; render(); }, viewStale:!!view.viewStale}));
+    setPick:next => { picks.push(next); view.pick = next; render(); }, viewStale:!!view.viewStale, outcome:view.outcome ?? null,
+    act:view.act ? async (command, args) => { calls.push({command, args}); } : undefined}));
   await React.act(async () => render());
-  return {c, picks, get pick() { return view.pick ?? null; },
+  return {c, picks, calls, get pick() { return view.pick ?? null; },
     search:async value => React.act(async () => props(c.querySelectorAll(n => n.localName === 'input' && props(n)?.type === 'search')[0]).onChange({target:{value}})),
     press:async node => { assert.ok(node, 'the control is drawn'); assert.equal(!!props(node).disabled, false, `${node.textContent} enabled`); await React.act(async () => props(node).onClick()); },
     rerender:async next => { Object.assign(view, next); await React.act(async () => render()); },
@@ -165,14 +166,14 @@ test('this project\'s workflows: a registered revision is picked with its librar
   assert.equal(!!props(button(cold, 'Use in message')).disabled, true);
   assert.match(cold.textContent, /registered — approval authenticity unverified; re-confirm to use in this App session\. Re-confirm cold-flow in the workflow studio/);
   assert.equal(button(fresh, 'Use in message'), undefined, 'an entry not approved for use has no choosing control');
-  assert.match(fresh.textContent, /In the folder but not yet approved for use here\. Review it under Run a workflow/);
-  assert.equal(all(fresh, 'a')[0].getAttribute('href'), '#run-workflow');
+  assert.match(fresh.textContent, /In the folder but not yet approved for use here\. Read it once and confirm it in the App's dialog; nothing runs during the review\./);
+  assert.equal(all(fresh, 'a').length, 0, 'no link to the removed guide');
   await ui.close();
 });
 
 test('where the project\'s workflows come from, and a library or list that could not be read, in the App\'s present words', async () => {
   let ui = await mount({});
-  assert.ok(notes(ui.c).includes('This App has a project folder. Its workflows are kept in its .chirality folder. Show them under Run a workflow'));
+  assert.ok(notes(ui.c).includes('This App has a project folder. Its workflows are kept in its .chirality folder.'));
   await ui.rerender({data:data({projectLibraryAvailable:false})});
   assert.ok(notes(ui.c).includes('No project folder is set for this App yet. Choose a project in Desktop setup — the choice applies when you next open the App.'));
   await ui.rerender({data:data({activeLibrary:LIB, libraries:[projectLibrary({registered:{limit:'ledger unreadable'}, entryListing:{state:'unavailable', reference:'listing-1', libraryRef:LIB, entries:[], limits:['folder busy']}})]})});
@@ -275,15 +276,58 @@ test('in the panel, the tab picks through the App\'s setPick with no conversatio
   await React.act(async () => root.render(React.createElement(WorkflowRootPanel, {data:d, host:h, view:'workflows', pick:null, setPick:next => { picks.push(next); }, act:async (command, args) => { calls.push([command, args]); return {}; }})));
   const library = c.querySelectorAll(n => n.getAttribute('id') === 'view-library')[0];
   assert.equal(props(library).hidden, false, 'the Workflows view is shown');
-  assert.equal(props(c.querySelectorAll(n => n.getAttribute('id') === 'view-run')[0]).hidden, true, 'the Run guide is mounted and hidden');
+  assert.equal(c.querySelectorAll(n => n.getAttribute('id') === 'view-run' || n.getAttribute('id') === 'run-workflow').length, 0, 'the Run a workflow guide is gone');
   assert.equal(props(c.querySelectorAll(n => n.getAttribute('id') === 'workflow-studio')[0]).hidden, true, 'the studio is not shown under Workflows');
   const reads = buttons(c).find(b => b.textContent === 'Read recorded workflow supply (durable, read-only)');
   assert.equal(props(reads.parentNode).hidden, true, 'the studio\'s record reads are not shown under Workflows');
-  // No conversation is chosen in the Run guide, and the card can still be used.
+  // No conversation is chosen, and the card can still be used.
   await React.act(async () => props(button(card(library, 'plan-work'), 'Use in message')).onClick());
   assert.deepEqual(calls, [], 'picking issues no host command');
   assert.equal(picks.length, 1);
   assert.equal(picks[0].name, 'plan-work');
   assert.equal(picks[0].scope, pickScope(h));
   await React.act(async () => root.unmount());
+});
+
+// The Run a workflow guide's commands for this project's workflows, now in this tab: the same commands, arguments and
+// conditions (run-journey.test.mjs held them for the guide).
+test('this project\'s workflows: shown, looked for and reviewed for first use with the guide\'s own commands; nothing while busy, stale or Codex not ready', async () => {
+  const ui = await mount({act:true});
+  await ui.press(button(ui.c, 'Show this project\'s workflows'));
+  assert.deepEqual(ui.calls.at(-1), {command:'workflow_open_project_library', args:{}});
+  await ui.rerender({data:data({activeLibrary:LIB, libraries:[projectLibrary({entryListing:{state:'observed', reference:'listing-1', libraryRef:LIB,
+    entries:[{reference:'entry-1', name:'new-flow', state:'unregistered', reviewable:true}, {reference:'entry-2', name:'broken', state:'malformed', reviewable:false}], limits:[]}})]})});
+  assert.ok(button(ui.c, 'Reload this project\'s workflows'), 'an opened library is reloaded with the same command');
+  const fresh = card(ui.c, 'new-flow');
+  assert.ok(labelled(ui.c, 'Project workflow broken') === undefined, 'an entry that cannot be reviewed is not offered');
+  await ui.press(button(fresh, 'Review for first use…'));
+  assert.deepEqual(ui.calls.at(-1), {command:'workflow_review_library_entries', args:{libraryRef:LIB, listingRef:'listing-1', entryRefs:['entry-1']}}, 'reviewed singly');
+  await ui.press(button(ui.c, 'Look for other workflows in this library'));
+  assert.deepEqual(ui.calls.at(-1), {command:'workflow_library_entries_refresh', args:{libraryRef:LIB}});
+  const count = ui.calls.length;
+  const labels = ['Reload this project\'s workflows', 'Review for first use…', 'Look for other workflows in this library'];
+  const disabledAll = async (why, list = labels) => { for (const label of list) { const node = button(ui.c, label); assert.ok(node, `${why}: ${label}`); assert.equal(!!props(node).disabled, true, `${why}: ${label}`);
+    await React.act(async () => props(node).onClick()); } };
+  await ui.rerender({busy:true}); await disabledAll('busy');
+  await ui.rerender({busy:false, host:{...host(), workflowRoot:{context:{sourceRef:'other', generation:g}}}}); await disabledAll('a stale workflow source');
+  await ui.rerender({host:{...host(), state:'stopped'}}); await disabledAll('Codex not ready', ['Reload this project\'s workflows']);
+  assert.equal(!!props(button(ui.c, 'Look for other workflows in this library')).disabled, false, 'the library\'s own list needs no Codex, as in the guide');
+  assert.equal(ui.calls.length, count, 'a retained click on a disabled control dispatches nothing');
+  // No project folder: nothing to show, and Desktop setup is named.
+  await ui.rerender({host:host(), data:data({projectLibraryAvailable:false})});
+  assert.equal(button(ui.c, 'Show this project\'s workflows'), undefined);
+  assert.ok(all(ui.c, 'a').some(a => a.getAttribute('href') === '#desktop-setup'));
+  await ui.close();
+});
+
+test('the result of the tab\'s own project commands is said in its words; another view\'s press is not', async () => {
+  const ui = await mount({act:true, outcome:{command:'workflow_open_project_library', message:'{}', failed:false, settled:true}});
+  assert.equal(labelled(ui.c, 'Workflows — last result').textContent.split('What the App reported')[0], "Opened this project's workflow library.");
+  await ui.rerender({outcome:{command:'workflow_review_library_entries', message:'Error: Native history context is busy; refresh the workflow choice', failed:true, settled:true}});
+  assert.match(labelled(ui.c, 'Workflows — last result').textContent, /^Couldn't open the review: the App was busy reading conversation history, so nothing was done\. Press the button again\./);
+  await ui.rerender({outcome:{command:'workflow_end_run', message:'{}', failed:false, settled:true}});
+  assert.equal(labelled(ui.c, 'Workflows — last result'), undefined, 'the Run tab\'s press is said there');
+  await ui.rerender({outcome:{command:'workflow_open_project_library', message:'', failed:false, settled:false}});
+  assert.equal(labelled(ui.c, 'Workflows — last result'), undefined, 'nothing is claimed before the result arrives');
+  await ui.close();
 });

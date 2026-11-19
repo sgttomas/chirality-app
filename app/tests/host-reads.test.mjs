@@ -176,9 +176,10 @@ test('the commands that mark nothing are a closed table of self-issued commands,
   assert.doesNotMatch(shell, /setHost\(/);
 });
 
-test('mounted App: a command issued outside the workflow panel withholds the Run guide until a later status read is applied', async () => {
+test('mounted App: a command issued outside the workflow panel withholds the Run tab until a later status read is applied', async () => {
   // Review finding: End run pressed in the conversation goes through the shell's command function, not the
-  // workflow panel. With the following status reply held the Run guide went on offering "End this run".
+  // workflow panel. With the following status reply held the Run guide went on offering "End this run". The guide's
+  // place is now the Run tab (End run) and the Workflows tab (Show this project's workflows).
   const {installIdleNativeWaiting} = await import('./support/idle-native-waiting.mjs');
   const {App} = loadSrc('App');
   const g = {home:'account', appSession:'s1', spawnCounter:1};
@@ -204,14 +205,14 @@ test('mounted App: a command issued outside the workflow panel withholds the Run
   });
   const props = node => node[Object.keys(node).find(k => k.startsWith('__reactProps$'))];
   const nodes = tag => c.querySelectorAll(node => node.localName === tag);
-  const guide = () => c.querySelectorAll(node => node.getAttribute('id') === 'run-workflow')[0];
+  const guide = () => c.querySelectorAll(node => node.getAttribute('id') === 'view-current-run')[0];
   const poll = () => timers.find(fn => fn.toString().includes('host_status'))();
   try {
     await React.act(async () => root.render(React.createElement(App)));
-    const guideSelect = choiceList(c, 'Conversation to run it in');
-    await React.act(async () => chooseIn(guideSelect, 'T2'));
-    assert.ok(nodes('button').some(b => b.textContent === 'End this run' && !props(b).disabled), 'the open run offers End this run');
-    // With nothing pressed (mount, a choice in the guide that issues no command, every timer fired once), the App
+    // The conversation opened in the centre, from the navigator: its run is the Run tab's.
+    await React.act(async () => props(nodes('button').find(b => b.getAttribute('data-session-id') === 'T2')).onClick());
+    assert.ok(guide().querySelectorAll(b => b.localName === 'button').some(b => b.textContent === 'End run' && !props(b).disabled), 'the open run offers End run');
+    // With nothing pressed (mount, opening a conversation, which issues no command, every timer fired once), the App
     // issues only the status read and listed self-issued commands, and the guide is shown, not withheld.
     await React.act(async () => { for (const fire of timers) fire(); await new Promise(resolve => setTimeout(resolve, 0)); });
     assert.deepEqual([...issued].filter(command => command !== 'host_status' && !Object.hasOwn(SELF_ISSUED_QUIET, command) && !Object.hasOwn(PRESSED_AND_TIMED_READS, command)), [], 'a self-issued command that is not classified');
@@ -219,7 +220,7 @@ test('mounted App: a command issued outside the workflow panel withholds the Run
     // The invariant's one exception, and its end, for a press made in the panel (Agent 0's decision on round 3).
     const settle = () => React.act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
     const press = label => React.act(async () => { props(nodes('button').find(b => b.textContent === label)).onClick(); await new Promise(resolve => setTimeout(resolve, 0)); });
-    const result = () => c.querySelectorAll(node => node.getAttribute('aria-label') === 'Run a workflow — last result')[0];
+    const result = () => c.querySelectorAll(node => node.getAttribute('aria-label') === 'Workflows — last result')[0];
     const WITHHELD = /may be from before the App's last operation finished/;
     // (1) While the press is in progress (its command settled, the refresh that follows held): the steps from
     // before it stay, every control that could change the host is disabled, and its result is not yet said.
@@ -227,7 +228,7 @@ test('mounted App: a command issued outside the workflow panel withholds the Run
     await press("Show this project's workflows");
     assert.doesNotMatch(guide().textContent, WITHHELD, 'in progress: the steps stay');
     assert.equal(result(), undefined, 'in progress: the result is not yet said');
-    for (const label of ["Show this project's workflows", 'End this run']) assert.equal(props(nodes('button').find(b => b.textContent === label)).disabled, true, `in progress: ${label} is disabled`);
+    for (const [label, within] of [["Show this project's workflows", c], ['End run', guide()]]) assert.equal(props(within.querySelectorAll(b => b.localName === 'button').find(b => b.textContent === label)).disabled, true, `in progress: ${label} is disabled`);
     // The refresh resolves: no longer in progress, and the read that followed the command is applied.
     hold = null; free(); await settle();
     assert.doesNotMatch(guide().textContent, WITHHELD); assert.match(result().textContent, /^Opened this project's workflow library\./);
@@ -237,7 +238,7 @@ test('mounted App: a command issued outside the workflow panel withholds the Run
     await press("Show this project's workflows");
     assert.match(guide().textContent, WITHHELD, 'a rejected refresh ends the press; the guide is withheld, which it is only when the panel is not busy');
     assert.match(guide().textContent, /The last read failed: The App could not read Codex's status afterwards, so what is shown may be out of date\./);
-    assert.ok(!nodes('button').some(b => b.textContent === 'End this run'));
+    assert.ok(!guide().querySelectorAll(b => b.localName === 'button').some(b => b.textContent === 'End run'));
     failStatus = false;
     await React.act(async () => { poll(); await new Promise(resolve => setTimeout(resolve, 0)); });
     assert.doesNotMatch(guide().textContent, WITHHELD, 'a read started after the command, applied: the steps return');
@@ -248,7 +249,7 @@ test('mounted App: a command issued outside the workflow panel withholds the Run
     await React.act(async () => { poll(); await new Promise(resolve => setTimeout(resolve, 0)); });
     assert.doesNotMatch(guide().textContent, WITHHELD);
     assert.match(guide().textContent, /The App's last read of its state failed \(The App could not read Codex's status afterwards, so what is shown may be out of date\.\)\. What is shown here was read before that\./);
-    assert.ok(nodes('button').some(b => b.textContent === 'End this run'), 'the steps stay: nothing says they are wrong');
+    assert.ok(guide().querySelectorAll(b => b.localName === 'button').some(b => b.textContent === 'End run'), 'the steps stay: nothing says they are wrong');
     failStatus = false;
     await React.act(async () => { poll(); await new Promise(resolve => setTimeout(resolve, 0)); });
     assert.doesNotMatch(guide().textContent, /read of its state failed/);
@@ -256,8 +257,8 @@ test('mounted App: a command issued outside the workflow panel withholds the Run
     // own End run uses it; the status read that follows is held.
     let release; hold = new Promise(resolve => { release = resolve; });
     await React.act(async () => { await invoke('workflow_end_run', {runRef:'run-1', finishedReport:null}); poll(); });
-    assert.match(guide().textContent, /^Run a workflowNext: What this view showed may be from before the App's last operation finished\./);
-    assert.ok(!nodes('button').some(b => b.textContent === 'End this run'), 'nothing from before the command is offered');
+    assert.match(guide().textContent, /^What this view showed may be from before the App's last operation finished\./);
+    assert.ok(!guide().querySelectorAll(b => b.localName === 'button').some(b => b.textContent === 'End run'), 'nothing from before the command is offered');
     // A status read that fails leaves it withheld, with the failure said in the guide.
     hold = null; failStatus = true;
     await React.act(async () => { poll(); await new Promise(resolve => setTimeout(resolve, 0)); });
@@ -266,7 +267,7 @@ test('mounted App: a command issued outside the workflow panel withholds the Run
     failStatus = false;
     await React.act(async () => { release(); await new Promise(resolve => setTimeout(resolve, 0)); });
     assert.doesNotMatch(guide().textContent, /may be from before the App's last operation finished|The last read failed/);
-    assert.ok(!nodes('button').some(b => b.textContent === 'End this run'), 'the ended run no longer offers End this run');
+    assert.ok(!guide().querySelectorAll(b => b.localName === 'button').some(b => b.textContent === 'End run'), 'the ended run no longer offers End this run');
     idle.assertClean(c);
   } finally { const text = c.textContent; await React.act(() => root.unmount()); document.body.removeChild(c); idle.restore(text); Object.assign(globalThis, previous); }
 });

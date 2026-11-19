@@ -19,8 +19,15 @@ const elements = (container, tag) => container.querySelectorAll(element => eleme
 const byId = (c, id) => c.querySelectorAll(e => e.getAttribute('id') === id)[0];
 const disclosureOpen = e => e.open ?? e.hasAttribute('open');
 const visible = e => { for (let n = e; n; n = n.parentNode) if (props(n)?.hidden) return false; return true; };
-// The right panel's selected tab. The conversation is always shown in the centre beside it.
-const currentTab = c => elements(c, 'button').find(b => b.getAttribute('role') === 'tab' && b.getAttribute('aria-selected') === 'true')?.textContent;
+// The right panel's selected tab, and under More the view chosen there ("More › History"). The conversation is always
+// shown in the centre beside it.
+const MORE = {'view-make': 'Make a workflow', 'view-history': 'History', 'view-conversation-tools': 'Conversation tools'};
+const currentTab = c => {
+  const tab = elements(c, 'button').find(b => b.getAttribute('role') === 'tab' && b.getAttribute('aria-selected') === 'true')?.textContent;
+  if (tab !== 'More') return tab;
+  const chosen = Object.keys(MORE).find(id => visible(byId(c, id)));
+  return chosen ? `More › ${MORE[chosen]}` : 'More';
+};
 // What the App shows the person now: 'Conversation' when New conversation has been revealed in the centre since the last
 // look (the App's move to a new conversation, which leaves the right panel as it is), otherwise the selected tab.
 // The empty new conversation is shown: no conversation chosen, and the settings line is the new conversation's
@@ -78,17 +85,22 @@ async function mountedApp(initial, check) {
     snapshot = next; document.visibilityState = 'visible';
     await React.act(async () => { for (const {type, listener} of [...document.listeners]) if (type === 'visibilitychange') listener(); });
   };
-  // The person selects a right panel tab.
+  // The person selects a right panel tab; "More › X" is the More tab, then X in More's list.
   const navigate = async label => {
-    const tab = elements(container, 'button').find(e => e.getAttribute('role') === 'tab' && e.textContent === label && visible(e)); assert.ok(tab, label);
+    const [name, under] = label.split(' › ');
+    const tab = elements(container, 'button').find(e => e.getAttribute('role') === 'tab' && e.textContent === name && visible(e)); assert.ok(tab, label);
     await React.act(() => props(tab).onClick());
+    if (under) {
+      const entry = elements(container, 'button').find(e => e.getAttribute('data-more-view') && e.childNodes[0]?.textContent === under && visible(e)); assert.ok(entry, label);
+      await React.act(() => props(entry).onClick());
+    }
   };
   const type = async (id, value) => { const field = byId(container, id); assert.ok(field, id); await React.act(() => props(field).onChange({target: {value}})); };
   try { await React.act(async () => root.render(React.createElement(App))); await check({container, calls, observe, navigate, type, revealedSinceLastLook}); }
   finally { const text = container.textContent; await React.act(() => root.unmount()); document.body.removeChild(container); idle.restore(text); document.getElementById = previousGetById; }
 }
 
-test('the first view at launch follows the launch account reading: no account, signed in with no conversation yet, otherwise Run a workflow', async () => {
+test('the first view at launch follows the launch account reading: no account, signed in with no conversation yet, otherwise Workflows', async () => {
   // No account: Settings & tools, with Connection and access open at the sign-in.
   await mountedApp(noAccount(), async ui => {
     assert.equal(viewNow(ui), 'Settings & tools');
@@ -99,39 +111,39 @@ test('the first view at launch follows the launch account reading: no account, s
   // Signed in, and the stored conversations read to the end list none: Conversation, with New conversation open.
   await mountedApp(historyEmpty(signedIn()), async ui => {
     assert.equal(viewNow(ui), 'Conversation');
-    assert.equal(currentTab(ui.container), 'Run a workflow', 'the right panel is left as it is');
+    assert.equal(currentTab(ui.container), 'Workflows', 'the right panel is left as it is');
     assert.equal(newChatShown(ui.container), true, 'New conversation is open');
   });
-  // Otherwise Run a workflow stays: signed in with history not read (no conversation is not established), a conversation
+  // Otherwise Workflows stays: signed in with history not read (no conversation is not established), a conversation
   // in this session, the read under way, Codex didn't say, or Codex not running.
   for (const [name, host] of [['signed in, history not read', signedIn()], ['signed in, a conversation exists', historyEmpty(signedIn(base({threads: [{generation: g, threadId: 't'}]})))],
     ['under way', underWay()], ['failed read', failed()], ['not running', base({state: 'stopped'})]])
-    await mountedApp(host, async ui => { assert.equal(viewNow(ui), 'Run a workflow', name); });
+    await mountedApp(host, async ui => { assert.equal(viewNow(ui), 'Workflows', name); });
 });
 
 test('while the launch read is under way the App stays, then moves once when the reading arrives; a failed read stays and decides', async () => {
   await mountedApp(underWay(), async ui => {
-    assert.equal(viewNow(ui), 'Run a workflow');
+    assert.equal(viewNow(ui), 'Workflows');
     assert.match(ui.container.textContent, /Checking whether you're signed in\. If a sign-in is kept, Codex checks it with OpenAI\./);
     await ui.observe(noAccount());
     assert.equal(viewNow(ui), 'Settings & tools', 'moves when the reading arrives');
   });
   // A failed read is "didn't say", never "not signed in": the App stays, and that decides the launch.
   await mountedApp(failed(), async ui => {
-    assert.equal(viewNow(ui), 'Run a workflow');
+    assert.equal(viewNow(ui), 'Workflows');
     assert.match(ui.container.textContent, /It didn't say whether you're signed in\./);
     assert.doesNotMatch(ui.container.textContent, /You're not signed in/);
     await ui.observe(noAccount(base(), {ref: 'read-2'}));
-    assert.equal(viewNow(ui), 'Run a workflow', 'at most once: the launch was decided by the first reading');
+    assert.equal(viewNow(ui), 'Workflows', 'at most once: the launch was decided by the first reading');
   });
 });
 
 test('at most once per launch: after the move, a later reading moves nothing', async () => {
   // Signed in with history unread: the launch decides to stay. A later read of an empty history moves nothing.
   await mountedApp(signedIn(), async ui => {
-    assert.equal(viewNow(ui), 'Run a workflow');
+    assert.equal(viewNow(ui), 'Workflows');
     await ui.observe(historyEmpty(signedIn()));
-    assert.equal(viewNow(ui), 'Run a workflow');
+    assert.equal(viewNow(ui), 'Workflows');
   });
   // Moved once to the sign-in; after a restart, a fresh no-account reading moves nothing more.
   await mountedApp(noAccount(), async ui => {
@@ -146,22 +158,22 @@ test('at most once per launch: after the move, a later reading moves nothing', a
 
 test('no move after the person navigates, over unsent text, or over a waiting request from a recovered conversation', async () => {
   await mountedApp(underWay(), async ui => {
-    await ui.navigate('History');
-    assert.equal(viewNow(ui), 'History');
+    await ui.navigate('More › History');
+    assert.equal(viewNow(ui), 'More › History');
     await ui.observe(noAccount());
-    assert.equal(viewNow(ui), 'History', 'the person navigated: the App does not move them');
+    assert.equal(viewNow(ui), 'More › History', 'the person navigated: the App does not move them');
   });
   await mountedApp(underWay(), async ui => {
     await ui.type('ordinary-composer-text', 'A draft not yet sent');
     await ui.observe(noAccount());
-    assert.equal(viewNow(ui), 'Run a workflow', 'unsent text: no move');
+    assert.equal(viewNow(ui), 'Workflows', 'unsent text: no move');
     assert.equal(props(byId(ui.container, 'ordinary-composer-text')).value, 'A draft not yet sent', 'the draft is kept');
   });
   await mountedApp(recoveredRequest(underWay()), async ui => {
     await ui.observe(recoveredRequest(noAccount()));
-    assert.equal(viewNow(ui), 'Run a workflow', 'a request waits on the person: the App stays');
+    assert.equal(viewNow(ui), 'Workflows', 'a request waits on the person: the App stays');
     await ui.observe(recoveredRequest(noAccount(base(), {ref: 'read-2'})));
-    assert.equal(viewNow(ui), 'Run a workflow', 'and does nothing else');
+    assert.equal(viewNow(ui), 'Workflows', 'and does nothing else');
   });
 });
 
@@ -169,19 +181,19 @@ test('a sign-in completed in this process and confirmed by the read after it ope
   const signedInLine = /You're signed in\. Choose a model to start a conversation\./;
   await mountedApp(noAccount(), async ui => {
     assert.equal(viewNow(ui), 'Settings & tools');
-    await ui.navigate('History');
+    await ui.navigate('More › History');
     // The completion is seen first; the account read made after it confirms the account.
     await ui.observe(completed(noAccount()));
-    assert.equal(viewNow(ui), 'History', 'no move before the read confirms an account');
+    assert.equal(viewNow(ui), 'More › History', 'no move before the read confirms an account');
     await ui.observe(completed(signedIn(base(), {ref: 'read-after-sign-in'})));
     assert.equal(viewNow(ui), 'Conversation', 'navigation does not block the move signing in asks for');
-    assert.equal(currentTab(ui.container), 'History', 'the right panel is left as it is');
+    assert.equal(currentTab(ui.container), 'More › History', 'the right panel is left as it is');
     assert.equal(newChatShown(ui.container), true);
     assert.match(ui.container.textContent, signedInLine);
     // Once per completion.
-    await ui.navigate('History');
+    await ui.navigate('More › History');
     await ui.observe(completed(signedIn(base(), {ref: 'read-later'})));
-    assert.equal(viewNow(ui), 'History');
+    assert.equal(viewNow(ui), 'More › History');
   });
   await mountedApp(noAccount(), async ui => {
     await ui.type('ordinary-composer-text', 'Unsent');
@@ -234,7 +246,7 @@ test('exactly one sign-in start outside Other sign-in options on each signed-out
     await React.act(() => props(connection).onToggle({currentTarget: {open: true}}));
     assert.deepEqual(await starts(), [{mode:'browser', alternative:false, label:'Sign in with your ChatGPT account (through Codex)…'}]);
     // The conversation, with the status line, is shown beside every tab.
-    for (const view of ['History', 'Run a workflow', 'Make a workflow']) {
+    for (const view of ['More › History', 'Workflows', 'More › Make a workflow']) {
       await ui.navigate(view);
       assert.deepEqual(await starts(), [{mode:'browser', alternative:false, label:'Sign in with your ChatGPT account (through Codex)…'}], view);
     }
@@ -269,7 +281,7 @@ test('signed in, the first view waits for the App\'s own history list read at re
   const historyReads = calls => calls.filter(c => ['history_action', 'history_select', 'history_continue'].includes(c.command) || /history|resume/.test(c.command));
   // The list arrives after the account reading: the App waits for it, then moves once.
   await mountedApp(historyAtReady(signedIn(), 'reading'), async ui => {
-    assert.equal(viewNow(ui), 'Run a workflow', 'the list is still being read: no conversation is not established');
+    assert.equal(viewNow(ui), 'Workflows', 'the list is still being read: no conversation is not established');
     await ui.observe(historyAtReady(signedIn(), 'read-to-end'));
     assert.equal(viewNow(ui), 'Conversation', 'read to its end, none listed, none loaded');
     assert.equal(newChatShown(ui.container), true, 'New conversation is open');
@@ -279,26 +291,26 @@ test('signed in, the first view waits for the App\'s own history list read at re
   // A page that arrives after the read stopped moves nothing either.
   await mountedApp(historyAtReady(signedIn(), 'reading'), async ui => {
     await ui.observe(historyAtReady(signedIn(), 'stopped'));
-    assert.equal(viewNow(ui), 'Run a workflow', 'a partial read never counts as none');
+    assert.equal(viewNow(ui), 'Workflows', 'a partial read never counts as none');
     await ui.observe(historyAtReady(signedIn(), 'stopped', {listCursor: {state: 'exhausted'}}));
-    assert.equal(viewNow(ui), 'Run a workflow', 'decided once: a late page moves nothing');
+    assert.equal(viewNow(ui), 'Workflows', 'decided once: a late page moves nothing');
   });
-  // A stored conversation listed, or one loaded in this session: Run a workflow stays.
+  // A stored conversation listed, or one loaded in this session: Workflows stays.
   for (const [name, host] of [['one listed', historyAtReady(signedIn(), 'read-to-end', {threads: [{native: {id: 'stored'}}]})],
     ['one loaded', historyAtReady(signedIn(base({threads: [{generation: g, threadId: 't'}]})), 'read-to-end')]])
-    await mountedApp(host, async ui => { assert.equal(viewNow(ui), 'Run a workflow', name); });
+    await mountedApp(host, async ui => { assert.equal(viewNow(ui), 'Workflows', name); });
   // The view does not jump under the person: they navigated while the list was being read, and its late result moves nothing.
   await mountedApp(historyAtReady(signedIn(), 'reading'), async ui => {
-    await ui.navigate('History');
+    await ui.navigate('More › History');
     await ui.observe(historyAtReady(signedIn(), 'reading'));
     await ui.observe(historyAtReady(signedIn(), 'read-to-end'));
-    assert.equal(viewNow(ui), 'History', 'the person navigated before the read returned');
+    assert.equal(viewNow(ui), 'More › History', 'the person navigated before the read returned');
   });
   // Nor over unsent text entered while the list was being read.
   await mountedApp(historyAtReady(signedIn(), 'reading'), async ui => {
     await ui.type('ordinary-composer-text', 'A draft not yet sent');
     await ui.observe(historyAtReady(signedIn(), 'read-to-end'));
-    assert.equal(viewNow(ui), 'Run a workflow', 'unsent text: no move');
+    assert.equal(viewNow(ui), 'Workflows', 'unsent text: no move');
   });
   // A read made for an earlier Codex says nothing about this one.
   const earlier = {...historyAtReady(signedIn(), 'read-to-end')};
@@ -314,7 +326,7 @@ const withoutReadAtReady = host => { const {readAtReady, ...history} = host.nati
 
 test('the App is fully usable while the history list read is under way: only the automatic move waits for it', async () => {
   // Each tab, with the conversation always shown in the centre beside it.
-  const views = ['Run a workflow', 'Make a workflow', 'History', 'Settings & tools'];
+  const views = ['Workflows', 'More › Make a workflow', 'More › History', 'Settings & tools'];
   // What each view offers, view by view, with the read under way and never returning, and with no read at all.
   const tour = async host => {
     const seen = {};
@@ -340,12 +352,12 @@ test('the App is fully usable while the history list read is under way: only the
   }
   // Named directly: the workflow controls, New conversation's controls, History's own read and the sign-in.
   await mountedApp(historyAtReady(signedIn(), 'reading'), async ui => {
-    assert.equal(viewNow(ui), 'Run a workflow', 'the move waits; nothing else does');
+    assert.equal(viewNow(ui), 'Workflows', 'the move waits; nothing else does');
     const runControls = controlsShown(ui.container).filter(([tag]) => tag !== 'a');
-    assert.ok(runControls.length > 0, 'Run a workflow shows its controls');
+    assert.ok(runControls.length > 0, 'Workflows shows its controls');
     assert.ok(visible(byId(ui.container, 'workspace-start')), 'New conversation is shown beside it');
     assert.equal(newChatShown(ui.container), true, 'New conversation is open, as without the read');
-    await ui.navigate('History');
+    await ui.navigate('More › History');
     const read = elements(ui.container, 'button').find(b => b.textContent === 'Read stored conversations' && visible(b));
     assert.ok(read, 'History offers its own read'); assert.equal(props(read).disabled, false, 'History\'s own read is not disabled by the App\'s');
   });
@@ -365,8 +377,8 @@ test('the automatic first-view move has its own bound of 10 s from the renderer 
     await mountedApp(historyAtReady(signedIn(), 'reading'), async ui => {
       now += FIRST_VIEW_MOVE_BOUND_MS + 1;
       await ui.observe(historyAtReady(signedIn(), 'read-to-end', emptyList));
-      assert.equal(viewNow(ui), 'Run a workflow', 'a late reading moves nothing');
-      await ui.navigate('History');
+      assert.equal(viewNow(ui), 'Workflows', 'a late reading moves nothing');
+      await ui.navigate('More › History');
       assert.match(ui.container.textContent, /No conversation rows are available from the received list\./, 'History holds the empty list the read returned');
     });
     // Arriving within the bound: it moves.
@@ -379,7 +391,7 @@ test('the automatic first-view move has its own bound of 10 s from the renderer 
     await mountedApp(underWay(), async ui => {
       now += FIRST_VIEW_MOVE_BOUND_MS + 1;
       await ui.observe(noAccount());
-      assert.equal(viewNow(ui), 'Run a workflow', 'a late no-account reading moves nothing');
+      assert.equal(viewNow(ui), 'Workflows', 'a late no-account reading moves nothing');
       assert.match(ui.container.textContent, /You're not signed in/, 'the reading is still shown');
     });
     await mountedApp(underWay(), async ui => {

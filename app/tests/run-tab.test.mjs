@@ -10,7 +10,7 @@ installMiniDom();
 const React = (await import('react')).default;
 const {createRoot} = await import('react-dom/client');
 const {runReading, runWord, delegatedReading, conversationRun, stripRun, ORDER_UNKNOWN_WORD, VIEW_NOT_REFRESHED} = loadSrc('RunJourney');
-const {RunTab, NO_CONVERSATION, NO_RUN, reportedFiles} = loadSrc('RunTab');
+const {RunTab, NO_CONVERSATION, NO_RUN, CHOSEN_NO_RUN, reportedFiles} = loadSrc('RunTab');
 const {ActivityStrip} = loadSrc('WorkspaceShell');
 
 // The fixtures of the present runReading tests (tests/run-journey.test.mjs).
@@ -50,7 +50,7 @@ const BRANCHES = [
   ['start unknown', open({source:null, lifecycle:{state:NOT_CONFIRMED}, status:UNKNOWN}), host(), undefined,
     'Start not confirmed — outcome unknown', 'Start unknown', "The App can't tell whether Codex received the starting message. It may have run, and the App will not resend it. Read the conversation first.", ['show']],
   ['earlier Codex session', open({generation:g}), host({generation:g2, threads:[{threadId:'T1', generation:g2, status:{type:'idle'}}]}), undefined,
-    'Open in an earlier Codex session', 'Earlier session', "Open in a Codex session that isn't the current one, so the App can't see what it is doing. Find its conversation in History.", []],
+    'Open in an earlier Codex session', 'Earlier session', "Open in a Codex session that isn't the current one, so the App can't see what it is doing. Find its conversation in History, under More.", []],
   ['outstanding request', open(), host({serverRequests:[outstanding()]}), undefined,
     'Waiting for your answer', 'Needs answer', 'Codex is asking a question or approval in the conversation.', ['answer', 'end']],
   ['two outstanding requests', open(), host({serverRequests:[outstanding(), outstanding()]}), undefined,
@@ -290,4 +290,26 @@ test('the empty states, and a view that may be from before the last operation', 
   } finally { await stale.close(); }
   const failed = await mount({data:data({runs:[open()]}), host:host(), readFailure:'invented failure'});
   try { assert.match(region(failed.c, 'Last status read failed').textContent, /The App's last read of its state failed \(invented failure\)\. What is shown here was read before that\./); } finally { await failed.close(); }
+});
+
+test('a conversation with a workflow chosen and no run of it says exactly that, as the conversation does; no workflow keeps "Choose a workflow"', async () => {
+  const chosen = name => [{sourceRef:'src', threadId:'T1', selection:{state:'selected', reference:'sel-1', runnable:true, identity:{name, origin:'project', revision:'r'}}}];
+  const ui = await mount({data:data({selections:chosen('resolve-spacing')}), host:host()});
+  try {
+    const note = region(ui.c, 'Workflow chosen, not started');
+    assert.equal(note.textContent, `resolve-spacing${CHOSEN_NO_RUN}`);
+    assert.equal(note.textContent, 'resolve-spacing is chosen for this conversation. No run has been started.', 'the conversation\'s own sentence');
+    assert.equal(button(ui.c, 'Choose a workflow'), undefined);
+    assert.doesNotMatch(ui.c.textContent, /Not started|Ready|Waiting|finished/i, 'no run state is claimed');
+    assert.deepEqual(ui.calls, []);
+  } finally { await ui.close(); }
+  // Another conversation's selection, or none: the present empty state.
+  for (const selections of [[], [{...chosen('resolve-spacing')[0], threadId:'T2'}]]) {
+    const other = await mount({data:data({selections}), host:host()});
+    try { assert.match(other.c.textContent, new RegExp(`^${NO_RUN}`)); assert.ok(button(other.c, 'Choose a workflow')); assert.equal(region(other.c, 'Workflow chosen, not started'), undefined); }
+    finally { await other.close(); }
+  }
+  // A run of this conversation recorded in an earlier Codex session: "no run has been started" is not established.
+  const earlier = await mount({data:data({selections:chosen('resolve-spacing'), runs:[open({generation:g2})]}), host:host()});
+  try { assert.equal(region(earlier.c, 'Workflow chosen, not started'), undefined); assert.match(earlier.c.textContent, new RegExp(`^${NO_RUN}`)); } finally { await earlier.close(); }
 });
