@@ -3608,11 +3608,11 @@ div.woven-chat-section-heading--folder:hover { background:transparent; }
 .v4-attach-panel { padding:10px 12px; border:1px solid var(--rule); border-radius:10px; background:var(--surface); }
 .v4-composer-status { margin:0 6px 2px; font-size:12px; color:var(--ink-soft); }
 .chat-composer-line > button.button-muted { padding:4px 10px; border:1px solid var(--rule-strong); border-radius:8px; font-size:13px; }
-/* Where the line is too narrow for the text and a running turn's buttons, the buttons go below it, at the right. */
+/* Where the line is narrow (the centre at the default window size), the buttons go below the text, at the right. */
 .shell--stone .chat-panel--woven > .chat-input-row { container-type:inline-size; }
 .chat-panel--woven .chat-composer-line { flex-wrap:wrap; }
 .chat-panel--woven .chat-composer-line > textarea + button { margin-left:auto; }
-@container (max-width: 480px) { .chat-composer-line:has(> button.button-muted) > textarea { flex-basis:100%; } }
+@container (max-width: 480px) { .chat-composer-line > textarea { flex-basis:100%; } }
 /* The settings line: each setting a compact button opening a small panel (the access level as drawn). */
 /* Each panel opens above the line, inside the centre, whichever row its button has wrapped to. */
 .chat-panel--woven .chat-context { position:relative; }

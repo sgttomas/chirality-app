@@ -212,6 +212,20 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
   const textRevision = useRef(0);
   useReportUnsent("conversation-composer", !!text);
   const composerField = useRef<HTMLTextAreaElement>(null);
+  // The message box grows with its draft, up to the stylesheet's maximum height, and scrolls beyond it; it is
+  // measured again when the draft, the conversation or the window's width changes.
+  const fitComposer = useCallback(() => {
+    const field = composerField.current;
+    if (!field?.style || typeof field.scrollHeight !== "number") return;
+    field.style.height = "auto";
+    field.style.height = `${field.scrollHeight}px`;
+  }, []);
+  useLayoutEffect(fitComposer);
+  useEffect(() => {
+    if (typeof window?.addEventListener !== "function") return;
+    window.addEventListener("resize", fitComposer);
+    return () => window.removeEventListener("resize", fitComposer);
+  }, [fitComposer]);
   const [ordinaryModel, setOrdinaryModel] = useState({ owner: "", value: "", effort: "", effortModel: "", revision: 0 });
   const [ordinaryOutcome, setOrdinaryOutcome] = useState<OrdinaryTextOutcome | null>(null);
   // The conversation whose model ID is being typed and has not yet settled: it settles MODEL_ID_PAUSE_MS after the last
@@ -2480,7 +2494,12 @@ export function App() {
   const [pickDropped, setPickDropped] = useState(false);
   const pickScopeNow = pickScope(host);
   useEffect(() => { if (pick && pick.scope !== pickScopeNow) { setPickState(null); setPickDropped(true); } }, [pick, pickScopeNow]);
-  const setPick = (next: WorkflowPick | null) => { setPickState(next); setPickDropped(false); };
+  // A pick lands in the message box, where its chip is and the next thing to do: in the stacked narrow layout the
+  // Workflows tab is below the conversation, and the chip would otherwise appear out of view. Removing one moves nothing.
+  const setPick = (next: WorkflowPick | null) => {
+    setPickState(next); setPickDropped(false);
+    if (next) { conversationRevealSequence.current += 1; setConversationReveal({ sequence: conversationRevealSequence.current, target: "ordinary-composer-text" }); }
+  };
   // The conversation view's own choice of a conversation, as it reports it (null while it takes none).
   const [conversationChooser, setConversationChooser] = useState<{ choose: ((key: string) => void) | null }>({ choose: null });
   const [rightCollapsed, setRightCollapsed] = useState(false);

@@ -131,6 +131,43 @@ async function mounted(host, check) {
 }
 const TEXT = 'Plan the survey summary from notes/ é 家';
 
+test('the message box takes the height of its draft, measured again as the draft changes', async () => {
+  const proto = Object.getPrototypeOf(document.createElement('textarea'));
+  // The mini-DOM measures nothing: a stand-in measure of one 22px line per line of the draft.
+  Object.defineProperty(proto, 'scrollHeight', {configurable: true, get() { return 22 * String(props(this)?.value ?? '').split('\n').length; }});
+  try {
+    await mounted(standIn(), async ui => {
+      await ui.newChat();
+      await ui.write('one line');
+      assert.ok(chatInput(ui.c).style.height === '22px', `one line: ${chatInput(ui.c).style.height}`);
+      await ui.write('one\ntwo\nthree');
+      assert.ok(chatInput(ui.c).style.height === '66px', `three lines: ${chatInput(ui.c).style.height}`);
+      await ui.write('');
+      assert.ok(chatInput(ui.c).style.height === '22px', `emptied: ${chatInput(ui.c).style.height}`);
+    });
+  } finally { delete proto.scrollHeight; }
+});
+
+test('picking a workflow lands in the message box; removing the pick moves nothing', async () => {
+  const proto = Object.getPrototypeOf(document.createElement('textarea')); const focused = [], scrolled = [];
+  const previous = {focus: proto.focus, scroll: proto.scrollIntoView};
+  proto.focus = function () { focused.push(this); }; proto.scrollIntoView = function () { scrolled.push(this); };
+  try {
+    await mounted(standIn(), async ui => {
+      await ui.newChat();
+      focused.length = 0; scrolled.length = 0;
+      await ui.pick();
+      assert.ok(focused.length === 1 && focused[0].getAttribute('id') === 'ordinary-composer-text', 'the message box takes the focus once');
+      assert.ok(scrolled.length === 1 && scrolled[0] === focused[0], 'and is brought into view');
+      focused.length = 0; scrolled.length = 0;
+      const remove = ui.composer().querySelectorAll(n => n.localName === 'button' && /^Remove /.test(n.getAttribute('aria-label') ?? ''))[0];
+      assert.ok(!!remove, 'the chip offers its removal');
+      await React.act(async () => props(remove).onClick());
+      assert.ok(focused.length === 0 && scrolled.length === 0, 'removing the pick moves neither focus nor the view');
+    });
+  } finally { proto.focus = previous.focus; proto.scrollIntoView = previous.scroll; }
+});
+
 test('a new chat: the first press starts the conversation and chooses the included workflow, then stops to show its tools; the second prepares and sends it once', async () => {
   await mounted(standIn(), async ui => {
     await ui.newChat();
