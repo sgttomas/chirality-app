@@ -1,4 +1,4 @@
-import { choiceLabels } from "./AgentText";
+import { boundedTitle, choiceLabels, ChoiceTitle, CHOICE_TITLES_ATTRIBUTION } from "./AgentText";
 import { threadChoices } from "./presentation";
 
 type Json = any;
@@ -10,6 +10,8 @@ export type NavigatorEntry = {
   threadId: string;
   /** The App's words naming it, as the conversation view's chooser names it (choiceLabels). */
   title: string;
+  /** The title Codex supplies for it, if any: shown beside the entry, marked, by the component every conversation choice uses. */
+  suppliedTitle: unknown;
   /** Codex reports a turn under way in it (its status type is "active"). */
   live: boolean;
   /** The host status holds a request for it that waits for the person's answer. */
@@ -31,28 +33,28 @@ export const conversationKey = (row: Json) => JSON.stringify([row?.generation, r
  * each conversation with a request that waits for the person's answer, read as "Waiting on you" reads it. */
 export function navigatorEntries(host: Json, waiting: ReadonlySet<string>): NavigatorEntry[] {
   const rows = (Array.isArray(host?.threads) ? host.threads : []).filter((t: Json) => sameGeneration(t?.generation, host?.generation) && typeof t?.threadId === "string");
-  const labels = choiceLabels(threadChoices(rows, conversationKey));
+  const choices = threadChoices(rows, conversationKey);
+  const labels = choiceLabels(choices);
   return rows.map((row: Json, i: number) => ({
-    key: conversationKey(row), threadId: row.threadId, title: labels[i],
+    key: conversationKey(row), threadId: row.threadId, title: labels[i], suppliedTitle: choices[i].title,
     live: row?.status?.type === "active", needsAnswer: waiting.has(row.threadId),
     folder: typeof row?.cwd === "string" && row.cwd ? row.cwd : null,
   }));
 }
 
-const samePath = (a: string, b: string) => a.replace(/[\\/]+$/, "") === b.replace(/[\\/]+$/, "");
+/** The same path as written, but for one trailing separator. Two spellings of one folder (an alias) do not match. */
+const samePath = (a: string, b: string) => a.replace(/\/$/, "") === b.replace(/\/$/, "");
 /**
- * The entries by project. A conversation is listed under the App's project only where Codex reports it working in
- * that folder; one working elsewhere (a conversation continued from History, for example) is listed under its own
- * folder, and one whose folder is not reported under no heading. The App's project comes first, listed even when empty.
+ * The entries by project. Only the App's own project, the one it has established, gets a heading, and a conversation
+ * is listed under it only where Codex reports it working in exactly that folder. Every other conversation (one
+ * continued from another folder, one whose folder is not reported, any conversation while the App has no project) is
+ * listed under no heading: a reported path alone does not establish a project. The App's project comes first, listed
+ * even when empty.
  */
 export function navigatorProjects(appFolder: string | null, entries: readonly NavigatorEntry[]): NavigatorProject[] {
-  const projects: NavigatorProject[] = appFolder !== null ? [{ folder: appFolder, entries: [] }] : [];
-  const unplaced: NavigatorEntry[] = [];
-  for (const entry of entries) {
-    if (entry.folder === null) { unplaced.push(entry); continue; }
-    const project = projects.find(p => p.folder !== null && samePath(p.folder, entry.folder as string));
-    if (project) project.entries.push(entry); else projects.push({ folder: entry.folder, entries: [entry] });
-  }
+  const inProject = (entry: NavigatorEntry) => appFolder !== null && entry.folder !== null && samePath(appFolder, entry.folder);
+  const projects: NavigatorProject[] = appFolder !== null ? [{ folder: appFolder, entries: entries.filter(inProject) }] : [];
+  const unplaced = entries.filter(entry => !inProject(entry));
   return unplaced.length ? [...projects, { folder: null, entries: unplaced }] : projects;
 }
 
@@ -68,6 +70,8 @@ function EntryRow({ entry, selected, disabled, choose, answer }: { entry: Naviga
       <button type="button" className={`woven-navigator-session${entry.live ? " woven-navigator-session--live" : ""}`} data-session-id={entry.threadId} disabled={disabled} aria-pressed={selected} onClick={() => { if (!disabled) choose(entry.key); }}>
         <span className="woven-navigator-session-heading">{entry.live ? <span className="woven-navigator-session-dot" role="img" aria-label="Live session"/> : null}<span className="woven-navigator-session-title">{entry.title}</span></span>
       </button>
+      {/* The supplied title stands beside the entry, outside its name and its clickable area: no control holds supplied text. */}
+      {boundedTitle(entry.suppliedTitle) !== null ? <span className="navigator-entry-title"><ChoiceTitle value={entry.suppliedTitle}/></span> : null}
       {entry.needsAnswer ? <button type="button" className="button-muted" aria-label={`Needs answer: ${entry.title}`} onClick={() => answer(entry)}>Needs answer</button> : null}
     </div>
   </li>;
@@ -109,6 +113,7 @@ export function Navigator({ projects, selectedKey, choose, answer, newChat, open
     <header className="woven-navigator-brand">Chirality</header>
     <div className="woven-navigator-sections">
       <button type="button" className="woven-new-chat" onClick={newChat}><span aria-hidden="true">＋</span> New chat</button>
+      {projects.some(project => project.entries.some(entry => boundedTitle(entry.suppliedTitle) !== null)) ? <p className="conversation-choices-attribution"><small>{CHOICE_TITLES_ATTRIBUTION}</small></p> : null}
       <div className="woven-navigator-sessions">
         {projects.map((project, i) => <ProjectSection key={project.folder ?? `project-${i}`} project={project} selectedKey={selectedKey} disabled={!choose} choose={key => choose?.(key)} answer={answer}/>)}
       </div>

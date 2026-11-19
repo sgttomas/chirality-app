@@ -34,7 +34,7 @@ import { BringBackComposer, CleanTrialPanel, DelegatedTrialComposer, composersFo
 import { preparedMessages, preparedMessageLimit, type PreparedMessage } from "./preparedMessages";
 import { ConversationContext, ProjectLibraryContext, appProjectFolder, conversationFromKey, workflowSourceLimit } from "./WorkflowContext";
 import { WorkspaceDisclosure, WorkspaceConnectionStatus, revealWorkspaceTarget, revealWorkspaceLink, registerWorkspaceViews } from "./DailyWorkspace";
-import { ActivityStrip, WorkspaceShell, isRightPanelTab, turnPhase, type RightPanelTab, RIGHT_PANEL_TABS } from "./WorkspaceShell";
+import { ActivityStrip, WorkspaceShell, isRightPanelTab, turnPhase, type RightPanelTab, RIGHT_PANEL_TABS, type TabSelection } from "./WorkspaceShell";
 import { AccountRow, Navigator, navigatorEntries, navigatorProjects, type NavigatorEntry } from "./Navigator";
 import { flushSync } from "react-dom";
 import { UnsentWork, useReportUnsent } from "./unsentWork";
@@ -895,7 +895,7 @@ function NativeConfirmationContent() {
     return () => { live = false; clearInterval(t); };
   }, []);
   if (!shown.length) return null;
-  return <section className="native-confirmation-content" role="region" aria-label="Content named by an open native confirmation" style={{ border: "2px solid #a60", padding: 8 }}>
+  return <section className="native-confirmation-content" tabIndex={0} role="region" aria-label="Content named by an open native confirmation" style={{ border: "2px solid #a60", padding: 8 }}>
     <h2>Content named by an open native confirmation</h2>
     {shown.map((row: Json) => <article key={row.digest}>
       <h3>{wordOf(CONFIRMATION_KIND, row.kind) ?? "Content named by the confirmation"}</h3>{wordOf(CONFIRMATION_KIND, row.kind) === null && <p>Recorded kind: <AgentText value={row.kind} source="record" name="A kind of content the App does not recognise, as the host recorded it; the App does not vouch for its words" /></p>}
@@ -2113,9 +2113,28 @@ export function App() {
   };
   const showView = (next: string) => { navigated.current = true; selectView(next); };
   // The person's own focus or press inside the conversation view: they have gone to the conversation.
-  const enterConversation = () => { navigated.current = true; if (!conversationVisited) setConversationVisited(true); };
-  // A tab the person selects lands as its link did: its view shown and its disclosure open. Focus stays on the tab.
-  const selectTab = (next: RightPanelTab) => { showView(next); revealWorkspaceTarget(RIGHT_PANEL_TABS.find(tab => tab.id === next)?.target ?? "", false); };
+  // A link there that leads elsewhere (to the access controls) is not going to the conversation.
+  const enterConversation = (event: { target: EventTarget | null }) => {
+    for (let node = event.target as HTMLElement | null; node; node = node.parentNode as HTMLElement | null) if (node.tagName === "A") return;
+    navigated.current = true;
+    if (!conversationVisited) setConversationVisited(true);
+  };
+  // A tab the person presses lands as its link did: its view shown first, then its disclosure opened and scrolled to;
+  // focus stays on the tab. Moving along the tabs by the arrow keys shows each view and opens nothing.
+  const selectTab = (next: RightPanelTab, by: TabSelection) => {
+    navigated.current = true;
+    selectView(next, true);
+    if (by === "press") revealWorkspaceTarget(RIGHT_PANEL_TABS.find(tab => tab.id === next)?.target ?? "", false);
+  };
+  // Closing or opening the right panel is the person's own navigation.
+  const collapseRight = (collapsed: boolean) => { navigated.current = true; setRightCollapsed(collapsed); };
+  // A new Codex session is a new source: going to the conversation before it does not count for it.
+  const visitedGeneration = useRef<string | null>(null);
+  useEffect(() => {
+    const now = host?.generation ? JSON.stringify(host.generation) : null;
+    if (visitedGeneration.current !== null && now !== null && visitedGeneration.current !== now) setConversationVisited(false);
+    if (now !== null) visitedGeneration.current = now;
+  }, [host?.generation]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => registerWorkspaceViews(next => {
     if (!autoMoving.current) navigated.current = true;
     selectView(next, true);
@@ -2866,11 +2885,13 @@ export function App() {
   // A delegated agent's request is marked on the conversation it descends from, as "Waiting on you" groups it; the
   // request's own conversation stays the one opened.
   const requestRootOf = (entry: WaitingEntry) => entry.group.label.kind === "conversation" ? entry.group.label.threadId : null;
-  const waitingThreads = new Set(waitingRequests.map(requestRootOf).filter((id): id is string => typeof id === "string"));
+  const requestOwnOf = (entry: WaitingEntry) => entry.target.kind === "request" ? entry.target.group.threadId : null;
+  // Both are marked: the conversation the request is on, and the one it descends from.
+  const waitingThreads = new Set(waitingRequests.flatMap(entry => [requestOwnOf(entry), requestRootOf(entry)]).filter((id): id is string => typeof id === "string"));
   // A status the last read did not refresh says nothing current about a turn: no live mark and nothing in the strip.
   const statusCurrent = !hostReads.failure;
   const projects = navigatorProjects(appProjectFolder(host), navigatorEntries(host, waitingThreads).map(entry => statusCurrent ? entry : { ...entry, live: false }));
-  const answerIn = (entry: NavigatorEntry) => { const first = waitingRequests.find(request => requestRootOf(request) === entry.threadId); if (first) goToWaiting(first); };
+  const answerIn = (entry: NavigatorEntry) => { const first = waitingRequests.find(request => requestOwnOf(request) === entry.threadId) ?? waitingRequests.find(request => requestRootOf(request) === entry.threadId); if (first) goToWaiting(first); };
   const newChat = () => revealWorkspaceTarget("workspace-start", true);
   const openSettings = () => revealWorkspaceTarget("workspace-tools", true);
   const shownRow = selectedThread ? (host?.threads ?? []).find((t: Json) => t.threadId === selectedThread && JSON.stringify(t.generation) === JSON.stringify(host?.generation)) : null;
@@ -2898,7 +2919,11 @@ export function App() {
           };
       }}/>
         <NativeConfirmationContent />
-        {firstRead === "read" && <WorkspaceShell hidden={setupRequired} rightTab={rightTab} onRightTab={selectTab} rightCollapsed={rightCollapsed} setRightCollapsed={setRightCollapsed}
+        {/* "Waiting on you" is seen on every view: above the three regions, and at the top of the window where they stack. */}
+        {workspaceShown && <div className="daily-workspace workspace-waiting">
+        <WaitingOnYou readings={waitingReads} view={host?.nativeView} busy={homePending} onOpen={() => { void readFleetOnOpen(); }} openGroup={group => { void openRequests(group); }} go={goToWaiting}/>
+        </div>}
+        {firstRead === "read" && <WorkspaceShell hidden={setupRequired} rightTab={rightTab} onRightTab={selectTab} rightCollapsed={rightCollapsed} setRightCollapsed={collapseRight}
           navigator={<Navigator projects={projects} selectedKey={threadKey} choose={conversationChooser.choose ? key => { navigated.current = true; conversationChooser.choose?.(key); } : null} answer={answerIn} newChat={newChat} openSettings={openSettings}/>}
           collapsedNavigator={openNavigator => <div className="woven-collapsed-strip" aria-label="Collapsed chat navigation">
             {projects.some(project => project.entries.some(entry => entry.needsAnswer)) ? <button type="button" aria-label="Needs answer" onClick={openNavigator}>!</button> : null}
@@ -2907,11 +2932,6 @@ export function App() {
           </div>}
           strip={<ActivityStrip phase={statusCurrent ? turnPhase(shownRow, !!shownRow && waitingThreads.has(shownRow.threadId)) : null}/>}
           centre={<div className="daily-workspace">
-        {/* "Waiting on you" stays in view while the conversation scrolls: a sticky element sticks only within its
-            parent, so this is a direct child of the element that scrolls. */}
-        <div className="workspace-sticky">
-        <WaitingOnYou readings={waitingReads} view={host?.nativeView} busy={homePending} onOpen={() => { void readFleetOnOpen(); }} openGroup={group => { void openRequests(group); }} go={goToWaiting}/>
-        </div>
         <WorkspaceConnectionStatus state={host?.state} setupRequired={host?.desktopSetup?.launch?.state === "setup-required"} savedSetup={!!host?.desktopSetup?.pending} generationClosed={host?.generationClosed} startRefusal={host?.lastStartRefusal} codexHome={host?.codexHome} refusalCause={host?.startRefusalCause} build={host?.build} signIn={signInReading}
           plan={reportedPlan(host)} codexError={accountReadError(host)}
           checkAgain={async () => { const shown = currentHost.current; try { await readAccountStatus(shown?.generation, shown?.homeRouting?.activeModeHomeClass, () => true); } catch (error) { setMessage(`Check again: ${readingSentence(error) ?? String(error)}`); } }}

@@ -11,6 +11,8 @@ export const RIGHT_PANEL_TABS = [
   { id: "settings", label: "Settings & tools", target: "workspace-tools" },
 ] as const;
 export type RightPanelTab = typeof RIGHT_PANEL_TABS[number]["id"];
+/** How a tab was selected: pressed, or reached by the arrow keys while moving along the tabs. */
+export type TabSelection = "press" | "keys";
 export const isRightPanelTab = (view: string): view is RightPanelTab => RIGHT_PANEL_TABS.some(tab => tab.id === view);
 
 /** What the status strip says for the conversation shown in the centre. */
@@ -35,7 +37,7 @@ export function ActivityStrip({ phase }: { phase: TurnPhase }) {
  * mounted; the App hides the ones not selected. */
 export function RightPanel({ tab, onTab, expanded, onExpand, onClose, hidden, children }: {
   /** `onExpand` is null where widening the panel would change nothing (the regions are stacked). */
-  tab: RightPanelTab; onTab: (tab: RightPanelTab) => void; expanded: boolean; onExpand: (() => void) | null; onClose: () => void; hidden: boolean; children: ReactNode;
+  tab: RightPanelTab; onTab: (tab: RightPanelTab, by: TabSelection) => void; expanded: boolean; onExpand: (() => void) | null; onClose: () => void; hidden: boolean; children: ReactNode;
 }) {
   const tabsRef = useRef<HTMLDivElement>(null);
   const keyDown = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -44,14 +46,14 @@ export function RightPanel({ tab, onTab, expanded, onExpand, onClose, hidden, ch
     const ids = RIGHT_PANEL_TABS.map(t => t.id);
     const index = Math.max(0, ids.indexOf(tab));
     const next = event.key === "Home" ? ids[0] : event.key === "End" ? ids[ids.length - 1] : ids[(index + (event.key === "ArrowRight" ? 1 : ids.length - 1)) % ids.length];
-    onTab(next);
+    onTab(next, "keys");
     (tabsRef.current?.querySelector?.(`[data-view="${next}"]`) as HTMLElement | null)?.focus?.();
   };
   return <section className="woven-right-panel" aria-label="Right panel" hidden={hidden}>
     <header className="woven-region-header woven-right-panel-header workflows-header">
       <div ref={tabsRef} className="workflows-tabs" role="tablist" aria-label="Right panel views" onKeyDown={keyDown}>
         {RIGHT_PANEL_TABS.map(t => <button key={t.id} type="button" role="tab" id={`right-tab-${t.id}`} data-view={t.id} aria-controls="right-view-content"
-          aria-selected={tab === t.id} tabIndex={tab === t.id ? 0 : -1} onClick={() => onTab(t.id)}>{t.label}</button>)}
+          aria-selected={tab === t.id} tabIndex={tab === t.id ? 0 : -1} onClick={() => onTab(t.id, "press")}>{t.label}</button>)}
       </div>
       <div className="woven-right-panel-controls">
         {onExpand ? <button type="button" aria-label={expanded ? "Return panel" : "Expand panel"} title={expanded ? "Return panel" : "Expand panel"} aria-pressed={expanded} onClick={onExpand}>{expanded ? "⤡" : "⤢"}</button> : null}
@@ -88,7 +90,7 @@ export function shellLayout(available: number, s: { navigatorWidth: number; navi
  */
 export function WorkspaceShell({ hidden, navigator, collapsedNavigator, centre, rightTab, onRightTab, rightCollapsed, setRightCollapsed, right, strip }: {
   hidden: boolean; navigator: ReactNode; collapsedNavigator: (openNavigator: () => void) => ReactNode; centre: ReactNode;
-  rightTab: RightPanelTab; onRightTab: (tab: RightPanelTab) => void; rightCollapsed: boolean; setRightCollapsed: (collapsed: boolean) => void;
+  rightTab: RightPanelTab; onRightTab: (tab: RightPanelTab, by: TabSelection) => void; rightCollapsed: boolean; setRightCollapsed: (collapsed: boolean) => void;
   right: ReactNode; strip: ReactNode;
 }) {
   const [available, setAvailable] = useState(1440);
@@ -153,7 +155,7 @@ export function WorkspaceShell({ hidden, navigator, collapsedNavigator, centre, 
       resizeTo("right", event.key === "Home" ? RIGHT_MIN : event.key === "End" ? layout.rightMax : layout.right + (event.key === "ArrowLeft" ? step : -step), event.key === "Home");
     }
   };
-  const selectTab = (tab: RightPanelTab) => { restoreExpanded(); onRightTab(tab); };
+  const selectTab = (tab: RightPanelTab, by: TabSelection) => { restoreExpanded(); onRightTab(tab, by); };
   const style = { ...(layout.columns ? { gridTemplateColumns: layout.columns } : {}), "--woven-activity-height": "32px" } as CSSProperties;
   const openNavigator = () => setNavigatorCollapsed(false);
   return <section ref={workspace} className={`woven-workspace woven-t3-workspace${layout.stacked ? " is-stacked" : ""}`} style={style} hidden={hidden}>
@@ -172,7 +174,7 @@ export function WorkspaceShell({ hidden, navigator, collapsedNavigator, centre, 
       onPointerDown={event => beginDrag(event, "right")} onKeyDown={event => resizeByKey(event, "right")}/>
     <aside className={`woven-region woven-region--coordination${rightCollapsed ? " is-collapsed" : ""}`}>
       {rightCollapsed ? <button type="button" className="woven-region-toggle button-muted" aria-label="Open right panel" onClick={() => setRightCollapsed(false)}>›</button> : null}
-      <RightPanel tab={rightTab} onTab={selectTab} expanded={expanded !== null} onExpand={layout.stacked ? null : toggleExpanded} onClose={() => { restoreExpanded(); setRightCollapsed(true); }} hidden={rightCollapsed}>{right}</RightPanel>
+      <RightPanel tab={rightTab} onTab={selectTab} expanded={expanded !== null} onExpand={layout.stacked && expanded === null ? null : toggleExpanded} onClose={() => { restoreExpanded(); setRightCollapsed(true); }} hidden={rightCollapsed}>{right}</RightPanel>
       {rightCollapsed ? <span className="woven-collapsed-label">{RIGHT_PANEL_TABS.find(t => t.id === rightTab)?.label}</span> : null}
     </aside>
     {strip}

@@ -3556,3 +3556,11 @@ div.woven-chat-section-heading--folder:hover { background:transparent; }
 .shell--workspace > .native-confirmation-content { flex:0 1 auto; max-height:60vh; overflow:auto; }
 /* The collapsed navigator's actions start below its reopen control, which 3.0.1 draws over the strip's top. */
 .woven-region--navigator.is-collapsed > .woven-collapsed-strip { padding-top:58px; }
+/* "Waiting on you" above the regions: one line across the frame, at the top of the window where the regions stack. */
+.shell--workspace > .workspace-waiting { flex:none; position:sticky; top:0; z-index:5; max-width:none; margin:0; padding:0 16px; background:var(--surface); border-bottom:1px solid var(--rule); font-size:.875rem; }
+.shell--workspace > .workspace-waiting .waiting-on-you { border-bottom:0; background:transparent; }
+/* A conversation's supplied title beside its navigator entry: on its own line under the entry, set apart as in every choice. */
+.woven-workspace .woven-navigator-session-row:has(> .navigator-entry-title) { flex-wrap:wrap; }
+.woven-workspace .woven-navigator-session-row:has(> .navigator-entry-title) > .woven-navigator-session { flex:1 1 100%; }
+.woven-navigator-session-row > .navigator-entry-title { flex:1 1 100%; min-width:0; padding:0 8px 6px; font-size:11px; color:var(--ink-soft); }
+.woven-navigator-sections > .conversation-choices-attribution { margin:0; padding:0 8px; color:var(--ink-faint); font-size:11px; }
