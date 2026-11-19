@@ -1,9 +1,9 @@
 //! The navigator's read, with invented material only: placement, ordering,
-//! titles, the not-read cases, runs joined to their conversations, waiting
-//! requests, and a real records store (the launched project, another listed
-//! project, a gone one, a torn registry, a name clash) read as the command
-//! reads it, without writing anything or reaching the store's readers for
-//! any folder but the launched one.
+//! titles, the not-read cases, the runs the App holds joined to their
+//! conversations, waiting requests, and a real records store (the launched
+//! project, another listed project, a gone one, a torn registry, a launched
+//! path through a symlink) read as the command reads it, without writing or
+//! remembering anything.
 use super::*;
 use serde_json::json;
 use std::path::PathBuf;
@@ -21,6 +21,7 @@ fn empty() -> Gathered {
         no_project_folders: vec!["/data/conversations-without-project".into()],
         registry: Ok(crate::records_store::ListedFolders::default()),
         folders: vec![],
+        held: HeldRuns::default(),
         homes: vec![],
         index: vec![],
         finished: vec![],
@@ -33,15 +34,15 @@ fn listed(root: &str, id: &str, line: usize) -> crate::records_store::ListedFold
 fn registry(folders: Vec<crate::records_store::ListedFolder>) -> Result<crate::records_store::ListedFolders, String> {
     Ok(crate::records_store::ListedFolders { folders, ..Default::default() })
 }
-fn attached(root: &str, id: &str, runs: Vec<RunInput>) -> FolderInput {
-    FolderInput {
-        root: root.into(),
-        examined: Examined::Attached { project: Some(id.into()), fault: None, refusal: None, resolutions: vec![] },
-        runs: RunsInput::Read { runs, limits: vec![] },
-    }
+fn attached(root: &str, id: &str) -> FolderInput {
+    FolderInput { root: root.into(), examined: Examined::Attached { project: Some(id.into()), fault: None, refusal: None, resolutions: vec![], unavailable: None } }
 }
 fn other(root: &str) -> FolderInput {
-    FolderInput { root: root.into(), examined: Examined::Listed, runs: RunsInput::NotAttempted }
+    FolderInput { root: root.into(), examined: Examined::Listed }
+}
+/// A held reading of the launched project's recorded runs, with no limit.
+fn held(runs: Vec<RunInput>) -> HeldRuns {
+    HeldRuns { recorded: HeldReading::Read { read_at: Some("2026-11-18T09:00:00.000Z".into()), limits: vec![], notices: vec![], runs }, process: vec![] }
 }
 /// A ready home whose list was read to its end.
 fn home(class: &str, threads: Vec<Value>, loaded: Vec<Value>) -> HomeInput {
@@ -72,10 +73,13 @@ fn run(id: &str, conversation: &str, lifecycle: RecordedLifecycle, at: &str) -> 
         workflow: json!({"kind":"workflow","origin":"project","sourceRoot":"/p/library","name":"review-pack","revision":"rev-1"}),
         lifecycle,
         started_at: Some(at.into()),
+        home: None,
     }
 }
-fn index(home: &str, thread: &str, project: &str, runs: &[&str]) -> IndexRow {
-    IndexRow { home: home.into(), thread: thread.into(), project: project.into(), runs: runs.iter().map(|r| r.to_string()).collect() }
+/// A recovery ledger `conversation_index` row as a Host holds it.
+fn index(home: &str, thread: &str, project: &str, runs: &[&str]) -> Value {
+    json!({"kind":"conversation_index","home":crate::stop_records::home_class(home).unwrap(),"threadId":thread,"project":project,
+        "tags":runs.iter().map(|r| json!({"owner":crate::run_restart::RUN_TAG_OWNER,"value":r})).collect::<Vec<_>>()})
 }
 fn project<'a>(read: &'a NavigatorRead, root: &str) -> &'a NavigatorProject {
     read.projects.iter().find(|p| p.root == root).unwrap_or_else(|| panic!("no project {root} in {:#?}", read.projects))
@@ -95,7 +99,7 @@ fn placement_by_record_then_reported_folder_then_unassigned_then_a_folder_sectio
     let mut g = empty();
     g.current_root = Some("/work/alpha".into());
     g.registry = registry(vec![listed("/work/alpha", "P-alpha", 0), listed("/work/beta", "P-beta", 1)]);
-    g.folders = vec![attached("/work/alpha", "P-alpha", vec![]), other("/work/beta")];
+    g.folders = vec![attached("/work/alpha", "P-alpha"), other("/work/beta")];
     let mut child = thread("child", "/work/alpha", 50);
     child["parentThreadId"] = json!("by-folder");
     g.homes = vec![account(vec![
@@ -129,7 +133,7 @@ fn a_recorded_reference_spelled_as_launched_names_the_physical_root() {
     let mut g = empty();
     g.current_root = Some("/private/work/alpha".into());
     g.aliases = vec![("/work/alpha".into(), "/private/work/alpha".into())];
-    g.folders = vec![attached("/private/work/alpha", "P-alpha", vec![])];
+    g.folders = vec![attached("/private/work/alpha", "P-alpha")];
     g.homes = vec![account(vec![thread("t", "/other", 1)], vec![])];
     g.index = vec![index("account", "t", "/work/alpha", &[])];
     let read = compose(g);
@@ -143,7 +147,7 @@ fn ordering_current_first_then_newest_entry_then_registry_order_and_loaded_untim
     let mut g = empty();
     g.current_root = Some("/w/current".into());
     g.registry = registry(vec![listed("/w/current", "P0", 0), listed("/w/quiet-early", "P1", 1), listed("/w/busy", "P2", 2), listed("/w/quiet-late", "P3", 3)]);
-    g.folders = vec![attached("/w/current", "P0", vec![]), other("/w/quiet-early"), other("/w/busy"), other("/w/quiet-late")];
+    g.folders = vec![attached("/w/current", "P0"), other("/w/quiet-early"), other("/w/busy"), other("/w/quiet-late")];
     g.homes = vec![account(vec![thread("old", "/w/busy", 100), thread("new", "/w/busy", 300), thread("mid", "/w/current", 200)], vec![loaded_row("loaded-only", "/w/busy")])];
     g.index = vec![index("account", "recorded-only", "/w/busy", &[])];
     let read = compose(g);
@@ -181,7 +185,8 @@ fn titles_from_name_then_preview_cut_on_a_word_then_none() {
 fn conversations_not_read_still_return_projects_and_run_record_entries() {
     let mut g = empty();
     g.current_root = Some("/w/alpha".into());
-    g.folders = vec![attached("/w/alpha", "P-alpha", vec![run("run:1", "thread:recorded-run", RecordedLifecycle::OpenInterrupted, "2026-11-01T00:00:00Z")])];
+    g.folders = vec![attached("/w/alpha", "P-alpha")];
+    g.held = held(vec![run("run:1", "thread:recorded-run", RecordedLifecycle::OpenInterrupted, "2026-11-01T00:00:00Z")]);
     let mut stopped = account(vec![], vec![]);
     stopped.state = "absent".into();
     stopped.current = false;
@@ -205,26 +210,41 @@ fn conversations_not_read_still_return_projects_and_run_record_entries() {
     assert_eq!((only.run.as_ref().unwrap().state, only.run_count), (RunState::Open, 1));
 }
 
+// E2: a run stays in the project whose records hold it.
 #[test]
-fn a_run_record_entry_takes_the_home_and_project_the_app_recorded() {
+fn a_run_of_the_launched_project_is_not_shown_on_an_entry_placed_under_another() {
     let mut g = empty();
     g.current_root = Some("/w/alpha".into());
     g.registry = registry(vec![listed("/w/alpha", "PA", 0), listed("/w/beta", "PB", 1)]);
-    g.folders = vec![attached("/w/alpha", "PA", vec![run("run:1", "thread:x", RecordedLifecycle::StartNotConfirmed, "2026-11-01T00:00:00Z")]), other("/w/beta")];
-    g.homes = vec![account(vec![], vec![])];
+    g.folders = vec![attached("/w/alpha", "PA"), other("/w/beta")];
+    g.held = held(vec![run("run:1", "thread:x", RecordedLifecycle::StartNotConfirmed, "2026-11-01T00:00:00Z")]);
+    // This process holds a run on a conversation Codex reports under beta.
+    let mut own = run("run:2", "thread:y", RecordedLifecycle::OpenInterrupted, "2026-11-02T00:00:00Z");
+    own.home = Some("account".into());
+    g.held.process = vec![own];
+    g.homes = vec![account(vec![thread("thread:y", "/w/beta", 5)], vec![])];
+    // The App recorded thread:x under beta.
     g.index = vec![index("account", "thread:x", "/w/beta", &[])];
     let read = compose(g);
     let x = entry(&read, "thread:x");
-    assert_eq!((x.home.as_deref(), x.project_root.as_deref(), x.project_source), (Some("account"), Some("/w/beta"), ProjectSource::Recorded));
-    assert!(matches!(&x.open, OpenWith::NotOpenable { reason } if reason.contains("not in the list")), "{:?}", x.open);
-    assert_eq!(entries(&read).count(), 1, "the index row and the run make one entry");
+    assert_eq!((x.home.as_deref(), x.project_root.as_deref(), x.project_source, x.run.clone(), x.run_count), (Some("account"), Some("/w/beta"), ProjectSource::Recorded, None, 0));
+    let y = entry(&read, "thread:y");
+    assert_eq!((y.project_root.as_deref(), y.run.clone(), y.run_count), (Some("/w/beta"), None, 0));
+    let alpha = project(&read, "/w/alpha");
+    assert!(alpha.entries.is_empty(), "{:?}", alpha.entries);
+    assert_eq!((alpha.unplaced_runs, alpha.runs_read.outcome.clone()), (2, RunsOutcome::Limited));
+    assert!(alpha.runs_read.limits.iter().any(|l| l.starts_with("2 recorded runs of this project name a conversation placed under another project")), "{:?}", alpha.runs_read.limits);
+    let beta = project(&read, "/w/beta");
+    assert_eq!(beta.runs_read.outcome, RunsOutcome::NotRead { reason: NOT_OPEN_RUNS.into() });
+    assert_eq!(entries(&read).count(), 2);
 }
 
 #[test]
 fn runs_join_their_conversation_with_each_lifecycle_state() {
     let mut g = empty();
     g.current_root = Some("/w/alpha".into());
-    g.folders = vec![attached("/w/alpha", "P", vec![
+    g.folders = vec![attached("/w/alpha", "P")];
+    g.held = held(vec![
         run("run:open", "t-open", RecordedLifecycle::OpenInterrupted, "2026-11-02T00:00:00Z"),
         run("run:older", "t-open", RecordedLifecycle::Ended { stopped_by: "the person".into(), cause: "ended to start review-pack".into() }, "2026-11-01T00:00:00Z"),
         run("run:ended", "t-ended", RecordedLifecycle::Ended { stopped_by: "the person".into(), cause: "completed".into() }, "2026-11-01T00:00:00Z"),
@@ -233,8 +253,11 @@ fn runs_join_their_conversation_with_each_lifecycle_state() {
         run("run:held-busy", "t-busy", RecordedLifecycle::OpenInterrupted, "2026-11-01T00:00:00Z"),
         run("run:earlier-session", "t-earlier", RecordedLifecycle::OpenInterrupted, "2026-11-01T00:00:00Z"),
         run("run:no-report", "t-no-report", RecordedLifecycle::OpenInterrupted, "2026-11-01T00:00:00Z"),
-    ])];
-    g.homes = vec![account(["t-open", "t-ended", "t-unconfirmed", "t-unknown", "t-busy", "t-earlier", "t-no-report", "t-none"].iter().enumerate().map(|(i, t)| thread(t, "/w/alpha", i as i64 + 1)).collect(), vec![])];
+    ]);
+    let threads = ["t-open", "t-ended", "t-unconfirmed", "t-unknown", "t-busy", "t-earlier", "t-no-report", "t-none"];
+    g.homes = vec![account(threads.iter().enumerate().map(|(i, t)| thread(t, "/w/alpha", i as i64 + 1)).collect(), vec![])];
+    // The App's ledger names each conversation in the account home only.
+    g.index = threads.iter().map(|t| index("account", t, "/w/alpha", &[])).collect();
     g.finished = vec![("run:open".into(), Some(true)), ("run:no-report".into(), Some(false)), ("run:held-busy".into(), None)];
     let read = compose(g);
     let open = entry(&read, "t-open");
@@ -259,10 +282,11 @@ fn runs_join_their_conversation_with_each_lifecycle_state() {
 fn a_thread_id_in_two_homes_keeps_each_homes_runs_apart() {
     let mut g = empty();
     g.current_root = Some("/w/alpha".into());
-    g.folders = vec![attached("/w/alpha", "P", vec![
+    g.folders = vec![attached("/w/alpha", "P")];
+    g.held = held(vec![
         run("run:key", "shared", RecordedLifecycle::OpenInterrupted, "2026-11-02T00:00:00Z"),
         run("run:account", "shared", RecordedLifecycle::Ended { stopped_by: "the person".into(), cause: "completed".into() }, "2026-11-01T00:00:00Z"),
-    ])];
+    ]);
     g.homes = vec![account(vec![thread("shared", "/w/alpha", 1)], vec![]), home("api-key", vec![], vec![])];
     g.index = vec![index("api-key", "shared", "/w/alpha", &["run:key"]), index("account", "shared", "/w/alpha", &["run:account"])];
     let read = compose(g);
@@ -273,7 +297,8 @@ fn a_thread_id_in_two_homes_keeps_each_homes_runs_apart() {
     // Untagged, a run whose thread is known in two homes is joined to neither.
     let mut g = empty();
     g.current_root = Some("/w/alpha".into());
-    g.folders = vec![attached("/w/alpha", "P", vec![run("run:untagged", "shared", RecordedLifecycle::OpenInterrupted, "2026-11-02T00:00:00Z")])];
+    g.folders = vec![attached("/w/alpha", "P")];
+    g.held = held(vec![run("run:untagged", "shared", RecordedLifecycle::OpenInterrupted, "2026-11-02T00:00:00Z")]);
     g.homes = vec![account(vec![thread("shared", "/w/alpha", 1)], vec![]), home("api-key", vec![thread("shared", "/w/alpha", 2)], vec![])];
     let read = compose(g);
     assert!(entries(&read).filter(|e| e.home.is_some()).all(|e| e.run.is_none()));
@@ -288,27 +313,61 @@ fn a_run_naming_no_conversation_is_counted_and_said() {
     g.current_root = Some("/w/alpha".into());
     let mut lost = run("run:lost", "x", RecordedLifecycle::StartNotConfirmed, "2026-11-01T00:00:00Z");
     lost.conversation = None;
-    g.folders = vec![attached("/w/alpha", "P", vec![lost])];
+    g.folders = vec![attached("/w/alpha", "P")];
+    g.held = held(vec![lost]);
     let read = compose(g);
     let alpha = project(&read, "/w/alpha");
-    assert_eq!((alpha.unplaced_runs, alpha.runs_read.outcome.clone()), (1, RunsOutcome::Partial));
+    assert_eq!((alpha.unplaced_runs, alpha.runs_read.outcome.clone()), (1, RunsOutcome::Limited));
     assert!(alpha.runs_read.limits[0].contains("1 recorded run of this project names no conversation"), "{:?}", alpha.runs_read.limits);
     assert!(alpha.entries.is_empty());
 }
 
-// Point 6: the latest run is the latest start, including a start known only
-// from its workflow record.
+// Point 6 and E4: the latest run is the latest start, compared as instants,
+// including a start known only from its run-start record; a run with no
+// readable time counts as older, and is said.
 #[test]
-fn the_latest_run_is_the_latest_recorded_start() {
+fn the_latest_run_is_the_latest_start_by_instant() {
     let mut g = empty();
     g.current_root = Some("/w/alpha".into());
-    g.folders = vec![attached("/w/alpha", "P", vec![
+    g.folders = vec![attached("/w/alpha", "P")];
+    let mut undated = run("run:undated", "t", RecordedLifecycle::OpenInterrupted, "not a time");
+    undated.started_at = None;
+    g.held = held(vec![
         run("run:later-start-only", "t", RecordedLifecycle::StartNotConfirmed, "2026-11-03T00:00:00Z"),
         run("run:opened", "t", RecordedLifecycle::OpenInterrupted, "2026-11-02T00:00:00Z"),
-    ])];
-    g.homes = vec![account(vec![thread("t", "/w/alpha", 1)], vec![])];
+        // 10:00 at +02:00 is 08:00Z: earlier than 09:00Z, though it sorts after as text.
+        run("run:offset", "u", RecordedLifecycle::Ended { stopped_by: "the person".into(), cause: "completed".into() }, "2026-11-01T10:00:00+02:00"),
+        run("run:utc", "u", RecordedLifecycle::OpenInterrupted, "2026-11-01T09:00:00Z"),
+        run("run:unparsed", "u", RecordedLifecycle::OpenInterrupted, "2026-11-01 11:00"),
+        undated,
+    ]);
+    g.homes = vec![account(vec![thread("t", "/w/alpha", 1), thread("u", "/w/alpha", 2)], vec![])];
+    g.index = vec![index("account", "t", "/w/alpha", &[]), index("account", "u", "/w/alpha", &[])];
     let read = compose(g);
     assert_eq!(entry(&read, "t").run.as_ref().unwrap().run_id, "run:later-start-only");
+    assert_eq!((entry(&read, "u").run.as_ref().unwrap().run_id.as_str(), entry(&read, "u").run_count), ("run:utc", 3));
+    let alpha = project(&read, "/w/alpha");
+    assert_eq!(alpha.runs_read.outcome, RunsOutcome::Limited);
+    assert!(alpha.runs_read.limits.iter().any(|l| l.starts_with("2 runs of this project have no start time that can be read")), "{:?}", alpha.runs_read.limits);
+    assert_eq!(instant("2026-11-01T10:00:00+02:00"), instant("2026-11-01T08:00:00Z"));
+    assert_eq!(instant("2026-11-01T08:00:00.5Z").unwrap() - instant("2026-11-01T08:00:00Z").unwrap(), 500_000_000);
+    assert_eq!(instant("1970-01-01T00:00:00Z"), Some(0));
+    assert!(instant("2026-13-01T00:00:00Z").is_none() && instant("2026-11-01T00:00:00").is_none());
+}
+
+// E1: a run's home comes only from the App's records.
+#[test]
+fn a_run_whose_home_the_app_does_not_record_joins_no_listed_conversation() {
+    let mut g = empty();
+    g.current_root = Some("/w/alpha".into());
+    g.folders = vec![attached("/w/alpha", "P")];
+    g.held = held(vec![run("run:untagged", "only-here", RecordedLifecycle::OpenInterrupted, "2026-11-02T00:00:00Z")]);
+    g.homes = vec![account(vec![thread("only-here", "/w/alpha", 1)], vec![])];
+    let read = compose(g);
+    let listed = entry_in(&read, "account", "only-here");
+    assert_eq!((listed.run.clone(), listed.run_count), (None, 0), "the only home that lists the thread is not taken as the run's");
+    let homeless = entries(&read).find(|e| e.home.is_none()).unwrap();
+    assert_eq!((homeless.id.as_str(), homeless.project_source, homeless.run.as_ref().unwrap().run_id.as_str()), ("only-here", ProjectSource::RunRecord, "run:untagged"));
 }
 
 // Point 7: a conversation the App recorded, in neither list nor run record.
@@ -316,7 +375,7 @@ fn the_latest_run_is_the_latest_recorded_start() {
 fn a_recorded_conversation_alone_is_an_entry() {
     let mut g = empty();
     g.current_root = Some("/w/alpha".into());
-    g.folders = vec![attached("/w/alpha", "P", vec![])];
+    g.folders = vec![attached("/w/alpha", "P")];
     g.homes = vec![account(vec![], vec![])];
     g.index = vec![index("account", "remembered", "/w/alpha", &[])];
     let read = compose(g);
@@ -325,22 +384,89 @@ fn a_recorded_conversation_alone_is_an_entry() {
     assert!(matches!(&e.open, OpenWith::NotOpenable { reason } if reason.contains("App's own record")), "{:?}", e.open);
 }
 
-// Point 10: `current` stays; `open` only when attached.
+// Point 10 and E3: `current` stays; `open` only where the status gives the
+// project as usable.
 #[test]
-fn the_launched_project_is_open_only_when_attached() {
+fn the_launched_project_is_open_only_where_its_status_says_so() {
     let launched = |examined: Examined| {
         let mut g = empty();
         g.current_root = Some("/w/alpha".into());
-        g.folders = vec![FolderInput { root: "/w/alpha".into(), examined, runs: RunsInput::NotAttempted }];
+        g.registry = registry(vec![listed("/w/alpha", "P-registry", 0)]);
+        g.folders = vec![FolderInput { root: "/w/alpha".into(), examined }];
         compose(g).projects.remove(0)
     };
-    let moved = launched(Examined::Attached { project: None, fault: Some("moved".into()), refusal: Some("not attached".into()), resolutions: vec!["adopt".into(), "new-identity".into()] });
+    let moved = launched(Examined::Attached { project: None, fault: Some("moved".into()), refusal: Some("not attached".into()), resolutions: vec!["adopt".into(), "new-identity".into()], unavailable: None });
     assert_eq!((moved.current, moved.state), (true, ProjectState::Unavailable));
     assert_eq!(moved.notice, Some(ProjectNotice { kind: "moved".into(), message: fault_message("moved"), resolutions: vec!["adopt".into(), "new-identity".into()] }));
-    let refused = launched(Examined::Attached { project: Some("P".into()), fault: None, refusal: Some("retention state unavailable".into()), resolutions: vec![] });
+    let refused = launched(Examined::Attached { project: Some("P".into()), fault: None, refusal: Some("retention state unavailable".into()), resolutions: vec![], unavailable: None });
     assert_eq!((refused.state, refused.notice.unwrap().kind.as_str()), (ProjectState::Unavailable, "unavailable"));
-    let open = launched(Examined::Attached { project: Some("P".into()), fault: None, refusal: None, resolutions: vec![] });
+    let no_store = launched(Examined::Refused("records store not created yet".into()));
+    assert_eq!((no_store.current, no_store.state, no_store.project_id.clone()), (true, ProjectState::Unavailable, None), "the launched project takes no identity from the registry");
+    assert!(no_store.notice.unwrap().message.contains("records store not created yet"));
+    // A disposed identity: an attachment with an identity and no refusal,
+    // under `project.state: unavailable`.
+    let disposed = examined_from_status(&json!({"state":"available","project":{"state":"unavailable","error":"this project's records were disposed of",
+        "reading":"ordinary project records unavailable","attachment":{"projectId":"P","refusal":null,"fault":null,"resolutions":[]}}}));
+    assert_eq!(disposed, Examined::Attached { project: Some("P".into()), fault: None, refusal: None, resolutions: vec![], unavailable: Some("this project's records were disposed of".into()) });
+    let disposed = launched(disposed);
+    assert_eq!((disposed.state, disposed.project_id.as_deref()), (ProjectState::Unavailable, Some("P")));
+    assert!(disposed.notice.unwrap().message.contains("disposed of"));
+    assert_eq!(examined_from_status(&json!({"state":"unavailable","error":"no store"})), Examined::Refused("no store".into()));
+    let open = launched(examined_from_status(&json!({"project":{"attachment":{"projectId":"P","refusal":null,"fault":null}}})));
     assert_eq!((open.state, open.project_id.as_deref(), open.notice), (ProjectState::Open, Some("P"), None));
+}
+
+// Point 4: the runs the App holds: the reading as last held, and this
+// process's own view of the runs it holds.
+#[test]
+fn the_launched_projects_runs_are_as_the_app_holds_them() {
+    let compose_with = |held: HeldRuns| {
+        let mut g = empty();
+        g.current_root = Some("/w/alpha".into());
+        g.folders = vec![attached("/w/alpha", "P")];
+        g.held = held;
+        g.homes = vec![account(vec![thread("t", "/w/alpha", 1)], vec![])];
+        g.index = vec![index("account", "t", "/w/alpha", &[])];
+        compose(g)
+    };
+    let not_yet = compose_with(HeldRuns::default());
+    assert_eq!(project(&not_yet, "/w/alpha").runs_read, RunsRead { outcome: RunsOutcome::NotRead { reason: RUNS_NOT_YET.into() }, read_at: None, limits: vec![] });
+    let words = crate::runtime_session::REOPEN_NOT_READ_WORDS[1];
+    let not_read = compose_with(HeldRuns { recorded: HeldReading::NotRead(words.into()), process: vec![] });
+    assert_eq!(project(&not_read, "/w/alpha").runs_read.outcome, RunsOutcome::NotRead { reason: words.into() });
+
+    // The routing changed while the reading read: none of its runs, but this
+    // process's own still.
+    let mut own = run("run:own", "t", RecordedLifecycle::OpenInterrupted, "2026-11-03T00:00:00Z");
+    own.home = Some("account".into());
+    let changed = compose_with(HeldRuns {
+        recorded: HeldReading::Read { read_at: Some("2026-11-18T09:00:00.000Z".into()), limits: vec![], notices: vec![crate::records_store::HISTORY_CHANGED_VIEW.into()],
+            runs: vec![run("run:recorded", "t", RecordedLifecycle::OpenInterrupted, "2026-11-02T00:00:00Z")] },
+        process: vec![own.clone()],
+    });
+    let alpha = project(&changed, "/w/alpha");
+    assert_eq!(alpha.runs_read.outcome, RunsOutcome::NotRead { reason: crate::records_store::HISTORY_CHANGED_VIEW.into() });
+    assert_eq!((entry(&changed, "t").run.as_ref().unwrap().run_id.as_str(), entry(&changed, "t").run_count), ("run:own", 1));
+
+    // A reading with limits is limited, with when it began; a run the process
+    // holds is one run, its state as the process holds it (here ended in this
+    // session, which stays held as ended).
+    let mut ended = run("run:recorded", "t", RecordedLifecycle::Ended { stopped_by: "the person".into(), cause: "completed".into() }, "2026-11-04T00:00:00Z");
+    ended.home = Some("account".into());
+    let mut busy = run("run:busy", "t", RecordedLifecycle::Unknown(RUN_PENDING.into()), "x");
+    (busy.started_at, busy.workflow, busy.home) = (None, Value::Null, Some("account".into()));
+    let limited = compose_with(HeldRuns {
+        recorded: HeldReading::Read { read_at: Some("2026-11-18T09:00:00.000Z".into()), limits: vec!["WR records unreadable: invented".into()], notices: vec![crate::records_store::HISTORY_UNIMPORTED_VIEW.into()],
+            runs: vec![run("run:recorded", "t", RecordedLifecycle::OpenInterrupted, "2026-11-02T00:00:00Z"), run("run:busy", "t", RecordedLifecycle::OpenInterrupted, "2026-11-01T00:00:00Z")] },
+        process: vec![ended, busy],
+    });
+    let alpha = project(&limited, "/w/alpha");
+    assert_eq!((alpha.runs_read.outcome.clone(), alpha.runs_read.read_at.as_deref()), (RunsOutcome::Limited, Some("2026-11-18T09:00:00.000Z")));
+    assert_eq!(alpha.runs_read.limits, vec!["WR records unreadable: invented".to_owned(), crate::records_store::HISTORY_UNIMPORTED_VIEW.into()]);
+    let t = entry(&limited, "t");
+    let latest = t.run.as_ref().unwrap();
+    assert_eq!((latest.run_id.as_str(), latest.state, t.run_count), ("run:recorded", RunState::Ended, 2));
+    assert_eq!(latest.ended_by, Some(EndedBy { stopped_by: "the person".into(), cause: "completed".into() }));
 }
 
 #[test]
@@ -364,7 +490,7 @@ fn workflow_origin_and_release_as_the_run_guide_words_them() {
 fn live_and_open_come_from_what_the_host_holds() {
     let mut g = empty();
     g.current_root = Some("/w/alpha".into());
-    g.folders = vec![attached("/w/alpha", "P", vec![])];
+    g.folders = vec![attached("/w/alpha", "P")];
     g.homes = vec![account(vec![thread("loaded", "/w/alpha", 2), thread("listed", "/w/alpha", 1)], vec![
         json!({"generation":generation(),"threadId":"loaded","name":"Working","status":{"type":"active","activeFlags":["waitingOnApproval"]},"cwd":"/w/alpha"}),
         json!({"generation":{"appSession":"session:invented","home":HOME,"spawnCounter":0},"threadId":"listed","status":{"type":"active"}}),
@@ -394,7 +520,7 @@ fn live_and_open_come_from_what_the_host_holds() {
 fn requests_count_on_their_root_conversation_and_children_are_no_entries() {
     let mut g = empty();
     g.current_root = Some("/w/alpha".into());
-    g.folders = vec![attached("/w/alpha", "P", vec![])];
+    g.folders = vec![attached("/w/alpha", "P")];
     let mut h = account(vec![thread("root", "/w/alpha", 3), thread("listed-child", "/w/alpha", 2)], vec![loaded_row("root", "/w/alpha")]);
     // `listed-child` has no parentThreadId in the list; the native view names its parent.
     h.descendants = vec![("child".into(), "root".into()), ("grandchild".into(), "child".into()), ("listed-child".into(), "root".into()), ("orphan".into(), "nowhere".into())];
@@ -415,7 +541,7 @@ fn requests_count_on_their_root_conversation_and_children_are_no_entries() {
 fn the_shape_serializes_as_agreed() {
     let mut g = empty();
     g.current_root = Some("/w/alpha".into());
-    g.folders = vec![FolderInput { root: "/w/alpha".into(), examined: Examined::Gone, runs: RunsInput::NotAttempted }];
+    g.folders = vec![FolderInput { root: "/w/alpha".into(), examined: Examined::Gone }];
     g.homes = vec![account(vec![thread("t", "/w/alpha", 1)], vec![])];
     let value = serde_json::to_value(compose(g)).unwrap();
     assert_eq!(value["readAt"], "2026-11-19T00:00:00.000Z");
@@ -430,7 +556,8 @@ fn the_shape_serializes_as_agreed() {
     assert_eq!((e["projectSource"].clone(), e["titleSource"].clone(), e["live"].clone(), e["archived"].clone()), (json!("reported-folder"), json!("preview"), json!("not-loaded"), json!(false)));
     assert_eq!(e["open"], json!({"kind":"history","home":"account","generation":generation(),"selectionEpoch":3,"threadId":"t"}));
     assert_eq!(serde_json::to_value(OpenWith::NotOpenable { reason: "why".into() }).unwrap(), json!({"kind":"not-openable","reason":"why"}));
-    assert_eq!(serde_json::to_value(RunsRead { outcome: RunsOutcome::Partial, limits: vec!["x".into()] }).unwrap(), json!({"state":"partial","limits":["x"]}));
+    assert_eq!(serde_json::to_value(RunsRead { outcome: RunsOutcome::Limited, read_at: Some("t".into()), limits: vec!["x".into()] }).unwrap(), json!({"state":"limited","readAt":"t","limits":["x"]}));
+    assert_eq!(p["runsRead"]["readAt"], Value::Null);
     let run = serde_json::to_value(entry_run(&run("r", "t", RecordedLifecycle::Unknown("why".into()), "x"), &BTreeMap::new(), &CatalogInput::default())).unwrap();
     assert_eq!((run["state"].clone(), run["stateReason"].clone()), (json!("unknown"), json!("why")));
     for key in ["runId", "workflow", "endedBy", "finishedReported", "resultCount"] { assert!(run.get(key).is_some(), "run lacks {key}"); }
@@ -443,8 +570,9 @@ fn folder(base: &Path, rel: &str) -> PathBuf {
     std::fs::create_dir_all(&p).unwrap();
     p
 }
-/// Every entry below `root`: its bytes (None for a folder), length and
-/// modification time, so a rewrite with the same bytes shows too.
+/// Every entry below `root`: its bytes (None for a folder; a symlink's
+/// target), length and modification time, so a rewrite with the same bytes
+/// shows too.
 type Tree = BTreeMap<PathBuf, (Option<Vec<u8>>, u64, Option<std::time::SystemTime>)>;
 fn tree(root: &Path) -> Tree {
     let mut out = BTreeMap::new();
@@ -453,7 +581,9 @@ fn tree(root: &Path) -> Tree {
         for item in std::fs::read_dir(&dir).unwrap() {
             let path = item.unwrap().path();
             let meta = std::fs::symlink_metadata(&path).unwrap();
-            let bytes = if meta.is_dir() { stack.push(path.clone()); None } else { Some(std::fs::read(&path).unwrap()) };
+            let bytes = if meta.file_type().is_symlink() {
+                Some(std::fs::read_link(&path).unwrap().into_os_string().into_encoded_bytes())
+            } else if meta.is_dir() { stack.push(path.clone()); None } else { Some(std::fs::read(&path).unwrap()) };
             out.insert(path.strip_prefix(root).unwrap().to_path_buf(), (bytes, meta.len(), meta.modified().ok()));
         }
     }
@@ -493,42 +623,54 @@ fn as_at_launch() {
     crate::records_store::restore_configured_for_test(crate::records_store::configured_for_test());
     crate::records_store::opened_existing().unwrap();
 }
-fn read_as_command(launched: &Path, homes: Vec<std::sync::Arc<crate::runtime_session::HomeSession>>) -> NavigatorRead {
-    let workflows = std::sync::Mutex::new(crate::runtime_session::WorkflowRootSession::default());
-    read_from(Sources { homes, workflows: &workflows, workspace: Some(launched), app_data: None })
+fn read_as_command(launched: &Path, homes: Vec<std::sync::Arc<crate::runtime_session::HomeSession>>, workflows: &std::sync::Mutex<crate::runtime_session::WorkflowRootSession>, status: &StatusSlot) -> NavigatorRead {
+    read_from(Sources { homes, workflows, workspace: Some(launched), app_data: None, status })
 }
 fn fresh_home() -> std::sync::Arc<crate::runtime_session::HomeSession> {
     let host = std::sync::Arc::new(crate::hosting::Host::new());
     std::sync::Arc::new(crate::runtime_session::HomeSession::new(crate::home_resources::HomeClass::Account, host, Err("invented: no configuration".into())).unwrap())
 }
+/// The files below `dir`.
+fn files(dir: &Path) -> Vec<PathBuf> {
+    tree(dir).into_iter().filter(|(_, (bytes, _, _))| bytes.is_some()).map(|(p, _)| dir.join(p)).collect()
+}
 
 #[test]
-fn the_whole_read_writes_nothing_and_reads_only_the_launched_project_through_the_store() {
+fn the_whole_read_writes_nothing_and_remembers_no_other_folder() {
     let f = Fixture::new("navigator");
     let launched = folder(&f.base, "one/proj");
     let two = folder(&f.base, "two/proj");
     let gone = folder(&f.base, "gone");
-    for root in [&launched, &two, &gone] {
+    for root in [&launched, &gone] {
         assert_eq!(crate::records_store::attach(root, true).unwrap().how, "minted");
     }
+    let two_dir = crate::records_store::attach(&two, true).unwrap().dir.unwrap();
     open_run(&launched, "run:launched", "thread:launched");
     open_run(&two, "run:other", "thread:other");
     std::fs::remove_dir_all(&gone).unwrap();
     as_at_launch();
+    // The launch's one reading of the recorded runs, as the App makes it.
+    let workflows = std::sync::Mutex::new(crate::runtime_session::WorkflowRootSession::default());
+    crate::runtime_session::read_reopened_history(&workflows, &launched, &[], &[]).unwrap();
     let s = |p: &Path| p.to_str().unwrap().to_owned();
-    let other_log = crate::records_store::configured_project_dir(&two);
-    assert!(!crate::records_store::known_project_root(&two), "the other project is not remembered at launch");
+    // The second project's actual store log, and the writer-side lookup of its folder.
+    let other_log = files(&two_dir).into_iter().find(|p| std::fs::read_to_string(p).is_ok_and(|t| t.contains("run:other"))).expect("the second project's run log");
+    assert_eq!(crate::records_store::configured_project_dir(&other_log).as_deref(), Some(two_dir.as_path()));
+    assert_eq!(crate::records_store::root_for_dir(&two_dir), None, "the other project is not remembered at launch");
 
+    let status = StatusSlot::default();
     let was = f.trees();
-    let read = read_as_command(&launched, vec![fresh_home()]);
+    let read = read_as_command(&launched, vec![fresh_home()], &workflows, &status);
     assert_eq!(f.trees(), was, "the read wrote, created or touched nothing in the store or the projects");
-    assert!(!crate::records_store::known_project_root(&two), "the read remembered the other project's folder");
-    assert_eq!(crate::records_store::configured_project_dir(&two), other_log);
+    assert_eq!(crate::records_store::root_for_dir(&two_dir), None, "the read remembered the other project's folder for its writers");
+    assert!(!crate::records_store::known_project_root(&two));
 
     let current = &read.projects[0];
     assert_eq!((current.root.clone(), current.current, current.state, current.notice.clone()), (s(&launched), true, ProjectState::Open, None));
-    assert_eq!(current.runs_read.outcome, RunsOutcome::NotRead { reason: LAUNCHED_RUNS_NOT_READ.into() });
-    assert!(current.entries.is_empty());
+    assert_eq!(current.runs_read.outcome, RunsOutcome::Read);
+    assert!(current.runs_read.read_at.is_some());
+    let run_entry = &current.entries[0];
+    assert_eq!((run_entry.id.as_str(), run_entry.project_source, run_entry.run.as_ref().unwrap().state), ("thread:launched", ProjectSource::RunRecord, RunState::Open));
     let second = project(&read, &s(&two));
     assert_eq!((second.label.as_str(), second.state, second.notice.clone()), ("two/proj", ProjectState::Listed, None));
     assert!(second.project_id.is_some(), "the registry's identity");
@@ -545,13 +687,70 @@ fn the_whole_read_writes_nothing_and_reads_only_the_launched_project_through_the
     bytes.extend_from_slice(b"{\"format\":\"chirality.records-store.root\",\"projectId\":");
     std::fs::write(&roots, &bytes).unwrap();
     let was = f.trees();
-    let read = crate::storage::without_mutations_for_test(|| crate::records_store::listed_folders()).unwrap();
-    assert!(read.torn.is_some());
-    let read = read_as_command(&launched, vec![]);
+    let listing = crate::storage::without_mutations_for_test(|| crate::records_store::listed_folders()).unwrap();
+    assert!(listing.torn.is_some());
+    let read = read_as_command(&launched, vec![], &workflows, &status);
     assert_eq!(f.trees(), was, "nothing written beside a torn registry either");
     assert_eq!(read.projects.len(), 3, "the complete lines still list every folder");
     assert!(read.registry_limits.iter().any(|l| l.contains("roots.jsonl")), "{:?}", read.registry_limits);
-    assert!(!crate::records_store::known_project_root(&two));
+    assert_eq!(crate::records_store::root_for_dir(&two_dir), None);
+}
+
+// Point 2: the attachment shown is host status's own observation while it is
+// fresh; only a stale or missing one makes the navigator take the status.
+#[test]
+fn the_attachment_shown_is_host_statuss_last_observation() {
+    let f = Fixture::new("navigator-status");
+    let launched = folder(&f.base, "proj");
+    crate::records_store::attach(&launched, true).unwrap();
+    as_at_launch();
+    let workflows = std::sync::Mutex::new(crate::runtime_session::WorkflowRootSession::default());
+    let kept = json!({"state":"available","project":{"attachment":{"projectId":"P-kept","refusal":null,"fault":null}}});
+    let status = StatusSlot::default();
+    status.keep(Some(&launched), &kept);
+    assert_eq!(read_as_command(&launched, vec![], &workflows, &status).projects[0].project_id.as_deref(), Some("P-kept"));
+    let stale = std::time::Instant::now().checked_sub(STATUS_FRESH + std::time::Duration::from_secs(1)).unwrap();
+    status.keep_at(Some(&launched), &kept, stale);
+    let read = read_as_command(&launched, vec![], &workflows, &status);
+    let taken = crate::records_store::status(Some(&launched));
+    assert_eq!(read.projects[0].project_id.as_deref(), taken["project"]["attachment"]["projectId"].as_str(), "a stale observation is taken again, exactly as host status takes it");
+    assert_ne!(read.projects[0].project_id.as_deref(), Some("P-kept"));
+    // Kept for another workspace: not this one's.
+    status.keep(Some(&f.base), &kept);
+    assert_ne!(read_as_command(&launched, vec![], &workflows, &status).projects[0].project_id.as_deref(), Some("P-kept"));
+    drop(f);
+}
+
+// Point 1 and B1: the workspace goes to the store exactly as given. Given
+// through a symlink to another registered folder, the launched project
+// carries host status's refusal for that path and the other folder is not
+// remembered.
+#[test]
+fn a_launched_path_through_a_symlink_carries_host_statuss_answer_for_that_path() {
+    let f = Fixture::new("navigator-symlink");
+    let other = folder(&f.base, "other");
+    let other_dir = crate::records_store::attach(&other, true).unwrap().dir.unwrap();
+    let link = f.base.join("launched");
+    std::os::unix::fs::symlink(&other, &link).unwrap();
+    as_at_launch();
+    let workflows = std::sync::Mutex::new(crate::runtime_session::WorkflowRootSession::default());
+    let host_status = crate::records_store::status(Some(&link));
+    let expected = examined_from_status(&host_status);
+    assert!(!matches!(expected, Examined::Attached { refusal: None, fault: None, unavailable: None, project: Some(_), .. }), "the store refuses a symlinked folder: {host_status}");
+    let was = f.trees();
+    let read = read_as_command(&link, vec![], &workflows, &StatusSlot::default());
+    assert_eq!(f.trees(), was);
+    let current = read.projects.iter().find(|p| p.current).unwrap();
+    let section_alone = {
+        let mut g = empty();
+        g.current_root = Some(current.root.clone());
+        g.folders = vec![FolderInput { root: current.root.clone(), examined: expected }];
+        compose(g).projects.remove(0)
+    };
+    assert_eq!((current.state, current.notice.clone(), current.project_id.clone()), (ProjectState::Unavailable, section_alone.notice, None));
+    assert_eq!(crate::records_store::root_for_dir(&other_dir), None, "the other folder was not remembered");
+    assert!(!crate::records_store::known_project_root(&other));
+    drop(f);
 }
 
 #[test]
@@ -561,14 +760,34 @@ fn without_a_store_the_launched_project_is_still_shown() {
     let base = temp.join(crate::util::opaque_id("navigator-launched-").unwrap());
     std::fs::create_dir_all(&base).unwrap();
     crate::records_store::use_store_not_started_for_test(Some(Ok(crate::records_store::Store { root: missing.clone(), placement: crate::records_store::Placement::Override, limits: vec![] })));
+    let workflows = std::sync::Mutex::new(crate::runtime_session::WorkflowRootSession::default());
     let was = tree(&base);
-    let read = read_as_command(&base, vec![]);
+    let read = read_as_command(&base, vec![], &workflows, &StatusSlot::default());
     assert_eq!(tree(&base), was);
     assert!(!missing.exists(), "no store was created");
     assert_eq!(read.projects.len(), 1);
     assert_eq!((read.projects[0].current, read.projects[0].state), (true, ProjectState::Unavailable));
-    assert!(read.registry_limits[0].contains("not read"), "{:?}", read.registry_limits);
-    assert!(matches!(&read.projects[0].runs_read.outcome, RunsOutcome::NotRead { .. }));
+    assert!(read.registry_limits[0].contains("not read") && read.registry_limits[0].contains("supplied no project folders"), "{:?}", read.registry_limits);
+    assert_eq!(read.projects[0].runs_read.outcome, RunsOutcome::NotRead { reason: RUNS_NOT_YET.into() });
     crate::records_store::use_store_for_test(None);
     let _ = std::fs::remove_dir_all(&base);
+}
+
+/// The navigator makes no reading of the store's records: it names none of
+/// their readers, and its only calls into the store are the registry listing
+/// and the one status fallback.
+#[test]
+fn the_navigator_names_no_reader_of_the_stores_records() {
+    let source = include_str!("navigator_read.rs");
+    for reader in ["ProjectRecords::open", "read_project_runs", "HistoryRead", "storage::read_all", "attach("] {
+        assert!(!source.contains(reader), "navigator_read.rs names {reader}");
+    }
+    let mut calls = Vec::new();
+    for (at, _) in source.match_indices("records_store::") {
+        let rest = &source[at + "records_store::".len()..];
+        let name: String = rest.chars().take_while(|c| c.is_alphanumeric() || *c == '_').collect();
+        if rest[name.len()..].starts_with('(') { calls.push(name); }
+    }
+    calls.sort();
+    assert_eq!(calls, ["listed_folders", "status"], "{calls:?}");
 }

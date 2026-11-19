@@ -1,22 +1,33 @@
-//! The navigator's one read: every project of the person's records store, and
-//! under each its conversations and the workflow runs they carry, as one
-//! answer for the left panel (the interface lane's navigator, after 3.0.1's).
+//! The navigator's one read: every project of the person's records store,
+//! under each its conversations, and for the open project each conversation's
+//! latest workflow run and how many it carries, as one answer for the left
+//! panel (the interface lane's navigator, after 3.0.1's).
 //!
-//! **A read only.** It changes nothing anywhere, starts nothing and sends
-//! nothing to Codex, so it is safe on a timer.
+//! **A read only, and no reading of the store's records.** It changes nothing
+//! anywhere, starts nothing and sends nothing to Codex, so it is safe on a
+//! timer. It composes what the App already holds in memory; from the store it
+//! takes only the registry's complete lines and the launched project's status
+//! as host status takes it.
 //!
-//! - **Other listed projects are enumerated, not read.** For a folder of the
-//!   store's registry that is not the launched project, the read takes the
-//!   registry's complete lines (`records_store::listed_folders`, which
-//!   publishes nothing) and the folder's own `symlink_metadata`, and nothing
-//!   else: no status, attachment, census or run reading. So such a project
-//!   carries the registry's identity, no store fault word (it is not
-//!   examined), and runs not read. The store's readers were made for the one
-//!   opened project: reading another project's records through them would
-//!   remember its folder for later writers and take its admission.
-//! - **The launched project's attachment** comes from `records_store::status`,
-//!   which `host_status` reads every second for the same folder. Its recorded
-//!   runs are not read.
+//! - **Other listed projects are enumerated.** For a folder of the store's
+//!   registry that is not the launched project, the read takes the registry's
+//!   complete lines (`records_store::listed_folders`, which publishes nothing)
+//!   and the folder's own `symlink_metadata`, and nothing else: no status,
+//!   attachment, census or run reading. So such a project carries the
+//!   registry's identity, no store fault word, and runs not read.
+//! - **The launched project's attachment is the one the status line shows**:
+//!   host status's own `records_store::status` for the workspace as given,
+//!   kept when host status takes it (`StatusSlot`), so at most as old as its
+//!   last poll. Only where none is kept from the last `STATUS_FRESH` (no one
+//!   is polling host status) does the navigator take that status itself, the
+//!   same way. That status is a diagnostic of the launched folder and may, as
+//!   it does for host status every second, look at another folder's project
+//!   link where an identity is disputed; enumeration never does.
+//! - **The launched project's runs are the ones the workflow root holds**:
+//!   its reading of the project's recorded runs as last made (at launch, when
+//!   the person chooses Reopen, and after a recorded run is ended), with when
+//!   it began, its limits and its history notices, and the runs this process
+//!   holds, as it holds them.
 //! - **Codex's side is memory.** Each home's Host is read through
 //!   `Host::navigator_projection` (no reply write is settled, unlike
 //!   `snapshot`), its history view through the rows it has received, and its
@@ -34,6 +45,13 @@
 //! descendants) are not entries; their requests count on their root
 //! conversation's entry.
 //!
+//! **Where a run goes.** A run of the launched project joins the entry of its
+//! home and conversation only where that entry is placed under the launched
+//! project; otherwise it is counted in `unplacedRuns` and said. Its home is
+//! the process's own scope where this process holds the run, else what the
+//! App's ledger establishes (its run tag, or the index naming the conversation
+//! in one home only), never which home Codex happens to list the thread in.
+//!
 //! The pure composition (`compose`) takes what `gather` collected; the tests
 //! drive it with invented material.
 use crate::records::supply::RecordedLifecycle;
@@ -44,8 +62,14 @@ use std::path::{Path, PathBuf};
 
 /// The longest title made from a conversation's preview, in characters.
 pub const TITLE_CHARS: usize = 60;
-/// The `runsRead` reason of the launched project while its runs are not read.
-pub const LAUNCHED_RUNS_NOT_READ: &str = "The navigator does not read the project's recorded runs.";
+/// The `runsRead` reason of the launched project before the App's first
+/// reading of its recorded runs has finished.
+pub const RUNS_NOT_YET: &str = "Chirality has not yet read this project's recorded runs in this running App.";
+/// The `stateReason` of a run this process holds whose operation is pending.
+pub const RUN_PENDING: &str = "An operation on this run is in progress in this running App, so its state is not known at this moment.";
+/// How old host status's last observation of the launched project may be
+/// before the navigator takes the status itself.
+pub const STATUS_FRESH: std::time::Duration = std::time::Duration::from_secs(10);
 /// What `conversations[].list` names.
 pub const LIST_WORDS: &str = "saved conversations, not archived, as Codex listed them when it became ready";
 /// The `runsRead` reason of a listed project that is not the launched one.
@@ -159,25 +183,33 @@ pub struct ProjectNotice {
     pub resolutions: Vec<String>,
 }
 
-/// Whether the project's recorded runs were read.
+/// Whether the project's recorded runs were read. Recorded runs are as
+/// Chirality last read this project's records (at launch, when the person
+/// chooses Reopen, and after a recorded run is ended); runs this running App
+/// has prepared since are shown as it holds them.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RunsRead {
     #[serde(flatten)]
     pub outcome: RunsOutcome,
-    /// Every limit the run reader and the store's routing reported, as they
-    /// word them (including that originals not yet imported may be missing).
+    /// When the reading shown began (RFC 3339); null where none is held.
+    pub read_at: Option<String>,
+    /// Every limit the reading and the store's routing reported, as they word
+    /// them (including that originals not yet imported may be missing), and
+    /// the navigator's own (runs it could not place or date).
     pub limits: Vec<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(tag = "state")]
 pub enum RunsOutcome {
-    /// Every source read.
+    /// Read, with no limit reported.
     #[serde(rename = "read")]
     Read,
-    /// Some sources read, some not: `limits` says which.
-    #[serde(rename = "partial")]
-    Partial,
+    /// The reading reported limits (`limits`), so what is shown may be
+    /// incomplete or empty.
+    #[serde(rename = "limited")]
+    Limited,
     #[serde(rename = "not-read")]
     NotRead { reason: String },
 }
@@ -367,7 +399,9 @@ pub struct EndedBy {
 
 pub(crate) struct Gathered {
     pub read_at: String,
-    /// The launched project's root, as the store names folders (physical).
+    /// The launched project's root, spelled as the store's registry names
+    /// folders (physical), only to match it to a listed folder and to the
+    /// App's conversation index; never passed to the store.
     pub current_root: Option<String>,
     /// Other spellings of a section's root (the launched project as given,
     /// which the App's conversation index records), with the root they name.
@@ -376,11 +410,14 @@ pub(crate) struct Gathered {
     /// and as resolved.
     pub no_project_folders: Vec<String>,
     pub registry: Result<crate::records_store::ListedFolders, String>,
-    /// The launched project (examined) and every other listed folder
-    /// (enumerated only).
+    /// The launched project (its standing as host status observes it) and
+    /// every other listed folder (enumerated only).
     pub folders: Vec<FolderInput>,
+    /// The launched project's runs as the App holds them.
+    pub held: HeldRuns,
     pub homes: Vec<HomeInput>,
-    pub index: Vec<IndexRow>,
+    /// The recovery ledger's `conversation_index` rows the Hosts hold, as held.
+    pub index: Vec<Value>,
     /// Runs this process holds in force: whether the finished report is
     /// offered for each, or `None` where it cannot be told.
     pub finished: Vec<(String, Option<bool>)>,
@@ -391,10 +428,9 @@ pub(crate) struct Gathered {
 pub(crate) struct FolderInput {
     pub root: String,
     pub examined: Examined,
-    pub runs: RunsInput,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) enum Examined {
     /// A listed folder that is not the launched project: it is there, and
     /// nothing else of it was read.
@@ -403,28 +439,58 @@ pub(crate) enum Examined {
     Gone,
     /// The folder cannot be examined (the reason as the reader gave it).
     Unexaminable(String),
-    /// How the store attaches the launched project (its `status`).
-    Attached { project: Option<String>, fault: Option<String>, refusal: Option<String>, resolutions: Vec<String> },
+    /// The launched project: the store's status gives no attachment (its
+    /// error as the status gives it).
+    Refused(String),
+    /// The launched project's attachment as the store's status gives it, with
+    /// the status's own `project.state: unavailable` and error where it says so.
+    Attached { project: Option<String>, fault: Option<String>, refusal: Option<String>, resolutions: Vec<String>, unavailable: Option<String> },
 }
 
-#[derive(Clone)]
-pub(crate) enum RunsInput {
-    /// Not read, for what `Examined` says.
-    NotAttempted,
+/// The launched project's runs as the App holds them: the workflow root's
+/// reading of the project's recorded runs, and the runs this process holds.
+#[derive(Clone, Debug, Default)]
+pub(crate) struct HeldRuns {
+    pub recorded: HeldReading,
+    pub process: Vec<RunInput>,
+}
+
+#[derive(Clone, Debug, Default)]
+pub(crate) enum HeldReading {
+    /// No reading has finished in this running App yet.
+    #[default]
+    NotYet,
+    /// The latest reading did not read: the App's own words.
     NotRead(String),
-    /// Read; `limits` are the reader's and the routing's, empty when whole.
-    Read { runs: Vec<RunInput>, limits: Vec<String> },
+    /// The reading held: when it began, its limits and history notices as
+    /// worded, and its runs.
+    Read { read_at: Option<String>, limits: Vec<String>, notices: Vec<String>, runs: Vec<RunInput> },
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct RunInput {
     pub run_id: String,
     pub conversation: Option<String>,
     pub workflow: Value,
     pub lifecycle: RecordedLifecycle,
-    /// When the run started, as recorded: its run-start record, else its
-    /// `run_opened` entry, else its earliest entry. Orders a conversation's runs.
+    /// When the run started: its run-start record's time, else its
+    /// `run_opened` entry's, else its earliest entry's. Orders a
+    /// conversation's runs.
     pub started_at: Option<String>,
+    /// The home class word, where this process holds the run (its own scope).
+    pub home: Option<String>,
+}
+
+/// A recorded run as the navigator takes it from the workflow root's
+/// reading: no further read.
+pub(crate) fn recorded_run(run: &crate::records::supply::RecordedRun) -> RunInput {
+    let at = |e: &Value| e["observedAt"].as_str().or_else(|| e["writtenAt"].as_str()).map(str::to_owned);
+    let opened = run.records.iter().find(|e| e["kind"] == "run_opened").and_then(at);
+    let earliest = run.records.iter().filter_map(at).min_by_key(|t| instant(t).unwrap_or(i128::MAX));
+    RunInput {
+        run_id: run.run.clone(), conversation: run.conversation.clone(), workflow: run.workflow.clone(), lifecycle: run.lifecycle.clone(),
+        started_at: run.start_observed_at.clone().or(opened).or(earliest), home: None,
+    }
 }
 
 pub(crate) struct HomeInput {
@@ -454,15 +520,18 @@ pub(crate) struct HistoryInput {
 }
 
 /// A recovery ledger `conversation_index` row: the App's own record of a
-/// conversation's project, and the runs it tags there.
-pub(crate) struct IndexRow {
+/// conversation's project.
+struct IndexRow {
     /// The home class word.
-    pub home: String,
-    pub thread: String,
+    home: String,
+    thread: String,
     /// The project reference the App recorded (the launched root as given).
-    pub project: String,
-    /// The run identities the row tags (owner `run_restart::RUN_TAG_OWNER`).
-    pub runs: Vec<String>,
+    project: String,
+}
+
+/// The home class word of a ledger home key.
+fn class_of_ledger_home(key: &str) -> Option<&'static str> {
+    ["account", "api-key", "local-provider"].into_iter().find(|c| crate::stop_records::home_class(c) == Some(key))
 }
 
 #[derive(Default)]
@@ -499,20 +568,51 @@ enum Target {
     Unassigned,
 }
 
-/// A run with the home the App's ledger establishes for it, and the folder
-/// whose records hold it.
+/// A run of the launched project with the home the App's records establish
+/// for it.
 struct PlacedRun<'a> {
     run: &'a RunInput,
     home: Option<String>,
-    folder: &'a str,
+    thread: &'a str,
     order: usize,
+}
+
+/// The launched project's runs as held: the reading's runs (none where the
+/// reading did not read, or where the store's routing changed while it read),
+/// each replaced by this process's own view of it where the process holds
+/// it, then the process's other runs. With how the reading stands.
+fn held_runs(held: &HeldRuns) -> (RunsRead, Vec<RunInput>) {
+    let (runs_read, mut runs) = match &held.recorded {
+        HeldReading::NotYet => (RunsRead { outcome: RunsOutcome::NotRead { reason: RUNS_NOT_YET.into() }, read_at: None, limits: vec![] }, vec![]),
+        HeldReading::NotRead(words) => (RunsRead { outcome: RunsOutcome::NotRead { reason: words.clone() }, read_at: None, limits: vec![] }, vec![]),
+        HeldReading::Read { read_at, notices, .. } if notices.iter().any(|n| n == crate::records_store::HISTORY_CHANGED_VIEW) =>
+            (RunsRead { outcome: RunsOutcome::NotRead { reason: crate::records_store::HISTORY_CHANGED_VIEW.into() }, read_at: read_at.clone(), limits: vec![] }, vec![]),
+        HeldReading::Read { read_at, limits, notices, runs } => {
+            let limits: Vec<String> = limits.iter().chain(notices).cloned().collect();
+            let outcome = if limits.is_empty() { RunsOutcome::Read } else { RunsOutcome::Limited };
+            (RunsRead { outcome, read_at: read_at.clone(), limits }, runs.clone())
+        }
+    };
+    for own in &held.process {
+        match runs.iter_mut().find(|r| r.run_id == own.run_id) {
+            Some(r) => {
+                r.lifecycle = own.lifecycle.clone();
+                r.home = own.home.clone();
+                if own.conversation.is_some() { r.conversation = own.conversation.clone(); }
+                if !own.workflow.is_null() { r.workflow = own.workflow.clone(); }
+                if own.started_at.is_some() { r.started_at = own.started_at.clone(); }
+            }
+            None => runs.push(own.clone()),
+        }
+    }
+    (runs_read, runs)
 }
 
 /// The read, composed from what was gathered. Pure.
 pub(crate) fn compose(g: Gathered) -> NavigatorRead {
     let (listed, registry_limits) = match &g.registry {
         Ok(r) => (r.folders.clone(), r.torn.iter().cloned().chain(r.limits.iter().cloned()).collect::<Vec<_>>()),
-        Err(e) => (vec![], vec![format!("The records store's list of project folders was not read ({e}), so only the project open now is shown.")]),
+        Err(e) => (vec![], vec![format!("The records store's list of project folders was not read ({e}), so it supplied no project folders.")]),
     };
     let mut sections: Vec<Section> = Vec::new();
     let mut roots: Vec<String> = g.current_root.iter().cloned().collect();
@@ -520,9 +620,12 @@ pub(crate) fn compose(g: Gathered) -> NavigatorRead {
     for root in &roots {
         let folder = g.folders.iter().find(|f| &f.root == root);
         let listing = listed.iter().find(|f| &f.root == root);
-        sections.push(section(root, folder, listing, g.current_root.as_ref() == Some(root)));
+        sections.push(section(root, folder.map(|f| &f.examined), listing, g.current_root.as_ref() == Some(root)));
     }
     let resolve = |root: &str| -> String { g.aliases.iter().find(|(alias, _)| alias == root).map_or(root, |(_, to)| to.as_str()).to_owned() };
+    let index: Vec<IndexRow> = g.index.iter().filter(|r| r["kind"] == "conversation_index").filter_map(|r| Some(IndexRow {
+        home: class_of_ledger_home(r["home"].as_str()?)?.to_owned(), thread: r["threadId"].as_str()?.to_owned(), project: r["project"].as_str()?.to_owned(),
+    })).collect();
 
     // The conversations each current home reports.
     let mut reported: Vec<(String, Conversation)> = Vec::new();
@@ -534,35 +637,30 @@ pub(crate) fn compose(g: Gathered) -> NavigatorRead {
     }
     let children: BTreeSet<(&str, &str)> = g.homes.iter().flat_map(|h| h.descendants.iter().map(move |(c, _)| (h.class.as_str(), c.as_str()))).collect();
 
-    // Recorded runs, each with its home where the App's ledger establishes it.
-    let known_homes = |thread: &str| -> BTreeSet<&str> {
-        reported.iter().filter(|(_, c)| c.id == thread).map(|(h, _)| h.as_str())
-            .chain(g.index.iter().filter(|r| r.thread == thread).map(|r| r.home.as_str())).collect()
+    // The launched project's runs, each with its home: the process's own scope
+    // where it holds the run, else what the App's ledger establishes
+    // (`run_restart::conversation_home_class` on the held index rows), else none.
+    let (mut runs_read, runs) = match &g.current_root {
+        Some(_) => held_runs(&g.held),
+        None => (RunsRead { outcome: RunsOutcome::NotRead { reason: NOT_OPEN_RUNS.into() }, read_at: None, limits: vec![] }, vec![]),
     };
+    let mut no_conversation = 0usize;
     let mut placed: Vec<PlacedRun> = Vec::new();
-    let mut unplaced_runs: BTreeMap<&str, usize> = BTreeMap::new();
-    for folder in &g.folders {
-        if let RunsInput::Read { runs, .. } = &folder.runs {
-            for run in runs {
-                let Some(thread) = run.conversation.as_deref() else { *unplaced_runs.entry(folder.root.as_str()).or_default() += 1; continue };
-                if placed.iter().any(|p| p.run.run_id == run.run_id) { continue; }
-                let tagged: BTreeSet<&str> = g.index.iter().filter(|r| r.thread == thread && r.runs.iter().any(|x| x == &run.run_id)).map(|r| r.home.as_str()).collect();
-                let homes = if tagged.is_empty() { known_homes(thread) } else { tagged };
-                let home = (homes.len() == 1).then(|| homes.iter().next().unwrap().to_string());
-                placed.push(PlacedRun { run, home, folder: folder.root.as_str(), order: placed.len() });
-            }
-        }
+    for run in &runs {
+        let Some(thread) = run.conversation.as_deref() else { no_conversation += 1; continue };
+        let home = run.home.clone().or_else(|| crate::run_restart::conversation_home_class(&g.index, &[], thread, &run.run_id).ok()
+            .and_then(|key| class_of_ledger_home(&key)).map(str::to_owned));
+        placed.push(PlacedRun { run, home, thread, order: placed.len() });
     }
+    let undated = runs.iter().filter(|r| r.started_at.as_deref().and_then(instant).is_none()).count();
     let finished: BTreeMap<&str, Option<bool>> = g.finished.iter().map(|(r, f)| (r.as_str(), *f)).collect();
-    let runs_for = |home: Option<&str>, thread: &str| -> Vec<&PlacedRun> {
-        placed.iter().filter(|p| p.run.conversation.as_deref() == Some(thread) && p.home.as_deref() == home).collect()
-    };
     let run_part = |runs: &[&PlacedRun]| -> (Option<EntryRun>, usize) {
-        let latest = runs.iter().max_by(|a, b| (a.run.started_at.as_deref(), a.order).cmp(&(b.run.started_at.as_deref(), b.order)));
+        // The latest start by instant; a run with no readable time counts as older.
+        let latest = runs.iter().max_by_key(|p| (p.run.started_at.as_deref().and_then(instant), p.order));
         (latest.map(|p| entry_run(p.run, &finished, &g.catalog)), runs.len())
     };
     let recorded = |home: Option<&str>, thread: &str| -> Option<String> {
-        let rows: Vec<&IndexRow> = g.index.iter().filter(|r| r.thread == thread && home.is_none_or(|h| r.home == h)).collect();
+        let rows: Vec<&IndexRow> = index.iter().filter(|r| r.thread == thread && home.is_none_or(|h| r.home == h)).collect();
         let projects: BTreeSet<&str> = rows.iter().map(|r| r.project.as_str()).collect();
         // Without a home, only an index that names one project for the thread.
         if home.is_none() && projects.len() != 1 { return None; }
@@ -574,12 +672,11 @@ pub(crate) fn compose(g: Gathered) -> NavigatorRead {
     let mut seen: BTreeSet<(Option<String>, String)> = BTreeSet::new();
     for (home, c) in &reported {
         seen.insert((Some(home.clone()), c.id.clone()));
-        let (run, run_count) = run_part(&runs_for(Some(home), &c.id));
         let (title, title_source) = title(c.name.as_deref(), c.preview.as_deref());
         let mut entry = NavigatorEntry {
             id: c.id.clone(), home: Some(home.clone()), project_root: None, project_source: ProjectSource::ReportedFolder,
             title, title_source, created_at: c.created.map(rfc3339), updated_at: c.updated.map(rfc3339),
-            live: c.live, needs_answer: 0, needs_answer_on: vec![], archived: c.archived, open: c.open.clone(), run, run_count, children_running: None,
+            live: c.live, needs_answer: 0, needs_answer_on: vec![], archived: c.archived, open: c.open.clone(), run: None, run_count: 0, children_running: None,
         };
         let target = if let Some(project) = recorded(Some(home), &c.id) {
             entry.project_source = ProjectSource::Recorded;
@@ -613,22 +710,36 @@ pub(crate) fn compose(g: Gathered) -> NavigatorRead {
             open: OpenWith::NotOpenable { reason }, run, run_count, children_running: None,
         })
     };
-    // A conversation named only by a run record: its run is still shown.
-    let keys: BTreeSet<(Option<String>, String)> = placed.iter().filter_map(|p| Some((p.home.clone(), p.run.conversation.clone()?))).collect();
-    for (home, thread) in keys {
-        if seen.contains(&(home.clone(), thread.clone())) { continue; }
-        if home.as_deref().is_some_and(|h| children.contains(&(h, thread.as_str()))) { continue; }
-        let runs = runs_for(home.as_deref(), &thread);
-        let (run, run_count) = run_part(&runs);
-        let (root, source) = match recorded(home.as_deref(), &thread) {
+    // Each conversation's runs join its entry only where that entry is placed
+    // under the launched project, whose records hold them; a conversation
+    // named only by runs is a record-only entry there.
+    let launched = g.current_root.clone().unwrap_or_default();
+    let mut by_key: BTreeMap<(Option<String>, &str), Vec<&PlacedRun>> = BTreeMap::new();
+    for p in &placed { by_key.entry((p.home.clone(), p.thread)).or_default().push(p); }
+    let (mut elsewhere, mut on_children) = (0usize, 0usize);
+    for ((home, thread), list) in by_key {
+        if let Some((target, entry)) = entries.iter_mut().find(|(_, e)| e.home == home && e.id == thread) {
+            if matches!(target, Target::Root(r) if *r == launched) {
+                (entry.run, entry.run_count) = run_part(&list);
+            } else {
+                elsewhere += list.len();
+            }
+            continue;
+        }
+        if home.as_deref().is_some_and(|h| children.contains(&(h, thread))) { on_children += list.len(); continue; }
+        let (root, source) = match recorded(home.as_deref(), thread) {
             Some(project) => (project, ProjectSource::Recorded),
-            None => (runs[0].folder.to_owned(), ProjectSource::RunRecord),
+            None => (launched.clone(), ProjectSource::RunRecord),
         };
-        seen.insert((home.clone(), thread.clone()));
-        entries.push(record_only(home, &thread, source, root, run, run_count));
+        // The App records the conversation under another project: it is shown
+        // there (from the index), without this project's runs.
+        if root != launched { elsewhere += list.len(); continue; }
+        let (run, run_count) = run_part(&list);
+        seen.insert((home.clone(), thread.to_owned()));
+        entries.push(record_only(home, thread, source, root, run, run_count));
     }
     // A conversation the App recorded, in neither Codex's list nor a run record.
-    for row in &g.index {
+    for row in &index {
         let key = (Some(row.home.clone()), row.thread.clone());
         if seen.contains(&key) || children.contains(&(row.home.as_str(), row.thread.as_str())) { continue; }
         seen.insert(key);
@@ -653,6 +764,28 @@ pub(crate) fn compose(g: Gathered) -> NavigatorRead {
         }
     }
 
+    // What the navigator itself could not place or date, said on the launched project.
+    let plural = |n: usize, one: &str, many: &str| if n == 1 { one.to_owned() } else { many.to_owned() };
+    for (n, words) in [
+        (no_conversation, "name{s} no conversation, so {it} not shown under any conversation."),
+        (elsewhere, "name{s} a conversation placed under another project or under none, so {it} not shown under any conversation."),
+        (on_children, "name{s} a delegated conversation, which is not shown as an entry, so {it} not shown under any conversation."),
+    ] {
+        if n == 0 { continue; }
+        runs_read.limits.push(format!("{n} {} of this project {}", plural(n, "recorded run", "recorded runs"),
+            words.replace("{s}", &plural(n, "s", "")).replace("{it}", &plural(n, "it is", "they are"))));
+    }
+    if undated > 0 {
+        runs_read.limits.push(format!("{undated} {} of this project {} no start time that can be read, so {} counted as older than every dated run when a conversation's latest run is chosen.",
+            plural(undated, "run", "runs"), plural(undated, "has", "have"), plural(undated, "it is", "they are")));
+    }
+    if runs_read.outcome == RunsOutcome::Read && !runs_read.limits.is_empty() { runs_read.outcome = RunsOutcome::Limited; }
+    let unplaced_runs = no_conversation + elsewhere + on_children;
+    if let Some(at) = sections.iter().position(|s| s.project.current) {
+        sections[at].project.runs_read = runs_read;
+        sections[at].project.unplaced_runs = unplaced_runs;
+    }
+
     let mut unassigned = Vec::new();
     for (target, mut entry) in entries {
         match target {
@@ -664,14 +797,7 @@ pub(crate) fn compose(g: Gathered) -> NavigatorRead {
             }
         }
     }
-    for s in &mut sections {
-        if let Some(n) = unplaced_runs.get(s.project.root.as_str()).copied().filter(|n| *n > 0) {
-            s.project.unplaced_runs = n;
-            s.project.runs_read.limits.push(format!("{n} recorded run{} of this project name{} no conversation, so {} not shown under any conversation.", if n == 1 { "" } else { "s" }, if n == 1 { "s" } else { "" }, if n == 1 { "it is" } else { "they are" }));
-            if s.project.runs_read.outcome == RunsOutcome::Read { s.project.runs_read.outcome = RunsOutcome::Partial; }
-        }
-        sort_entries(&mut s.project.entries);
-    }
+    for s in &mut sections { sort_entries(&mut s.project.entries); }
     sort_entries(&mut unassigned);
     sections.sort_by(|a, b| {
         let newest = |s: &Section| s.project.entries.iter().filter_map(|e| e.updated_at.clone()).max();
@@ -690,6 +816,47 @@ pub(crate) fn compose(g: Gathered) -> NavigatorRead {
     NavigatorRead { read_at: g.read_at, projects, unassigned, conversations, registry_limits, unplaced_requests }
 }
 
+/// An RFC 3339 time as nanoseconds since 1970-01-01T00:00:00Z, or `None`
+/// where it does not parse. Times with different offsets compare as instants.
+pub(crate) fn instant(text: &str) -> Option<i128> {
+    let b = text.as_bytes();
+    let num = |from: usize, to: usize| -> Option<i64> {
+        let t = text.get(from..to)?;
+        if t.is_empty() || !t.bytes().all(|c| c.is_ascii_digit()) { return None; }
+        t.parse().ok()
+    };
+    if b.len() < 20 || b[4] != b'-' || b[7] != b'-' || !matches!(b[10], b'T' | b't') || b[13] != b':' || b[16] != b':' { return None; }
+    let (y, mo, d, h, mi, sec) = (num(0, 4)?, num(5, 7)?, num(8, 10)?, num(11, 13)?, num(14, 16)?, num(17, 19)?);
+    if !(1..=12).contains(&mo) || !(1..=31).contains(&d) || h > 23 || mi > 59 || sec > 60 { return None; }
+    let mut i = 19;
+    let mut nanos: i128 = 0;
+    if b[i] == b'.' {
+        let start = i + 1;
+        i = start;
+        while i < b.len() && b[i].is_ascii_digit() { i += 1; }
+        if i == start { return None; }
+        let digits: String = text[start..i].chars().chain(std::iter::repeat('0')).take(9).collect();
+        nanos = digits.parse().ok()?;
+    }
+    let offset_minutes = match text.get(i..)? {
+        "Z" | "z" => 0,
+        rest if rest.len() == 6 && (rest.starts_with('+') || rest.starts_with('-')) && b[i + 3] == b':' => {
+            let (oh, om) = (num(i + 1, i + 3)?, num(i + 4, i + 6)?);
+            if oh > 23 || om > 59 { return None; }
+            if rest.starts_with('-') { -(oh * 60 + om) } else { oh * 60 + om }
+        }
+        _ => return None,
+    };
+    // Days from the civil date (proleptic Gregorian).
+    let year = if mo <= 2 { y - 1 } else { y };
+    let era = year.div_euclid(400);
+    let yoe = year - era * 400;
+    let doy = (153 * ((mo + 9) % 12) + 2) / 5 + d - 1;
+    let days = era * 146_097 + yoe * 365 + yoe / 4 - yoe / 100 + doy - 719_468;
+    let seconds = days * 86_400 + h * 3_600 + mi * 60 + sec - offset_minutes * 60;
+    Some(seconds as i128 * 1_000_000_000 + nanos)
+}
+
 /// A thread's root conversation by the native view's parents (a cycle stops
 /// where it repeats), as `WaitingOnYou.tsx` `rootConversation` walks it.
 fn root_of<'a>(thread: &'a str, parents: &BTreeMap<&'a str, &'a str>) -> &'a str {
@@ -704,36 +871,38 @@ fn root_of<'a>(thread: &'a str, parents: &BTreeMap<&'a str, &'a str>) -> &'a str
     current
 }
 
-fn section(root: &str, folder: Option<&FolderInput>, listing: Option<&crate::records_store::ListedFolder>, current: bool) -> Section {
+/// One section's standing. A listed project that is not the launched one
+/// carries the registry's identity; the launched project carries only the
+/// identity the store's status gives it, and is `open` only where that status
+/// gives it as usable (attached, no fault, no refusal, not unavailable).
+fn section(root: &str, examined: Option<&Examined>, listing: Option<&crate::records_store::ListedFolder>, current: bool) -> Section {
     let identities = listing.map(|l| l.identities.clone()).unwrap_or_default();
-    let mut project_id = (identities.len() == 1).then(|| identities[0].clone());
+    let mut project_id = if current { None } else { (identities.len() == 1).then(|| identities[0].clone()) };
     let unavailable = |kind: &str, message: String| Some(ProjectNotice { kind: kind.into(), message, resolutions: vec![] });
-    let (state, notice, not_attempted) = match folder.map(|f| &f.examined) {
-        _ if !current && folder.is_none_or(|f| matches!(f.examined, Examined::Listed)) => (ProjectState::Listed, None, NOT_OPEN_RUNS.to_owned()),
-        Some(Examined::Gone) => (ProjectState::Unavailable, Some(ProjectNotice { kind: "gone".into(), message: "The folder is not there any more; its conversations stay listed, and its recorded runs cannot be read until it is located.".into(), resolutions: vec![] }),
-            if current { "The folder is not there, so its recorded runs cannot be read until it is located.".to_owned() } else { NOT_OPEN_RUNS.to_owned() }),
-        Some(Examined::Unexaminable(e)) => (ProjectState::Unavailable, unavailable("unavailable", format!("The folder could not be examined ({e}).")),
-            if current { "The folder could not be examined, so its recorded runs were not read.".to_owned() } else { NOT_OPEN_RUNS.to_owned() }),
-        Some(Examined::Attached { project, fault, refusal, resolutions }) => {
-            if project.is_some() { project_id = project.clone(); }
-            match (fault, refusal, project) {
-                (Some(fault), _, _) => (ProjectState::Unavailable, Some(ProjectNotice { kind: fault.clone(), message: fault_message(fault), resolutions: resolutions.clone() }),
-                    "Its recorded runs are not read until the folder's link to its records is resolved.".to_owned()),
-                (None, Some(refusal), _) => (ProjectState::Unavailable, unavailable("unavailable", format!("The records store does not attach this folder to its records ({refusal})."), ),
-                    format!("Its recorded runs were not read ({refusal}).")),
-                (None, None, None) => (ProjectState::Unavailable, Some(no_identity()), "Its recorded runs were not read.".to_owned()),
-                (None, None, Some(_)) => (if current { ProjectState::Open } else { ProjectState::Listed }, None, "Its recorded runs were not read.".to_owned()),
+    let (state, notice) = match examined {
+        _ if !current && examined.is_none_or(|e| matches!(e, Examined::Listed)) => (ProjectState::Listed, None),
+        Some(Examined::Gone) => (ProjectState::Unavailable, Some(ProjectNotice { kind: "gone".into(), message: "The folder is not there any more; its conversations stay listed, and its recorded runs cannot be read until it is located.".into(), resolutions: vec![] })),
+        Some(Examined::Unexaminable(e)) => (ProjectState::Unavailable, unavailable("unavailable", format!("The folder could not be examined ({e})."))),
+        Some(Examined::Refused(e)) => (ProjectState::Unavailable, unavailable("unavailable", format!("The records store does not attach this folder to its records ({e})."))),
+        Some(Examined::Attached { project, fault, refusal, resolutions, unavailable: gone }) => {
+            project_id = project.clone();
+            match (fault, refusal, gone, project) {
+                (Some(fault), _, _, _) => (ProjectState::Unavailable, Some(ProjectNotice { kind: fault.clone(), message: fault_message(fault), resolutions: resolutions.clone() })),
+                (None, Some(refusal), _, _) => (ProjectState::Unavailable, unavailable("unavailable", format!("The records store does not attach this folder to its records ({refusal})."))),
+                (None, None, Some(error), _) => (ProjectState::Unavailable, unavailable("unavailable", format!("The records store gives this project as unavailable ({error})."))),
+                (None, None, None, None) => (ProjectState::Unavailable, Some(no_identity())),
+                (None, None, None, Some(_)) => (if current { ProjectState::Open } else { ProjectState::Listed }, None),
             }
         }
-        Some(Examined::Listed) | None => (if current { ProjectState::Open } else { ProjectState::Listed }, (project_id.is_none()).then(no_identity), NOT_OPEN_RUNS.to_owned()),
+        Some(Examined::Listed) | None => (if current { ProjectState::Open } else { ProjectState::Listed }, (project_id.is_none()).then(no_identity)),
     };
-    let runs_read = match folder.map(|f| &f.runs) {
-        Some(RunsInput::Read { limits, .. }) => RunsRead { outcome: if limits.is_empty() { RunsOutcome::Read } else { RunsOutcome::Partial }, limits: limits.clone() },
-        Some(RunsInput::NotRead(reason)) => RunsRead { outcome: RunsOutcome::NotRead { reason: reason.clone() }, limits: vec![] },
-        Some(RunsInput::NotAttempted) | None => RunsRead { outcome: RunsOutcome::NotRead { reason: not_attempted }, limits: vec![] },
-    };
+    // The launched project's runs are set by `compose` from what the App holds.
     Section {
-        project: NavigatorProject { project_id, root: root.to_owned(), label: String::new(), current, state, notice, runs_read, unplaced_runs: 0, entries: vec![] },
+        project: NavigatorProject {
+            project_id, root: root.to_owned(), label: String::new(), current, state, notice,
+            runs_read: RunsRead { outcome: RunsOutcome::NotRead { reason: NOT_OPEN_RUNS.into() }, read_at: None, limits: vec![] },
+            unplaced_runs: 0, entries: vec![],
+        },
         position: listing.map(|l| l.first_line),
     }
 }
@@ -744,7 +913,7 @@ fn folder_section(root: &str) -> Section {
         project: NavigatorProject {
             project_id: None, root: root.to_owned(), label: String::new(), current: false, state: ProjectState::Listed,
             notice: Some(no_identity()),
-            runs_read: RunsRead { outcome: RunsOutcome::NotRead { reason: "This folder has no project identity in the records store, so no runs are recorded for it there.".into() }, limits: vec![] },
+            runs_read: RunsRead { outcome: RunsOutcome::NotRead { reason: "This folder has no project identity in the records store, so no runs are recorded for it there.".into() }, read_at: None, limits: vec![] },
             unplaced_runs: 0,
             entries: vec![],
         },
@@ -948,19 +1117,71 @@ fn widen_labels(projects: &mut [NavigatorProject]) {
 
 // ---- Gathering ----
 
+/// Host status's last observation of the launched project's standing in the
+/// records store (`records_store::status` for the workspace as given), kept
+/// by `host_status` as it takes it, so that the navigator shows that same
+/// observation and adds no reading of its own while host status is polled.
+#[derive(Default)]
+pub(crate) struct StatusSlot(std::sync::Mutex<Option<KeptStatus>>);
+struct KeptStatus {
+    workspace: Option<PathBuf>,
+    at: std::time::Instant,
+    status: Value,
+}
+impl StatusSlot {
+    /// Keeps `status`, taken now for `workspace` (host status's own value).
+    pub(crate) fn keep(&self, workspace: Option<&Path>, status: &Value) {
+        self.keep_at(workspace, status, std::time::Instant::now());
+    }
+    pub(crate) fn keep_at(&self, workspace: Option<&Path>, status: &Value, at: std::time::Instant) {
+        *self.0.lock().unwrap_or_else(|p| p.into_inner()) = Some(KeptStatus { workspace: workspace.map(Path::to_path_buf), at, status: status.clone() });
+    }
+    /// The kept status for `workspace` where it is at most `STATUS_FRESH` old;
+    /// otherwise the store's status taken now, exactly as host status takes
+    /// it, and kept.
+    fn observe(&self, workspace: &Path) -> Value {
+        let kept = self.0.lock().unwrap_or_else(|p| p.into_inner()).as_ref()
+            .filter(|k| k.workspace.as_deref() == Some(workspace) && k.at.elapsed() < STATUS_FRESH).map(|k| k.status.clone());
+        kept.unwrap_or_else(|| {
+            let status = crate::records_store::status(Some(workspace));
+            self.keep(Some(workspace), &status);
+            status
+        })
+    }
+}
+
+/// The launched project's standing, from the store's status as host status
+/// gives it.
+pub(crate) fn examined_from_status(status: &Value) -> Examined {
+    let project = &status["project"];
+    let Some(view) = project.get("attachment").filter(|a| a.is_object()) else {
+        let error = project["error"].as_str().or_else(|| status["error"].as_str()).unwrap_or("its standing with the records store was not given");
+        return Examined::Refused(error.to_owned());
+    };
+    let string = |key: &str| view[key].as_str().map(str::to_owned);
+    Examined::Attached {
+        project: string("projectId"),
+        fault: string("fault"),
+        refusal: string("refusal"),
+        resolutions: view["resolutions"].as_array().into_iter().flatten().filter_map(|r| r.as_str().map(str::to_owned)).collect(),
+        unavailable: (project["state"] == "unavailable").then(|| project["error"].as_str().unwrap_or("the status gives no reason").to_owned()),
+    }
+}
+
 /// What the read is taken from: the App's state, or a test's own parts.
 pub(crate) struct Sources<'a> {
     pub homes: Vec<std::sync::Arc<crate::runtime_session::HomeSession>>,
     pub workflows: &'a std::sync::Mutex<crate::runtime_session::WorkflowRootSession>,
     pub workspace: Option<&'a Path>,
     pub app_data: Option<PathBuf>,
+    pub status: &'a StatusSlot,
 }
 
 /// `navigator_read`: gather, then compose.
 pub(crate) fn read(state: &crate::AppState) -> NavigatorRead {
     let homes = state.homes.lock().unwrap().entries();
     let app_data = state.app_user_data_root.lock().unwrap().clone().ok();
-    read_from(Sources { homes, workflows: &state.workflows, workspace: state.workspace.as_deref(), app_data })
+    read_from(Sources { homes, workflows: &state.workflows, workspace: state.workspace.as_deref(), app_data, status: &state.records_status })
 }
 
 /// The read as the command makes it, from its sources.
@@ -969,17 +1190,20 @@ pub(crate) fn read_from(sources: Sources) -> NavigatorRead {
 }
 
 /// What the read rests on. Each lock is taken briefly and none is held across
-/// a file read: the Host, history and native views are memory, and the store
-/// and project folders are read after every lock is released.
+/// a file read: the Host, history, native and workflow views are memory; the
+/// registry and the folders' own metadata are read after every lock is
+/// released.
 fn gather(sources: Sources) -> Gathered {
     let read_at = crate::util::now_rfc3339();
     let mut homes = Vec::new();
-    let mut index = Vec::new();
-    let mut finished = Vec::new();
+    let mut index: Vec<Value> = Vec::new();
+    let mut views = Vec::new();
+    let mut home_ids = BTreeMap::new();
     for home in &sources.homes {
         let class = home.class();
         let host = home.host.navigator_projection();
         let current = host.state == "ready" && !host.generation_closed;
+        if let Some(id) = host.generation["home"].as_str() { home_ids.insert(id.to_owned(), class.as_str().to_owned()); }
         let history = {
             let history = home.history.lock().unwrap();
             history.history().map(|view| HistoryInput {
@@ -991,15 +1215,8 @@ fn gather(sources: Sources) -> Gathered {
         };
         let waiting = crate::waiting_requests::groups_in(class, &json!(host.state), &host.generation, &host.server_requests).iter()
             .map(|g| (g["threadId"].as_str().map(str::to_owned), g["count"].as_u64().unwrap_or(0))).collect();
-        for row in &host.conversation_index {
-            let class = match row["home"].as_str() { Some("H-acct") => "account", Some("H-key") => "api-key", Some("H-omlx") => "local-provider", _ => continue };
-            let (Some(thread), Some(project)) = (row["threadId"].as_str(), row["project"].as_str()) else { continue };
-            let runs: Vec<String> = row["tags"].as_array().into_iter().flatten()
-                .filter(|t| t["owner"] == crate::run_restart::RUN_TAG_OWNER).filter_map(|t| t["value"].as_str().map(str::to_owned)).collect();
-            match index.iter_mut().find(|r: &&mut IndexRow| r.home == class && r.thread == thread && r.project == project) {
-                Some(r) => for x in runs { if !r.runs.contains(&x) { r.runs.push(x); } },
-                None => index.push(IndexRow { home: class.into(), thread: thread.into(), project: project.into(), runs }),
-            }
+        for row in host.conversation_index {
+            if !index.contains(&row) { index.push(row); }
         }
         // The native view as last received (no frame is received here): the
         // delegated children, and the run guide's finished-report reading.
@@ -1009,14 +1226,18 @@ fn gather(sources: Sources) -> Gathered {
             view["descendants"].as_array().into_iter().flatten()
                 .filter_map(|n| Some((n["threadId"].as_str()?.to_owned(), n["parentThreadId"].as_str().filter(|p| !p.is_empty())?.to_owned()))).collect()
         } else { vec![] };
-        if view_current {
-            finished.extend(sources.workflows.lock().unwrap().finished_offers_in(&view));
-        }
+        if view_current { views.push(view); }
         homes.push(HomeInput {
             class: class.as_str().to_owned(), state: host.state, generation: host.generation, current,
             loaded: host.threads, history, waiting, descendants,
         });
     }
+    // One brief hold of the workflow root: the finished reports, the reading
+    // of the recorded runs it holds and the runs this process holds.
+    let (finished, held) = {
+        let root = sources.workflows.lock().unwrap();
+        (views.iter().flat_map(|view| root.finished_offers_in(view)).collect(), root.navigator_held(&home_ids))
+    };
     let catalog = crate::workflow_workspace::production_catalog::ProductionCatalog::load()
         .map(|c| CatalogInput { identities: c.entries().filter_map(|e| serde_json::to_value(e.identity()).ok()).collect(), release: release_words(c.source()) })
         .unwrap_or_default();
@@ -1026,28 +1247,30 @@ fn gather(sources: Sources) -> Gathered {
         no_project_folders.extend(folder.to_str().map(str::to_owned));
         if let Ok(resolved) = std::fs::canonicalize(&folder) { no_project_folders.extend(resolved.to_str().map(str::to_owned)); }
     }
+    // The workspace goes to the store exactly as given (as host status and
+    // Reopen pass it); its physical spelling only matches it to the registry's
+    // folders and the App's conversation index.
+    let registry = crate::records_store::listed_folders();
+    let mut folders = Vec::new();
     let (current_root, aliases) = match sources.workspace {
         None => (None, vec![]),
         Some(path) => {
             let given = path.to_str().map(str::to_owned).unwrap_or_else(|| crate::attachments::native_path_identity(path).to_string());
             let physical = std::fs::canonicalize(path).ok().and_then(|p| p.to_str().map(str::to_owned)).unwrap_or_else(|| given.clone());
+            let examined = match std::fs::symlink_metadata(path) {
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => Examined::Gone,
+                Err(e) => Examined::Unexaminable(e.to_string()),
+                Ok(_) => examined_from_status(&sources.status.observe(path)),
+            };
+            folders.push(FolderInput { root: physical.clone(), examined });
             let aliases = if physical != given { vec![(given, physical.clone())] } else { vec![] };
             (Some(physical), aliases)
         }
     };
-    let (registry, folders) = gather_projects(current_root.as_deref());
-    Gathered { read_at, current_root, aliases, no_project_folders, registry, folders, homes, index, finished, catalog }
-}
-
-/// The store's registry, the launched project's attachment and every other
-/// listed folder enumerated. File reads only; no App lock is held.
-fn gather_projects(current: Option<&str>) -> (Result<crate::records_store::ListedFolders, String>, Vec<FolderInput>) {
-    let registry = crate::records_store::listed_folders();
-    let mut folders: Vec<FolderInput> = current.iter().map(|root| launched(root)).collect();
     if let Ok(listed) = &registry {
-        folders.extend(listed.folders.iter().filter(|f| Some(f.root.as_str()) != current).map(|f| enumerate(&f.root)));
+        folders.extend(listed.folders.iter().filter(|f| Some(&f.root) != current_root.as_ref()).map(|f| enumerate(&f.root)));
     }
-    (registry, folders)
+    Gathered { read_at, current_root, aliases, no_project_folders, registry, folders, held, homes, index, finished, catalog }
 }
 
 /// A listed folder that is not the launched project: its own metadata only.
@@ -1058,31 +1281,7 @@ fn enumerate(root: &str) -> FolderInput {
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Examined::Gone,
         Err(e) => Examined::Unexaminable(e.to_string()),
     };
-    FolderInput { root: root.to_owned(), examined, runs: RunsInput::NotAttempted }
-}
-
-/// The launched project's attachment, as the store's `status` gives it. Its
-/// recorded runs are not read here.
-fn launched(root: &str) -> FolderInput {
-    let path = Path::new(root);
-    match std::fs::symlink_metadata(path) {
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return FolderInput { root: root.into(), examined: Examined::Gone, runs: RunsInput::NotAttempted },
-        Err(e) => return FolderInput { root: root.into(), examined: Examined::Unexaminable(e.to_string()), runs: RunsInput::NotAttempted },
-        Ok(_) => {}
-    }
-    let status = crate::records_store::status(Some(path));
-    let Some(view) = status["project"].get("attachment").filter(|a| a.is_object()) else {
-        let error = status["project"]["error"].as_str().or_else(|| status["error"].as_str()).unwrap_or("its standing with the records store was not given");
-        return FolderInput { root: root.into(), examined: Examined::Unexaminable(error.to_owned()), runs: RunsInput::NotAttempted };
-    };
-    let string = |key: &str| view[key].as_str().map(str::to_owned);
-    let examined = Examined::Attached {
-        project: string("projectId"),
-        fault: string("fault"),
-        refusal: string("refusal"),
-        resolutions: view["resolutions"].as_array().into_iter().flatten().filter_map(|r| r.as_str().map(str::to_owned)).collect(),
-    };
-    FolderInput { root: root.into(), examined, runs: RunsInput::NotRead(LAUNCHED_RUNS_NOT_READ.to_owned()) }
+    FolderInput { root: root.to_owned(), examined }
 }
 
 #[cfg(test)]

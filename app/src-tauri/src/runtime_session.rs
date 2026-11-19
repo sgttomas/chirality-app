@@ -1792,10 +1792,14 @@ pub(crate) fn read_reopened_history(workflows: &std::sync::Mutex<WorkflowRootSes
         root.reopened_generation += 1;
         (root.reopen_for_learning(project, events, homes)?, root.reopened_generation)
     };
+    let (view, runs) = view;
     let mut view = reading.attach(project, view);
     view["readAt"] = json!(read_at);
     let mut root = workflows.lock().unwrap();
-    if root.reopened_generation == generation { root.reopened = Some(view.clone()); }
+    if root.reopened_generation == generation {
+        root.reopened = Some(view.clone());
+        root.reopened_runs = runs;
+    }
     Ok(view)
 }
 
@@ -4716,6 +4720,9 @@ pub(crate) struct WorkflowRootSession {
     /// Why the latest reading of the recorded runs did not read, while it did not; `reopened`,
     /// if present, is then from an earlier reading.
     reopened_not_read: Option<Value>,
+    /// The runs of the reading `reopened` shows, as the navigator takes them;
+    /// set with `reopened`, from the same reading.
+    reopened_runs: Vec<crate::navigator_read::RunInput>,
     /// V10 G-5: per-run "end notice must go first" flags, readable without the
     /// run's lock, so a busy run never blocks ordinary text by itself.
     notice_flags: std::collections::HashMap<String, std::sync::Arc<std::sync::atomic::AtomicBool>>,
@@ -4770,6 +4777,7 @@ impl Default for WorkflowRootSession {
             reopened: None,
             reopened_generation: 0,
             reopened_not_read: None,
+            reopened_runs: Vec::new(),
             notice_flags: Default::default(),
             held_successors: Default::default(),
             app_user_data: None,
@@ -6299,17 +6307,24 @@ impl WorkflowRootSession {
     /// Durable reopened rows. `read_reopened_history` publishes them with the
     /// completed notice after releasing this workflow owner.
     pub fn reopen(&mut self, project: &std::path::Path, restart_events: &[Value]) -> Result<Value, String> {
+        self.reopen_with_runs(project, restart_events).map(|(view, _)| view)
+    }
+    /// `reopen`, with the reading's runs as the navigator takes them (from the
+    /// same reading; nothing more is read).
+    fn reopen_with_runs(&mut self, project: &std::path::Path, restart_events: &[Value]) -> Result<(Value, Vec<crate::navigator_read::RunInput>), String> {
         let records = crate::workflow_workspace::publication::ProjectRecords::open(project)?;
-        let mut view = crate::records::supply::read_project_runs(&records, restart_events).view_reopened(records.root());
+        let reading = crate::records::supply::read_project_runs(&records, restart_events);
+        let runs = reading.runs.iter().map(crate::navigator_read::recorded_run).collect();
+        let mut view = reading.view_reopened(records.root());
         // EXEC §2.7 / RECOVERY §4.1: what the host's startup writer did with this session's restart facts.
         view["restartLimits"] = self.restart_limits.clone();
         view["endedAfterRelaunch"] = self.reopened_ends_view();
-        Ok(view)
+        Ok((view, runs))
     }
     /// Person-directed learning readiness from current records and recovery
     /// pointers. No native history is read and no live run is reconstructed.
-    pub(crate) fn reopen_for_learning(&mut self, project: &std::path::Path, restart_events: &[Value], homes: &[std::sync::Arc<HomeSession>]) -> Result<Value, String> {
-        let mut view = self.reopen(project, restart_events)?;
+    pub(crate) fn reopen_for_learning(&mut self, project: &std::path::Path, restart_events: &[Value], homes: &[std::sync::Arc<HomeSession>]) -> Result<(Value, Vec<crate::navigator_read::RunInput>), String> {
+        let (mut view, runs) = self.reopen_with_runs(project, restart_events)?;
         let (rows, events) = trial_flows::recovery_facts(homes);
         if let Some(runs) = view["runs"].as_array_mut() {
             for row in runs {
@@ -6319,7 +6334,43 @@ impl WorkflowRootSession {
                 }
             }
         }
-        Ok(view)
+        Ok((view, runs))
+    }
+    /// The navigator's read of the runs this root holds, taken in one brief
+    /// hold: the latest reading of the project's recorded runs (`reopened`,
+    /// with when it began, its limits and history notices, or the App's words
+    /// for why the latest reading did not read), and the runs this process
+    /// holds, each from its own scope and lifecycle. A run's lock is tried,
+    /// never waited for: a run whose operation is pending is given as unknown,
+    /// with its conversation from this root's own index of runs. A run only
+    /// prepared (not sent) is not a run and is not given. Reads no file.
+    /// `home_ids` maps a home's identity (a generation's `home`) to its class word.
+    pub(crate) fn navigator_held(&self, home_ids: &std::collections::BTreeMap<String, String>) -> crate::navigator_read::HeldRuns {
+        use crate::navigator_read::{HeldReading, RunInput};
+        let words = |v: &Value| v.as_array().into_iter().flatten().filter_map(|x| x.as_str().map(str::to_owned)).collect::<Vec<_>>();
+        let recorded = match (&self.reopened, &self.reopened_not_read) {
+            (_, Some(not_read)) => HeldReading::NotRead(not_read["words"].as_str().unwrap_or(REOPEN_NOT_READ_WORDS[1]).to_owned()),
+            (Some(view), None) => HeldReading::Read {
+                read_at: view["readAt"].as_str().map(str::to_owned),
+                limits: words(&view["limits"]),
+                notices: words(&view["historyNotices"]),
+                runs: self.reopened_runs.clone(),
+            },
+            (None, None) => HeldReading::NotYet,
+        };
+        let mut process: Vec<RunInput> = self.runs.iter().filter_map(|(reference, run)| match run.try_lock() {
+            Ok(run) => run.navigator_row(reference),
+            Err(_) => {
+                let scope = self.conversations.iter().find(|(_, runs)| runs.contains(reference)).map(|(key, _)| key);
+                Some(RunInput {
+                    run_id: reference.clone(), conversation: scope.map(|(_, c)| c.clone()), workflow: Value::Null,
+                    lifecycle: crate::records::supply::RecordedLifecycle::Unknown(crate::navigator_read::RUN_PENDING.into()),
+                    started_at: None, home: scope.and_then(|(h, _)| home_ids.get(h).cloned()),
+                })
+            }
+        }).collect();
+        process.sort_by(|a, b| a.run_id.cmp(&b.run_id));
+        crate::navigator_read::HeldRuns { recorded, process }
     }
 }
 /// CE-10 and CE-5/CE-6/CE-8 at an end after relaunch: lapses observed now and
@@ -7304,6 +7355,26 @@ impl WorkflowRun {
             return None;
         }
         crate::run_offers::latest_turn(view, &scope.conversation)
+    }
+    /// This run as the navigator shows it: its scope, its state as this
+    /// process holds it, and when its start was recorded (the run-start
+    /// record's time, else its `run_opened` entry's). None while only prepared.
+    fn navigator_row(&self, reference: &str) -> Option<crate::navigator_read::RunInput> {
+        use crate::records::supply::RecordedLifecycle;
+        let lifecycle = match self.lifecycle {
+            RunLifecycle::Prepared => return None,
+            RunLifecycle::StartNotConfirmed => RecordedLifecycle::StartNotConfirmed,
+            RunLifecycle::Open => RecordedLifecycle::OpenInterrupted,
+            RunLifecycle::Ended => RecordedLifecycle::Ended { stopped_by: "the person".into(), cause: self.end.as_ref().map(|e| run_end_cause(&e.reason)).unwrap_or_default() },
+        };
+        let started_at = self.published.as_ref().and_then(|p| p.run_text_record().envelope()["observed_at"].as_str().map(str::to_owned))
+            .or_else(|| self.entries.iter().find(|e| e.kind == "run_opened").map(|e| e.observed_at.clone()));
+        let scope = self.prepared().scope();
+        Some(crate::navigator_read::RunInput {
+            run_id: reference.to_owned(), conversation: Some(scope.conversation.clone()),
+            workflow: serde_json::to_value(self.prepared().workflow()).unwrap_or(Value::Null),
+            lifecycle, started_at, home: Some(self.home.class().as_str().to_owned()),
+        })
     }
     fn lifecycle_view(&self) -> Value {
         let state = match self.lifecycle {
