@@ -29,6 +29,17 @@ needs:
     policy and the person's keychain protection act; and a turn the person sends carries the
     run-start text, the run-end line or a trial text as this workspace supplies it.
   gating: false
+- from: DEL-01-04
+  condition: The navigator read gives every project the records store lists, in the order to show
+    them, each with its conversations (the title as Codex supplies it, the time, whether a turn is
+    running, and how the conversation opens in the App's existing paths or, where it cannot, the
+    App's sentence why), and for the open project each conversation's latest workflow run with its
+    state and how many runs the conversation carries; it says as the App's own sentences why a
+    project's runs or a home's conversations were not read and what the store's registry could
+    not give, and counts the runs it could not place; and it changes nothing, so it can be made on
+    a timer.
+  gating: false
+  when: Drawing the navigator
 - from: DEL-01-05
   condition: For a conversation, whether a model is selected and which is reported, and a workflow
     run without one is refused with "run not started — no model selected".
@@ -153,8 +164,9 @@ code_paths:
 - app/src/RunPanel.tsx
 - app/src/DailyWorkspace.tsx
 - app/src/App.tsx
-# The frame the views sit in (AX-004): the three regions and status strip, the navigator, and the
-# stylesheet, which holds v3.0.1's interface rules and then the App's own. Shared with DEL-01-04.
+# The frame the views sit in (AX-004): the three regions and status strip, the navigator drawn from
+# its read, and the stylesheet, which holds v3.0.1's interface rules and then the App's own. Shared
+# with DEL-01-04.
 - app/src/WorkspaceShell.tsx
 - app/src/Navigator.tsx
 - app/src/workspace.css
@@ -223,3 +235,6 @@ checks:
 - app/tests/run-panel.test.mjs
 - app/tests/workflow-library-tab.test.mjs
 - app/tests/workflow-pick-run.test.mjs
+# The frame and the navigator from its read (AX-004); navigator.test.mjs is shared with DEL-01-04.
+- app/tests/workspace-shell.test.mjs
+- app/tests/navigator.test.mjs

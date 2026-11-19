@@ -716,7 +716,9 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
     <ConversationChoices legend="Current-generation conversation" group="current-conversation" disabled={!!ownBusy} chosen={threadKey} none="No conversation chosen"
       value={threadChoices(currentThreads, (thread: Json) => JSON.stringify([thread.generation, thread.threadId]))} onChoose={chooseConversation} />
     <div id="conversation-level"><PermissionLevel host={host} threadId={selected?.threadId}/></div>
-    {selected && <details className="conversation-identity"><summary>Exact conversation ID</summary><code>{selected.threadId}</code></details>}
+    {/* The conversation's identifier and its whole title, which the navigator's entry shows only on one line, shortened. */}
+    {selected && <details className="conversation-identity"><summary>Exact conversation ID and title</summary><p>Conversation ID: <code>{selected.threadId}</code></p>
+      {suppliedTitle(selected) !== null ? <p><AgentText value={suppliedTitle(selected)} source="codex" label="Title, supplied by Codex:" name="The conversation's whole title as Codex supplied it, not the App's words" /></p> : <p>Codex supplies no title for this conversation.</p>}</details>}
     {selected && <details className="conversation-options"><summary>Role and continuation options</summary><RoleHeader key={`role-header:${JSON.stringify([selected.generation, selected.threadId])}`} thread={selected} limits={host?.roleLimits} busy={!!busy || forkBusy} ready={host?.state === "ready"} trialConversation={trialConversation} trialsStartedHere={trialsStartedHere}
       readSupplyHistory={() => invoke("role_supply_history", { generation: selected.generation, thread: selected.threadId })}
       continueAs={role => { void roleAct("asking for a handoff summary", "continue_as_begin", { generation: selected.generation, threadId: selected.threadId, role }); }}

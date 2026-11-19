@@ -250,8 +250,10 @@ code_paths:
 - app/src/DailyWorkspace.tsx
 - app/src/workspace.css
 # The frame (DEL-02-02 AX-004), shared with DEL-02-02. Here: the centre holds the conversation
-# surface, the navigator's entry chooses a conversation as that surface does, and "Needs answer"
-# and the status strip read a request waiting for the person as "Waiting on you" reads it.
+# surface; the navigator draws its read, each entry in the form REQ-002 sets for it, and an entry
+# chooses a conversation as that surface does or selects it in History; and "Needs answer",
+# "Approval needed" and the status strip read a request waiting for the person as "Waiting on you"
+# reads it.
 - app/src/WorkspaceShell.tsx
 - app/src/Navigator.tsx
 checks:
@@ -302,6 +304,7 @@ checks:
 - app/tests/native-waiting.test.mjs
 - app/src-tauri/src/waiting_requests_tests.rs
 - app/src-tauri/src/navigator_read_tests.rs
+- app/tests/navigator.test.mjs
 - app/src-tauri/src/hosting_navigator_tests.rs
 - app/src-tauri/src/native_request_answer_tests.rs
 - app/src-tauri/src/request_answer_presentation.rs
