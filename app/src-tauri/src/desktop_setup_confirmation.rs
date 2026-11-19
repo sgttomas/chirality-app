@@ -24,23 +24,16 @@ pub(crate) fn prepare(
     preview_token: &str,
     confirm: impl FnOnce(&ns::NativeStatement, &str) -> Result<MessageDialogResult, String>,
 ) -> Result<Value, String> {
-    let (effects, action) = {
+    let (effects, setup, project, action) = {
         let controller = controller.try_lock().map_err(|_| "Desktop setup busy")?;
         (
             controller.preview_statement(preview_token)?,
+            controller.preview_setup_statement(preview_token)?,
+            controller.preview_trusted_project(preview_token)?,
             controller.preview_action(preview_token)?,
         )
     };
-    let content = json!({"effects":effects});
-    let statement = ns::whole_or_in_app(
-        "Desktop setup",
-        "desktop setup effects",
-        effects.clone(),
-        &content,
-        |digest| {
-            format!("{action}. Complete reviewed effects are shown in the App under Content named by an open native confirmation. sha-256: {digest}\nCurrent owners and choices stay unchanged; applies on next launch only.")
-        },
-    )?;
+    let statement = statement(&effects, &setup, project.as_deref(), action)?;
     let result = ns::showing_in_app(statement.in_app.as_ref(), || confirm(&statement, action))?;
     if !ns::chose(&result, action) {
         // The plugin also maps opaque backend Cancel to the cancel label; that
@@ -56,6 +49,34 @@ pub(crate) fn prepare(
         return Err("Desktop setup effects changed during confirmation; review again".into());
     }
     controller.prepare_and_save(preview_token)
+}
+
+/// What the native confirmation shows of setup's whole statement (`DesktopSetup::preview_statement`), in this
+/// order: the whole statement where it fits the native statement; otherwise, where the route names a project, the
+/// setup lines whole with the trust line naming the effects text the App shows beside it (DEL-01-01); otherwise the
+/// whole statement in the App, the native statement naming it, and the trust line where a project is named.
+pub(crate) fn statement(effects: &str, setup: &str, project: Option<&std::path::Path>, action: &str) -> Result<ns::NativeStatement, String> {
+    if let Ok(text) = ns::bounded("Desktop setup", effects.to_owned()) {
+        return Ok(ns::NativeStatement { text, in_app: None });
+    }
+    if let Some(project) = project {
+        let content = crate::project_trust::setup_trust_content(project);
+        let digest = ns::content_digest("Desktop setup", &content)?;
+        if let Ok(text) = ns::bounded("Desktop setup", format!("{setup}\n{}", crate::project_trust::setup_trust_pointer(&digest))) {
+            return Ok(ns::NativeStatement { text, in_app: Some(ns::InApp { kind: "project trust effects", digest, content }) });
+        }
+    }
+    let content = json!({"effects":effects});
+    let trust = if project.is_some() { format!("\n{}", crate::project_trust::SETUP_TRUST_AMONG_EFFECTS) } else { String::new() };
+    ns::whole_or_in_app(
+        "Desktop setup",
+        "desktop setup effects",
+        effects.to_owned(),
+        &content,
+        |digest| {
+            format!("{action}. Complete reviewed effects are shown in the App under Content named by an open native confirmation. sha-256: {digest}\nCurrent owners and choices stay unchanged; applies on next launch only.{trust}")
+        },
+    )
 }
 
 /// The plugin's parent() silently ignores failed handle lookups. Only these
@@ -422,6 +443,93 @@ mod tests {
         });
     }
 
+    /// DEL-01-01: setup's confirmation carries "Chirality will trust this project." and the whole effects text
+    /// where the route names a project, in three forms by what fits the native statement: whole; the setup lines
+    /// whole with the trust line naming the effects the App shows beside it; or the whole statement in the App.
+    #[test]
+    fn setup_confirmation_carries_the_trust_effects_whole_where_it_fits_and_otherwise_in_the_app() {
+        use crate::project_trust as pt;
+        let project = std::env::temp_dir().canonicalize().unwrap().join(crate::util::opaque_id("setup-trust-").unwrap());
+        std::fs::create_dir(&project).unwrap();
+        let whole = |setup: &str| format!("{setup}\n{}", pt::setup_trust_lines(&project));
+        // Whole, where it fits.
+        let short = "Save a pending project request only.";
+        let fits = statement(&whole(short), short, Some(&project), "Save project for next launch").unwrap();
+        assert!(fits.in_app.is_none());
+        assert_eq!(fits.text, format!("{short}\n{}\n{}", pt::WILL_TRUST, pt::EFFECTS_TEXT));
+        // The setup lines whole, the effects in the App, named by digest.
+        // 20 lines of 52 characters: with the 786-character effects text the whole passes the native limit
+        // (1500 characters); with the pointer line alone it does not.
+        let setup = "Create NEW App-owned account directory: /invented/x\n".repeat(20);
+        let setup = setup.trim_end();
+        let split = statement(&whole(setup), setup, Some(&project), "Save project for next launch").unwrap();
+        let in_app = split.in_app.as_ref().unwrap();
+        assert_eq!((in_app.kind, in_app.content.clone()), ("project trust effects", pt::setup_trust_content(&project)));
+        assert_eq!(in_app.content["effects"]["text"], pt::EFFECTS_TEXT);
+        assert_eq!(split.text, format!("{setup}\n{}", pt::setup_trust_pointer(&in_app.digest)));
+        // Not even the setup lines with the pointer fit: the whole statement in the App, the trust line natively.
+        let long = "Create NEW App-owned account directory: /invented/x\n".repeat(26);
+        let long = long.trim_end();
+        let all = statement(&whole(long), long, Some(&project), "Save project for next launch").unwrap();
+        let in_app = all.in_app.as_ref().unwrap();
+        assert_eq!((in_app.kind, in_app.content.clone()), ("desktop setup effects", json!({"effects": whole(long)})));
+        assert!(all.text.starts_with("Save project for next launch. Complete reviewed effects are shown in the App") && all.text.ends_with(pt::SETUP_TRUST_AMONG_EFFECTS), "{}", all.text);
+        // No project: the statement as before, in each form.
+        for setup in [short, setup, long] {
+            let none = statement(setup, setup, None, "Save project for next launch").unwrap();
+            assert!(!none.text.contains(pt::WILL_TRUST) && !none.text.contains("Chirality will trust"));
+        }
+        std::fs::remove_dir_all(project).unwrap();
+    }
+    /// The retained-project route names a project: its confirmation says Chirality will trust it.
+    #[test]
+    fn retained_project_confirmation_says_chirality_will_trust_the_project() {
+        let f = Fixture::admitted_project();
+        let project = f.root.join("explicit-next-project");
+        let whole = f.controller.lock().unwrap().preview_statement(&f.token).unwrap();
+        let setup = f.controller.lock().unwrap().preview_setup_statement(&f.token).unwrap();
+        assert_eq!(whole, format!("{setup}\n{}", crate::project_trust::setup_trust_lines(&project)));
+        let mut seen = None;
+        let result = prepare(&f.controller, &f.token, |statement, action| {
+            seen = Some((statement.text.clone(), statement.in_app.as_ref().map(|c| (c.kind, c.content.clone()))));
+            Ok(MessageDialogResult::Custom(LEAVE.into()))
+        }).unwrap();
+        assert!(result["state"].as_str().unwrap().contains("cancelled"));
+        let (text, in_app) = seen.unwrap();
+        eprintln!("RETAINED NATIVE TEXT:\n{text}\nIN APP: {in_app:?}");
+        assert!(text.starts_with(&setup), "the setup lines whole: {text}");
+        assert!(text.contains(crate::project_trust::WILL_TRUST));
+        match in_app {
+            None => assert!(text.contains(crate::project_trust::EFFECTS_TEXT)),
+            Some((kind, content)) => {
+                assert_eq!(kind, "project trust effects");
+                assert_eq!(content["effects"]["text"], crate::project_trust::EFFECTS_TEXT);
+            }
+        }
+    }
+    /// The scripted driver's setup scenario judges the stand-in's statement line for line. On the hosted runner's
+    /// paths (`proof.py setup` under `RUNNER_TEMP`), this function gives exactly the scenario's sheet: the setup lines
+    /// whole and the trust line naming its content by digest.
+    #[test]
+    fn the_scripted_setup_scenarios_sheet_is_this_statement_on_the_runners_paths() {
+        let scenario: Value = serde_json::from_str(include_str!("../../examination/scripted_driver/setup-complete.scenario.json")).unwrap();
+        let home = "/Users/runner/work/_temp/driver/setup-run/home";
+        let app_data = format!("{home}/Library/Application Support/dev.chirality.app-v4.scripted-driver");
+        let project = format!("{home}/Projects/setup-scenario-project");
+        let id = "00000000-0000-4000-8000-000000000000";
+        let fill = |line: &str| line.replace("{settings}", &format!("{app_data}/shared-settings/settings-{id}"))
+            .replace("{account}", &format!("{app_data}/account-homes/account-{id}"))
+            .replace("{project}", &project).replace("{app_data}", &app_data);
+        let sheet: Vec<String> = scenario["sheet"]["statement"].as_array().unwrap().iter().map(|l| fill(l.as_str().unwrap())).collect();
+        let (setup, pointer) = sheet.split_at(sheet.len() - 1);
+        let setup = setup.join("\n");
+        let project = std::path::Path::new(&project);
+        let whole = format!("{setup}\n{}", crate::project_trust::setup_trust_lines(project));
+        let shown = statement(&whole, &setup, Some(project), "Create settings and save for next launch").unwrap();
+        assert_eq!(shown.text, sheet.join("\n"));
+        assert_eq!(pointer[0], crate::project_trust::setup_trust_pointer(&shown.in_app.as_ref().unwrap().digest));
+        assert_eq!(shown.in_app.unwrap().content, crate::project_trust::setup_trust_content(project));
+    }
     #[test]
     fn retained_project_confirmation_uses_its_exact_action_and_original_parent() {
         for outcome in ["default", "new-home-action", "destroyed", "affirmative"] {

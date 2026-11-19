@@ -511,6 +511,8 @@ class TheScenarioReportPassesOnlyAWholeWalk(unittest.TestCase):
         self.assertEqual((code, report['verdict']), (1, 'fail'))
 
 
+# The trust line setup's confirmation adds for a project outside any Git repository, as the scenario's sheet has it.
+TRUST_LINE = json.loads((APP / 'examination/scripted_driver/setup-complete.scenario.json').read_text())['sheet']['statement'][-1]
 SETUP_STAND_IN = """#!{python}
 import json, os, subprocess, sys, time, uuid
 from pathlib import Path
@@ -518,6 +520,7 @@ home = Path(os.environ['HOME'])
 knobs = json.loads((home.parent.parent / 'knobs.json').read_text()) if (home.parent.parent / 'knobs.json').exists() else {{}}
 given = json.loads((home / 'scripted-driver/scenario.json').read_text())
 values, answers = given['values'], given['setup_answers']
+trust_line = {trust_line!r}
 stages = home / 'scripted-driver/stages.jsonl'
 def stage(name, detail):
     with open(stages, 'a') as f:
@@ -538,7 +541,8 @@ for index, answer in enumerate(answers):
              f"Save a private pending request in {{app_data / 'desktop-startup/request.json'}}.",
              'Codex: the copy included with this App (bundled-owner-use-development).',
              'The current workspace, homes, account/model choices, records and prepared messages stay unchanged. '
-             'No automatic quit/restart/login/conversation.']
+             'No automatic quit/restart/login/conversation.',
+             trust_line]
     if knobs.get('drop_line') is not None:
         del lines[knobs['drop_line']]
     stage('setup confirmation stand-in', {{'index': index, 'title': knobs.get('title', 'Desktop setup — next launch only'),
@@ -586,7 +590,7 @@ class TheSetupRunPassesOnlyWhatItsScenarioSays(unittest.TestCase):
         app = self.root / 'Test.app'
         (app / 'Contents/MacOS').mkdir(parents=True)
         exe = app / 'Contents/MacOS/chirality-app-v4'
-        exe.write_text(SETUP_STAND_IN.format(python=sys.executable))
+        exe.write_text(SETUP_STAND_IN.format(python=sys.executable, trust_line=TRUST_LINE))
         exe.chmod(0o755)
         # The bundle's Codex here is a link to a system binary (a copy of one may not run): what is compared is the file
         # the process runs, by device and inode, as for the shipped Codex.
@@ -649,7 +653,13 @@ class TheSetupRunPassesOnlyWhatItsScenarioSays(unittest.TestCase):
         named = iter(['{settings}', '{account}', '{project}', '{app_data}/desktop-startup/request.json'])
         expected = re.sub(r'\{\}', lambda _: next(named), statement.replace('{SUPPLIER}', supplier)).split('\\n')
         sheet = json.loads((APP / 'examination/scripted_driver/setup-complete.scenario.json').read_text())['sheet']
-        self.assertEqual(sheet['statement'], expected)
+        # Then the one line saying Chirality will trust the project, naming by digest what that turns on (shown in the
+        # App); the Rust test the_scripted_setup_scenarios_sheet_is_this_statement_on_the_runners_paths pins its digest.
+        trust = (APP / 'src-tauri/src/project_trust.rs').read_text()
+        will = re.search(r'pub const WILL_TRUST: &str = "([^"]+)";', trust).group(1)
+        pointer = re.search(r'format!\("\{WILL_TRUST\} ((?:[^"\\]|\\.)*)\{digest\}"\)', trust).group(1).replace('\\"', '"')
+        self.assertEqual(sheet['statement'][:-1], expected)
+        self.assertRegex(sheet['statement'][-1], '^' + re.escape(f'{will} {pointer}') + '[0-9a-f]{64}$')
         self.assertIn('const PROFILE: &str = "desktop-startup/request.json";', source)
 
     @unittest.skipUnless(sys.platform == 'darwin', 'the executable is asked of macOS')

@@ -1592,7 +1592,23 @@ impl DesktopSetup {
             ]}),
         }
     }
+    /// The whole statement setup's confirmation shows: the setup lines and, where the route names a project,
+    /// "Chirality will trust this project." followed by the whole effects text (DEL-01-01). What the native
+    /// confirmation shows of it, when it does not fit, is `desktop_setup_confirmation::statement`'s.
     pub fn preview_statement(&self, token: &str) -> Result<String, String> {
+        let setup = self.preview_setup_statement(token)?;
+        Ok(match self.preview_trusted_project(token)? {
+            Some(project) => format!("{setup}\n{}", crate::project_trust::setup_trust_lines(&project)),
+            None => setup,
+        })
+    }
+    /// The project setup's confirmation says Chirality will trust: the one the preview names, if any.
+    pub(crate) fn preview_trusted_project(&self, token: &str) -> Result<Option<PathBuf>, String> {
+        let preview = self.preview.as_ref().filter(|p| p.token == token).ok_or("Setup preview changed; review the effects again")?;
+        Ok(preview.project.clone())
+    }
+    /// The setup lines alone, as before DEL-01-01 added the trust lines.
+    pub(crate) fn preview_setup_statement(&self, token: &str) -> Result<String, String> {
         let preview = self
             .preview
             .as_ref()
@@ -7156,10 +7172,43 @@ mod tests {
         let inside = setup.preview_new_settings(Some(below.clone())).unwrap();
         assert_project_trust_said(&inside, &below);
         assert_eq!(inside["projectTrust"]["effects"]["insideRepository"]["root"], json!(repository.to_string_lossy()));
-        // A route that names no project says nothing new.
-        for review in [setup.preview(f.shared.clone(), None, SUPPLIER).unwrap(), setup.preview_new_settings(None).unwrap()] {
+        // A route that names no project says nothing new, in its review or its statement.
+        for route in ["new-home", "new-settings"] {
+            let review = if route == "new-home" { setup.preview(f.shared.clone(), None, SUPPLIER).unwrap() } else { setup.preview_new_settings(None).unwrap() };
             assert!(review.get("projectTrust").is_none());
             assert!(!review.to_string().contains(crate::project_trust::WILL_TRUST));
+            let token = review["token"].as_str().unwrap();
+            assert_eq!(setup.preview_statement(token).unwrap(), setup.preview_setup_statement(token).unwrap());
+        }
+        // Each route that names a project: the confirmation as the person sees it.
+        let setup = Mutex::new(setup);
+        for route in ["new-home", "new-settings"] {
+            let review = if route == "new-home" { setup.lock().unwrap().preview(f.shared.clone(), Some(f.project.clone()), SUPPLIER).unwrap() }
+                else { setup.lock().unwrap().preview_new_settings(Some(f.project.clone())).unwrap() };
+            let token = review["token"].as_str().unwrap().to_owned();
+            let lines = setup.lock().unwrap().preview_setup_statement(&token).unwrap();
+            let mut seen = None;
+            crate::desktop_setup_confirmation::prepare(&setup, &token, |statement, _| {
+                seen = Some((statement.text.clone(), statement.in_app.as_ref().map(|c| (c.kind, c.content.clone()))));
+                Ok(tauri_plugin_dialog::MessageDialogResult::Custom(crate::desktop_setup_confirmation::LEAVE.into()))
+            }).unwrap();
+            let (text, in_app) = seen.unwrap();
+            eprintln!("{route} NATIVE TEXT:\n{text}\nIN APP: {in_app:?}");
+            match in_app {
+                // Whole: the setup lines, then the trust line and what it turns on.
+                None => assert!(text.starts_with(&lines) && text.contains(crate::project_trust::EFFECTS_TEXT), "{route}: {text}"),
+                // The setup lines natively; what trust turns on in the App.
+                Some(("project trust effects", content)) => {
+                    assert!(text.starts_with(&lines) && text.contains(crate::project_trust::WILL_TRUST), "{route}: {text}");
+                    assert_eq!(content["effects"]["text"], crate::project_trust::EFFECTS_TEXT, "{route}");
+                }
+                // The whole statement in the App, the trust line named natively.
+                Some((_, content)) => {
+                    assert!(text.ends_with(crate::project_trust::SETUP_TRUST_AMONG_EFFECTS), "{route}: {text}");
+                    let whole = content["effects"].as_str().unwrap();
+                    assert!(whole.starts_with(&lines) && whole.contains(crate::project_trust::EFFECTS_TEXT), "{route}");
+                }
+            }
         }
     }
     #[test]

@@ -86,6 +86,22 @@ pub(crate) fn effects_for(project: &Path) -> Value {
     json!({"text": EFFECTS_TEXT, "insideRepository": inside_repository(project)})
 }
 
+/// Setup's statement, where a route names a project: the trust line, then the whole effects text.
+pub(crate) fn setup_trust_lines(project: &Path) -> String {
+    format!("{WILL_TRUST}\n{}", effects_plain(project))
+}
+/// What setup's confirmation shows in the App beside its native statement, when the setup lines fit the native
+/// statement and the effects text does not.
+pub(crate) fn setup_trust_content(project: &Path) -> Value {
+    json!({"line": WILL_TRUST, "effects": effects_for(project)})
+}
+/// The native line that names that content.
+pub(crate) fn setup_trust_pointer(digest: &str) -> String {
+    format!("{WILL_TRUST} What that turns on is shown in full in the App now, under \"Content named by an open native confirmation\". Its sha-256 digest: {digest}")
+}
+/// The line the whole fallback adds, when even the setup lines do not fit the native statement.
+pub const SETUP_TRUST_AMONG_EFFECTS: &str = "Chirality will trust this project; what that turns on is among the complete effects shown in the App.";
+
 /// The effects as one plain text, for a native confirmation.
 fn effects_plain(project: &Path) -> String {
     match cl::project_root(project) {
@@ -118,6 +134,9 @@ pub struct ProjectTrust {
     switching: Mutex<()>,
     /// What the last frame for a known project carried (its `projectTrust` status).
     last_sent: Mutex<Option<Value>>,
+    /// How many times the person has switched trust off in this App session: a refusal noted before the latest
+    /// switch off no longer stands (`Host::level_status`).
+    offs: std::sync::atomic::AtomicU64,
     #[cfg(test)]
     pub(crate) after_confirmation: Mutex<Option<Box<dyn FnOnce() + Send>>>,
 }
@@ -153,6 +172,12 @@ impl ProjectTrust {
     /// The App's choice for `project`, read from its switches now.
     pub(crate) fn choice(project: &KnownProject) -> AppTrust {
         let default = match project.known { Known::SetUpInApp => AppTrust::OnBySetup, Known::EnvironmentRoute => AppTrust::NoChoice };
+        // A run with no records store (none named, or the one named refused): no switch can be read or made in it.
+        // On the environment route that is no choice, so the route behaves as before; on the setup route the
+        // choice is not readable (below), and the entry goes untrusted.
+        if project.known == Known::EnvironmentRoute && crate::records_store::current().is_err() {
+            return AppTrust::NoChoice;
+        }
         match crate::records_store::trust_switches(&project.physical) {
             Err(detail) => AppTrust::NotRead { detail: Some(detail) },
             Ok(None) => default,
@@ -216,11 +241,16 @@ impl ProjectTrust {
         let at = crate::util::now_rfc3339();
         let line = json!({"format": SWITCH_FORMAT, "at": at, "trust": if on {"on"} else {"off"}});
         crate::records_store::append_trust_switch(&project.physical, &line).map_err(|e| format!("{CANNOT_SWITCH} {e}"))?;
+        if !on { self.offs.fetch_add(1, std::sync::atomic::Ordering::SeqCst); }
         Ok(json!({"state": if on {"switched-on"} else {"switched-off"}, "at": at, "takesEffect": TAKES_EFFECT, "running": RUNNING_UNCHANGED, "view": self.view()}))
     }
 
     // ---- What the person is shown ----
 
+    /// How many switches off this session has written.
+    pub(crate) fn offs(&self) -> u64 {
+        self.offs.load(std::sync::atomic::Ordering::SeqCst)
+    }
     /// Notes what a frame for a known project carried (`threads[].level.projectTrust`).
     pub(crate) fn note_sent(&self, status: Value) {
         *self.last_sent.lock().unwrap_or_else(|p| p.into_inner()) = Some(status);
