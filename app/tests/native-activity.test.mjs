@@ -338,6 +338,8 @@ test('plan revisions and tool rows carry the run in force at their turn, from th
 const turnOf=(html,n)=>html.match(new RegExp(`<section class="v4-turn" aria-label="Conversation turn ${n}"[\\s\\S]*?</section>`))?.[0]??'';
 // A turn's ended state as the App words it, beside the turn; a running turn's live activity line; neither for a completed turn.
 const turnStatus=(html,n)=>turnOf(html,n).match(/<p class="chat-turn-status"[^>]*>([^<]*)<\/p>/)?.[1];
+// The turn's visible details line: the summary of its fold, in view while the fold is closed.
+const turnDetails=(html,n)=>turnOf(html,n).match(/<details class="turn-activity"><summary><span class="turn-activity-summary">([^<]*)/)?.[1];
 const turnLiveLine=(html,n)=>/data-turn-live="true"/.test(turnOf(html,n).slice(0,200))?turnOf(html,n).match(/<span class="turn-activity-summary">([^<]*)/)?.[1]:undefined;
 test('messages and observed statuses stay readable while command and reasoning diagnostics are folded',()=>{
  const html=render();assert.match(html,/<section[^>]*aria-label="Conversation turn 1"/);
@@ -386,6 +388,7 @@ test('a final error notice alerts, and a stopped Codex or a dropped notice is sa
  assert.match(ended,/The App has since received a later event naming this turn\./);assert.doesNotMatch(ended,/stopped receiving|No later event/);
  // A completed turn is said completed only in its source and timing, with no ended-state line.
  assert.equal(turnStatus(ended,3),undefined);assert.equal(turnLiveLine(ended,3),undefined);assert.match(turnOf(ended,3),/native status completed/);
+ assert.match(turnDetails(ended,3),/^Turn details · completed/,'the observed outcome is on the visible details line');
  v.turns.find(t=>t.id==='turn-3').status='inProgress';v.observationEnded=false;
  // A notice for a turn the view has nothing else for still shows, under a turn of unknown status.
  v.turnErrors=[notice('turn-9',90,1,{willRetry:undefined})];
@@ -401,6 +404,7 @@ test('a turn last seen in progress is not headed in progress once Codex has stop
  assert.equal(turnStatus(html,3),'Turn in progress when last observed; the App is no longer receiving from that Codex process, so its outcome is unknown');
  assert.equal(turnLiveLine(html,3),undefined,'not drawn as running');assert.doesNotMatch(html,/inProgress<\/p>/);
  assert.equal(turnStatus(html,1),'Turn interrupted','an observed end stays as observed');assert.equal(turnStatus(html,2),undefined);assert.match(turnOf(html,2),/native status completed/);
+ assert.match(turnDetails(html,1),/^Turn details · interrupted/);assert.match(turnDetails(html,2),/^Turn details · completed/,'in view, not only inside the closed fold');
 });
 
 test('a frame named error that the App could not read is said as that and given no retry meaning',()=>{

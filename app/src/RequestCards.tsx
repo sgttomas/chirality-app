@@ -362,13 +362,19 @@ export function hostRequests(host: Json): Json[] {
   });
 }
 
-/** §4.4 card states, in the person's words, from the register entry: the card's own line, which for a request Codex
- * resolved adds Codex's cause where it is a plain token (requestStateWords otherwise). */
+/** §4.4 card states, in the person's words, from the register entry: the card's own line, the App's closed words
+ * alone (requestStateWords). For a request Codex resolved, the cause Codex supplied is not part of the sentence: it is
+ * shown beside it, marked (SupplierCause). */
 export function cardState(request: Json): string {
-  // Codex's cause is shown inside the App's sentence only in a plain token's form; anything else is
-  // said as reported in a form the App does not show inside its own sentence.
-  if (request?.state === "resolved-by-supplier") { const cause = request?.supplierResolution?.cause; return `Resolved by Codex before you answered (cause: ${cause === undefined || cause === null || cause === "" ? "not reported" : plainId(cause) ?? "reported in a form the App does not show here"})`; }
   return requestStateWords(request);
+}
+/** Beside the state of a request Codex resolved: the cause Codex supplied, as text the App did not write, or that
+ * none was reported. Nothing for any other state. */
+export function SupplierCause({ request }: { request: Json }) {
+  if (request?.state !== "resolved-by-supplier") return null;
+  const cause = request?.supplierResolution?.cause;
+  return cause === undefined || cause === null || cause === "" ? <> Codex reported no cause.</>
+    : <> <AgentText value={typeof cause === "string" ? cause : JSON.stringify(cause) ?? String(cause)} source="codex" label="Cause:" name="The cause Codex reported for resolving the request, not the App's words" /></>;
 }
 /** §4.4 card states as closed App sentences: a literal for every state, nothing supplied in any of them (a control's
  * name, such as an earlier request's disclosure, holds only these). */
@@ -622,7 +628,7 @@ export function NativeRequestCard({ request, view, answer, readRequest, observat
     {!KNOWN_METHODS.includes(method) && <p>Codex named the request: {method === undefined || method === null || method === "" ? "no method" : <AgentText value={text(method)} source="codex" label="Method:" name="The request's method as Codex sent it, not the App's words" />}</p>}
     {method === ELICITATION && <p>{text(p.serverName) === "" ? "MCP server name not reported." : <>MCP server, as named in the request: <AgentText value={text(p.serverName)} label="Server name:" name={ELICITATION_TEXT} /></>}</p>}
     <p className="request-asker"><AskedBy asker={asker} />.</p>
-    {!open && <p><b>{unreconciled ? reply?.command.kind === "pending" ? "Answer command in progress" : "Current request state unavailable or not reconciled" : cardState(request)}</b>{unreconciled && <>. Last observed: {cardState(request)}</>}</p>}
+    {!open && <p><b>{unreconciled ? reply?.command.kind === "pending" ? "Answer command in progress" : "Current request state unavailable or not reconciled" : cardState(request)}</b>{unreconciled && <>. Last observed: {cardState(request)}</>}<SupplierCause request={request} /></p>}
     {reply && <section aria-label="Native reply observation">
       <p>{replyObservationWords(reply, method === QUESTION)}</p>
       {reply.command.kind === "rejected" && <p><AgentText value={text(reply.command.reason)} source="codex" label="Reported:" name="What the native answer command reported, not the App's words" /></p>}
@@ -683,7 +689,7 @@ export function NativeRequestCard({ request, view, answer, readRequest, observat
     {a14 && <p><small>Tool permission only. Your answer decides whether Codex may use this tool; it does not mark anything checked, take the work as done, give engineering sign-off or rely on the result, and it is not recorded as a human act. <a href="#file-acts">Open the App act control</a> (a separate standing facility; nothing is filled in from this request).</small></p>}
     {(method === QUESTION || method === ELICITATION) && <p><small>Your answer goes to the agent as conversation input; it is not a recorded act. <a href="#file-acts">Open the App act control</a> (a separate standing facility; nothing is filled in from this request).</small></p>}
     <details className="v4-request-details"><summary>Request details</summary>
-      {open && <p>{cardState(request)}.</p>}
+      {open && <p>{cardState(request)}.<SupplierCause request={request} /></p>}
       {request?.settlement?.origin?.class === "app-rule" && <p><small>App rule: <SuppliedId value={request.settlement.origin.ruleName} label="Rule:" name="The App rule's name as recorded" /></small></p>}
       <About request={request} item={item} navigation={activityLink?.(request) ?? null} />
       <p><small>Register: state <SuppliedId value={request.state} label="State:" name={REGISTER} /> · reply <SuppliedId value={request.replyWriteResult} label="Reply:" name={REGISTER} /> · Codex confirmation <SuppliedId value={request.acknowledgmentObservation?.status ?? "not-observed"} label="Confirmation:" name={REGISTER} />{request.settlement && <> · settled by <AgentText value={text(request.settlement.origin)} source="codex" label="Origin:" name={REGISTER} /> as <SuppliedId value={request.settlement.kind} label="Kind:" name={REGISTER} /></>}</small></p>

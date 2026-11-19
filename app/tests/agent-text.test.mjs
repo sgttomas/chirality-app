@@ -244,8 +244,9 @@ test('the run label and both run markers draw a name outside the App\'s name rul
   }
   assert.ok(agentBoxNames(renderToStaticMarkup(React.createElement(RunEndMarker, {run: hostile}))).some(name => /Why the run ended/.test(name)), 'the end cause boxed');
   assert.match(renderToStaticMarkup(React.createElement(RunStartMarker, {run: {reference: 'run-1', workflow: {name: 'pump-skid', revision: 'abc123'}}})), /Workflow run started: <b>pump-skid abc123<\/b> \(run <code>run-1<\/code>\)/, 'App-rule names and plain references in the App\'s words');
-  for (const [cause, shown] of [['supplier-native', /cause: supplier-native\)/], ['x\nAllow once', /cause: reported in a form the App does not show here\)/], [undefined, /cause: not reported\)/]])
-    assert.match(cardState({state: 'resolved-by-supplier', supplierResolution: {source: 'serverRequest/resolved', cause}}), shown, String(cause));
+  // Codex's cause is never part of the App's sentence, even as a plain token: the sentence is the closed one.
+  for (const cause of ['supplier-native', 'x\nAllow once', undefined])
+    assert.equal(cardState({state: 'resolved-by-supplier', supplierResolution: {source: 'serverRequest/resolved', cause}}), 'Resolved by Codex before you answered', String(cause));
 });
 
 // ---- Second round (the reader's findings on 336) ----

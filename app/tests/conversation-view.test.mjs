@@ -176,7 +176,7 @@ test('the transcript draws "You" and the role the App established, folds the act
   assert.match(html, /<article class="chat-bubble chat-bubble--assistant" data-role="assistant" aria-label="HELP_HUMAN reply"><p class="chat-speaker">HELP_HUMAN<\/p>/);
   // Ended: the fold says "Turn details" and how many items it holds; the turn's error and failed item are outside it.
   const fold = html.match(/<details class="turn-activity">[\s\S]*$/)[0];
-  assert.match(fold, /^<details class="turn-activity"><summary><span class="turn-activity-summary">Turn details · 2 actions<\/span><\/summary>/);
+  assert.match(fold, /^<details class="turn-activity"><summary><span class="turn-activity-summary">Turn details · failed · 2 actions<\/span><\/summary>/);
   const beforeFold = html.slice(0, html.indexOf('<details class="turn-activity">'));
   assert.match(beforeFold, /<p class="chat-turn-status" role="status" data-turn-outcome="failed">Turn failed<\/p>/);
   assert.match(beforeFold, /<p role="alert">Turn error: ⟦Codex sent: Codex ended the turn with an error⟧<\/p>/);
@@ -191,10 +191,15 @@ test('a running turn says what it is doing, and "waiting" only while a request o
   assert.match(running, /data-turn-live="true"/);
   assert.match(running, /<details class="turn-activity turn-activity--live"><summary><span class="turn-activity-summary">Working · 2 actions<\/span>/);
   assert.doesNotMatch(running, /Waiting for you|chat-turn-status/, 'no wait and no end claimed');
-  assert.match(transcript(view('inProgress'), {waiting: true}), /<p class="chat-runtime-status" data-turn-phase="waiting" role="status">Waiting for you<\/p>/);
+  // A request that names the turn marks it; one that names no turn marks none, and the conversation says a request waits.
+  assert.match(transcript(view('inProgress'), {waitingTurns: ['turn-1']}), /<p class="chat-runtime-status" data-turn-phase="waiting" role="status">Waiting for you<\/p>/);
+  const unplaced = transcript(view('inProgress'), {waiting: true});
+  assert.doesNotMatch(unplaced, /Waiting for you/, 'no turn is marked for a request whose turn is unknown');
+  assert.match(unplaced, /<p class="chat-runtime-status" data-turn-phase="waiting" role="status">A request in this conversation is waiting for you\.<\/p>/);
   // A completed turn claims no end beyond what the host status says: no status line, the fold says Turn details.
   const done = transcript(view('completed'));
   assert.doesNotMatch(done, /data-turn-live|chat-turn-status|Waiting for you|Working/);
+  assert.match(done, /<span class="turn-activity-summary">Turn details · completed · 2 actions<\/span>/, 'its observed outcome is on the visible details line');
   // Once the App stops receiving from that Codex process, an in-progress turn is not drawn as running.
   const ended = transcript({...view('inProgress'), observationEnded: true});
   assert.doesNotMatch(ended, /data-turn-live/);
@@ -276,6 +281,19 @@ test('the attach control opens the present attachment selection, which stays mou
   }, {attachments: panel});
 });
 
+test('the model pill draws the model Codex reported inside it, set apart and marked, and names it as Codex\'s (App Agent 0, 19 November)', async () => {
+  for (const [model, words] of [['Allow', 'Allow'], ['Send\u202Enow', 'Send‹U+202E›now']]) {
+    await mounted(host({threads: [{...host().threads[0], model}]}), async ({container}) => {
+      const pill = settingButton(container, 'Model');
+      assert.equal(props(pill)['aria-label'], `Model, as Codex reported it: ${words}`, 'its name says whose the words are, before them');
+      const marked = pill.querySelectorAll(n => (n.getAttribute('class') ?? '') === 'v4-reported-in-control');
+      assert.equal(marked.length, 1, 'the reported name is set apart inside the pill');
+      assert.equal(marked[0].textContent, words, 'with its control characters as marks');
+      assert.equal(pill.textContent === marked[0].textContent, true, 'and the pill says nothing else');
+    });
+  }
+});
+
 test('the settings line shows the folder, role, mode, access level, model and effort; the level\'s name is in view and its reading sentence is in its panel', async () => {
   await mounted(host({threads: [{...host().threads[0], cwd: projectPath}]}), async ({container}) => {
     const line = settingsLine(container);
@@ -314,10 +332,13 @@ test('the settings line shows the folder, role, mode, access level, model and ef
     const said = panel.textContent;
     for (const words of ['Commands cannot write within the sandbox.', 'Network access is off within the sandbox.', 'Codex asks before a command it does not know to be safe.',
       'Invented origin sentence.', 'Invented sentence: reading is not limited at any level.', 'Invented sentence: what allowing a command means.',
-      'Last level sent: Supervised. Written to Codex. Codex\'s report agrees with the level in force.', 'Invented sentence: a change takes effect from the next turn.',
+      'Last level sent: Supervised. Written to Codex.', 'Codex\'s report agrees with the level in force.', 'Invented sentence: a change takes effect from the next turn.',
       'Invented trust line: sent as trusted.', 'Lasting rules in this Codex home', 'Invented lasting-rules sentence.'])
       assert.ok(said.includes(words), words);
-    assert.ok(!said.includes('/invented/project'), 'supplied values stay in the full panel');
+    // The project root the trust lines refer to is in the same panel, marked as text the App did not write.
+    assert.ok(said.includes('/invented/project'), 'the project root of the trust lines is shown with them');
+    // The lasting rules are in view in the panel, behind no further disclosure.
+    assert.ok(nodes(panel, 'details').length === 0, 'nothing in the one-press panel needs a further press');
     assert.ok(nodes(panel, 'button').some(b => b.textContent === 'Change permission level'), 'the full panel is one press further');
   });
   // In a new chat there is no conversation to report on: nothing is said of what was sent.
@@ -402,8 +423,48 @@ test('the first message is sent only while the press is still current: start con
     await ui.type('Hello'); await ui.press();
     await ui.answer(0, opened(g2));
     assert.deepEqual(ui.sends, []);
-    assert.ok(ui.alerts().includes('The App could not confirm that a new conversation started. If it did start, it is listed on the left. Your message was not sent; your draft stays here.'));
+    assert.ok(ui.alerts().includes('The App could not confirm that a new conversation started. Look for it in the list on the left; it may not be there. Your message was not sent; your draft stays here.'));
   });
+});
+
+test('one press binds the first message through its start and send: a settings edit, a home change still pending, a navigation away and back or a mode change since the press sends nothing', async () => {
+  // The person's choices as the parent counts them; the start reports the changes it made itself.
+  const own = {settings: 1, navigation: 1};
+  const confirmed = {...opened(), own};
+  const cases = [
+    ['nothing changed but the start\'s own selection and consumption', intent => { intent.settings += 1; intent.navigation += 1; }, true],
+    ['a settings edit (the model, provider, entry or role)', intent => { intent.settings += 2; intent.navigation += 1; }, false],
+    ['a navigation away and back', intent => { intent.settings += 1; intent.navigation += 3; }, false],
+    ['a home change still pending', intent => { intent.settings += 1; intent.navigation += 1; intent.homePending = true; }, false],
+    ['a home change', intent => { intent.settings += 1; intent.navigation += 1; intent.home += 1; }, false],
+  ];
+  for (const [what, during, sent] of cases) {
+    const intent = {settings: 4, navigation: 7, home: 2, homePending: false};
+    await newChatPanel(async ui => {
+      await ui.render({startNew: startSettings({intent: () => ({...intent})})});
+      await ui.type('Hello'); await ui.press();
+      during(intent);
+      await ui.answer(0, confirmed);
+      if (sent) assert.deepEqual(ui.sends.map(s => s.args[2]), ['Hello'], what);
+      else {
+        assert.deepEqual(ui.sends, [], `${what}: conversation_send_text was not issued`);
+        assert.ok(ui.alerts().includes(VIEW_CHANGED), what);
+        assert.equal(props(chatInput(ui.container)).value, 'Hello', `${what}: the draft stays`);
+      }
+    });
+  }
+  // The mode chosen on the settings line after the press: nothing is sent.
+  await newChatPanel(async ui => {
+    const intent = {settings: 0, navigation: 0, home: 0, homePending: false};
+    await ui.render({startNew: startSettings({intent: () => ({...intent})})});
+    await ui.type('Hello'); await ui.press();
+    intent.settings++; intent.navigation++;
+    const plan = ui.container.querySelectorAll(n => n.localName === 'input' && props(n).type === 'radio' && n.parentNode.textContent.includes('Plan (experimental)'))[0];
+    await React.act(async () => props(plan).onChange());
+    await ui.answer(0, confirmed);
+    assert.deepEqual(ui.sends, [], 'conversation_send_text was not issued');
+    assert.ok(ui.alerts().includes(VIEW_CHANGED));
+  }, {h: host({planMode: {state: 'offered'}})});
 });
 
 test('a definite refusal says nothing started; any other rejection says only what is established; a retry is not held', async () => {
@@ -419,7 +480,7 @@ test('a definite refusal says nothing started; any other rejection says only wha
     await ui.press();
     assert.equal(ui.starts.length, 2, 'a second start is the person\'s retry, not held');
     await ui.answer(1, {notConfirmed: true, reason: 'unknown-words'});
-    assert.ok(ui.alerts().includes('The App could not confirm that a new conversation started: Reported: unknown-words If it did start, it is listed on the left. Your message was not sent; your draft stays here.'));
+    assert.ok(ui.alerts().includes('The App could not confirm that a new conversation started: Reported: unknown-words Look for it in the list on the left; it may not be there. Your message was not sent; your draft stays here.'));
     assert.deepEqual(ui.sends, []);
   });
 });
@@ -521,6 +582,83 @@ test('with attachments selected and their panel closed, the composer says Send s
   });
 });
 
+test('in a new chat the closed attachment hint points at no action unavailable there', async () => {
+  await mounted(host({attachmentSelections: {...host().attachmentSelections, selections: [{selection: {selectionRef: 'sel-1'}}]}}), async ({container}) => {
+    const note = container.querySelectorAll(n => n.getAttribute('aria-label') === 'Selected attachments')[0];
+    assert.equal(note?.textContent, 'Your first message is sent without the selected attachments.');
+    assert.doesNotMatch(container.textContent, /use “Send text and ordered attachments”/);
+  }, {threadKey: '', startNew: startSettings({start: async () => null})});
+});
+
+test('"Working in" shows the conversation\'s own reported folder, marked, whenever the row reports one, with or without an App project', async () => {
+  const folderBox = line => line.querySelectorAll(n => n.getAttribute('aria-label') === 'The folder Codex reports for this conversation, not the App\'s words')[0];
+  await mounted(host({currentAppProjectContext: null, attachmentSelections: null, threads: [{...host().threads[0], cwd: '/invented/own-folder'}]}), async ({container}) => {
+    const line = settingsLine(container);
+    assert.ok(folderBox(line), 'the row\'s folder, marked');
+    assert.match(folderBox(line).textContent, /\/invented\/own-folder/);
+    assert.doesNotMatch(line.textContent, /project folder not established/);
+  });
+  await mounted(host({threads: [{...host().threads[0], cwd: '/invented/own-folder'}]}), async ({container}) => {
+    assert.match(settingsLine(container).textContent, /^Working inCodex reports another folder: /);
+    assert.ok(folderBox(settingsLine(container)));
+  });
+});
+
+test('the mode shown is the mode Send uses: a Plan choice the current reading no longer offers is shown as not available, with the reason', async () => {
+  const container = document.createElement('div'); document.body.appendChild(container); const root = createRoot(container);
+  const sends = [];
+  const draw = h => React.createElement(ConversationPanel, {host: h, threadKey: key('T'), setThreadKey: () => {}, answer: noop, runAct: noop, steer: noop, submitAttachments: noop, interrupt: noop, checkPlanMode: noop, codexBusy: false,
+    send: async (...args) => { sends.push(args); return {result: {}}; }});
+  try {
+    await React.act(async () => root.render(draw(host({planMode: {state: 'offered'}}))));
+    const plan = container.querySelectorAll(n => n.localName === 'input' && props(n).type === 'radio' && n.parentNode.textContent.includes('Plan (experimental)'))[0];
+    await React.act(async () => props(plan).onChange());
+    assert.equal(settingButton(container, 'Mode').textContent, 'Plan');
+    // The capability reading changes: Plan is no longer offered.
+    await React.act(async () => root.render(draw(host({planMode: {state: 'not-offered', reason: 'invented-reason'}}))));
+    assert.equal(settingButton(container, 'Mode').textContent, 'Plan not available');
+    assert.equal(props(settingButton(container, 'Mode'))['aria-label'], 'Mode: Plan not available');
+    const panel = container.querySelectorAll(n => n.getAttribute('aria-label') === 'Mode' && n.getAttribute('role') === 'dialog')[0];
+    assert.match(panel.textContent, /not offered — invented-reason/);
+    assert.match(panel.textContent, /Your choice of Plan is not sent: plan mode is not offered now\. Send uses the mode shown\./);
+    await React.act(async () => props(chatInput(container)).onChange({target: {value: 'Hello'}}));
+    await React.act(async () => { await props(sendButton(container)).onClick(); });
+    assert.equal(sends.length, 1);
+    assert.equal(sends[0][3], undefined, 'Send sends no mode, as the line says');
+  } finally { await React.act(() => root.unmount()); document.body.removeChild(container); }
+});
+
+test('a mode chosen in a new chat belongs to that new chat only, and the availability read is not issued before a conversation exists', async () => {
+  // No conversation chosen and plan mode not checked: no read is offered (the Conversation view issued it only for a
+  // conversation chosen).
+  const checks = [];
+  await mounted(host(), async ({container}) => {
+    assert.ok(!nodes(container, 'button').some(b => b.textContent === 'Check plan mode availability'), 'not offered in a new chat');
+  }, {threadKey: '', startNew: startSettings({start: async () => null}), checkPlanMode: async g => { checks.push(g); }});
+  await mounted(host(), async ({container}) => {
+    const check = nodes(container, 'button').find(b => b.textContent === 'Check plan mode availability');
+    assert.ok(check, 'offered for a conversation chosen');
+    await React.act(async () => props(check).onClick());
+    assert.deepEqual(checks, [g], 'for its own generation');
+  }, {checkPlanMode: async gen => { checks.push(gen); }});
+  // Plan chosen in a new chat: leaving it and coming back to a new chat begins a new one, without that choice.
+  await newChatPanel(async ui => {
+    const planRadio = () => ui.container.querySelectorAll(n => n.localName === 'input' && props(n).type === 'radio' && n.parentNode.textContent.includes('Plan (experimental)'))[0];
+    await React.act(async () => props(planRadio()).onChange());
+    assert.equal(settingButton(ui.container, 'Mode').textContent, 'Plan');
+    await ui.render({threadKey: key('T')});
+    assert.equal(settingButton(ui.container, 'Mode').textContent, 'Chat', 'not the chosen conversation\'s');
+    await ui.render({threadKey: ''});
+    assert.equal(settingButton(ui.container, 'Mode').textContent, 'Chat', 'not a later new chat\'s');
+    // Chosen again and sent with the first message: the next new chat begins without it.
+    await React.act(async () => props(planRadio()).onChange());
+    await ui.type('Hello'); await ui.press();
+    await ui.answer(0, opened());
+    assert.deepEqual(ui.sends.map(s => s.args[3]), ['plan'], 'the first message carried the new chat\'s mode');
+    assert.equal(settingButton(ui.container, 'Mode').textContent, 'Chat', 'the next new chat begins without it');
+  }, {h: host({planMode: {state: 'offered'}})});
+});
+
 // ---- Landing and reading ----
 test('"Working in" names the App\'s folder only where the conversation\'s row reports that folder', async () => {
   await mounted(host({threads: [{...host().threads[0], cwd: '/somewhere/else'}]}), async ({container}) => {
@@ -547,13 +685,15 @@ test('the model help says where the mode is chosen', async () => {
   });
 });
 
-test('"Waiting for you" marks only the turn a waiting request names, or the one live turn when the request names none', () => {
+test('"Waiting for you" marks only the turn a waiting request names; a request that names none marks no turn and is said at the conversation\'s level', () => {
   const two = {...view('inProgress'), items: [...items, row('turn-2', 7, {id: 'a3', type: 'agentMessage', text: 'Second'})],
     turns: [{id: 'turn-1', status: 'inProgress', startedAt: 1, items: []}, {id: 'turn-2', status: 'inProgress', startedAt: 2, items: []}], turnRecords: [{threadId: 'T', turnId: 'turn-1'}, {threadId: 'T', turnId: 'turn-2'}]};
   const marked = html => [...html.matchAll(/aria-label="Conversation turn (\d)"[\s\S]*?<\/section>/g)].filter(m => m[0].includes('Waiting for you')).map(m => m[1]);
   assert.deepEqual(marked(transcript(two, {waitingTurns: ['turn-2']})), ['2'], 'only the turn the request names');
   assert.deepEqual(marked(transcript(two, {waiting: true})), [], 'a request naming no turn marks none of two live turns');
-  assert.deepEqual(marked(transcript(view('inProgress'), {waiting: true})), ['1'], 'a request naming no turn marks the one live turn');
+  const one = transcript(view('inProgress'), {waiting: true});
+  assert.deepEqual(marked(one), [], 'a request naming no turn marks not even the one live turn: its association is unknown');
+  assert.match(one, /A request in this conversation is waiting for you\./, 'the conversation says a request waits');
 });
 
 test('the transcript follows the latest while the person is at or near its end, and stays where they scrolled to', async () => {
@@ -623,7 +763,7 @@ test('the earlier-request summary is a closed App sentence for every state: noth
     const request = {...outstandingRequest, state, supplierResolution: {cause: SUPPLIED}, settlement: {origin: {class: SUPPLIED, ruleName: SUPPLIED}}, endContext: SUPPLIED};
     assert.doesNotMatch(requestStateWords(request), new RegExp(SUPPLIED), String(state));
   }
-  assert.equal(cardState({state: 'resolved-by-supplier', supplierResolution: {cause: 'plain-cause'}}), 'Resolved by Codex before you answered (cause: plain-cause)', 'the card keeps the checked cause');
+  assert.equal(cardState({state: 'resolved-by-supplier', supplierResolution: {cause: 'plain-cause'}}), 'Resolved by Codex before you answered', 'the card\'s sentence is the closed one; the cause is beside it');
 });
 
 // ---- Only the person's own message is drawn as theirs ----
@@ -655,6 +795,55 @@ test('a descendant\'s input, opened from the conversation, is that agent\'s inpu
     assert.deepEqual(bubbles.map(b => b.getAttribute('aria-label')), ['Input to this agent', 'Agent reply']);
     assert.equal(container.querySelectorAll(n => (n.getAttribute('class') ?? '').includes('person-text')).length, 0);
   } finally { await React.act(() => root.unmount()); document.body.removeChild(container); }
+});
+
+// ---- Who an input is from ----
+const raw = (v, more = {}) => renderToStaticMarkup(React.createElement(NativeActivityView, {view: v, threadId: 'T', ...more}));
+const bubbleNames = html => [...html.matchAll(/<article class="chat-bubble[^"]*" data-role="[a-z]+" aria-label="([^"]+)"/g)].map(m => m[1]);
+test('an input with no text is not the person\'s message: it is marked input, with what it is', () => {
+  const v = view('completed', {items: [
+    row('turn-1', 0, {id: 'u1', type: 'userMessage', content: [{type: 'text', text: 'Look at this'}]}),
+    row('turn-1', 1, {id: 'u2', type: 'userMessage', content: [{type: 'localImage', path: '/invented/shot.png'}]}),
+    row('turn-1', 2, {id: 'a1', type: 'agentMessage', text: 'Seen'}),
+  ]});
+  const html = raw(v);
+  assert.deepEqual(bubbleNames(html), ['Your message', 'Input Codex recorded, not text you wrote', 'Agent reply']);
+  const input = html.slice(html.indexOf('aria-label="Input Codex recorded, not text you wrote"'), html.indexOf('aria-label="Agent reply"'));
+  assert.match(input, /<p class="chat-speaker">Input Codex recorded<\/p>/);
+  assert.match(input, /A local image reference, as Codex recorded it:/, 'what it is');
+  assert.doesNotMatch(input, /person-text|aria-label="Your message"|with your message/, 'nothing in it is drawn as the person\'s');
+});
+
+test('a conversation whose native thread source is a sub-agent\'s shows its input as that agent\'s, before its id is among the descendants', () => {
+  const source = {subAgent: {thread_spawn: {parent_thread_id: 'P', depth: 1}}};
+  const html = raw(view('completed'), {threadSource: source});
+  assert.deepEqual(bubbleNames(html), ['Input to this agent', 'Agent reply']);
+  assert.doesNotMatch(html, /person-text|aria-label="Your message"/);
+  // A conversation started from the App's own source is the person's.
+  assert.deepEqual(bubbleNames(raw(view('completed'), {threadSource: 'appServer'})), ['Your message', 'Agent reply']);
+});
+
+test('the App\'s own Continue as request is shown as sent by the App, marked, identified by its handoff record\'s turn, never by its text', () => {
+  const v = view('completed', {items: [...items, row('turn-2', 7, {id: 'u9', type: 'userMessage', content: [{type: 'text', text: 'Handoff from conversation T (No role). Invented request text.'}]})],
+    turns: [...view('completed').turns, {id: 'turn-2', status: 'completed', startedAt: 2, items: []}], turnRecords: [{threadId: 'T', turnId: 'turn-1'}, {threadId: 'T', turnId: 'turn-2'}]});
+  const html = raw(v, {appSentTurns: ['turn-2']});
+  assert.deepEqual(bubbleNames(html), ['Your message', 'Agent reply', 'Sent by the App for Continue as, not your message', 'Agent reply']);
+  const app = html.slice(html.indexOf('aria-label="Sent by the App for Continue as, not your message"'));
+  assert.match(app, /<p class="chat-speaker">Sent by the App for Continue as<\/p>/);
+  assert.match(app, /aria-label="The App&#x27;s request for a handoff summary, as Codex recorded it; not your message, 1 line"/, 'marked');
+  // The same text in a turn no handoff names is the person's.
+  assert.deepEqual(bubbleNames(raw(v)), ['Your message', 'Agent reply', 'Your message', 'Agent reply']);
+});
+
+test('the conversation panel names the App\'s Continue as turn from the status\'s open handoff in this conversation and generation', async () => {
+  const v = view('completed', {generation: g, home: g.home});
+  const handoff = turnId => ({id: 'h1', generation: g, sourceThread: 'T', request: {state: 'sent', turnId}, entries: []});
+  for (const [handoffs, expected] of [[[handoff('turn-1')], 'Sent by the App for Continue as, not your message'], [[{...handoff('turn-1'), sourceThread: 'U'}], 'Your message'], [[{...handoff('turn-1'), generation: g2}], 'Your message'], [[], 'Your message']]) {
+    await mounted(host({nativeView: v, continueAs: handoffs}), async ({container}) => {
+      const first = container.querySelectorAll(n => n.localName === 'article')[0];
+      assert.equal(first?.getAttribute('aria-label'), expected, JSON.stringify(handoffs));
+    });
+  }
 });
 
 // ---- A reveal of a Conversation tools target lands on a shown target ----
@@ -721,11 +910,11 @@ test('the prose renderer keeps what malformed syntax would swallow: invisible li
   const invisible = prose(`First\n${ZWSP}${WJ}\nSecond`);
   assert.deepEqual(marks(invisible), ['200B', '2060']);
   assert.match(invisible, /^<div[^>]*><p>First<br\/><span[^>]*>‹U\+200B›<\/span><span[^>]*>‹U\+2060›<\/span><br\/>Second<\/p><\/div>$/);
-  // Cells keep invisible and direction characters at their edges; a row longer than the header keeps every cell.
+  // Cells keep invisible and direction characters at their edges; a row longer than the header keeps every cell, and no row is padded.
   const table = prose(`| ${ZWSP}a${RLO} | b |\n|---|---|\n| c | d | ${ZWJ}e${LRI} |`);
   assert.deepEqual(marks(table), ['200B', '202E', '200D', '2066']);
   assert.match(visible(table), /e/);
-  assert.equal((table.match(/<td>/g) ?? []).length, 6, 'two rows of three cells: the header widened to the longest row');
+  assert.equal((table.match(/<td>/g) ?? []).length, 5, 'the header\'s two cells and the row\'s three: only the cells supplied, none added');
   // A fence's information string is shown as text, whatever it holds; a plain language name too.
   const fence = prose(`\`\`\`js onclick="x" ${RLO}\ncode\n\`\`\``);
   assert.match(fence, /<p class="agent-prose-code-info">js onclick=&quot;x&quot; <span[^>]*>‹U\+202E›<\/span><\/p><pre class="agent-prose-code"><code>code<\/code><\/pre>/);
@@ -744,23 +933,104 @@ test('the prose renderer draws what looks like an HTML tag as its source text: n
 // A seeded generator, so a failure is reproducible.
 const seeded = seed => () => { seed |= 0; seed = seed + 0x6d2b79f5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
 const ALPHABET = ['*', '**', '_', '`', '```', '~~~', '#', '## ', '>', '> ', '-', '- ', '+ ', '1. ', '2) ', '|', '|---|', '[', ']', '(', ')', '![', '\\', '<', '>', '<span title="', '">', '</b>', '<!--', '-->', '<a href=x>', '<https://e.invalid>', ':', '=', '---', '"', "'",
-  ' ', '  ', '\t', '\n', '\n\n', '\r\n', 'a', 'b', 'x', 'é', '家', '🙂', '‮', '⁦', '​', '‍', '﻿', ' ', '\u0085', '͏'];
-// What the renderer may consume as syntax: the markers of what it draws, spaces, tabs and line ends (ASCII
-// punctuation, digits, space, tab, CR, LF). Every other character of the input must be drawn, in order.
+  ' ', '  ', '\t', '\n', '\n\n', '\r\n', 'a', 'b', 'x', 'é', '家', '🙂', '‮', '⁦', '​', '‍', '﻿', ' ', '\u0085', '͏', '︀', '\u{E0100}'];
+// The ASCII characters the renderer may take as syntax: punctuation, digits, space, tab, CR, LF.
 const SYNTAX = /[\x20-\x2f\x3a-\x40\x5b-\x60\x7b-\x7e0-9\t\r\n]/;
-test('property: on generated Markdown, HTML, line breaks and invisible characters, the output holds only the renderer\'s elements and every non-syntax character in order', () => {
+// Syntax characters placed where nothing can make them syntax: inside a code span, a tag or image syntax. Their
+// insides hold every ASCII syntax character those forms allow, pipes and emphasis markers included.
+const INSIDE = ['|', '*', '**', '_', '#', '-', '+', '\\', '!', '[', '(', '~', '=', ':', '.', '1', ' ', 'a', '家'];
+const inert = random => {
+  let inside = 'a';
+  for (let k = 0, n = 1 + Math.floor(random() * 8); k < n; k++) inside += INSIDE[Math.floor(random() * INSIDE.length)];
+  inside += 'z';
+  const form = Math.floor(random() * 3);
+  // What must be shown, contiguous and whole: a code span's inside; a tag's or an image's whole source.
+  return form === 0 ? {source: '`' + inside + '`', shown: inside} : form === 1 ? {source: `<span title="${inside}">`, shown: `<span title="${inside}">`} : {source: `![${inside}](${inside.replace(/[()\s]/g, '')})`, shown: `![${inside}](${inside.replace(/[()\s]/g, '')})`};
+};
+const count = (chars, c) => chars.filter(d => d === c).length;
+test('property: on generated Markdown with its ASCII syntax kept, HTML, tables, line breaks and invisible characters, the output holds only the renderer\'s elements, every character that is not syntax in order and once, no syntax character it was not given, and every code span, tag and image whole', () => {
   const random = seeded(20261119);
-  for (let n = 0; n < 300; n++) {
+  for (let n = 0; n < 400; n++) {
     let input = '';
+    const fragments = [];
+    // Some inputs are tables, so pipes inside the inert forms meet cell boundaries.
+    const table = random() < 0.35;
+    if (table) input += '| h | i |\n|---|---|\n| ';
+    // Inputs with inert forms keep every other syntax character in their noise, but none that could open or close a
+    // code span, a tag or an image around them (a backtick, "<", "!" or a backslash), and tables keep to one row.
+    const withInert = table || random() < 0.5;
     const length = 1 + Math.floor(random() * 60);
-    for (let i = 0; i < length; i++) input += ALPHABET[Math.floor(random() * ALPHABET.length)];
+    for (let i = 0; i < length; i++) {
+      if (withInert && random() < 0.15) { const f = inert(random); fragments.push(f); input += ` ${f.source} `; continue; }
+      const c = ALPHABET[Math.floor(random() * ALPHABET.length)];
+      input += withInert ? (/[`<!\\]/.test(c) ? 'q' : table ? c.replace(/\r?\n/g, ' ') : c) : c;
+    }
     const raw = prose(input);
     assertProseOnly(raw, JSON.stringify(input));
-    const shown = [...visible(raw)], wanted = [...input].filter(c => !SYNTAX.test(c));
-    let at = 0;
-    for (const c of shown) if (at < wanted.length && c === wanted[at]) at++;
-    assert.equal(at, wanted.length, `${JSON.stringify(input)}: missing ${JSON.stringify(wanted.slice(at).join(''))} from ${JSON.stringify(visible(raw))}`);
+    const shownText = visible(raw), shown = [...shownText];
+    // Every character that is not ASCII syntax is shown, in order, and none twice.
+    assert.deepEqual(shown.filter(c => !SYNTAX.test(c)), [...input].filter(c => !SYNTAX.test(c)), `${JSON.stringify(input)} → ${JSON.stringify(shownText)}`);
+    // No syntax character is shown more often than it was supplied (a link's own " (" and ")" aside).
+    for (const c of new Set([...input].filter(c => SYNTAX.test(c) && !' ()\n\r\t'.includes(c)))) assert.ok(count(shown, c) <= count([...input], c), `${JSON.stringify(input)}: ${c} shown more often than supplied`);
+    // Each code span's inside, each tag and each image is shown whole: none of its characters taken as syntax.
+    for (const f of fragments) assert.ok(shownText.includes(f.shown), `${JSON.stringify(input)}: ${JSON.stringify(f.shown)} not shown whole in ${JSON.stringify(shownText)}`);
   }
+});
+
+test('a table\'s cells are split only at pipes outside code spans, tags and image syntax, and every character is kept', () => {
+  const raw = prose('| `a|b` | <span title="x|y">z</span> | ![p|q](r|s) | e\\|f |\n|---|---|---|---|\n| 1 | 2 | 3 | 4 |');
+  assert.equal((raw.match(/<tr>/g) ?? []).length, 2);
+  assert.equal((raw.match(/<td>/g) ?? []).length, 8, 'four cells in each row: no pipe inside the code span, tag or image split one');
+  const shown = visible(raw);
+  for (const whole of ['a|b', '<span title="x|y">z</span>', '![p|q](r|s)', 'e|f']) assert.ok(shown.includes(whole), whole);
+  assert.match(raw, /<code>a\|b<\/code>/);
+  // An emphasis marker inside a tag or an image is its text, even with an opener before it.
+  const em = prose('*a <span title="b*">c* and _d ![e_](f) g_');
+  assert.ok(visible(em).includes('<span title="b*">') && visible(em).includes('![e_](f)'), 'the markers inside are kept');
+  assert.equal((em.match(/<em>/g) ?? []).length, 2, 'each emphasis closes after the tag or image');
+  // A link's brackets are never inside a code span.
+  const link = prose('[`a](b`)');
+  assert.ok(visible(link).includes('a](b'), 'the code span is whole');
+  assert.doesNotMatch(link, /agent-prose-target/);
+});
+
+test('the prose renderer bounds the elements it makes: a header of 1,000 cells over 10,000 one-pipe rows renders quickly, only the cells supplied, the rest shown as written', () => {
+  const {PROSE_MAX_ELEMENTS, PROSE_REST_LINE} = loadSrc('AgentText');
+  const header = '| ' + Array.from({length: 1000}, (_, k) => `h${k}`).join(' | ') + ' |';
+  const input = `Intro\n\n${header}\n|${'---|'.repeat(1000)}\n${'|\n'.repeat(10000)}after`;
+  const {raw, ms} = timed(input);
+  assert.ok(ms < 3000, `rendered in ${ms} ms`);
+  assert.ok(raw.includes(PROSE_REST_LINE), 'a line says the rest is shown as written');
+  assert.ok((raw.match(/<td>/g) ?? []).length === 0, 'the table that would pass the bound is not drawn as a table');
+  assert.match(raw, /<p>Intro<\/p>/, 'the blocks before it are formatted');
+  const shown = visible(raw);
+  assert.ok(shown.includes('h0') && shown.includes('h999') && shown.includes('after'), 'every cell and the text after it are shown');
+  // A table within the bound: only the cells each row supplies.
+  const small = prose(`${header}\n|${'---|'.repeat(1000)}\n${'|\n'.repeat(3)}`);
+  assert.equal((small.match(/<td>/g) ?? []).length, 1000 + 3, 'the header\'s cells and one cell for each one-pipe row');
+  // Many small formatted blocks: the elements drawn formatted stop at the bound, and nothing is lost.
+  const many = Array.from({length: 4000}, (_, k) => `**b${k}** *i${k}*`).join('\n\n');
+  const big = prose(many);
+  const formatted = big.slice(0, big.indexOf(PROSE_REST_LINE));
+  assert.ok(big.includes(PROSE_REST_LINE));
+  assert.ok((formatted.match(/<[a-z]+[ >\/]/g) ?? []).length <= PROSE_MAX_ELEMENTS, 'no more elements than the bound before the rest');
+  assert.ok(visible(big).includes('b0') && visible(big).includes('i3999'));
+  assertProseOnly(formatted, 'the formatted part');
+});
+
+test('the combining grapheme joiner and variation selectors are marked in the agent\'s prose and the person\'s message; an emoji keeps its one presentation selector', () => {
+  const marks = raw => [...raw.matchAll(/‹U\+([0-9A-F]+)›/g)].map(m => m[1]);
+  const person = value => renderToStaticMarkup(React.createElement(PersonText, {value}));
+  // U+034F, a variation selector after a letter, the supplementary selectors, a selector after a selector, and a
+  // selector other than U+FE0E or U+FE0F after an emoji: all marked. The emoji's own U+FE0F, once, is kept.
+  const input = 'a͏b x︀ y\u{E0100}\u{E01EF} ❤️ ❤️️ 🙂︁ ☺︎';
+  for (const raw of [prose(input), person(input)]) {
+    assert.deepEqual(marks(raw), ['034F', 'FE00', 'E0100', 'E01EF', 'FE0F', 'FE01']);
+    assert.ok(raw.includes('❤️ <') || raw.includes('❤️'), 'the heart keeps its emoji presentation');
+    assert.ok(raw.includes('☺︎'), 'a text presentation selector after an emoji is kept too');
+  }
+  // Hidden data carried as a run of selectors after one emoji is shown as marks.
+  assert.equal(marks(prose('🙂' + '︀︁︂'.repeat(4))).length, 12);
 });
 
 test('the speaker\'s label is the strongest text in a bubble: no prose heading or bold is larger or heavier', async () => {

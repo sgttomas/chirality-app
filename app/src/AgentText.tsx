@@ -34,8 +34,14 @@ export const AGENT_TEXT_WORDS: Record<AgentTextSource, { label: string; name: st
 // hand-kept list. A character assigned in a later Unicode version than this
 // runtime knows is unassigned to it, so it is marked too. Line feeds and tabs
 // have their own marks.
-const MARKED = /[\p{C}\p{Zl}\p{Zp}]/u;
-const SPECIAL = /(\r?\n|\t|[\p{C}\p{Zl}\p{Zp}])/u;
+// Default-ignorable characters outside those categories are marked too: the combining grapheme joiner (U+034F) and
+// the variation selectors (U+FE00 to U+FE0F, U+E0100 to U+E01EF). One exception keeps an emoji readable: a single
+// text or emoji presentation selector (U+FE0E or U+FE0F) directly after a character with Unicode's Emoji property is
+// that character's ordinary presentation and is shown as written; any other variation selector, and every selector
+// after the first, is marked.
+const MARKED = /[\p{C}\p{Zl}\p{Zp}͏︀-️\u{E0100}-\u{E01EF}]/u;
+const PRESENTATION = /[︎️]/u;
+const EMOJI = /\p{Emoji}/u;
 
 /** A Codex-supplied identifier (a thread's, for example) that may stand in the App's own words or in a
  * control: letters, digits and . _ : - only, at most 128 characters. Anything else is shown beside, as
@@ -83,13 +89,22 @@ export type AgentTextPart = { text: string; mark: boolean };
 /** The parts of one line (or of an inline value: its line breaks become ⏎). */
 export function agentTextParts(value: string): AgentTextPart[] {
   const parts: AgentTextPart[] = [];
-  for (const piece of value.split(SPECIAL)) {
-    if (piece === "") continue;
-    if (piece === "\n" || piece === "\r\n") parts.push({ text: LINE_BREAK_MARK, mark: true });
-    else if (piece === "\t") parts.push({ text: TAB_MARK, mark: true });
-    else if ([...piece].length === 1 && MARKED.test(piece)) parts.push({ text: codePoint(piece), mark: true });
-    else parts.push({ text: piece, mark: false });
+  let text = "";
+  // Whether the character before is an emoji character (so one presentation selector after it is kept as written).
+  let afterEmoji = false;
+  const mark = (shown: string) => { if (text) { parts.push({ text, mark: false }); text = ""; } parts.push({ text: shown, mark: true }); };
+  for (let i = 0; i < value.length;) {
+    const c = String.fromCodePoint(value.codePointAt(i)!);
+    i += c.length;
+    if (PRESENTATION.test(c) && afterEmoji) { text += c; afterEmoji = false; continue; }
+    afterEmoji = false;
+    if (c === "\r" && value[i] === "\n") { i++; mark(LINE_BREAK_MARK); }
+    else if (c === "\n") mark(LINE_BREAK_MARK);
+    else if (c === "\t") mark(TAB_MARK);
+    else if (MARKED.test(c)) mark(codePoint(c));
+    else { text += c; afterEmoji = EMOJI.test(c); }
   }
+  if (text) parts.push({ text, mark: false });
   return parts;
 }
 
@@ -212,6 +227,52 @@ const LINK = /\[((?:\\.|[^\]\\\n])+)\]\([ \t]*<?([^\s()<>]+)>?(?:[ \t]+("[^"\n]*
 const IMAGE = /!\[[^\]\n]*\]\([^)\n]*\)/y;
 const sticky = (pattern: RegExp, source: string, at: number) => { pattern.lastIndex = at; return pattern.exec(source); };
 
+/** A stretch of a line that is drawn as one thing and never broken by other syntax: a code span, an autolink, what
+ * looks like an HTML tag, or image syntax. No emphasis marker, link bracket or table cell boundary inside one is
+ * taken as syntax. `end` is exclusive; `n` is a code span's backtick count. */
+type Inert = { start: number; end: number; kind: "code" | "autolink" | "html" | "image"; n?: number; match?: RegExpExecArray };
+/** The inert stretches of a line, left to right, as the inline parse finds them (escapes first, then each opener). */
+function inertRanges(source: string): Inert[] {
+  const out: Inert[] = [];
+  // A backtick run that found no close from one position finds none from a later one: each is searched once.
+  const unclosed = new Set<number>();
+  let i = 0;
+  while (i < source.length) {
+    const c = source[i];
+    if (c === "\\" && i + 1 < source.length && ESCAPABLE.test(source[i + 1])) { i += 2; continue; }
+    if (c === "`") {
+      let n = 0;
+      while (source[i + n] === "`") n++;
+      const fence = "`".repeat(n);
+      let close = unclosed.has(n) ? -1 : source.indexOf(fence, i + n);
+      while (close !== -1 && source[close + n] === "`") { let m = close; while (source[m] === "`") m++; close = source.indexOf(fence, m); }
+      if (close === -1) { unclosed.add(n); i += n; continue; }
+      out.push({ start: i, end: close + n, kind: "code", n }); i = close + n; continue;
+    }
+    if (c === "!" && source[i + 1] === "[") {
+      const image = sticky(IMAGE, source, i);
+      if (image) { out.push({ start: i, end: i + image[0].length, kind: "image" }); i += image[0].length; continue; }
+    }
+    if (c === "<") {
+      const auto = sticky(AUTOLINK, source, i);
+      if (auto) { out.push({ start: i, end: i + auto[0].length, kind: "autolink", match: auto }); i += auto[0].length; continue; }
+      const tag = sticky(HTML_TAG, source, i);
+      if (tag) { out.push({ start: i, end: i + tag[0].length, kind: "html" }); i += tag[0].length; continue; }
+    }
+    i++;
+  }
+  return out;
+}
+/** The inert stretch holding position `at` (start included, end excluded), or null. */
+const inertAt = (ranges: Inert[], at: number): Inert | null => {
+  let low = 0, high = ranges.length - 1;
+  while (low <= high) {
+    const mid = (low + high) >> 1, range = ranges[mid];
+    if (at < range.start) high = mid - 1; else if (at >= range.end) low = mid + 1; else return range;
+  }
+  return null;
+};
+
 /** Inline prose: code spans, links (drawn as text and target), emphasis and strong; everything else is text. A line
  * longer than PROSE_MAX_INLINE_LINE, and emphasis nested deeper than PROSE_MAX_DEPTH, is text as written. */
 export function proseInlines(source: string, depth = 0): ProseInline[] {
@@ -219,41 +280,34 @@ export function proseInlines(source: string, depth = 0): ProseInline[] {
   const out: ProseInline[] = [];
   let text = "";
   const flush = () => { if (text) { out.push({ kind: "text", text }); text = ""; } };
-  // A marker or fence that found no close from one position finds none from a later one: each is searched once.
+  // An emphasis marker that found no close from one position finds none from a later one: each is searched once.
   const unclosed = new Set<string>();
-  const lastBacktick = source.lastIndexOf("`");
+  const ranges = inertRanges(source);
+  let next = 0; // the first inert stretch not yet reached
   // A link that failed at one "[" fails at every "[" before the "]" that ended its attempt.
   let linkFailsBefore = -1;
   let i = 0;
   while (i < source.length) {
     const c = source[i];
+    while (next < ranges.length && ranges[next].end <= i) next++;
+    const range = next < ranges.length && ranges[next].start === i ? ranges[next] : null;
+    if (range) {
+      if (range.kind === "code") {
+        let inner = source.slice(i + range.n!, range.end - range.n!);
+        if (inner.length > 1 && inner.startsWith(" ") && inner.endsWith(" ") && trimSpace(inner) !== "") inner = inner.slice(1, -1);
+        flush(); out.push({ kind: "code", text: inner });
+      } else if (range.kind === "autolink") {
+        flush(); out.push({ kind: "link", children: [{ kind: "text", text: range.match![1] }], target: range.match![1] });
+      } else text += source.slice(range.start, range.end); // an image and what looks like an HTML tag: their source text
+      i = range.end; next++; continue;
+    }
     if (c === "\\" && i + 1 < source.length && ESCAPABLE.test(source[i + 1])) { text += source[i + 1]; i += 2; continue; }
-    if (c === "`") {
-      let n = 0;
-      while (source[i + n] === "`") n++;
-      const fence = "`".repeat(n);
-      let close = unclosed.has(fence) ? -1 : source.indexOf(fence, i + n);
-      while (close !== -1 && source[close + n] === "`") { let m = close; while (source[m] === "`") m++; close = source.indexOf(fence, m); }
-      if (close === -1) { unclosed.add(fence); text += fence; i += n; continue; }
-      let inner = source.slice(i + n, close);
-      if (inner.length > 1 && inner.startsWith(" ") && inner.endsWith(" ") && trimSpace(inner) !== "") inner = inner.slice(1, -1);
-      flush(); out.push({ kind: "code", text: inner }); i = close + n; continue;
-    }
-    if (c === "!" && source[i + 1] === "[") {
-      // An image is drawn as its source text, so its label is never read as a link.
-      const image = sticky(IMAGE, source, i);
-      if (image) { text += image[0]; i += image[0].length; continue; }
-    }
     if (c === "[" && i >= linkFailsBefore) {
-      const link = sticky(LINK, source, i);
+      let link = sticky(LINK, source, i);
+      // A link's own brackets and parentheses are never inside a code span, a tag or an image.
+      if (link && (inertAt(ranges, i + 1 + link[1].length) || inertAt(ranges, i + link[0].length - 1))) link = null;
       if (!link) { const end = source.indexOf("]", i); linkFailsBefore = end === -1 ? source.length : end; }
       if (link) { flush(); out.push({ kind: "link", children: proseInlines(link[1], depth + 1), target: link[3] ? `${link[2]} ${link[3]}` : link[2] }); i += link[0].length; continue; }
-    }
-    if (c === "<") {
-      const auto = sticky(AUTOLINK, source, i);
-      if (auto) { flush(); out.push({ kind: "link", children: [{ kind: "text", text: auto[1] }], target: auto[1] }); i += auto[0].length; continue; }
-      const tag = sticky(HTML_TAG, source, i);
-      if (tag) { text += tag[0]; i += tag[0].length; continue; }
     }
     if (c === "*" || c === "_") {
       const double = source[i + 1] === c;
@@ -264,9 +318,11 @@ export function proseInlines(source: string, depth = 0): ProseInline[] {
       if (opens) {
         let close = -1;
         for (let j = i + marker.length + 1; j <= source.length - marker.length; j++) {
+          // A marker inside a code span, a tag or an image is its text: the search passes over the whole stretch.
+          const inert = inertAt(ranges, j);
+          if (inert) { j = inert.end - 1; continue; }
           if (source.startsWith(marker, j) && !/\s/.test(source[j - 1]) && (double || source[j + 1] !== c) && (double || source[j - 1] !== c)
-            && !(c === "_" && WORD_CHAR.test(source[j + marker.length] ?? ""))) { close = j; break; }
-          if (source[j] === "`" && j < lastBacktick) { const end = source.indexOf("`", j + 1); if (end !== -1) j = end; }
+            && !(c === "_" && WORD_CHAR.test(source[j + marker.length] ?? "")) && !inertAt(ranges, j + marker.length - 1)) { close = j; break; }
         }
         if (close !== -1) {
           flush();
@@ -292,11 +348,25 @@ const ITEM = /^( {0,3})([-*+]|\d{1,9}[.)])([ \t]+(.*))?$/;
 const TABLE_RULE = /^ {0,3}\|?[ \t]*:?-+:?[ \t]*(\|[ \t]*:?-+:?[ \t]*)*\|?[ \t]*$/;
 const SETEXT = /^ {0,3}(=+|-+)[ \t]*$/;
 const blank = (line: string) => /^[ \t]*$/.test(line);
+/** A table row's cells: split at each pipe that is neither escaped nor inside a code span, a tag or an image (an
+ * escaped pipe stays escaped for the inline parse, which draws it as a pipe), with an outer pipe at either edge
+ * dropped. Only the cells the row supplies: none is added. */
 const cells = (line: string, depth: number) => {
-  let row = trimSpace(line);
-  if (row.startsWith("|")) row = row.slice(1);
-  if (row.endsWith("|") && !row.endsWith("\\|")) row = row.slice(0, -1);
-  return row.split(/(?<!\\)\|/).map(cell => proseInlines(trimSpace(cell).replace(/\\\|/g, "|"), depth));
+  const row = trimSpace(line);
+  const ranges = inertRanges(row);
+  const pieces: string[] = [];
+  let from = 0;
+  for (let i = 0; i < row.length; i++) {
+    if (row[i] === "\\" && i + 1 < row.length && ESCAPABLE.test(row[i + 1])) { i++; continue; }
+    const inert = inertAt(ranges, i);
+    if (inert) { i = inert.end - 1; continue; }
+    if (row[i] === "|") { pieces.push(row.slice(from, i)); from = i + 1; }
+  }
+  const last = row.slice(from);
+  // The outer pipes: one at the start leaves an empty first piece, one at the end an empty last piece.
+  if (pieces.length > 0 && row.startsWith("|")) pieces.shift();
+  if (last !== "" || pieces.length === 0 || !row.endsWith("|")) pieces.push(last);
+  return pieces.map(cell => proseInlines(trimSpace(cell), depth));
 };
 const startsBlock = (line: string, next: string | undefined) => FENCE.test(line) || ATX.test(line) || RULE.test(line) || QUOTE.test(line) || ITEM.test(line)
   || (line.includes("|") && next !== undefined && TABLE_RULE.test(next) && next.includes("-"));
@@ -308,26 +378,72 @@ const literal = (line: string): ProseInline[] => line ? [{ kind: "text", text: l
 
 /** Prose blocks from the agent's text. Lines are split at line feeds; a carriage return before one is dropped.
  * Throws when the message exceeds the renderer's bounds (proseWithin says whether it does). */
-export function proseBlocks(source: string): ProseBlock[] {
+export function proseBlocks(source: string, starts?: number[]): ProseBlock[] {
   if (source.length > PROSE_MAX_CHARS) throw new ProseBounds("too large");
   const lines = source.split(/\r?\n/);
-  return blocksOf(lines, 0, { left: PROSE_LINE_BUDGET * Math.max(lines.length, 16) });
+  return blocksOf(lines, 0, { left: PROSE_LINE_BUDGET * Math.max(lines.length, 16) }, starts);
 }
 /** The blocks, or null when the message is too large or too deep to parse within the renderer's bounds. */
-export function proseWithin(source: string): ProseBlock[] | null {
-  try { return proseBlocks(source); } catch (error) { if (error instanceof ProseBounds) return null; throw error; }
+export function proseWithin(source: string, starts?: number[]): ProseBlock[] | null {
+  try { return proseBlocks(source, starts); } catch (error) { if (error instanceof ProseBounds) return null; throw error; }
 }
-function blocksOf(lines: string[], depth: number, budget: Budget): ProseBlock[] {
+
+/** The most elements drawn for one message's formatted prose. The blocks that would take it past this are drawn, with
+ * every block after them, as the rest of the message in the marked form (AgentText), after a line saying so. */
+export const PROSE_MAX_ELEMENTS = 10_000;
+const MARK_COUNT = /[\p{C}\p{Zl}\p{Zp}͏︀-️\u{E0100}-\u{E01EF}\t]/gu;
+/** An upper bound on the elements one piece of inline prose draws (each mark is one), counted until `limit`. */
+function inlineCost(nodes: ProseInline[], limit: number): number {
+  let cost = 0;
+  for (const node of nodes) {
+    if (cost > limit) break;
+    if (node.kind === "text" || node.kind === "code") cost += (node.kind === "code" ? 1 : 0) + (node.text.match(MARK_COUNT)?.length ?? 0);
+    else cost += 2 + inlineCost(node.children, limit - cost) + (node.kind === "link" ? (node.target.match(MARK_COUNT)?.length ?? 0) + 1 : 0);
+  }
+  return cost;
+}
+/** An upper bound on the elements one block draws, counted until `limit` (beyond it the count stops). */
+function blockCost(block: ProseBlock, limit: number): number {
+  switch (block.kind) {
+    case "paragraph": { let cost = 1 + block.lines.length; for (const line of block.lines) { if (cost > limit) break; cost += inlineCost(line, limit - cost); } return cost; }
+    case "heading": return 2 + inlineCost(block.content, limit);
+    case "list": { let cost = 1; for (const item of block.items) { if (cost > limit) break; cost += 1; for (const inner of item) { if (cost > limit) break; cost += blockCost(inner, limit - cost); } } return cost; }
+    case "code": return 4 + (block.text.match(MARK_COUNT)?.length ?? 0) + (block.info.match(MARK_COUNT)?.length ?? 0);
+    case "quote": { let cost = 1; for (const inner of block.blocks) { if (cost > limit) break; cost += blockCost(inner, limit - cost); } return cost; }
+    case "table": {
+      let cost = 4 + block.header.length * 2;
+      for (const row of block.rows) { if (cost > limit) break; cost += 1 + row.length; for (const cell of row) { if (cost > limit) break; cost += inlineCost(cell, limit - cost); } }
+      for (const cell of block.header) { if (cost > limit) break; cost += inlineCost(cell, limit - cost); }
+      return cost;
+    }
+    case "rule": return 1;
+  }
+}
+/** How many of the message's blocks are drawn formatted: those before the first that would take the elements drawn
+ * past PROSE_MAX_ELEMENTS. */
+export function proseShownBlocks(blocks: ProseBlock[], limit = PROSE_MAX_ELEMENTS): number {
+  let cost = 1;
+  for (let k = 0; k < blocks.length; k++) {
+    cost += blockCost(blocks[k], limit - cost + 1);
+    if (cost > limit) return k;
+  }
+  return blocks.length;
+}
+function blocksOf(lines: string[], depth: number, budget: Budget, starts?: number[]): ProseBlock[] {
   budget.left -= lines.length;
   if (budget.left < 0) throw new ProseBounds("too deep");
   // Beyond the nesting bound, every line is literal text, drawn as written.
   if (depth >= PROSE_MAX_DEPTH) return lines.some(line => !blank(line)) ? [{ kind: "paragraph", lines: lines.map(literal) }] : [];
   const blocks: ProseBlock[] = [];
+  // The line each block starts on (kept for the message's own blocks, so the rest of a message can be shown as written).
+  let at = 0;
+  const push = (block: ProseBlock) => { blocks.push(block); starts?.push(at); };
   const inline = (line: string) => proseInlines(line, 0);
   let i = 0;
   while (i < lines.length) {
     const line = lines[i];
     if (blank(line)) { i++; continue; }
+    at = i;
     const fence = FENCE.exec(line);
     if (fence && !(fence[2][0] === "`" && fence[3].includes("`"))) {
       const indent = fence[1].length, mark = fence[2];
@@ -340,12 +456,12 @@ function blocksOf(lines: string[], depth: number, budget: Budget): ProseBlock[] 
         i++;
       }
       i++;
-      blocks.push({ kind: "code", text: body.join("\n"), info: trimSpace(fence[3]) });
+      push({ kind: "code", text: body.join("\n"), info: trimSpace(fence[3]) });
       continue;
     }
     const atx = ATX.exec(line);
-    if (atx) { blocks.push({ kind: "heading", level: atx[1].length, content: inline(atx[2] ?? "") }); i++; continue; }
-    if (RULE.test(line)) { blocks.push({ kind: "rule" }); i++; continue; }
+    if (atx) { push({ kind: "heading", level: atx[1].length, content: inline(atx[2] ?? "") }); i++; continue; }
+    if (RULE.test(line)) { push({ kind: "rule" }); i++; continue; }
     if (QUOTE.test(line)) {
       const inner: string[] = [];
       while (i < lines.length && !blank(lines[i]) && (QUOTE.test(lines[i]) || inner.length > 0 && !startsBlock(lines[i], lines[i + 1]))) {
@@ -353,7 +469,7 @@ function blocksOf(lines: string[], depth: number, budget: Budget): ProseBlock[] 
         inner.push(quoted ? quoted[1] : lines[i]);
         i++;
       }
-      blocks.push({ kind: "quote", blocks: blocksOf(inner, depth + 1, budget) });
+      push({ kind: "quote", blocks: blocksOf(inner, depth + 1, budget) });
       continue;
     }
     const item = ITEM.exec(line);
@@ -385,7 +501,7 @@ function blocksOf(lines: string[], depth: number, budget: Budget): ProseBlock[] 
         const following = j < lines.length ? ITEM.exec(lines[j]) : null;
         if (following && /\d/.test(following[2]) === ordered && following[1].length <= 3) i = j; else break;
       }
-      blocks.push({ kind: "list", ordered, start, items });
+      push({ kind: "list", ordered, start, items });
       continue;
     }
     if (line.includes("|") && i + 1 < lines.length && TABLE_RULE.test(lines[i + 1]) && lines[i + 1].includes("-")) {
@@ -393,7 +509,7 @@ function blocksOf(lines: string[], depth: number, budget: Budget): ProseBlock[] 
       const rows: ProseInline[][][] = [];
       i += 2;
       while (i < lines.length && !blank(lines[i]) && lines[i].includes("|")) { rows.push(cells(lines[i], 0)); i++; }
-      blocks.push({ kind: "table", header, rows });
+      push({ kind: "table", header, rows });
       continue;
     }
     const paragraph: string[] = [line];
@@ -401,13 +517,13 @@ function blocksOf(lines: string[], depth: number, budget: Budget): ProseBlock[] 
     while (i < lines.length && !blank(lines[i])) {
       if (SETEXT.test(lines[i])) {
         const level = trimSpace(lines[i])[0] === "=" ? 1 : 2;
-        blocks.push({ kind: "heading", level, content: inline(paragraph.map(trimSpace).join(" ")) });
+        push({ kind: "heading", level, content: inline(paragraph.map(trimSpace).join(" ")) });
         paragraph.length = 0; i++; break;
       }
       if (startsBlock(lines[i], lines[i + 1])) break;
       paragraph.push(lines[i]); i++;
     }
-    if (paragraph.length) blocks.push({ kind: "paragraph", lines: paragraph.map(l => inline(l.replace(/^[ \t]+/, "").replace(/(?: {2,}|\\)$/, ""))) });
+    if (paragraph.length) push({ kind: "paragraph", lines: paragraph.map(l => inline(l.replace(/^[ \t]+/, "").replace(/(?: {2,}|\\)$/, ""))) });
   }
   return blocks;
 }
@@ -446,12 +562,10 @@ function ProseBlocks({ value }: { value: ProseBlock[] }) {
       case "code": return <Fragment key={i}>{block.info && <p className="agent-prose-code-info"><ProseText value={block.info} /></p>}<pre className="agent-prose-code"><code>{block.text.split("\n").map((line, k) => <Fragment key={k}>{k > 0 && "\n"}<ProseText value={line} /></Fragment>)}</code></pre></Fragment>;
       case "quote": return <blockquote key={i}><ProseBlocks value={block.blocks} /></blockquote>;
       case "table": {
-        // Every cell of every row, however many more than the header has.
-        const width = Math.max(block.header.length, ...block.rows.map(row => row.length));
-        const columns = Array.from({ length: width }, (_, k) => k);
+        // Every cell each row supplies, and no other: a row shorter or longer than the header is drawn as it is.
         return <table key={i} className="agent-prose-table">
-          <thead><tr>{columns.map(k => <td key={k}><strong><ProseInlines value={block.header[k] ?? []} /></strong></td>)}</tr></thead>
-          <tbody>{block.rows.map((row, r) => <tr key={r}>{columns.map(k => <td key={k}><ProseInlines value={row[k] ?? []} /></td>)}</tr>)}</tbody>
+          <thead><tr>{block.header.map((cell, k) => <td key={k}><strong><ProseInlines value={cell} /></strong></td>)}</tr></thead>
+          <tbody>{block.rows.map((row, r) => <tr key={r}>{row.map((cell, k) => <td key={k}><ProseInlines value={cell} /></td>)}</tr>)}</tbody>
         </table>;
       }
       case "rule": return <hr key={i} />;
@@ -465,10 +579,21 @@ export const AGENT_PROSE_NAME = "Text the agent wrote, not the App's words";
  * A message beyond the renderer's bounds is drawn whole in that marked form. */
 export function AgentProse({ value, name = AGENT_PROSE_NAME }: { value: Json; name?: string }) {
   const source = agentTextValue(value);
-  const blocks = proseWithin(source);
+  const starts: number[] = [];
+  const blocks = proseWithin(source, starts);
   if (blocks === null) return <AgentText block value={source} source="agent" name={name} />;
-  return <div role="group" aria-label={name} className="agent-prose chat-markdown"><ProseBlocks value={blocks} /></div>;
+  const shown = proseShownBlocks(blocks);
+  if (shown === blocks.length) return <div role="group" aria-label={name} className="agent-prose chat-markdown"><ProseBlocks value={blocks} /></div>;
+  // Beyond the element bound: the blocks before it formatted, then the rest of the message as written, marked.
+  const rest = source.split(/\r?\n/).slice(starts[shown]).join("\n");
+  return <>
+    {shown > 0 && <div role="group" aria-label={name} className="agent-prose chat-markdown"><ProseBlocks value={blocks.slice(0, shown)} /></div>}
+    <p className="agent-prose-rest">{PROSE_REST_LINE}</p>
+    <AgentText block value={rest} source="agent" name={name} />
+  </>;
 }
+/** The App's line before the rest of a message too large to format. */
+export const PROSE_REST_LINE = "The rest of this message is too long to format, so it is shown as written.";
 
 /** The accessibility name of the person's own message as Codex recorded it. */
 export const PERSON_TEXT_NAME = AGENT_TEXT_WORDS.person.name;
@@ -557,6 +682,21 @@ export function boundedTitle(value: unknown): { text: string; total: number; sho
   if (!text) return null;
   const points = [...text];
   return points.length > CHOICE_TITLE_LIMIT ? { text: points.slice(0, CHOICE_TITLE_LIMIT).join(""), total: points.length, shortened: true } : { text, total: points.length, shortened: false };
+}
+/**
+ * A value Codex reported, drawn inside one of the App's own controls (the settings line's model pill): set apart in the
+ * conversation title's marked form, its line breaks and control characters as marks, shortened as a title is. Its words
+ * for the control's accessible name come from `reportedValueWords`, after the App's words saying whose it is.
+ */
+export function ReportedInControl({ value }: { value: string }) {
+  const shown = boundedTitle(value);
+  if (!shown) return null;
+  return <span className="v4-reported-in-control" style={choiceTitleStyle}><Parts value={shown.text} />{shown.shortened ? "…" : null}</span>;
+}
+/** The words of `ReportedInControl` for an accessible name: the same characters, with marks in place of control characters. */
+export function reportedValueWords(value: string): string {
+  const shown = boundedTitle(value);
+  return shown ? agentTextParts(shown.text).map(part => part.text).join("") + (shown.shortened ? "…" : "") : "";
 }
 /** The App's words after a shortened title: how much of it is shown. */
 const titleCount = (title: { total: number; shortened: boolean }) => title.shortened ? ` (its first ${CHOICE_TITLE_LIMIT} of ${title.total} characters)` : "";

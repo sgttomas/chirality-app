@@ -101,7 +101,7 @@ test('card states use the person words for each register state (CS)',()=>{
     [{state:'declined',settlement:{origin:{class:'person-via-interaction'}}},'You declined; written to Codex; Codex has not confirmed it'],
     [{state:'declined',settlement:{origin:{class:'app-rule',ruleName:'on-stop'}}},'Declined by an App rule (named below), not by you'],
     [{state:'settle-write-failed'},'Your answer could not be written; whether Codex received it is unknown'],
-    [{state:'resolved-by-supplier',supplierResolution:{source:'serverRequest/resolved'}},'Resolved by Codex before you answered (cause: not reported)'],
+    [{state:'resolved-by-supplier',supplierResolution:{source:'serverRequest/resolved'}},'Resolved by Codex before you answered'],
     [{state:'ended-unanswered'},'Ended unanswered: the Codex process ended'],
     [{state:'ended-unanswered',endContext:'app-quit'},'Ended unanswered: the Codex process ended when you quit'],
     [{state:'ended-unanswered',endContext:'supplier-exit'},'Ended unanswered: the Codex process ended'],
@@ -452,4 +452,18 @@ test('an older custody reread cannot replace the safe observation of a newer exp
     assert.match(ui.container.textContent,/The reply was written locally/);
     assert.equal(ui.calls.filter(call=>call.command==='answer_native_request').length,2,'only the two person-directed replies were invoked');
   },{outcome:'dismissed',permission:true,withConversation:true,afterCommandRead:async snapshot=>{reads++;if(reads===2){reached();await held;return snapshot;}}});
+});
+
+test('a request Codex resolved: the App\'s closed words stand alone and the cause Codex supplied is beside them, marked',()=>{
+  for(const cause of ['supplier-native','Allow once','x\nAllow']){
+    const request={...entry({state:'resolved-by-supplier',supplierResolution:{source:'serverRequest/resolved',cause}})};
+    const raw=renderToStaticMarkup(React.createElement(NativeRequestCard,{request,view:null,answer:async()=>{}}));
+    const sentence=raw.match(/<p><b>([^<]*)<\/b>([\s\S]*?)<\/p>/);
+    assert.ok(sentence,'the state line is drawn');
+    assert.equal(sentence[1],'Resolved by Codex before you answered','the App\'s words alone');
+    assert.match(sentence[2],/^ <span role="group" aria-label="The cause Codex reported for resolving the request, not the App&#x27;s words" class="agent-text"/,'the cause beside them, marked');
+    assert.ok(sentence[2].includes(cause.split('\n')[0]),'the cause is shown');
+  }
+  const none=renderToStaticMarkup(React.createElement(NativeRequestCard,{request:entry({state:'resolved-by-supplier',supplierResolution:{}}),view:null,answer:async()=>{}}));
+  assert.match(none,/<b>Resolved by Codex before you answered<\/b> Codex reported no cause\./);
 });

@@ -383,3 +383,88 @@ test('failed trust writes show requested entry and key without any confirmed-sen
     });
   }
 });
+
+// ---- The level's chooser in the conversation: one shared choice, the missing row, the ask's scope, the one-press panel ----
+const panelHost=(over={})=>host({roleLimits:{account:{roles:[]}},...over});
+async function inConversation(h,threadKey,check,change){
+  const {ConversationPanel}=loadSrc('App');const noop=async()=>{};
+  const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c),calls=[];
+  const draw=()=>React.createElement(PermissionLevelActions.Provider,{value:{unavailable:false,stale:false,host:h,change:async(...args)=>{calls.push(args);return change(...args);}}},
+    React.createElement(ConversationPanel,{host:h,threadKey,setThreadKey:()=>{},answer:noop,runAct:noop,send:noop,steer:noop,submitAttachments:noop,interrupt:noop,checkPlanMode:noop,codexBusy:false}));
+  try{await React.act(async()=>root.render(draw()));await check({c,calls});}finally{await React.act(()=>root.unmount());document.body.removeChild(c);}
+}
+const askAbove=c=>c.querySelectorAll(e=>e.getAttribute('class')==='v4-level-ask')[0];
+const fullPanel=c=>c.querySelectorAll(e=>e.getAttribute('class')==='workflow-stage'&&/permission level/i.test(e.getAttribute('aria-label')??''))[0];
+const continueIn=el=>nodes(el,'button').find(b=>b.textContent==='Use selected level and continue');
+
+test('the ask above the composer and the panel in Conversation tools share one choice, one pending write and one outcome',async()=>{
+  const ask=panelHost({levelDefault:null,levelRecordMissing:sentence('RECORD_MISSING_SENTENCE'),levelAskPreselected:'full'});
+  let release;const held=new Promise(r=>{release=r;});
+  await inConversation(ask,'',async({c,calls})=>{
+    const dock=askAbove(c),panel=fullPanel(c);
+    assert.ok(dock&&panel,'both copies are mounted');
+    assert.ok(continueIn(dock)&&continueIn(panel));
+    // A choice in one is the choice in the other.
+    await React.act(()=>props(nodes(dock,'select')[0]).onChange({target:{value:'supervised'}}));
+    assert.equal(props(nodes(askAbove(c),'select')[0]).value,'supervised');
+    assert.equal(props(nodes(fullPanel(c),'select')[0]).value,'supervised','the panel shows the same selection');
+    // A write held by one disables the other, and the other's handler sends nothing.
+    const otherPress=props(continueIn(fullPanel(c))).onClick;
+    let first;await React.act(async()=>{first=props(continueIn(askAbove(c))).onClick();});
+    assert.equal(calls.length,1);
+    assert.equal(props(continueIn(fullPanel(c))).disabled,true,'the panel\'s button is disabled while the ask\'s write is held');
+    assert.equal(props(nodes(fullPanel(c),'select')[0]).disabled,true);
+    await React.act(async()=>{otherPress();});
+    assert.equal(calls.length,1,'no second write');
+    assert.deepEqual(calls[0].slice(1),['default','supervised']);
+    // The outcome is shown in both, once each.
+    await React.act(async()=>{release({result:{state:'chosen'},refreshFailed:false});await first;});
+    for(const el of [askAbove(c),fullPanel(c)])assert.match(el.textContent,/The App accepted your level choice/);
+    assert.equal(props(continueIn(fullPanel(c))).disabled,false);
+  },()=>held);
+});
+
+test('a chosen conversation whose row is missing shows no level of the default and offers no change',async()=>{
+  const ask=panelHost({levelRecordMissing:sentence('RECORD_MISSING_SENTENCE'),levelAskPreselected:'full',threads:[]});
+  await inConversation(ask,JSON.stringify([g,'gone']),async({c,calls})=>{
+    const level=settingButton(c,'Access level');
+    assert.equal(level.textContent,'Not available');
+    assert.equal(props(level)['aria-label'],'Access level: Not available. Opens what it allows.');
+    assert.ok(!askAbove(c),'no ask above the composer');
+    const pop=c.querySelectorAll(e=>e.getAttribute('aria-label')==='Access level'&&e.getAttribute('role')==='dialog')[0];
+    assert.match(pop.textContent,/^The conversation chosen is not available now, so its permission level is not shown and cannot be changed here\.$/);
+    assert.ok(nodes(pop,'button').length===0,'the panel offers no change');
+    const tools=fullPanel(c);
+    assert.match(tools.textContent,/The conversation chosen is not available now/);
+    assert.ok(nodes(tools,'select').length===0&&nodes(tools,'button').length===0,'no chooser in Conversation tools');
+    assert.doesNotMatch(c.textContent,/Full access|new conversations/,'nothing of the default is shown as this conversation\'s');
+    assert.deepEqual(calls,[]);
+  },async()=>({result:{state:'chosen'}}));
+});
+
+test('the ask above the composer says, in the full panel\'s words, when its press changes the default for new and saved conversations',async()=>{
+  const global=panelHost({levelDefault:null,levelRecordMissing:sentence('RECORD_MISSING_SENTENCE'),levelAskPreselected:'full'});
+  await inConversation(global,'',async({c})=>{
+    assert.ok(askAbove(c).textContent.includes(sentence('DEFAULT_SCOPE_SENTENCE')),'the default\'s scope is in view with the ask');
+  },async()=>({}));
+  // A conversation's own ask changes only that conversation: no default sentence beside it.
+  const own=panelHost({threads:[thread('T',{chosen:null,ask:{sentence:'Invented ask for this conversation.',preselected:'full'}})]});
+  await inConversation(own,JSON.stringify([g,'T']),async({c})=>{
+    assert.ok(askAbove(c).textContent.includes('Invented ask for this conversation.'));
+    assert.ok(!askAbove(c).textContent.includes(sentence('DEFAULT_SCOPE_SENTENCE')));
+  },async()=>({}));
+});
+
+test('the one-press level panel shows what Codex reported where it differs, the trust lines with their project root and the lasting rules, in view',async()=>{
+  const level={chosen:chosen('supervised','chosen'),sent:{levelId:'supervised',writeResult:'written'},agreement:'differs',
+    reported:{requestedLevelId:'supervised',approvalPolicy:'invented-policy',approvalsReviewer:'invented-reviewer',sandbox:{type:'invented-sandbox'}},
+    projectTrust:{lines:['Invented trust line.'],projectRoot:'/invented/root'}};
+  const rules={appSentence:'Invented rules sentence.',homes:[{modeHomeClass:'account',home:'/invented/home',lastingRules:{state:'read',files:[{path:'/invented/home/rules/a.rules',prefixRules:[{line:'prefix_rule(pattern=["invented"])'}],networkRules:[]}]}}]};
+  await inConversation(panelHost({threads:[thread('T',level)],codexHomeRules:rules}),JSON.stringify([g,'T']),async({c})=>{
+    const pop=c.querySelectorAll(e=>e.getAttribute('aria-label')==='Access level'&&e.getAttribute('role')==='dialog')[0];
+    const said=pop.textContent;
+    for(const words of ['Codex reported another level. The next turn is refused.','invented-policy','invented-reviewer','invented-sandbox',
+      'Invented trust line.','/invented/root','Invented rules sentence.','/invented/home/rules/a.rules','prefix_rule(pattern=["invented"])'])assert.ok(said.includes(words),words);
+    assert.ok(nodes(pop,'details').length===0,'no further disclosure');
+  },async()=>({}));
+});

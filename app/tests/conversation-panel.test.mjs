@@ -156,8 +156,8 @@ async function ordinaryStartCase({initialThread = false, startGeneration = g, ou
       // A definite refusal says nothing started, with the host's reason boxed beside the App's words; anything else
       // says only what is established.
       if (outcome === 'refused') assert.match(said, /^The conversation was not started: Reported: The selected Codex home changed since you chose it .*Your draft stays here; nothing was sent\.$/);
-      else if (outcome === 'failed') assert.match(said, /^The App could not confirm that a new conversation started: Reported: Native start remains "pending" \(write "written"\); no automatic retry If it did start, it is listed on the left\. Your message was not sent; your draft stays here\.$/);
-      else assert.equal(said, 'The App could not confirm that a new conversation started. If it did start, it is listed on the left. Your message was not sent; your draft stays here.');
+      else if (outcome === 'failed') assert.match(said, /^The App could not confirm that a new conversation started: Reported: Native start remains "pending" \(write "written"\); no automatic retry Look for it in the list on the left; it may not be there\. Your message was not sent; your draft stays here\.$/);
+      else assert.equal(said, 'The App could not confirm that a new conversation started. Look for it in the list on the left; it may not be there. Your message was not sent; your draft stays here.');
       assert.doesNotMatch(container.textContent, outcome === 'refused' ? /could not confirm/ : /was not started/);
     }
   } finally {
@@ -307,8 +307,26 @@ test('a pending ordinary Start latches queued duplicate presses and preserves ev
       assert.deepEqual((await ui.values()),newer,'the older success cannot consume a newer edit revision');
       assert.equal(props(ui.start()).disabled,false);
       assert.equal(ui.calls.filter(c=>c.command==='thread_start').length,1);
+      // The settings were edited after the press: the first message is not sent to the conversation started with the old ones.
+      assert.deepEqual(ui.calls.filter(c=>c.command==='conversation_send_text'),[],'conversation_send_text was not issued');
+      assert.match(ui.container.textContent,/The conversation started, but the view changed before your message was sent\. Nothing was sent; your draft stays here\./);
     },async(args,index,admitted)=>{complete=()=>admitted(args,index);await reply.promise;return complete();});
   }
+});
+
+test('a role chosen while the start is pending: the first message is not sent with the settings it was pressed with',async()=>{
+  const reply=deferred();
+  await withStartChooser(async ui=>{
+    await ui.edit(selectedChoice);let pending;
+    await React.act(()=>{pending=props(ui.start()).onClick();});
+    // The role group is in the settings line's Role panel; choosing "No role" is a change of the start's settings.
+    const none=ui.container.querySelectorAll(e=>e.localName==='input'&&props(e).type==='radio'&&props(e).name==='start-thread-role'&&props(e).value==='')[0];
+    assert.ok(none,'a role choice other than the default is offered');
+    await React.act(async()=>props(none).onChange());
+    reply.resolve();await React.act(async()=>{await pending;});
+    assert.equal(ui.calls.filter(c=>c.command==='thread_start').length,1);
+    assert.deepEqual(ui.calls.filter(c=>c.command==='conversation_send_text'),[],'conversation_send_text was not issued');
+  },async(args,index,admitted)=>{await reply.promise;return admitted(args,index);});
 });
 
 test('home choices during a pending Start neither reuse the old choice nor let its success erase a newer home choice',async()=>{
@@ -342,9 +360,10 @@ test('an away-and-back home transition protects a newer same-valued choice from 
     reply.resolve();await React.act(async()=>{await pending;});
     assert.deepEqual((await ui.values()),selectedChoice);assert.equal(props(ui.start()).disabled,false);
     assert.equal(ui.calls.filter(c=>c.command==='thread_start').length,1);
-    // Away and back is the same full source: the start was confirmed in it and nothing else changed for the first
-    // message (no conversation chosen, the same draft), so it was sent once, to the started conversation.
-    assert.deepEqual(ui.calls.filter(c=>c.command==='conversation_send_text').map(c=>[c.args.generation,c.args.threadId]),[[g,'created-1']]);
+    // Away and back is a change of home and of the settings chosen since the press (the chooser was emptied and chosen
+    // again), though the values match: the first message is not sent.
+    assert.deepEqual(ui.calls.filter(c=>c.command==='conversation_send_text'),[],'conversation_send_text was not issued');
+    assert.match(ui.container.textContent,/The conversation started, but the view changed before your message was sent\./);
   },async(args,index,admitted)=>{await reply.promise;return admitted(args,index);});
 });
 
