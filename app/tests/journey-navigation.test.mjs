@@ -19,6 +19,9 @@ const key = id => JSON.stringify([g, id]);
 const props = node => node[Object.keys(node).find(k => k.startsWith('__reactProps$'))];
 const nodes = (c, tag) => c.querySelectorAll(node => node.localName === tag);
 const button = (c, label) => nodes(c, 'button').find(node => node.textContent === label);
+const shown = e => { for (let n = e; n; n = n.parentNode) if (props(n)?.hidden) return false; return true; };
+// The right panel's selected tab; the conversation is always shown in the centre beside it.
+const selectedTab = c => nodes(c, 'button').find(n => n.getAttribute('role') === 'tab' && n.getAttribute('aria-selected') === 'true')?.textContent;
 const thread = id => ({generation:g, threadId:id, model:'invented-model', status:{type:'idle'}, appRole:{standing:'app-observed', role:null}, roleRelation:{kind:'start'}, futureGuidanceNotices:[]});
 const open = {reference:'run-1', conversation:'T2', home:'account', generation:g, source:'sent', workflow:{name:'invented-flow', origin:'project', revision:'r'}, lifecycle:{state:"open (live); only the person's explicit end ends it"}, status:{}};
 const host = {state:'ready', generation:g, threads:[thread('T1'), thread('T2')], roleLimits:{account:{roles:[]}}, homeRouting:{activeModeHomeClass:'account'},
@@ -87,8 +90,8 @@ test('the ready trial link lands inside the clean trial composer, which says in 
     let prevented = false;
     await React.act(async () => props(main).onClick({target:link, currentTarget:main, preventDefault:() => { prevented = true; }}));
     assert.equal(prevented, true);
-    const active = nodes(c, 'a').filter(a => a.getAttribute('aria-current') === 'page').map(a => a.textContent);
-    assert.deepEqual(active, ['Conversation'], 'the Conversation view is shown');
+    assert.ok(shown(panel), 'the Conversation view is shown, with the composer in it');
+    assert.equal(selectedTab(c), 'Run a workflow', 'the right panel is left as it is');
     assert.equal(panel.getAttribute('tabindex'), '-1', 'focus lands on the composer itself, not the conversation select above it');
     main.removeChild(link);
     assert.deepEqual(calls.filter(cmd => !['host_status', 'decision_view', 'native_confirmation_content', 'request_answer_companions'].includes(cmd)), [], 'following the link issues no action');
@@ -150,8 +153,8 @@ test('a saved trial conversation opens History with only its ID in the search: n
     const look = nodes(guide, 'button').find(n => n.textContent === 'Look for it in History');
     assert.ok(look);
     await React.act(async () => props(look).onClick());
-    const active = c.querySelectorAll(n => n.localName === 'a' && n.getAttribute('aria-current') === 'page').map(n => n.textContent);
-    assert.deepEqual(active, ['History'], 'History is shown');
+    assert.equal(selectedTab(c), 'History', 'History is shown');
+    assert.ok(shown(c.querySelectorAll(n => n.getAttribute('id') === 'view-history')[0]), 'its view is not hidden');
     const search = c.querySelectorAll(n => n.localName === 'input' && n.getAttribute('aria-describedby') === 'history-search-count')[0];
     assert.equal(props(search).value, 'thread-old-trial', 'its search holds the saved ID');
     assert.match(c.querySelectorAll(n => n.getAttribute('aria-label') === 'Searching for a saved conversation')[0].textContent, /It is only a search: nothing is read, chosen or continued\. If it isn't among the received conversations, it may be in another home/);

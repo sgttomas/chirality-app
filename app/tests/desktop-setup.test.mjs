@@ -590,12 +590,14 @@ test('the mounted App shows only the welcome while setup is required and keeps c
   try {
     await React.act(()=>root.render(React.createElement(App)));
     assert.ok(region(c,'Welcome'));assert.equal(hiddenUp(region(c,'Welcome')),false);
-    for(const label of ['Workspace navigation','Workspace connection status','Run a workflow'])assert.equal(hiddenUp(region(c,label)),true,label);
+    for(const label of ['Workspace Navigator','Workspace connection status','Run a workflow','Right panel','Activity status'])assert.equal(hiddenUp(region(c,label)),true,label);
+    assert.equal(nodes(c,'main')[0].getAttribute('class'),'shell shell--stone','the welcome takes the whole window: no three-region shell');
     assert.equal(hiddenUp(region(c,'Content named by an open native confirmation')),false,'native confirmation content stays visible');
     host.state='ready';host.desktopSetup={...packet.retained.initial};host.generation={appSession:'s',home:'h',spawnCounter:1};
     await React.act(async()=>{for(const t of timers.values())await t.fn();});
     assert.equal(region(c,'Welcome'),undefined,'once admitted, the workspace returns');
-    assert.equal(hiddenUp(region(c,'Workspace navigation')),false);
+    assert.equal(hiddenUp(region(c,'Workspace Navigator')),false);
+    assert.equal(nodes(c,'main')[0].getAttribute('class'),'shell shell--workspace shell--stone','in the three-region shell');
     idle.assertClean(c);
   } finally { const text=c.textContent;await React.act(()=>root.unmount());document.body.removeChild(c);idle.restore(text);Object.assign(globalThis,previous); }
 });
@@ -661,9 +663,11 @@ async function mountedBeforeFirstRead(check) {
   finally { const text=c.textContent;await React.act(()=>root.unmount());document.body.removeChild(c);idle.restore(text);Object.assign(globalThis,previous); }
 }
 const starting=c=>c.querySelectorAll(n=>n.getAttribute('role')==='status'&&n.textContent==='Starting Chirality…');
+const brand=c=>nodes(c,'header').find(n=>n.getAttribute('class')==='woven-navigator-brand'&&n.textContent==='Chirality');
 const workspaceAbsent=(c,state)=>{
-  assert.ok(!nodes(c,'h1').some(n=>n.textContent==='Chirality'),`${state}: the workspace heading is not in the document`);
-  for(const label of ['Workspace navigation','Workspace connection status','Run a workflow','Workspace tools','Welcome'])assert.ok(!region(c,label),`${state}: ${label}`);
+  assert.ok(!brand(c),`${state}: the workspace's brand is not in the document`);
+  assert.equal(c.querySelectorAll(n=>(n.getAttribute('class')??'').split(' ').includes('woven-workspace')).length,0,`${state}: no regions and no strip, hidden or not`);
+  for(const label of ['Workspace Navigator','Workspace connection status','Run a workflow','Workspace tools','Right panel','Activity status','Welcome'])assert.ok(!region(c,label),`${state}: ${label}`);
   assert.equal(c.querySelectorAll(n=>n.getAttribute('id')==='view-conversation').length,0,`${state}: no workspace view, hidden or not`);
 };
 const readyHost=()=>({state:'ready',generation:{appSession:'s',home:'h',spawnCounter:1},threads:[],desktopSetup:{...packet.retained.initial},roleLimits:{account:{roles:[]}}});
@@ -686,7 +690,8 @@ test('the first read decides: setup required shows the welcome with the workspac
     assert.ok(!!region(c,'Welcome'));
     assert.ok(nodes(c,'h1').some(n=>n.textContent==='Welcome to Chirality'));
     const hiddenUp=node=>{for(let n=node;n;n=n.parentNode)if(props(n)?.hidden)return true;return false;};
-    for(const label of ['Workspace navigation','Workspace connection status','Run a workflow'])assert.equal(hiddenUp(region(c,label)),true,label);
+    for(const label of ['Workspace Navigator','Workspace connection status','Run a workflow','Right panel','Activity status'])assert.equal(hiddenUp(region(c,label)),true,label);
+    assert.equal(nodes(c,'main')[0].getAttribute('class'),'shell shell--stone','the welcome takes the whole window');
   });
 });
 
@@ -695,10 +700,10 @@ test('the first read decides: setup not required shows the workspace and no welc
     await settle(readyHost());
     assert.equal(starting(c).length,0);
     assert.ok(!region(c,'Welcome'));
-    const heading=nodes(c,'h1').find(n=>n.textContent==='Chirality');
+    const heading=brand(c);
     assert.ok(!!heading);
     for(let n=heading;n;n=n.parentNode)assert.notEqual(props(n)?.hidden,true,'the workspace is not hidden');
-    assert.ok(!!region(c,'Workspace navigation'));
+    assert.ok(!!region(c,'Workspace Navigator'));
   });
 });
 
@@ -721,8 +726,8 @@ test('a failed first read says so and offers to try again; loading never conceal
     assert.equal(calls.filter(command=>command==='host_status').length,before+1,'Try again makes the read again');
     await settle(readyHost());
     assert.ok(!button(c,'Try again'));
-    assert.ok(nodes(c,'h1').some(n=>n.textContent==='Chirality'));
-    assert.ok(!!region(c,'Workspace navigation'));
+    assert.ok(!!brand(c));
+    assert.ok(!!region(c,'Workspace Navigator'));
   });
 });
 
@@ -730,8 +735,8 @@ test('a read that fails after one succeeded leaves the workspace shown, as befor
   await mountedBeforeFirstRead(async({c,poll,settle})=>{
     await settle(readyHost());
     await poll();await settle(new Error('invented later failure'));
-    assert.ok(nodes(c,'h1').some(n=>n.textContent==='Chirality'));
-    assert.ok(!!region(c,'Workspace navigation'));
+    assert.ok(!!brand(c));
+    assert.ok(!!region(c,'Workspace Navigator'));
     assert.ok(!button(c,'Try again'));
   });
 });
@@ -758,8 +763,8 @@ test('a first read that neither arrives nor fails: the starting line, then after
     workspaceAbsent(c,'slow after Try again');
     await settle(readyHost());
     assert.equal(slow(c).length,0);assert.ok(!button(c,'Try again'));
-    assert.ok(nodes(c,'h1').some(n=>n.textContent==='Chirality'));
-    assert.ok(!!region(c,'Workspace navigation'));assert.ok(!region(c,'Welcome'));
+    assert.ok(!!brand(c));
+    assert.ok(!!region(c,'Workspace Navigator'));assert.ok(!region(c,'Welcome'));
   });
 });
 

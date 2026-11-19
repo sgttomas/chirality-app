@@ -112,15 +112,6 @@
   "reason": "title is the second element of a literal tuple of the array mapped at ConnectorSourcePanel.tsx:125 (Question identity, Affected question, Asked revision, Since revision). The guard does not take a .map callback's element of a literal array as App-made."
  },
  {
-  "file": "App.tsx",
-  "where": "<a>",
-  "expr": "item.label",
-  "component": "App",
-  "count": 1,
-  "basis": "an App-owned literal vocabulary",
-  "reason": "item is an element of WORKSPACE_VIEWS, a literal array of literal labels (DailyWorkspace.tsx:13). The guard does not take a .map callback's element of a literal array as App-made."
- },
- {
   "file": "ConnectorReconstruction.tsx",
   "where": "<label>",
   "expr": "side",
@@ -605,5 +596,41 @@
   "count": 1,
   "basis": "an App-owned literal vocabulary",
   "reason": "Its target #first-use-next holds next (FirstUse.tsx:79), a choice of literal sentences or progress, which begin() sets only from the literals its three callers pass (FirstUse.tsx:87, 100, 115)."
+ },
+ {
+  "file": "Navigator.tsx",
+  "where": "<button>",
+  "expr": "entry.title",
+  "component": "EntryRow",
+  "count": 1,
+  "basis": "a validated identifier",
+  "reason": "entry.title is choiceLabels(threadChoices(rows, conversationKey))[i] (Navigator.tsx:32-34), the same words the conversation view's chooser names each conversation by: the App's words with the conversation's identifier, shortened by shortIds only where plainId accepts it as a plain identifier, else its place in the list (AgentText.tsx, choiceLabels and shortIds); no supplied title enters it. The guard does not follow a field of a returned object."
+ },
+ {
+  "file": "Navigator.tsx",
+  "where": "@aria-label",
+  "expr": "`Needs answer: ${entry.title}`",
+  "component": "EntryRow",
+  "count": 1,
+  "basis": "a validated identifier",
+  "reason": "A literal and entry.title, which is choiceLabels(...)[i] (Navigator.tsx:32-34): the App's words with a plain identifier validated by plainId, or its place in the list. The guard does not follow a field of a returned object."
+ },
+ {
+  "file": "WorkspaceShell.tsx",
+  "where": "<button>",
+  "expr": "t.label",
+  "component": "RightPanel",
+  "count": 1,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "t is an element of RIGHT_PANEL_TABS, a literal array of literal labels (WorkspaceShell.tsx:6-11). The guard does not take a .map callback's element of a literal array as App-made."
+ },
+ {
+  "file": "WorkspaceShell.tsx",
+  "where": "@aria-labelledby",
+  "expr": "{`right-tab-${tab}`}",
+  "component": "RightPanel",
+  "count": 1,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "tab is one of the literal ids of RIGHT_PANEL_TABS (WorkspaceShell.tsx:6-11, typed RightPanelTab), so this names exactly one of the tab buttons written in the same file, id right-tab-<id>, whose content is that tab's literal label. The guard takes only a literal id list."
  }
 ]

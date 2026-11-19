@@ -213,6 +213,11 @@ code_paths:
 - app/src/App.tsx
 - app/src/DailyWorkspace.tsx
 - app/src/workspace.css
+# The frame (DEL-02-02 AX-004), shared with DEL-02-02. Here: the centre holds the conversation
+# surface, the navigator's entry chooses a conversation as that surface does, and "Needs answer"
+# and the status strip read a request waiting for the person as "Waiting on you" reads it.
+- app/src/WorkspaceShell.tsx
+- app/src/Navigator.tsx
 checks:
 - app/tests/permission-level.test.mjs
 - app/src-tauri/src/capture_seal.rs
