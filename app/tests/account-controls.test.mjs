@@ -429,8 +429,8 @@ test('a sign-in Codex reports completed is said as completed until an account re
     // Its read has answered, but no status after it is shown yet: still not said, and Check again is offered, never a
     // second sign-in.
     await React.act(async () => answer.resolve());
-    assert.equal(nodes(rowOf(container), 'small')[0].textContent, 'Account not read yet');
-    assert.ok(said(container).includes('Codex reports the sign-in completed. The account has not been read since.'));
+    assert.equal(nodes(rowOf(container), 'small')[0].textContent, 'Account not confirmed yet');
+    assert.ok(said(container).includes('Codex reports the sign-in completed. No account read since has answered.'));
     assert.doesNotMatch(dialogOf(container).textContent, /not signed in|Not signed in/);
     assert.deepEqual(nodes(group(container, 'Account'), 'button').map(b => b.textContent), ['Check again']);
     // A newer read the status lists without a request identity proves nothing.
@@ -466,7 +466,7 @@ test('a sign-in Codex reports completed is said as completed until an account re
     await render(after('read-1', null));
     await render(after('read-2', undefined, ['read-1'], 'response-observed-error'));
     assert.equal(nodes(rowOf(container), 'strong')[0].textContent, 'Sign-in completed');
-    assert.equal(nodes(rowOf(container), 'small')[0].textContent, 'Account not read yet');
+    assert.equal(nodes(rowOf(container), 'small')[0].textContent, 'Account not confirmed yet');
     assert.deepEqual(nodes(group(container, 'Account'), 'button').map(b => b.textContent), ['Check again']);
   }, {commands});
   // The status read for the baseline fails, before any account read: a clear retry, and the retry makes both reads.
@@ -476,7 +476,7 @@ test('a sign-in Codex reports completed is said as completed until an account re
     await open();
     await render(after('read-1', null));
     assert.deepEqual(calls, [], 'no account read without the baseline');
-    assert.equal(nodes(rowOf(container), 'small')[0].textContent, 'Account not read yet');
+    assert.equal(nodes(rowOf(container), 'small')[0].textContent, 'Account not confirmed yet');
     assert.ok(said(container).includes('Account status could not be confirmed. Try checking again; this does not mean you are signed out.'));
     statusFails = false;
     await React.act(async () => props(button(container, 'Check again')).onClick());
@@ -561,7 +561,7 @@ test('a read after the completion that ended without a reply settles nothing: th
     // Its wait ends without a reply: still held, never "Sign-in unknown", and Check again is offered on the row's
     // popover and on the line, never a sign-in.
     await render(afterCompletion('read-2', undefined, ['read-1'], {outcome: 'pending', source: {waitingEnded: true}}));
-    assert.equal(stateOf(container), 'Sign-in completed'); assert.equal(detailOf(container), 'Account not read yet');
+    assert.equal(stateOf(container), 'Sign-in completed'); assert.equal(detailOf(container), 'Account not confirmed yet');
     assert.deepEqual(nodes(group(container, 'Account'), 'button').map(b => b.textContent), ['Check again']);
     assert.deepEqual(nodes(lineOf(container), 'button').map(b => b.textContent), ['Check again']);
     await React.act(async () => props(button(container, 'Check again')).onClick());
@@ -582,7 +582,7 @@ test('a status read for the baseline that never returns does not hold the accoun
     assert.equal(statusReads(), 1); assert.equal(detailOf(container), 'Checking the account…');
     await React.act(async () => { await new Promise(resolve => setTimeout(resolve, 80)); });
     assert.deepEqual(calls, [], 'no account read without a baseline');
-    assert.equal(stateOf(container), 'Sign-in completed'); assert.equal(detailOf(container), 'Account not read yet');
+    assert.equal(stateOf(container), 'Sign-in completed'); assert.equal(detailOf(container), 'Account not confirmed yet');
     assert.ok(said(container).includes('Account status could not be confirmed. Try checking again; this does not mean you are signed out.'));
     assert.equal(props(button(container, 'Check again')).disabled, false, 'Check again can be pressed');
     status = async () => afterCompletion('read-1', null);

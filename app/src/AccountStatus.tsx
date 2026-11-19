@@ -194,7 +194,7 @@ export const signInPending = (host: Json): boolean => signInPhase(host) === "pen
  * say these, and none of them says the earlier reading. */
 export const SIGN_IN_COMPLETED: Record<"checking" | "unread", { detail: string; sentence: string }> = {
   checking: { detail: "Checking the account…", sentence: "Codex reports the sign-in completed. Checking the account with Codex…" },
-  unread: { detail: "Account not read yet", sentence: "Codex reports the sign-in completed. The account has not been read since." },
+  unread: { detail: "Account not confirmed yet", sentence: "Codex reports the sign-in completed. No account read since has answered." },
 };
 /** The account panel's sentence for a ChatGPT account reading whose read does not give the email and plan. */
 export const CHATGPT_DETAILS_WITHHELD = "Codex reports a ChatGPT account for this connection. The email and plan are not shown for this reading.";

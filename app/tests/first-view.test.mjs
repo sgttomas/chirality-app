@@ -484,7 +484,7 @@ test('the line gives way only where the row says "Signed in": not while the gene
     const line = connectionLine(ui.container)[0];
     assert.doesNotMatch(line.textContent, /You're not signed in|and you're signed in/);
     // The line says what the row says of it, and offers Check again, never a second sign-in.
-    assert.match(line.textContent, /^Codex is running\. Codex reports the sign-in completed\. The account has not been read since\./);
+    assert.match(line.textContent, /^Codex is running\. Codex reports the sign-in completed\. No account read since has answered\./);
     assert.doesNotMatch(line.textContent, /Check or sign in|hasn't established/);
     assert.deepEqual(elements(line, 'button').map(b => b.textContent), ['Check again'], 'no sign-in is offered again');
     assert.doesNotMatch(byId(ui.container, 'conversation').textContent, /Sign in with your ChatGPT account, then write/);
