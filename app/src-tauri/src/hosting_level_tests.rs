@@ -1930,17 +1930,28 @@ fn the_settings_file_message_does_not_outlive_its_cause() {
 fn held_at_the_writer(name: &str, between: impl FnOnce(&Arc<Host>, &crate::project_trust::ProjectTrust)) -> Option<Value> {
     let (base, project, _, _) = git_project(name);
     crate::records_store::attach(&project, true).unwrap();
-    let (host, trust) = app_project_host(&base, &project, SET_UP);
+    let written = held_frame(&base, &project, true, between);
+    std::fs::remove_dir_all(&base).unwrap();
+    written
+}
+/// A start in `cwd`, its trust entry built trusted (by the App's on where `known`, the folder then being the App's
+/// project; else by the settings' mark for it, the App's project being another folder), then held at the frame
+/// writer while `between` runs. The trust entry written, or None when nothing was written.
+fn held_frame(base: &Path, cwd: &Path, known: bool, between: impl FnOnce(&Arc<Host>, &crate::project_trust::ProjectTrust)) -> Option<Value> {
+    let elsewhere = base.join("the-apps-project");
+    std::fs::create_dir_all(&elsewhere).unwrap();
+    let (host, trust) = app_project_host(base, if known { cwd } else { &elsewhere }, SET_UP);
+    let mark = if known { json!({}) } else { json!({cl::folder_binding(cwd).key: {"trust_level": "trusted"}}) };
     let (asked_tx, asked_rx) = channel::<()>();
     let (go_tx, go_rx) = channel::<()>();
     let (asked_tx, go_rx) = (Mutex::new(asked_tx), Mutex::new(go_rx));
     let wire = Responder::attach(&host, move |_| {
         asked_tx.lock().unwrap().send(()).unwrap();
         go_rx.lock().unwrap().recv().unwrap();
-        layers_with(json!({}))
+        layers_with(mark.clone())
     });
-    let (sender, cwd) = (Arc::clone(&host), project.clone());
-    let pending = std::thread::spawn(move || send(&sender, "thread/start", json!({"cwd": cwd})).unwrap());
+    let (sender, folder) = (Arc::clone(&host), cwd.to_path_buf());
+    let pending = std::thread::spawn(move || send(&sender, "thread/start", json!({"cwd": folder})).unwrap());
     asked_rx.recv_timeout(Duration::from_secs(5)).unwrap();
     // The reading's own frame is written; the writer is taken before its reply, so the start waits for it.
     let serial = host.frame_write.lock().unwrap();
@@ -1957,9 +1968,8 @@ fn held_at_the_writer(name: &str, between: impl FnOnce(&Arc<Host>, &crate::proje
     while let Ok(frame) = wire.frames.recv_timeout(Duration::from_millis(300)) {
         if frame["method"] == "thread/start" { written = Some(frame["params"]["config"]["projects"].clone()); }
     }
-    if written.is_none() { assert_eq!(request.write_attempt_observed(), Some(false), "{name}: nothing written"); }
+    if written.is_none() { assert_eq!(request.write_attempt_observed(), Some(false), "{}: nothing written", cwd.display()); }
     wire.close(&host);
-    std::fs::remove_dir_all(&base).unwrap();
     written
 }
 
@@ -2092,4 +2102,39 @@ fn the_commands_own_error_is_the_notices_first_sentence_and_every_other_refusal_
     assert!(host.thread_fork_finish(&request).unwrap_err().starts_with("thread/fork has no successful write and correlated result"));
     wire.close(&host);
     std::fs::remove_dir_all(&base).unwrap();
+}
+
+// ---- Second repair: what a frame is bound to (A) ----
+
+#[test]
+fn a_frame_waiting_at_the_writer_is_not_written_after_its_folder_or_root_changed_known_or_settings_only() {
+    type Change = fn(&Path);
+    // Each: a fresh folder layout, the conversation's folder in it, and the change made while the writer is held.
+    let layouts: [(&str, fn(&Path) -> PathBuf, Change); 3] = [
+        ("re-pointed", |base| {
+            for f in ["first", "second"] { std::fs::create_dir_all(base.join(f)).unwrap(); }
+            std::os::unix::fs::symlink(base.join("first"), base.join("alias")).unwrap();
+            base.join("alias")
+        }, |base| { std::fs::remove_file(base.join("alias")).unwrap(); std::os::unix::fs::symlink(base.join("second"), base.join("alias")).unwrap(); }),
+        ("replaced at the same path", |base| { std::fs::create_dir_all(base.join("folder")).unwrap(); base.join("folder") },
+            |base| { std::fs::rename(base.join("folder"), base.join("folder-old")).unwrap(); std::fs::create_dir_all(base.join("folder")).unwrap(); }),
+        ("its Git root changed", |base| { std::fs::create_dir_all(base.join("repo").join("inner")).unwrap(); base.join("repo").join("inner") },
+            |base| { std::fs::create_dir_all(base.join("repo").join(".git")).unwrap(); std::fs::write(base.join("repo").join(".git").join("HEAD"), b"ref: refs/heads/main\n").unwrap(); }),
+    ];
+    for (what, layout, change) in layouts {
+        for known in [true, false] {
+            let label = format!("{what}, {}", if known { "the App's project" } else { "settings only" });
+            // The control: nothing changes, and the trusted frame is written.
+            let base = root("app-trust-bound-control");
+            let cwd = layout(&base);
+            let written = held_frame(&base, &cwd, known, |_, _| {}).unwrap_or_else(|| panic!("{label}: the control is written"));
+            assert_eq!(written.as_object().unwrap().values().next().unwrap(), &json!({"trust_level": "trusted"}), "{label}");
+            std::fs::remove_dir_all(&base).unwrap();
+            // The change while the frame waits: nothing written.
+            let base = root("app-trust-bound");
+            let cwd = layout(&base);
+            assert_eq!(held_frame(&base, &cwd, known, |_, _| change(&base)), None, "{label}");
+            std::fs::remove_dir_all(&base).unwrap();
+        }
+    }
 }

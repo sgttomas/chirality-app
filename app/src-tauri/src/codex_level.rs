@@ -346,6 +346,26 @@ pub fn trust_lookup_keys(path: &Path) -> Vec<String> {
     if canonical == given { vec![canonical] } else { vec![canonical, given] }
 }
 
+/// What a frame's trust entry rests on in the filesystem: the conversation folder's own identity (device and file
+/// number of the folder it resolves to), the root Codex computes from it as resolved, and the key the entry is sent
+/// under. Bound when the frame is built and compared again when it is written (DEL-01-01).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct FolderBinding {
+    pub folder: Option<(u64, u64)>,
+    pub root: Option<PathBuf>,
+    pub key: String,
+}
+/// The binding of `cwd` as it is now.
+pub fn folder_binding(cwd: &Path) -> FolderBinding {
+    use std::os::unix::fs::MetadataExt;
+    let root = project_root(cwd);
+    FolderBinding {
+        folder: std::fs::metadata(cwd).ok().map(|m| (m.dev(), m.ino())),
+        root: std::fs::canonicalize(&root).ok(),
+        key: trust_lookup_keys(&root).remove(0),
+    }
+}
+
 /// What a whole, current reading of the person's settings says of a project's trust.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TrustCase {
@@ -431,6 +451,8 @@ pub struct TrustReading {
     /// folder it was read for: the frame is written only while both still hold.
     pub choice_revision: Option<String>,
     pub choice_project: Option<PathBuf>,
+    /// The folder, root and key as they were when the reading was made: the frame is written only while they hold.
+    pub binding: FolderBinding,
 }
 
 /// Why the entry is what it is: the rows of the case table, in their order (DEL-01-01).
@@ -457,9 +479,10 @@ pub enum TrustRow {
 impl TrustReading {
     /// A reading that cannot be relied on: the entry is sent as untrusted.
     pub fn not_read(cwd: PathBuf, reason: &str, detail: Option<String>) -> Self {
+        let binding = folder_binding(&cwd);
         let root = project_root(&cwd);
-        let key = trust_lookup_keys(&root).remove(0);
-        TrustReading { cwd, root, key, case: TrustCase::NotRead { reason: reason.into(), detail }, generation: None, request_ref: None, read_at: None, choice: None, choice_revision: None, choice_project: None }
+        let key = binding.key.clone();
+        TrustReading { cwd, root, key, binding, case: TrustCase::NotRead { reason: reason.into(), detail }, generation: None, request_ref: None, read_at: None, choice: None, choice_revision: None, choice_project: None }
     }
     /// The row of the case table this reading falls in. The order is the precedence: an unreadable settings
     /// reading or an unreadable choice over everything, then the person's untrusted mark, then the App's off,

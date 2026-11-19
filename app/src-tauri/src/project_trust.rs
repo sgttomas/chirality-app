@@ -140,6 +140,9 @@ pub struct KnownProject {
     pub folder: PathBuf,
     pub physical: PathBuf,
     pub known: Known,
+    /// The folder's own identity (device and file number) when the App came to know it: another folder later put
+    /// at the same path is not this project.
+    pub identity: Option<(u64, u64)>,
 }
 
 /// The App's choice for a project as read now, with what it was read under.
@@ -238,9 +241,10 @@ impl ProjectTrust {
     /// Records that the App knows `folder`, and how. Today's one caller is [`Self::for_launch`].
     pub(crate) fn add(&self, folder: &Path, known: Known) {
         let physical = std::fs::canonicalize(folder).unwrap_or_else(|_| folder.to_path_buf());
+        let identity = cl::folder_binding(folder).folder;
         let mut projects = self.projects.lock().unwrap_or_else(|p| p.into_inner());
         projects.retain(|p| p.folder != folder);
-        projects.push(KnownProject { folder: folder.to_path_buf(), physical, known });
+        projects.push(KnownProject { folder: folder.to_path_buf(), physical, known, identity });
     }
     /// The launched project (the first the App knows).
     pub(crate) fn launched(&self) -> Option<KnownProject> {
@@ -287,10 +291,12 @@ impl ProjectTrust {
     /// The App's choice for `project`, read now, for a frame whose working folder is `cwd` where one is given.
     pub(crate) fn read_choice(project: &KnownProject, cwd: Option<&Path>) -> ChoiceRead {
         let plain = |choice: AppTrust, why: &str| ChoiceRead { choice, revision: revision(json!([why])), identity: None, passed_over: false };
-        // The folder: as given, and as the frame names it, it must still resolve to the folder the App admitted,
-        // and its root to the same root, or the App's choice is not applied.
+        // The folder: as given, and as the frame names it, it must still resolve to the folder the App admitted (the
+        // same path and the same folder there, by its own identity), and its root to the same root, or the App's
+        // choice is not applied.
         let physical = |p: &Path| std::fs::canonicalize(p).ok();
-        let resolves = |p: &Path| physical(p).as_deref() == Some(project.physical.as_path());
+        let resolves = |p: &Path| physical(p).as_deref() == Some(project.physical.as_path())
+            && project.identity.is_some() && cl::folder_binding(p).folder == project.identity;
         let same_root = |cwd: &Path| physical(&cl::project_root(cwd)) == physical(&cl::project_root(&project.folder));
         if !resolves(&project.folder) || cwd.is_some_and(|cwd| !resolves(cwd) || !same_root(cwd)) {
             return plain(AppTrust::FolderChanged, "folder-changed");

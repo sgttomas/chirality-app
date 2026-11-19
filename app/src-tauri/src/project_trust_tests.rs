@@ -701,3 +701,18 @@ fn a_folder_that_no_longer_resolves_to_the_folder_admitted_gets_no_choice_applie
     assert_eq!((reading.trust_level(), reading.status()["lines"].clone()), ("untrusted", json!([cl::TRUST_FOLDER_CHANGED])));
     std::fs::remove_dir_all(base).unwrap();
 }
+
+// ---- Second repair: the folder's own identity (A) ----
+
+#[test]
+fn another_folder_put_at_the_projects_path_is_not_the_project() {
+    let base = folder("trust-same-path-");
+    let project = base.join("project");
+    std::fs::create_dir_all(&project).unwrap();
+    let trust = ProjectTrust::for_launch(Some(&project), crate::desktop_startup::SAVED_REQUEST_SOURCE);
+    assert_eq!(trust.choice_for(&project), Some(AppTrust::OnBySetup));
+    std::fs::rename(&project, base.join("project-old")).unwrap();
+    std::fs::create_dir_all(&project).unwrap();
+    assert_eq!(trust.choice_for(&project), Some(AppTrust::FolderChanged), "same path, another folder");
+    std::fs::remove_dir_all(base).unwrap();
+}

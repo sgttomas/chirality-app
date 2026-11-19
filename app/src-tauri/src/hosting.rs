@@ -382,6 +382,7 @@ pub struct HostConfig {
 /// Its working folder could not be established, so it is not taken to be outside Chirality's data.
 /// DEL-01-01: a frame whose trust entry no longer rests on what it was built from is not written.
 pub(crate) const TRUST_CHOICE_CHANGED: &str = "refused-not-sent: the project's trust changed after this request was built; nothing written";
+pub(crate) const TRUST_FOLDER_CHANGED: &str = "refused-not-sent: the project's folder changed after this request was built; nothing written";
 pub(crate) const TRUST_SETTINGS_CHANGED: &str = "refused-not-sent: the Codex settings the App uses changed after this request was built; nothing written";
 pub(crate) const SAVED_IN_APP_DATA_UNKNOWN: &str = "Chirality could not establish where this conversation works, so it was not continued or copied: it might be Chirality's own data folder. Nothing was sent to it.";
 /// The account home's provider, as a session setting (see `HostConfig::new`).
@@ -3207,8 +3208,11 @@ impl Host {
         Ok(Some((params, codex_level::Bound { level, method: kind, fields, trust, revision: i.level_revision, target, chosen, origin:provenance.as_ref().map(|c|c.origin), chosen_at:provenance.map(|c|c.at) })))
     }
     /// A frame carrying a trust entry from a current settings reading is written only while that reading is
-    /// still current: no configuration write admitted, no new generation.
+    /// still current: this Host's generation unchanged and no configuration write admitted through it since. It
+    /// does not see an edit made to the settings file by another program after the reading (a stated limit).
     fn check_trust_settings_current(i: &Inner, trust: &codex_level::TrustReading) -> Result<(), String> {
+        // A frame built from a reading that was not made is untrusted by design (the case table's first row), so it
+        // is written untrusted whatever has changed since: there is no trusted mark for a change to outdate.
         if matches!(trust.case, codex_level::TrustCase::NotRead { .. }) { return Ok(()); }
         let current = trust.generation.as_ref().is_some_and(|g| g["generation"] == i.generation && g["configWrites"] == i.level.config_writes);
         if current { Ok(()) } else { Err(TRUST_SETTINGS_CHANGED.into()) }
@@ -3336,13 +3340,18 @@ impl Host {
             // After the writer wait: the local home's settings file and key-address record must still
             // establish the address in force, or nothing is written.
             if !handshake { self.check_local_files(method)?; }
-            // DEL-01-01: the App's choice a trust entry rests on, again after the writer wait, held from here until
-            // the write: still at the revision the frame was built under, or nothing is written.
+            // DEL-01-01: what a trust entry rests on, again after the writer wait, under the App's switch lock held
+            // from here until the write. Every trust-bearing frame: its folder (the folder's own identity), its root
+            // and its key as bound when it was built. A frame whose folder is the App's project: the App's choice
+            // still at the revision it was built under. Otherwise nothing is written.
             let trust_bound=level.as_ref().and_then(|b|b.trust.as_ref());
-            let trust_projects=trust_bound.filter(|t|t.choice.is_some()).and_then(|_|self.project_trust());
+            let trust_projects=trust_bound.and_then(|_|self.project_trust());
             let _switches=trust_projects.as_ref().map(|projects|projects.hold_switches());
-            if let (Some(projects),Some(trust))=(&trust_projects,trust_bound) {
-                if projects.choice_read_for(&trust.cwd).map(|read|read.revision)!=trust.choice_revision {return Err(TRUST_CHOICE_CHANGED.into());}
+            if let Some(trust)=trust_bound {
+                if codex_level::folder_binding(&trust.cwd)!=trust.binding {return Err(TRUST_FOLDER_CHANGED.into());}
+                if let (Some(projects),Some(_))=(&trust_projects,&trust.choice) {
+                    if projects.choice_read_for(&trust.cwd).map(|read|read.revision)!=trust.choice_revision {return Err(TRUST_CHOICE_CHANGED.into());}
+                }
             }
             {let _gate=self.attachment_gate.lock().unwrap();let mut i=self.inner.0.lock().unwrap();self.check_bound(&i,&bound)?;
                 Self::check_local_request(&i,method,checked,expected_generation,handshake,private_credential,private_config,provider_admission)?;
