@@ -1841,12 +1841,14 @@ fn a_trusted_projects_settings_file_that_stops_a_start_reaches_the_status_and_ot
     let wire = Responder::attach(&host, |_| layers_with(json!({})));
     refused(&host, &wire, "thread/start", parse.clone());
     let said = host.snapshot()["projectSettingsRefusal"].clone();
-    assert_eq!(said["lines"], json!([cl::PROJECT_SETTINGS_NOT_LOADED]));
-    assert_eq!((said["method"].as_str(), said["files"].clone()), (Some("thread/start"), json!([file.to_string_lossy()])));
-    assert_eq!(said["codexReason"]["standing"], cl::NOT_THE_APPS_TEXT);
+    let at = said["at"].as_str().unwrap().to_owned();
+    assert!(crate::after_run_end::instant(&at).is_some(), "dated with when its request was sent: {at}");
+    assert_eq!(said["lines"], json!([format!("{}{at}{}", cl::PROJECT_SETTINGS_AT_BEFORE, cl::PROJECT_SETTINGS_AT_AFTER)]));
+    assert_eq!((said["method"].as_str(), said["files"].clone()), (Some("thread/start"), json!([{"path": file.to_string_lossy(), "where": cl::IN_PROJECT_FOLDER}])));
+    assert_eq!(said["codexReason"], json!({"text": parse["message"], "standing": cl::NOT_THE_APPS_TEXT}));
     refused(&host, &wire, "thread/resume", json!({"code": -32600, "message": "failed to load configuration: `invented` is no longer supported; remove it from config.toml"}));
     let row = thread_row(&host, "thread");
-    assert_eq!(row["level"]["projectSettingsRefusal"]["fileSentence"], cl::PROJECT_SETTINGS_FILE_CANDIDATES);
+    assert_eq!(row["level"]["projectSettingsRefusal"]["filesHeading"], cl::PROJECT_SETTINGS_FILES);
     assert_eq!(row["level"]["projectSettingsRefusal"]["remedy"], cl::PROJECT_SETTINGS_REMEDY);
     // Another refusal of a trusted entry is left as it is.
     refused(&host, &wire, "thread/fork", json!({"code": -32603, "message": "invented internal error"}));
@@ -1882,7 +1884,7 @@ fn with_no_records_store_the_environment_route_is_unchanged_and_the_setup_route_
 }
 
 #[test]
-fn the_settings_file_message_does_not_outlive_its_cause() {
+fn the_settings_file_message_is_removed_by_a_later_success_for_its_root_and_not_shown_while_the_choice_is_off() {
     let (base, project, _, _) = git_project("app-trust-refusal-cleared");
     crate::records_store::attach(&project, true).unwrap();
     let elsewhere = base.join("elsewhere");
@@ -2073,13 +2075,13 @@ fn the_settings_file_message_is_recorded_only_once_its_frame_settled_as_written(
     });
     send(&host, "thread/start", json!({"cwd": project})).unwrap();
     wire.next_sent();
-    assert_eq!(host.snapshot()["projectSettingsRefusal"]["lines"], json!([cl::PROJECT_SETTINGS_NOT_ATTRIBUTED]), "recorded once written");
+    assert_eq!(host.snapshot()["projectSettingsRefusal"]["filesHeading"], cl::PROJECT_SETTINGS_FILES, "recorded once written");
     wire.close(&host);
     std::fs::remove_dir_all(&base).unwrap();
 }
 
 #[test]
-fn the_settings_file_message_stands_exactly_as_long_as_its_cause() {
+fn the_settings_file_message_is_a_dated_outcome_hidden_while_the_choice_is_off_and_replaced_only_by_its_roots_outcomes() {
     let (base, project, _, _) = git_project("app-trust-notice-cause");
     let other = base.join("other");
     std::fs::create_dir_all(&other).unwrap();
@@ -2096,20 +2098,21 @@ fn the_settings_file_message_stands_exactly_as_long_as_its_cause() {
     });
     let start = |cwd: &Path| { let r = send(&host, "thread/start", json!({"cwd": cwd})).unwrap(); wire.next_sent(); r };
     let shown = || host.snapshot()["projectSettingsRefusal"]["projectRoot"].as_str().map(str::to_owned);
-    // A reply that arrives after a switch-off, for a frame sent before it: not shown.
+    // A reply that arrives after a switch-off, for a frame sent before it: not shown while the choice is off, and
+    // shown again, as the dated statement it is, once the choice is on.
     let request = start(&project);
     trust.switch_off_launched().unwrap();
     refuse(&host, &request, UNSUPPORTED);
     assert_eq!(shown(), None);
     confirmed_on(&trust);
-    // Shown; then a later start whose settings now mark the project untrusted hides it.
-    let request = start(&project);
-    refuse(&host, &request, UNSUPPORTED);
     assert_eq!(shown(), Some(key(&project)));
+    // A later start whose settings now mark the project untrusted, and that Codex accepts, is no outcome for the
+    // root's trusted entries: the dated statement stays.
     *project_mark.lock().unwrap() = json!({"mark": {"trust_level": "untrusted"}});
     let later = start(&project);
     assert_eq!(later.frame["params"]["config"]["projects"].as_object().unwrap().values().next().unwrap(), &json!({"trust_level": "untrusted"}));
-    assert_eq!(shown(), None, "settings that now make the entry untrusted hide it");
+    reply(&host, json!({"jsonrpc": "2.0", "id": later.request_id(), "result": {"thread": {"id": "untrusted-thread", "status": "idle"}}}));
+    assert_eq!(shown(), Some(key(&project)));
     *project_mark.lock().unwrap() = json!({});
     // Another root's notice is not hidden by this project's switch-off.
     let request = start(&other);
@@ -2133,7 +2136,7 @@ fn the_commands_own_error_is_the_notices_first_sentence_and_every_other_refusal_
     let fork = || { let r = send(&host, "thread/fork", frame_params("thread/fork", &project)).unwrap(); wire.next_sent(); r };
     let request = fork();
     refuse(&host, &request, UNSUPPORTED);
-    let expected = format!("{} {}", cl::PROJECT_SETTINGS_NOT_ATTRIBUTED, cl::PROJECT_SETTINGS_SEE_TRUST);
+    let expected = cl::PROJECT_SETTINGS_COMMAND_ERROR.to_owned();
     assert_eq!(host.settings_notice_error(request.request_ref()), Some(expected.clone()));
     let refused = host.thread_fork_finish(&request).unwrap_err();
     assert_eq!(refused, expected);
@@ -2193,7 +2196,7 @@ fn the_commands_error_is_bound_to_its_own_request_for_start_fork_and_continue() 
     let (base, project, _, _) = git_project("app-trust-notice-receipt");
     let (host, _) = app_project_host(&base, &project, SET_UP);
     let wire = Responder::attach(&host, |_| layers_with(json!({})));
-    let expected = format!("{} {}", cl::PROJECT_SETTINGS_NOT_ATTRIBUTED, cl::PROJECT_SETTINGS_SEE_TRUST);
+    let expected = cl::PROJECT_SETTINGS_COMMAND_ERROR.to_owned();
     // Start, fork and Continue (a resume, the frame Continue sends), each refused by the settings file, then each
     // followed by a later request of the same kind that Codex accepts: the shown message goes, the refused
     // request's own error stays.

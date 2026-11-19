@@ -115,8 +115,10 @@ pub(crate) struct LevelState {
     pub(crate) config_writes: u64,
     /// DEL-01-01: the App's projects and their trust, as the last trust reading found it configured.
     pub(crate) project_trust: Option<Arc<crate::project_trust::ProjectTrust>>,
-    /// The last start, resume or fork Codex refused, after a frame carrying a trusted entry was written, saying it
-    /// could not load its settings (`codex_level::project_settings_refusal`), and each conversation's.
+    /// The settings-file message (`codex_level::project_settings_refusal`): the latest outcome applied, as a refusal,
+    /// of a start, resume or fork whose frame carried a trusted entry, and each conversation's. A dated statement
+    /// about one request: replaced by a later outcome for its root, removed by a later success for its root, and
+    /// not shown while the App's choice for its project is off.
     pub(crate) settings_refusal: Option<SettingsNotice>,
     pub(crate) thread_settings_refusal: HashMap<String, SettingsNotice>,
     /// An outcome (a settings-file refusal or a success) of a frame carrying a trusted entry whose reply came before
@@ -126,13 +128,11 @@ pub(crate) struct LevelState {
     /// key), and an outcome for a root is applied only when its frame is later than the latest outcome applied for
     /// that root (`trust_outcome_at`), so an older reply never replaces a newer outcome.
     pub(crate) trust_sequence: u64,
-    pub(crate) trust_order: HashMap<String, u64>,
+    pub(crate) trust_order: HashMap<String, (u64, String)>,
     pub(crate) trust_outcome_at: HashMap<String, u64>,
     /// The command's own error for each request Codex refused as a settings-file refusal, by the request's own
     /// reference: what start, fork and Continue return for that request, whatever is shown since.
     pub(crate) settings_errors: HashMap<String, String>,
-    /// The trust level each project root's latest written entry carried: a notice stands only while it is trusted.
-    pub(crate) latest_trust: HashMap<String, String>,
     /// A test's own budget for the trust reading, in place of the reading default.
     #[cfg(test)]
     pub(crate) trust_budget: Option<std::time::Duration>,
@@ -142,8 +142,7 @@ pub(crate) struct LevelState {
 }
 
 /// A settings-file notice and what it rests on: its project root, its request, the conversation it names, and the
-/// App's choice revision and project its trusted entry was sent under. It is shown only while the root's latest
-/// entry is still trusted and the choice is still at that revision (`notice_stands`).
+/// App's project its trusted entry was sent for, if any.
 #[derive(Clone, Debug)]
 pub(crate) enum TrustOutcome {
     Refused(SettingsNotice),
@@ -157,7 +156,6 @@ pub(crate) struct SettingsNotice {
     pub(crate) request_ref: String,
     pub(crate) thread: Option<String>,
     pub(crate) project: Option<PathBuf>,
-    pub(crate) revision: Option<String>,
 }
 
 impl Places {
@@ -346,14 +344,12 @@ impl Host {
     pub(super) fn level_write_noted(i: &mut Inner, key: &str, written: bool) {
         if written {
             if let Some(trust) = i.source_requests.get(key).and_then(|e| e.request.level.as_ref()).and_then(|b| b.trust.as_ref()) {
-                let (root, level) = (trust.root.to_string_lossy().into_owned(), trust.trust_level().to_owned());
-                // Numbered in the order the frames carrying a trusted entry were written.
-                if level == "trusted" {
+                // Numbered in the order the frames carrying a trusted entry were written, with when each was sent.
+                if trust.trust_level() == "trusted" {
                     i.level.trust_sequence += 1;
                     let n = i.level.trust_sequence;
-                    i.level.trust_order.insert(key.to_owned(), n);
+                    i.level.trust_order.insert(key.to_owned(), (n, now_rfc3339()));
                 }
-                i.level.latest_trust.insert(root, level);
             }
         }
         // An outcome whose reply came first applies only once its frame settles as written.
@@ -409,7 +405,7 @@ impl Host {
                 refusal["at"] = json!(now_rfc3339());
                 let notice = SettingsNotice { value: refusal, root: trust.root.to_string_lossy().into_owned(), request_ref: request_ref.clone(),
                     thread: match &bound.target { Target::Conversation(t) => Some(t.clone()), _ => None },
-                    project: trust.choice_project.clone(), revision: trust.choice_revision.clone() };
+                    project: trust.choice_project.clone() };
                 Self::trust_outcome(i, key, TrustOutcome::Refused(notice));
             } else {
                 i.level.trust_order.remove(key);
@@ -484,19 +480,19 @@ impl Host {
         else { i.level.unsettled_outcomes.insert(key.to_owned(), outcome); }
     }
     /// A settled outcome: a refusal's command error is kept for its own request whatever happens next; the outcome
-    /// is shown only where its frame is later than the latest outcome applied for its root.
+    /// is shown only where its frame is later than the latest outcome applied for its root, a refusal dated with the
+    /// time its request was sent.
     fn apply_trust_outcome(i: &mut Inner, key: &str, outcome: TrustOutcome) {
         if let TrustOutcome::Refused(notice) = &outcome {
-            if let Some(first) = notice.value["lines"][0].as_str() {
-                i.level.settings_errors.insert(notice.request_ref.clone(), format!("{first} {}", cl::PROJECT_SETTINGS_SEE_TRUST));
-            }
+            i.level.settings_errors.insert(notice.request_ref.clone(), cl::PROJECT_SETTINGS_COMMAND_ERROR.to_owned());
         }
-        let Some(n) = i.level.trust_order.remove(key) else { return };
+        let Some((n, sent)) = i.level.trust_order.remove(key) else { return };
         let root = match &outcome { TrustOutcome::Refused(notice) => notice.root.clone(), TrustOutcome::Accepted { root, .. } => root.clone() };
         if i.level.trust_outcome_at.get(&root).is_some_and(|latest| *latest >= n) { return; }
         i.level.trust_outcome_at.insert(root.clone(), n);
         match outcome {
-            TrustOutcome::Refused(notice) => {
+            TrustOutcome::Refused(mut notice) => {
+                cl::project_settings_dated(&mut notice.value, &sent);
                 if let Some(t) = &notice.thread { i.level.thread_settings_refusal.insert(t.clone(), notice.clone()); }
                 i.level.settings_refusal = Some(notice);
             }
@@ -507,15 +503,13 @@ impl Host {
             }
         }
     }
-    /// A notice stands exactly as long as its cause: while the latest entry written for its root is still trusted,
-    /// and the App's choice it was sent under is still at the revision it was sent under.
-    fn notice_stands(i: &Inner, notice: &SettingsNotice) -> bool {
-        let settings = i.level.latest_trust.get(&notice.root).is_none_or(|level| level == "trusted");
-        let choice = match (&notice.project, &notice.revision, &i.level.project_trust) {
-            (Some(project), Some(revision), Some(projects)) => projects.latest_revision(project).is_none_or(|now| now == *revision),
+    /// A notice is not shown while the App's choice for the project it was sent for is off.
+    fn notice_shown(i: &Inner, notice: &SettingsNotice) -> bool {
+        let off = |choice: cl::AppTrust| matches!(choice, cl::AppTrust::OffBySwitch { .. } | cl::AppTrust::OffByNewIdentity { .. });
+        match (&notice.project, &i.level.project_trust) {
+            (Some(project), Some(projects)) => !projects.choice_for(project).is_some_and(off),
             _ => true,
-        };
-        settings && choice
+        }
     }
     /// The command's own error text for the start, resume (Continue) or fork `request_ref` names, where Codex
     /// refused that request as a settings-file refusal: bound to the request itself, not to what is shown now.
@@ -800,7 +794,7 @@ impl Host {
         status["levelStartRefusal"] = json!(i.level.start_refusal);
         status["levelSendRefusal"] = json!(i.level.last_refusal);
         // A notice is shown only while its cause stands.
-        let standing = |notice: &SettingsNotice| Self::notice_stands(i, notice).then(|| notice.value.clone());
+        let standing = |notice: &SettingsNotice| Self::notice_shown(i, notice).then(|| notice.value.clone());
         status["projectSettingsRefusal"] = json!(i.level.settings_refusal.as_ref().and_then(standing));
         status["levelLaunchRead"] = i.level.launch.clone();
         status["levelRecordMissing"] = if i.level.record_missing { json!(cl::RECORD_MISSING_SENTENCE) } else { Value::Null };

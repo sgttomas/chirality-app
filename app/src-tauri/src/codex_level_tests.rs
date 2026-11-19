@@ -324,7 +324,7 @@ fn the_apps_sentences_say_tried_to_send_for_an_unwritten_frame() {
 }
 
 #[test]
-fn a_trusted_projects_settings_file_that_stops_a_start_is_said_plainly_for_both_observed_causes() {
+fn a_trusted_projects_settings_file_that_stops_a_start_is_one_dated_message_with_codexs_reason_whole() {
     let base = tmp("settings-refusal");
     let project = base.canonicalize().unwrap();
     let cwd = project.join("sub");
@@ -334,24 +334,27 @@ fn a_trusted_projects_settings_file_that_stops_a_start_is_said_plainly_for_both_
     r.case = TrustCase::Unmarked;
     r.choice = Some(on());
     assert_eq!((r.root.clone(), r.trust_level()), (cwd.clone(), "trusted"), "no .git: the folder is its own root");
-    // A parse error naming the project's file.
+    // A parse error naming the project's file: the App names no file; Codex's reason is given whole.
     let file = cwd.join(".codex").join("config.toml");
     let parse = json!({"code": -32600, "message": format!("failed to load configuration: {}: TOML parse error at line 1, column 5", file.display())});
-    let said = project_settings_refusal(&r, &parse).unwrap();
-    assert_eq!(said["lines"], json!([PROJECT_SETTINGS_NOT_LOADED]));
-    assert_eq!(said["lines"][0], "This project's own Codex settings file could not be loaded, so Codex did not start the conversation.");
-    assert_eq!((said["fileSentence"].as_str(), said["files"].clone()), (Some(PROJECT_SETTINGS_FILE_NAMED), json!([file.to_string_lossy()])));
-    assert_eq!(said["codexReason"], json!({"text": parse["message"], "standing": NOT_THE_APPS_TEXT}));
-    assert_eq!(said["remedy"], "You can fix the file, or switch this project's trust off in Chirality, and start the conversation again.");
-    // A key no longer supported: Codex names no path, so the candidates from the root to the folder are said.
+    let mut said = project_settings_refusal(&r, &parse).unwrap();
+    assert_eq!(said.get("lines"), None, "dated when its outcome is applied");
+    project_settings_dated(&mut said, "2026-11-19T06:00:00.000Z");
+    assert_eq!(said["lines"], json!([format!("{PROJECT_SETTINGS_AT_BEFORE}2026-11-19T06:00:00.000Z{PROJECT_SETTINGS_AT_AFTER}")]));
+    assert_eq!(said["at"], "2026-11-19T06:00:00.000Z");
+    assert_eq!((said["filesHeading"].as_str(), said["files"].clone()), (Some(PROJECT_SETTINGS_FILES), json!([{"path": file.to_string_lossy(), "where": IN_PROJECT_FOLDER}])));
+    assert_eq!((said["codexReasonLabel"].as_str(), said["codexReason"].clone()), (Some(PROJECT_SETTINGS_REASON), json!({"text": parse["message"], "standing": NOT_THE_APPS_TEXT})));
+    assert_eq!(said["remedy"], PROJECT_SETTINGS_REMEDY);
+    for gone in ["attributed", "fileSentence", "filesAboveProject"] { assert_eq!(said.get(gone), None, "{gone}"); }
+    // A key no longer supported: the same one form, the files from the root to the folder.
     let mut below = TrustReading::not_read(cwd.clone(), TRUST_READ_FAILED, None);
-    below.root = project.clone();
+    (below.root, below.binding.root) = (project.clone(), Some(project.clone()));
     below.case = TrustCase::Unmarked;
     below.choice = Some(on());
     let unsupported = json!({"code": -32600, "message": "failed to load configuration: `invented_key` is no longer supported; remove it from config.toml"});
     let said = project_settings_refusal(&below, &unsupported).unwrap();
-    assert_eq!(said["fileSentence"], PROJECT_SETTINGS_FILE_CANDIDATES);
-    assert_eq!(said["files"], json!([project.join(".codex/config.toml").to_string_lossy(), cwd.join(".codex/config.toml").to_string_lossy()]));
+    assert_eq!(said["files"], json!([{"path": project.join(".codex/config.toml").to_string_lossy(), "where": IN_FOLDER_ABOVE},
+        {"path": cwd.join(".codex/config.toml").to_string_lossy(), "where": IN_PROJECT_FOLDER}]));
     // Not this case: an untrusted entry's refusal, another code, another beginning.
     let mut untrusted = r.clone();
     untrusted.choice = Some(off());
@@ -405,8 +408,8 @@ fn where_the_two_spellings_of_the_root_carry_conflicting_marks_untrusted_wins() 
 }
 
 #[test]
-fn the_settings_file_is_attributed_only_as_a_whole_contained_path_and_otherwise_said_as_not_attributed() {
-    let base = tmp("settings-attribution").canonicalize().unwrap();
+fn the_settings_files_are_listed_by_name_from_the_bound_root_down_to_the_folder_as_resolved() {
+    let base = tmp("settings-files").canonicalize().unwrap();
     let (root, cwd) = (base.join("repo"), base.join("repo").join("project"));
     std::fs::create_dir_all(cwd.join(".codex")).unwrap();
     std::fs::create_dir_all(root.join(".git")).unwrap();
@@ -414,25 +417,29 @@ fn the_settings_file_is_attributed_only_as_a_whole_contained_path_and_otherwise_
     let mut r = TrustReading::not_read(cwd.clone(), TRUST_READ_FAILED, None);
     r.case = TrustCase::Unmarked;
     r.choice = Some(on());
-    assert_eq!(r.root, root);
-    let own = cwd.join(".codex").join("config.toml");
-    let error = |message: String| json!({"code": -32600, "message": format!("failed to load configuration: {message}")});
-    // A whole path: attributed.
-    let said = project_settings_refusal(&r, &error(format!("{}: TOML parse error", own.display()))).unwrap();
-    assert_eq!((said["lines"].clone(), said["attributed"].clone(), said["files"].clone()), (json!([PROJECT_SETTINGS_NOT_LOADED]), json!(true), json!([own.to_string_lossy()])));
-    // A path that only begins with it: not attributed; the candidates, and those above the project named as such.
-    let said = project_settings_refusal(&r, &error(format!("{}.bak: TOML parse error", own.display()))).unwrap();
-    assert_eq!((said["lines"].clone(), said["attributed"].clone()), (json!([PROJECT_SETTINGS_NOT_ATTRIBUTED]), json!(false)));
-    let above = root.join(".codex").join("config.toml");
-    assert_eq!(said["files"], json!([above.to_string_lossy(), own.to_string_lossy()]));
-    assert_eq!(said["filesAboveProject"], json!([above.to_string_lossy()]));
-    // A candidate whose folder resolves outside the root is never named, even where Codex names it.
+    assert_eq!((r.binding.root.clone(), r.binding.resolved.clone()), (Some(root.clone()), Some(cwd.clone())));
+    let error = json!({"code": -32600, "message": "failed to load configuration: invented"});
+    let (above, own) = (root.join(".codex").join("config.toml"), cwd.join(".codex").join("config.toml"));
+    let listed = json!([{"path": above.to_string_lossy(), "where": IN_FOLDER_ABOVE}, {"path": own.to_string_lossy(), "where": IN_PROJECT_FOLDER}]);
+    assert_eq!(project_settings_refusal(&r, &error).unwrap()["files"], listed);
+    // The folder named through a link: Codex finds the root from the folder as given (the link's own folders hold
+    // no .git), so the bound root is that folder as resolved, and its file alone is listed.
+    let alias = base.join("alias");
+    std::os::unix::fs::symlink(&cwd, &alias).unwrap();
+    let mut linked = TrustReading::not_read(alias.clone(), TRUST_READ_FAILED, None);
+    linked.case = TrustCase::Unmarked;
+    linked.choice = Some(on());
+    assert_eq!((linked.binding.root.clone(), linked.binding.resolved.clone()), (Some(cwd.clone()), Some(cwd.clone())));
+    assert_eq!(project_settings_refusal(&linked, &error).unwrap()["files"], json!([{"path": own.to_string_lossy(), "where": IN_PROJECT_FOLDER}]));
+    // By name alone: a .codex at the root that is a link elsewhere is listed by its name, and nothing it points to.
     let outside = base.join("outside");
     std::fs::create_dir_all(&outside).unwrap();
-    std::fs::create_dir_all(root.join("project")).unwrap();
     std::os::unix::fs::symlink(&outside, root.join(".codex")).unwrap();
-    let said = project_settings_refusal(&r, &error(format!("{}: TOML parse error", above.display()))).unwrap();
-    assert_eq!((said["attributed"].clone(), said["files"].clone()), (json!(false), json!([own.to_string_lossy()])));
-    assert!(!said.to_string().contains(&format!("\"{}\"", outside.join("config.toml").display())));
+    let said = project_settings_refusal(&r, &error).unwrap();
+    assert_eq!(said["files"], listed);
+    assert!(!said.to_string().contains(&outside.display().to_string()));
+    // A folder outside the root: the root's file alone.
+    assert_eq!(project_settings_files(&root, &outside), vec![(above.clone(), false)]);
+    assert_eq!(project_settings_files(&root, &root), vec![(above, true)]);
     std::fs::remove_dir_all(base).unwrap();
 }

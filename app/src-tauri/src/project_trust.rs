@@ -265,8 +265,6 @@ pub struct ProjectTrust {
     switching: Mutex<()>,
     /// What the last frame for a known project carried (its `projectTrust` status).
     last_sent: Mutex<Option<Value>>,
-    /// The latest revision read for each project, by its physical folder.
-    revisions: Mutex<std::collections::HashMap<PathBuf, String>>,
     #[cfg(test)]
     pub(crate) after_confirmation: Mutex<Option<Box<dyn FnOnce() + Send>>>,
     #[cfg(test)]
@@ -308,19 +306,10 @@ impl ProjectTrust {
     pub(crate) fn choice_for(&self, cwd: &Path) -> Option<AppTrust> {
         self.choice_read_for(cwd).map(|read| read.choice)
     }
-    /// As [`Self::choice_for`], with its revision, noted as the latest for the project.
+    /// As [`Self::choice_for`], with its revision.
     pub(crate) fn choice_read_for(&self, cwd: &Path) -> Option<ChoiceRead> {
         let project = self.project_for(cwd)?;
-        Some(self.read_noting(&project, Some(cwd)))
-    }
-    fn read_noting(&self, project: &KnownProject, cwd: Option<&Path>) -> ChoiceRead {
-        let read = Self::read_choice(project, cwd);
-        self.revisions.lock().unwrap_or_else(|p| p.into_inner()).insert(project.physical.clone(), read.revision.clone());
-        read
-    }
-    /// The latest revision read for the project at `physical`.
-    pub(crate) fn latest_revision(&self, physical: &Path) -> Option<String> {
-        self.revisions.lock().unwrap_or_else(|p| p.into_inner()).get(physical).cloned()
+        Some(Self::read_choice(&project, Some(cwd)))
     }
     /// Held by a Host across the write of a frame whose entry rests on the choice.
     pub(crate) fn hold_switches(&self) -> MutexGuard<'_, ()> {
@@ -390,7 +379,7 @@ impl ProjectTrust {
         if confirming.is_some() {
             return Err("A trust confirmation is already open; finish it first; nothing written".into());
         }
-        let read = self.read_noting(&project, None);
+        let read = Self::read_choice(&project, None);
         if let Some(reason) = Self::switch_refusal(&project, &read.choice) {
             return Err(format!("{CANNOT_SWITCH} {reason}"));
         }
@@ -493,7 +482,7 @@ impl ProjectTrust {
     /// The per-project view, for the launched project (host status `projectTrustChoice`); None without a project.
     pub(crate) fn view(&self) -> Value {
         let Some(project) = self.launched() else { return Value::Null };
-        let read = self.read_noting(&project, None);
+        let read = Self::read_choice(&project, None);
         let choice = read.choice.clone();
         let (sentence, at, detail) = match &choice {
             AppTrust::OnBySetup => (CHOICE_ON_BY_SETUP.to_owned(), None, None),

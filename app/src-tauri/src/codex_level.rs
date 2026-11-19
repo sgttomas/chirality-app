@@ -347,11 +347,12 @@ pub fn trust_lookup_keys(path: &Path) -> Vec<String> {
 }
 
 /// What a frame's trust entry rests on in the filesystem: the conversation folder's own identity (device and file
-/// number of the folder it resolves to), the root Codex computes from it as resolved, and the key the entry is sent
-/// under. Bound when the frame is built and compared again when it is written (DEL-01-01).
+/// number of the folder it resolves to) and the folder as resolved, the root Codex computes from it as resolved, and
+/// the key the entry is sent under. Bound when the frame is built and compared again when it is written (DEL-01-01).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FolderBinding {
     pub folder: Option<(u64, u64)>,
+    pub resolved: Option<PathBuf>,
     pub root: Option<PathBuf>,
     pub key: String,
 }
@@ -361,6 +362,7 @@ pub fn folder_binding(cwd: &Path) -> FolderBinding {
     let root = project_root(cwd);
     FolderBinding {
         folder: std::fs::metadata(cwd).ok().map(|m| (m.dev(), m.ino())),
+        resolved: std::fs::canonicalize(cwd).ok(),
         root: std::fs::canonicalize(&root).ok(),
         key: trust_lookup_keys(&root).remove(0),
     }
@@ -565,65 +567,52 @@ impl TrustReading {
 /// `TrustedProject`). Nothing more of the message is parsed.
 pub const CONFIG_LOAD_ERROR_CODE: i64 = -32600;
 pub const CONFIG_LOAD_ERROR_PREFIX: &str = "failed to load configuration:";
-pub const PROJECT_SETTINGS_NOT_LOADED: &str = "This project's own Codex settings file could not be loaded, so Codex did not start the conversation.";
+/// The message's first sentence, dated with the time its request was sent: `{BEFORE}{T}{AFTER}`.
+pub const PROJECT_SETTINGS_AT_BEFORE: &str = "At ";
+pub const PROJECT_SETTINGS_AT_AFTER: &str = ", Codex could not load its settings, so it did not start the conversation. This project was marked trusted in that request, so one of its own settings files may be the cause.";
+pub const PROJECT_SETTINGS_FILES: &str = "The project's own settings files Codex may have read:";
+pub const PROJECT_SETTINGS_REASON: &str = "Codex's reason:";
 pub const PROJECT_SETTINGS_REMEDY: &str = "You can fix the file, or switch this project's trust off in Chirality, and start the conversation again.";
-pub const PROJECT_SETTINGS_FILE_NAMED: &str = "The file Codex named:";
-pub const PROJECT_SETTINGS_FILE_CANDIDATES: &str = "Codex did not name the file. The project's own settings files it may have read are among these:";
-/// Where Codex's text names none of the project's own settings files as a whole path.
-pub const PROJECT_SETTINGS_NOT_ATTRIBUTED: &str = "Codex could not load its settings, so it did not start the conversation. This project was sent as trusted, so one of its own settings files may be the cause.";
-/// After the notice's first sentence, as the start's, resume's or fork's own error text.
-pub const PROJECT_SETTINGS_SEE_TRUST: &str = "See the project's trust in Chirality for the file and Codex's reason.";
+/// The start's, resume's (Continue's) or fork's own error text for such a refusal.
+pub const PROJECT_SETTINGS_COMMAND_ERROR: &str = "Codex could not load its settings, so it did not start the conversation. This project was marked trusted in that request, so one of its own settings files may be the cause. See the project's trust in Chirality for the files and Codex's reason.";
+/// Where a listed settings file lies: in the conversation's own folder, or in a repository folder above it.
+pub const IN_PROJECT_FOLDER: &str = "project-folder";
+pub const IN_FOLDER_ABOVE: &str = "repository-folder-above";
 
 /// The App's account of a refused start, resume or fork that carried a trusted entry when Codex says it could not
-/// load the configuration; None for any other reply. `error` is the reply's `error` member. It says only what is
-/// known: attributed, where Codex's text contains as a whole path one of the project's own settings files (inside
-/// the folders from the root Codex computes down to the conversation's folder, after resolving); otherwise not
-/// attributed, with those files as candidates, and the ones in the repository's folders above the conversation's
-/// folder named as such. No file outside those folders is ever named.
+/// load the configuration; None for any other reply. `error` is the reply's `error` member. The App names no file
+/// as the cause: it lists the project's own settings files Codex may have read, lexically from the frame's bound
+/// root and folder as resolved when the frame was built (`project_settings_files`), and gives Codex's reason whole,
+/// as supplied text. Its first sentence is dated when the outcome is applied (`project_settings_dated`).
 pub fn project_settings_refusal(trust: &TrustReading, error: &Value) -> Option<Value> {
     if trust.trust_level() != "trusted" || error["code"].as_i64() != Some(CONFIG_LOAD_ERROR_CODE) { return None; }
     let message = error["message"].as_str()?;
     if !message.starts_with(CONFIG_LOAD_ERROR_PREFIX) { return None; }
-    let root = std::fs::canonicalize(&trust.root).ok();
-    // A candidate is named only where it lies inside the root's folders after resolving: resolved through its
-    // nearest part that exists.
-    let resolved = |c: &Path| c.ancestors().find_map(|a| std::fs::canonicalize(a).ok().and_then(|r| Some(r.join(c.strip_prefix(a).ok()?))));
-    let candidates: Vec<(PathBuf, PathBuf)> = project_settings_candidates(&trust.root, &trust.cwd).into_iter()
-        .filter_map(|c| { let r = resolved(&c)?; root.as_ref().is_some_and(|root| r.starts_with(root)).then_some((c, r)) }).collect();
-    let named = candidates.iter().rev().find(|(given, resolved)| whole_path_in(message, given) || whole_path_in(message, resolved));
-    let text = |p: &Path| p.to_string_lossy().into_owned();
-    let (lines, sentence, files) = match named {
-        Some((file, _)) => (PROJECT_SETTINGS_NOT_LOADED, PROJECT_SETTINGS_FILE_NAMED, vec![text(file)]),
-        None => (PROJECT_SETTINGS_NOT_ATTRIBUTED, PROJECT_SETTINGS_FILE_CANDIDATES, candidates.iter().map(|(c, _)| text(c)).collect()),
-    };
-    let own = trust.cwd.join(".codex").join("config.toml");
-    let above: Vec<String> = if named.is_none() && trust.root != trust.cwd { candidates.iter().filter(|(c, _)| *c != own).map(|(c, _)| text(c)).collect() } else { vec![] };
-    Some(json!({"lines": [lines], "attributed": named.is_some(), "fileSentence": sentence, "files": files, "filesAboveProject": above,
-        "filesStanding": "Folders are supplied text.", "codexReason": {"text": message, "standing": NOT_THE_APPS_TEXT}, "remedy": PROJECT_SETTINGS_REMEDY,
+    let root = trust.binding.root.clone().unwrap_or_else(|| trust.root.clone());
+    let folder = trust.binding.resolved.clone().unwrap_or_else(|| trust.cwd.clone());
+    let files: Vec<Value> = project_settings_files(&root, &folder).into_iter()
+        .map(|(path, own)| json!({"path": path.to_string_lossy(), "where": if own { IN_PROJECT_FOLDER } else { IN_FOLDER_ABOVE }})).collect();
+    Some(json!({"filesHeading": PROJECT_SETTINGS_FILES, "files": files, "filesStanding": "Folders are supplied text.",
+        "codexReasonLabel": PROJECT_SETTINGS_REASON, "codexReason": {"text": message, "standing": NOT_THE_APPS_TEXT}, "remedy": PROJECT_SETTINGS_REMEDY,
         "projectRoot": trust.root.to_string_lossy()}))
 }
-/// `path` appears in `message` as a whole path: bounded on each side by the message's edge or a character that
-/// cannot continue a path in Codex's text.
-fn whole_path_in(message: &str, path: &Path) -> bool {
-    let path = path.to_string_lossy();
-    let boundary = |c: char| c.is_whitespace() || matches!(c, '"' | '\'' | '`' | ':' | ',' | ';' | '(' | ')' | '[' | ']' | '<' | '>' | '{' | '}');
-    !path.is_empty() && message.match_indices(path.as_ref()).any(|(at, _)| {
-        message[..at].chars().next_back().is_none_or(boundary) && message[at + path.len()..].chars().next().is_none_or(boundary)
-    })
+/// The message's dated first sentence, `at` the time its request was sent.
+pub fn project_settings_dated(refusal: &mut Value, at: &str) {
+    refusal["at"] = json!(at);
+    refusal["lines"] = json!([format!("{PROJECT_SETTINGS_AT_BEFORE}{at}{PROJECT_SETTINGS_AT_AFTER}")]);
 }
 
-/// The project's `.codex/config.toml` files Codex may read for a conversation in `cwd`: one in each folder from the
-/// project root down to `cwd`, in that order. `cwd` outside `root` gives the root's alone.
-pub fn project_settings_candidates(root: &Path, cwd: &Path) -> Vec<PathBuf> {
-    let mut out = vec![root.join(".codex").join("config.toml")];
-    if let Ok(below) = cwd.strip_prefix(root) {
-        let mut at = root.to_path_buf();
+/// The `.codex/config.toml` in each folder from `root` down to `folder`, in that order, by their names alone (no file
+/// is looked at); each with whether it is in `folder` itself. `folder` outside `root` gives the root's alone.
+pub fn project_settings_files(root: &Path, folder: &Path) -> Vec<(PathBuf, bool)> {
+    let mut folders = vec![root.to_path_buf()];
+    if let Ok(below) = folder.strip_prefix(root) {
         for part in below.components() {
-            at.push(part);
-            out.push(at.join(".codex").join("config.toml"));
+            let next = folders.last().unwrap().join(part);
+            folders.push(next);
         }
     }
-    out
+    folders.into_iter().map(|f| (f.join(".codex").join("config.toml"), f == folder)).collect()
 }
 
 /// The person's mark for `root` in a `config/read` result with layers: the user layers' `projects` table, looked
