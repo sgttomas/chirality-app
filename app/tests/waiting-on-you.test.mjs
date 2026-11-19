@@ -194,7 +194,7 @@ test('a request waiting on an agent is not listed: the App answers its own recor
   assert.ok(!entries.some(e => e.target.anchor?.includes?.('rule1')) && !JSON.stringify(entries).includes('rule1'));
   const onlyRule = hostView({serverRequests:[hostView().serverRequests[2]], waitingRequests:{groups:[], sources:[{modeHomeClass:'account', state:'ready'}], coverage:''}, workflowRoot:{runs:[], reopened:emptyCensus()}});
   assert.deepEqual(waitingModule().waitingEntries({host:onlyRule}), []);
-  assert.match(renderPlace(allReadings({host:onlyRule, fleet:emptyFleet(), decisions:emptyDecisions()})), /Waiting on you: 0<[\s\S]*Nothing recorded is waiting on you\./);
+  assert.match(renderPlace(allReadings({host:onlyRule, fleet:emptyFleet(), decisions:emptyDecisions()})), />Nothing is waiting<[\s\S]*Nothing recorded is waiting on you\./);
 });
 
 test('agent text in entries is inside AgentText, and nothing an agent wrote reads as a control', async () => {
@@ -276,7 +276,7 @@ test('the place is present whichever tab is selected, at the top of the conversa
       const here = place(c);
       assert.ok(here, `${item.label}: the place is in the document`);
       assert.ok(shownIn(here, c), `${item.label}: the place is shown`);
-      assert.match(nodes(here, 'summary')[0].textContent, /^Waiting on you: \d+( observed now)?( \(\d+ requests? from Codex\))?(; status incomplete)?$/);
+      assert.match(nodes(here, 'summary')[0].textContent, /^(Nothing is waiting|Waiting on you: \d+( observed now)?( \(\d+ requests? from Codex\))?(; status incomplete)?)$/);
       // Above the three regions, a direct child of the frame: it is seen whichever region is being used, and at
       // the top of the window where the regions stack and the page itself scrolls.
       const line = here.parentNode;
@@ -527,7 +527,8 @@ test('every state of every source, through the real adapters: no definite count 
   const base = claims(emptySources());
   assert.deepEqual(base.readings.map(r => [r.key, r.state]), [['requests:account', 'whole'], ['hot-runs', 'whole'], ['other-homes', 'whole'], ['home:api-key', 'whole'], ['reopened', 'whole'], ['returns', 'whole'], ['decisions', 'whole']]);
   assert.equal(base.shown.complete, true);
-  assert.equal(base.line, 'Waiting on you: 0');
+  assert.equal(base.line, 'Nothing is waiting');
+  assert.match(base.html, /<summary aria-label="Waiting on you: nothing is waiting\. Opens the list\."><span role="status" aria-live="polite">Nothing is waiting<\/span><\/summary>/, 'the quiet line, named for what it is and does');
   assert.match(base.html, /Nothing recorded is waiting on you\./);
   assert.doesNotMatch(base.html, /What this list could not read whole/);
   // Each case removes or invalidates the positive word through the real input; the affirmative claims disappear.
@@ -541,7 +542,7 @@ test('every state of every source, through the real adapters: no definite count 
     assert.equal(reading.state === 'whole' || reading.state === 'limited' ? reading.entries.length : 0, observed, `${key} / ${name}: entries observed`);
     if (readings.every(r => r.state === 'whole')) {
       assert.equal(shown.complete, true, `${key} / ${name}: whole everywhere`);
-      assert.match(line, /^Waiting on you: \d+( \(\d+ requests? from Codex\))?$/);
+      assert.match(line, shown.observed.length === 0 ? /^Nothing is waiting$/ : /^Waiting on you: [1-9]\d*( \(\d+ requests? from Codex\))?$/);
       continue;
     }
     assert.equal(shown.complete, false, `${key} / ${name}: not complete`);
@@ -553,6 +554,36 @@ test('every state of every source, through the real adapters: no definite count 
     if (reading.state === 'failed') assert.deepEqual(reading.entries, [], `${key} / ${name}: a failed reading observes nothing now`);
   }
   assert.deepEqual([...sources].sort(), ['decisions', 'home', 'hot-runs', 'other-homes', 'reopened', 'reopened-run', 'requests', 'returns', 'run'], 'every source is walked');
+});
+
+test('the top line: quiet ("Nothing is waiting") only with every source read whole and nothing waiting; a definite count or "status incomplete" otherwise', () => {
+  const {waitingReadings, waitingLine, nothingWaiting, NOTHING_WAITING_NAME} = waitingModule();
+  const summaryOf = html => html.match(/<summary[^>]*>[\s\S]*?<\/summary>/)[0];
+  // Quiet: every reading whole, none holds an entry. The line says only that, is marked quiet for its faint type, and is
+  // still the summary of the list's disclosure; its accessible name says what the control is and that it opens the list.
+  const quiet = renderPlace(waitingReadings(emptySources()));
+  assert.match(quiet, /^<section class="waiting-on-you waiting-on-you--quiet" aria-label="Waiting on you"><details id="waiting-on-you">/);
+  assert.equal(summaryOf(quiet), '<summary aria-label="Waiting on you: nothing is waiting. Opens the list."><span role="status" aria-live="polite">Nothing is waiting</span></summary>');
+  assert.match(NOTHING_WAITING_NAME, /^Waiting on you: /, 'the name says what the control is');
+  assert.match(quiet, /Nothing recorded is waiting on you\./, 'the list it opens says so too');
+  assert.doesNotMatch(summaryOf(quiet), /\d/, 'no count sentence');
+  // A definite count: every reading whole, something waiting.
+  const counted = renderPlace();
+  assert.match(counted, /^<section class="waiting-on-you" aria-label="Waiting on you">/, 'not quiet');
+  assert.equal(summaryOf(counted), '<summary><span role="status" aria-live="polite">Waiting on you: 9 (5 requests from Codex)</span></summary>');
+  // Not whole, nothing observed: never quiet, never "nothing is waiting".
+  const unread = renderPlace(waitingReadings(emptySources({decisions:null, decisionsReadAt:null})));
+  assert.match(unread, /^<section class="waiting-on-you" aria-label="Waiting on you">/);
+  assert.equal(summaryOf(unread), '<summary><span role="status" aria-live="polite">Waiting on you: 0 observed now; status incomplete</span></summary>');
+  // Not whole, something observed.
+  const partial = renderPlace(allReadings({fleet:null, fleetReadAt:null}));
+  assert.match(summaryOf(partial), /^<summary><span role="status" aria-live="polite">Waiting on you: 8 observed now \(5 requests from Codex\); status incomplete<\/span><\/summary>$/);
+  // The rule itself: an entry or an incomplete reading each takes the quiet words away.
+  assert.equal(nothingWaiting([], true), true);
+  assert.equal(nothingWaiting([], false), false);
+  assert.equal(nothingWaiting([{count:1, source:'decision-package'}], true), false);
+  assert.equal(waitingLine([{count:1, source:'decision-package'}], true), 'Waiting on you: 1');
+  assert.equal(waitingLine([], false), 'Waiting on you: 0 observed now; status incomplete');
 });
 
 test('the reopened census: an established empty census is whole; null, an unknown lifecycle and runs:[] with limits are not, and the note naming unread reopened runs stays', () => {
@@ -1049,7 +1080,7 @@ test('a reopened arrival whose answering act is recorded and not yet counted ask
   assert.deepEqual(arrivals(awaiting), []);
   assert.equal(reading(awaiting).state, 'whole');
   const shownAwaiting = waitingView(waitingReadings(emptySources(withCensus(awaiting))));
-  assert.equal(waitingLine(shownAwaiting.observed, shownAwaiting.complete), 'Waiting on you: 0');
+  assert.equal(waitingLine(shownAwaiting.observed, shownAwaiting.complete), 'Nothing is waiting');
   assert.doesNotMatch(renderPlace(waitingReadings(emptySources(withCensus(awaiting)))), /a checkpoint was reached; your act is not yet recorded/);
   // Unknown, with the host's reason; absent; or not bound to this exact arrival: never waiting, never answered.
   const REASON = 'the project\'s act records could not be read: invented';
