@@ -277,17 +277,15 @@ test('the place is present whichever tab is selected, at the top of the conversa
       assert.ok(here, `${item.label}: the place is in the document`);
       assert.ok(shownIn(here, c), `${item.label}: the place is shown`);
       assert.match(nodes(here, 'summary')[0].textContent, /^Waiting on you: \d+( observed now)?( \(\d+ requests? from Codex\))?(; status incomplete)?$/);
-      const classes = node => (node.getAttribute('class') ?? '').split(' ');
-      const sticky = here.parentNode;
-      assert.ok(classes(sticky).includes('workspace-sticky'), 'it stays in view while the conversation scrolls');
-      // The element that scrolls is the conversation's transcript (3.0.1's chat-transcript).
-      const scroller = sticky.parentNode;
-      assert.ok(classes(scroller).includes('chat-transcript'), 'a direct child of the element that scrolls, so it sticks while the conversation scrolls');
-      const centre = c.querySelectorAll(n => n.getAttribute('id') === 'view-conversation')[0];
-      assert.ok(centre.contains(scroller), 'in the conversation');
-      let region = centre; while (region && region.getAttribute?.('aria-label') !== 'Conversation') region = region.parentNode;
-      assert.ok(region, 'in the centre region');
-      assert.equal(scroller.childNodes[0], sticky, 'at the top of the transcript');
+      // Above the three regions, a direct child of the frame: it is seen whichever region is being used, and at
+      // the top of the window where the regions stack and the page itself scrolls.
+      const line = here.parentNode;
+      assert.equal(line.getAttribute('class'), 'daily-workspace workspace-waiting');
+      const frame = line.parentNode;
+      assert.equal(frame.localName, 'main', 'a direct child of the frame');
+      const regions = frame.childNodes.find(n => (n.getAttribute?.('class') ?? '').split(' ').includes('woven-workspace'));
+      assert.ok(frame.childNodes.indexOf(line) < frame.childNodes.indexOf(regions), 'before the three regions');
+      assert.equal(regions.contains(here), false, 'inside none of them, so no region\'s own scrolling takes it out of view');
     }
     assert.equal(c.querySelectorAll(n => n.getAttribute('aria-label') === 'Requests waiting for your answer').length, 1, 'the waiting count is inside the place, once');
     assert.ok(place(c).contains(c.querySelectorAll(n => n.getAttribute('aria-label') === 'Requests waiting for your answer')[0]));
