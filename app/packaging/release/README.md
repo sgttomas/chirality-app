@@ -172,7 +172,17 @@ result:
 - Apple's `dyld_info -validate_only` returns zero and prints nothing at all,
   on either stream, for every Mach-O file (its manual: "Display nothing if
   binary is valid"). Both streams must be byte-empty; whitespace also fails.
-- The Info.plist states the release identity.
+- The Info.plist is one XML property list of at most 64 KiB whose value is
+  the whole document, in the admitted form, with its five identity fields
+  present as strings, and it states the release identity. A file not read
+  whole is `info_plist_whole` (malformed) or `info_plist_not_read` (not
+  established). An identity field that is missing, not a string, or not the
+  release value is the check named for that field: `info_plist_identifier`,
+  `info_plist_version`, `info_plist_bundle_version`,
+  `info_plist_minimum_system_version` or `info_plist_executable`. Each of
+  these entries in `BUILD_REFUSED.json` carries a `detail` naming the field,
+  the shape expected, what was found and, where the refused form has a
+  position in the file, its byte offset (see "Reading a refusal" below).
 - The vendor tree matches the input in bytes, modes and types.
 - Every mapped resource matches its source in bytes.
 - The executable holds the compiled publisher binding and requirement.
@@ -289,7 +299,8 @@ expectation, not a promise.
 **If the run is interrupted** (Control-C, a dropped network, a timeout):
 
 - It stops with the reason "interrupted" (Control-C) or "unexpected" (any
-  other error no check covers, such as a timeout), and writes `STOPPED.json`.
+  other error no check covers, such as a timeout), and attempts to write
+  `STOPPED.json` when its output folder exists.
 - It starts no further step. The one command it may still run is
   `hdiutil detach` of its own mount point, if the disk image was mounted at
   that moment. Whether the detach worked is in the command log; if it did not,
@@ -302,6 +313,108 @@ expectation, not a promise.
 - What is left in `--out` is yours to delete. `tmp/` there may hold
   temporary files of the tools; a fetched notarization log never stays there,
   because it is moved to the private folder as soon as the command returns.
+
+**A first run may refuse your profile or the App's `Info.plist`.** The tools
+read the provisioning profile and the App's `Info.plist` only when the whole
+file is read, in the form described under "The profile and `Info.plist` are
+read as whole files" below. A real file outside that form stops the run, and
+the stop says which of three things happened.
+
+**What each kind means.** "Not established" means the reader met a named form
+outside the subset it reads, at a named field, and did not read the file; it
+asserts nothing about whether the file is valid. "Malformed" means the reader
+is certain, within the subset it reads, that the file is not well formed or a
+field does not have its declared shape. "Mismatch" means the file was read
+whole and a value the tools read is not of its type or not what the release
+requires. A refusal's reason is true of the file: it names a real field and a
+form met there. Where a file has several defects, the one reported need not
+be the first, and a "not established" report says nothing about defects
+elsewhere.
+
+- **Not established** (`S2_PROFILE_NOT_ESTABLISHED`, or for the candidate's
+  `Info.plist` `REFUSED_INFO_PLIST_NOT_ESTABLISHED`). Nothing was compared,
+  so the identity comparison is not established. It says nothing either way
+  about your profile; it means the reader would need to learn that form. The
+  forms named this way: a file larger than the size limit (256 KiB for a
+  profile, 64 KiB for an `Info.plist`), or a document given to the reader
+  above its limit; in the profile's envelope, an
+  indefinite length, a length in more octets than needed, a constructed
+  string, a tag number in the high-tag-number form, a BOOLEAN other than 00 or
+  FF, or an element more than 64 levels below the element its walk starts
+  from; in a property list, content that does not begin with an XML
+  declaration (a byte-order mark, UTF-16 bytes, or nothing), a declared
+  encoding other than UTF-8, a declared XML version other than 1.0, a
+  standalone declaration, another document type or an internal subset, a
+  comment, a processing instruction, an entity declaration, a reference in the
+  root's `version` attribute or a root `version` other than 1.0, a leaf value outside its
+  admitted form (each named with its type and that form in full: for example
+  an integer longer than 64 characters, a real that converts to an infinity,
+  a date naming no real date, base64 padding outside the admitted form, or a
+  reference inside an `integer`), nesting deeper than 32 arrays and
+  dictionaries, a binary property list, a document the XML parser or the
+  standard parser does not read, and the two readers disagreeing.
+- **Malformed** (`S2_PROFILE_MALFORMED`, `REFUSED_INFO_PLIST_MALFORMED`): for
+  example an empty file, an envelope element that runs past its parent, bytes
+  left over, a field of the envelope not of its declared shape (a certificate
+  that is not a certificate, a version out of range), not well-formed XML, two
+  values under the root, stray text between elements, or a key twice.
+- **Mismatch** (`S2_PROFILE`, `REFUSED_INFO_PLIST_MISMATCH`): the file was read
+  whole and a field the tools read is not of its type (named with the type
+  expected), or a value is not what the release requires (another team,
+  another App ID, a debugging grant, an expired profile, another version).
+
+The profile and the candidate's `Info.plist` are read before anything is
+signed or sent to Apple. A candidate whose `Info.plist` is not the file its
+`CANDIDATE.json` binds (its inventory entry or digest) is refused: with
+`REFUSED_CANDIDATE`, which names no field, or with the reader's own refusal
+if the reader refuses the file first. Which of the two is reported is not
+promised. At the record's reading (step 13) a refused file stops
+the run with `S13_OBSERVATION`, naming `provisioning profile` or `bundle
+identity` (with ` not established` added for a form not read) in
+`STOPPED.json` when written, and no record is written.
+
+**Reading a refusal.** Under the `STOP:` line, each refusal has one line of
+its own, and `STOPPED.json`, when written, holds the same as `refusals` (or as the `detail` of a failed observation). For
+example:
+
+```text
+STOP: step 2: the provisioning profile uses a form outside the subset this reader reads, named on the next line; the file was not read and the identity comparison is not established
+  profile envelope: not established: a form outside the subset this reader reads; the file was not read, nothing is asserted about whether it is valid, and the identity comparison is not established. Field SignedData.certificates (item 1): expected definite-length DER; found an indefinite length (tag universal 16, constructed) at byte 1025.
+```
+
+It reads: which part of the file (`profile envelope`, `profile property list`,
+`profile grants`, `profile file` or `Info.plist`); which kind; the field, by
+its name in RFC 5652 for the envelope (`SignedData.certificates`), the
+property-list element for a property list (`dict`, `plist`, `integer`), or the
+key for a field of the wrong type (`TeamIdentifier`, `CFBundleVersion`); the
+shape expected; what was found; and, where they apply, which item of a set
+(counting from 1), the tag found (its class and number) and the byte offset in
+the file. A reason gives a byte offset where the refused form has a position
+in the file. These carry none: an empty file, a file larger than the size
+limit and a document larger than the size limit; the digest refusal; every
+mismatch (a field of another type or missing, a value the release does not
+accept, a consistency rule, a fact the record requires); in a property list,
+no root element, the XML parser or the standard parser not reading the
+document, the standard parser reading another value, and not well-formed XML
+when the reader, not the XML parser, finds the root element unclosed; and an
+`Info.plist` whose value is not a dictionary. Every word comes from a fixed
+list in the tools, and the numbers are byte offsets, item numbers and tag
+numbers: no byte or value of your file is printed, so the line can be sent to
+the agent as it is. The kind tells a wrong check from a wrong profile: a
+mismatch names a value or type the release does not accept; a malformed field
+names a shape the file does not have; a form not established names something
+the tools would need to learn, and says nothing about whether your file is
+valid. The file itself stays with you.
+
+**Exit statuses.** `owner_sign.py` exits 0 when it finishes and 3 for every
+stop, a reader's named refusal included. `build.py` exits 0 with a candidate
+and 2 for each failure it reports on a `FAILED:` line, a named check in
+`BUILD_REFUSED.json` included. `prepare.py` exits 0 with a plan and 2 for
+each refusal or failure it reports; a reader's refusal is then printed as
+`"error_type": "Refused"` with the refusal and its reason. `record.py check`
+exits 0 when equal, 1 when not equal (a named refusal or another failed
+observation reported in the result included), and 2 with a fixed message when
+an input error prevents producing the comparison result.
 
 **Starting again.** There is no resuming part-way. Every run starts from the
 beginning, from the candidate folder, into a new `--out` folder, and submits
@@ -338,7 +451,8 @@ unchanged code-directory hashes.
 
 ### If it stops
 
-It prints `STOP: <reason>`, writes `STOPPED.json`, starts no further step
+It prints `STOP: <reason>`, attempts to write `STOPPED.json` when its output
+folder exists, starts no further step
 (apart from detaching its own mount, as above) and writes no `RESULT.json`.
 Each reason is one of a fixed list (`REASONS` in `common.py`, with the
 owner's steps added from `observations.py`). It begins with the step it
@@ -351,7 +465,7 @@ comes from:
 A step 0 reason means a supplier file is not signed as expected. The
 supplier's files are never re-signed (DEL-01-06 CLM-002), so whether this pin
 can ship is your decision. A step 13 reason means an observation the record
-would state failed. `STOPPED.json` then names which observations failed, and
+would state failed. `STOPPED.json`, when written, names which observations failed, and
 no record is written.
 
 If a STOP comes while the disk image is mounted, the run tries to detach it.
@@ -400,16 +514,281 @@ but a first real run may still refuse one spelled otherwise. The reason then
 names the entitlements observation of its step (for example
 `S5_ENTITLEMENTS`), and the correction below applies unchanged.
 
-**Separate file-reader limits.** The whole-document check above applies to
-entitlement command output, not to the provisioning profile or `Info.plist`.
-`record.profile_facts`, `prepare.profile_consistency` and
-`common.read_info_plist` read their file values with the standard parser and
-a repeated-key check. A repeated top-level value is not refused; the parser
-can retain the last one. The affected fields are profile UUID, team, App ID,
-allowed and unexpected entitlements and expiry, and the bundle identifier,
-version, bundle version, minimum macOS and executable. File digests bind
-bytes; they do not establish an unambiguous whole-document reading. This is
-a named remaining item, outside the command-output repair.
+**The profile and `Info.plist` are read as whole files.** The XML reader,
+`app/packaging/production_inputs/whole_plist.py` (`load`), is given two inputs:
+the whole `Info.plist`, and the property list a profile's envelope holds as its
+content. It does not use the
+written-copy comparison above, which would refuse a valid file that `plistlib`
+would spell differently, such as a real profile's wrapped `<data>`. Instead it
+reads each input twice, by two readers that do not share their reading of the
+structure, and returns a value only when they agree:
+
+1. The document's own bytes, read from the XML parser's events (the same event
+   reading `xml_structure` uses), against this admitted form and nothing else:
+   a document that is not empty and not above the limit `load` is given; the
+   XML declaration first (version 1.0 and
+   encoding UTF-8 or not given, both read from the declaration's own bytes
+   before the parser runs; no standalone declaration), optionally the
+   property-list document type with no internal subset; one `plist` root,
+   whose only attribute may be `version="1.0"` written with no reference (a
+   reference there, or another value, is a form outside the subset: the
+   property-list DTD declares `version` as CDATA defaulting to 1.0, so another
+   value is a version of the format this reader does not read, not certainly
+   malformed), holding one value; only the property-list elements, nested at most 32
+   arrays and dictionaries deep; nothing but whitespace bytes between
+   elements; `key` and value alternating in a `dict`, no key twice and none
+   without its value; no comment, processing instruction or entity
+   declaration; no undefined or external entity, and nothing fetched; nothing
+   after the root but whitespace. The leaf values: `string` and `key` hold
+   text; `integer` is `0|-?[1-9][0-9]*` of at most 64 characters; `real` is a
+   decimal number with an optional exponent that converts to a finite double,
+   and to zero only from all-zero digits; `date` is `YYYY-MM-DDTHH:MM:SSZ`
+   naming a real date and time; `data` is base64 from `A-Z`, `a-z`, `0-9`, `+`
+   and `/` in groups of four, the last padded with `=` to four, unused bits
+   zero, with space, tab, CR and LF allowed anywhere in it (any wrapping);
+   `integer`, `real`, `date` and `data` hold their characters as written, with
+   no reference or CDATA section; `true` and `false` are empty. This reading
+   builds the value itself.
+2. `plistlib`'s reading of the same bytes, with a key given twice refused.
+
+The two values must be equal, with the same types and key order. No exception
+from either parser leaves the reader untyped: one that no rule above names is
+the named refusal that the XML parser, or the standard parser, does not read
+the document. The normalizations the reader makes, read from the code, each
+with the function in `whole_plist.py` that makes or admits it:
+
+- `_header`: the XML declaration and the document type compared by what they
+  declare, not by how they are spelled (either quote, whitespace inside them,
+  the encoding name in any case), and the document type's public identifier
+  with its whitespace normalized by the XML parser (XML 1.0 section 4.2.2);
+- `_header`: whitespace bytes in the prolog, between the XML declaration, the
+  document type and the root element;
+- `structure_value`, from the XML parser's start tags: the root's `version`
+  attribute absent or `1.0`, in either quote, with whitespace around `=`;
+  whitespace inside a tag (before `>` or `/>`, and in an end tag before `>`);
+  an empty element read as its start and end tags (XML 1.0);
+- `structure_value`: whitespace bytes between elements and after the root
+  element;
+- `structure_value`: line ends in text as the XML parser reports them to both
+  readers (CR LF and a lone CR become LF), in a `string` or `key` and in the
+  written characters of the other leaves;
+- `structure_value`: references and CDATA sections in a `string` or `key`
+  read as the characters they denote;
+- `_leaf`: space, tab, CR and LF removed from inside `data` before decoding;
+- `_leaf`: one conversion: a decimal `real` is read as the nearest double, so
+  two spellings can give the same value.
+
+Whitespace inside a string is kept.
+
+A refusal names what was found and, where it has a position, where (see
+"Reading a refusal" above), by
+the meanings on the owner's page: **not established** for a form outside this
+subset (listed there; a leaf value outside its form is named with its type and
+that form in full), asserting nothing about whether the file is valid; and
+**malformed** only where the reader is certain within its subset: an empty
+file, not well-formed XML, two values under the root, text outside a value, an
+unknown element, an attribute, a key twice or without a value, content in
+`true`, an undefined entity, bytes after the root. Where the two readers
+disagree, or `plistlib` cannot read what the structure read, the comparison is
+not established either: nothing shows which reading is right.
+
+**Sizes.** The limits are 256 KiB for a profile and 64 KiB for an
+`Info.plist`. The file-system size check, when reached, refuses by name a file
+that is empty (malformed) or larger than its limit (not established). Each parser entry point refuses, by name and before parsing
+anything, bytes above its limit: `prepare.profile_envelope` the profile's,
+and `whole_plist.load` the limit its caller gives (an `Info.plist`'s; by
+default 256 KiB, which bounds a profile's content)
+(`OversizedFiles.test_each_parser_entry_point_refuses_bytes_above_its_limit_before_parsing_anything`).
+Callers also check the file's size from the file system before reading it for
+the reader (`prepare.profile_size`, `whole_plist.read_within_limit`): in
+`prepare.py` (before its generic 32 MiB transfer bound), the signing run's
+preflight, which runs before step 0 although its stop text names step 2
+(before the profile's digest is checked, so a file it refuses runs no command
+and makes no output folder), `common.load_candidate`, the build's checks, and the
+record's reading and `record.py check` (both through
+`record.observe_package`). The size check gives a named size refusal when
+reached (`OversizedFiles.test_an_oversized_file_gives_the_named_size_refusal_at_each_consumer`).
+The inventory, digest and binding steps read a file's bytes whatever its size.
+A profile is a short property list and a few
+certificates of a kilobyte or two each, and an `Info.plist` a few dozen keys;
+the limits are far above that and bound the reader's memory (in review, a
+768 KiB envelope took up to about 150 MB to read). A larger real file would stop
+with the limit named, which is the tools' own number to change.
+
+**The fields the tools read, by type.** After the whole read, one typed check
+covers these fields (`prepare.profile_types`, `common.read_info_plist`), and
+each reader listed below applies it. In a profile: `UUID` a string; `TeamIdentifier`,
+`ApplicationIdentifierPrefix`, `Platform` and `ProvisionedDevices` arrays of
+strings; `ProvisionsAllDevices` a boolean; `CreationDate` and `ExpirationDate`
+dates; `Entitlements` a dictionary, and in it
+`com.apple.application-identifier` and `com.apple.developer.team-identifier`
+strings and `get-task-allow` and `com.apple.security.get-task-allow` booleans.
+Each may be absent there. Other entitlement values are classified by the
+record's entitlement selection, which counts a value of another type as an
+unexpected entitlement. In an `Info.plist`: `CFBundleIdentifier`,
+`CFBundleShortVersionString`, `CFBundleVersion`, `LSMinimumSystemVersion` and
+`CFBundleExecutable`, each present and a string. A field of another type, or
+missing from `Info.plist`, is a **mismatch** naming the field and the type
+expected. A type refusal names one field; a consistency refusal names the
+fields of one rule. In the build, an identity field missing or of another type
+is reported as the only `Info.plist` check; when all five are strings, each one whose value is not the
+release's is reported under its own check
+(`test_a_mistyped_identity_field_is_reported_alone_and_each_wrong_value_apart`
+in `app/tests/release_build_test.py`).
+
+When `profile_consistency` reaches the digest check, a profile whose bytes are
+not those of the selected digest is refused before the reader is given it,
+with its own kind: "not read: the file's bytes are not those of
+the selected digest". An oversized profile is refused by its size first, in
+preparation and in signing. Only a mismatch, reached after the whole read,
+says "read whole".
+
+In `record.py check`, a file refused for any reason is not compared: the
+fields it would have shown (the profile's facts, or the five identity fields)
+are omitted from differences. The refusal describes what failed, and for not
+established the affected paths are listed under `not_established`. Byte and inventory differences, such as the
+App's digests and inventory and the `Info.plist` digest, are still reported.
+
+A **binary property list is refused** (not established) when it is one of the
+XML reader's two inputs. **The bundler writes XML**,
+as its public source shows for the version the App pins. `app/package-lock.json`
+pins `@tauri-apps/cli` 2.11.1. At the tag `@tauri-apps/cli-v2.11.1` of
+`tauri-apps/tauri`, the CLI depends on the workspace's `tauri-bundler` 2.9.1
+(`crates/tauri-cli/Cargo.toml`), whose `create_info_plist` in
+`crates/tauri-bundler/src/bundle/macos/app.rs` writes the bundle's
+`Info.plist` with `plist::Value::Dictionary(plist).to_file_xml(bundle_dir.join("Info.plist"))`
+and with no binary writer. The lock file at that tag pins the `plist` crate
+1.7.0, whose `Value::to_file_xml` uses `XmlWriteOptions::default()`
+(`src/value.rs`, `src/stream/mod.rs`: tab indentation, root element on), and
+whose XML writer (`src/stream/xml_writer.rs`) emits the prolog
+`<?xml version="1.0" encoding="UTF-8"?>`, the Apple property-list document
+type and `<plist version="1.0">`, with LF line ends and base64 `data`
+wrapped at 68 characters with indentation: all inside the admitted form.
+References:
+https://github.com/tauri-apps/tauri/blob/%40tauri-apps/cli-v2.11.1/crates/tauri-bundler/src/bundle/macos/app.rs
+and https://github.com/ebarnard/rust-plist/blob/v1.7.0/src/stream/xml_writer.rs.
+These were read as public source text; nothing was downloaded or run. If a
+bundle ever held a binary `Info.plist`, the build would stop at its checks
+with `info_plist_not_read` in `BUILD_REFUSED.json`, before any candidate
+exists.
+
+The **profile's envelope** is read by `prepare.profile_envelope` only with
+definite lengths and in the declared structure. What it is for decides what it
+claims: the identity facts come only from the property list in the envelope's
+content, and nothing authenticates the envelope. The claim is exactly this
+enforced list, each item with its tests in `app/tests/owner_release_test.py`
+(each case of the shared `ENVELOPE_CASES` matrix is run in
+`profile_consistency`, through the full injected signing run, and in
+`record.py check`):
+
+1. The file is one definite-length element, of 1 byte to 256 KiB, with no
+   byte after it. Cases `a byte after ContentInfo`, `the outer element with an
+   indefinite length`, `the outer length in more octets than needed`, `a file
+   cut off inside its length`, `review: an empty profile file`, `a profile
+   larger than 256 KiB`; control `a profile of exactly 256 KiB (the size
+   cap)`; above the transfer bound,
+   `test_finding_1_a_profile_over_the_cap_is_refused_by_name_before_it_is_read_for_the_reader`.
+2. From the outside down to the content, the structure is the declared one
+   (RFC 5652 section 5): ContentInfo, a SEQUENCE of id-signedData and `[0]`
+   holding one SignedData; SignedData with its `version` (an INTEGER of
+   exactly one content octet, 0 to 5), `digestAlgorithms`, `encapContentInfo`
+   with id-data and `[0]` holding one primitive OCTET STRING, then optional
+   `certificates` `[0]` and revocation lists `crls` `[1]`, then `signerInfos`,
+   and nothing after. Cases named in
+   `test_each_item_of_the_enforced_list_has_its_cases` (item 2).
+3. Every element's length lies inside its parent at every level walked, with
+   no byte unaccounted for at any level walked. Cases named there (item 3).
+4. The property list is the whole of that one content string, read by the
+   whole-document reader above. Cases `review: an empty eContent`, `review: a
+   second envelope as the content`, and
+   `test_the_property_list_refusal_names_its_byte_in_the_file`.
+
+Further refusals, described as such and not as validation: the outer shapes of
+the other fields (each digest algorithm a SEQUENCE beginning with an OBJECT
+IDENTIFIER; each certificate and revocation list a SEQUENCE of exactly a
+SEQUENCE, a SEQUENCE and a BIT STRING, RFC 5280; each signer information a
+SEQUENCE beginning with its version, 0 to 5), the universal-type rules listed
+in `prepare.ENVELOPE_TYPE_RULES` where the walk meets them (a SEQUENCE or SET
+constructed; a type that is always primitive not constructed, such as an
+OBJECT IDENTIFIER; an INTEGER not empty and with no redundant leading octet;
+an OBJECT IDENTIFIER, BOOLEAN, NULL or BIT STRING of its encoding; no
+end-of-contents marker outside an indefinite length), and an element more than
+64 levels below the element its walk starts from (each digest algorithm,
+certificate, revocation list and signer information, the version and the two
+object identifiers; the count does not start at ContentInfo). Their cases
+are in `ENVELOPE_CASES` (`EnvelopeShapes.test_each_field_and_rule`).
+
+The kinds, by the meanings on the owner's page: an indefinite length, a length
+in more octets than needed, a constructed string, a tag number in the
+high-tag-number form, a BOOLEAN other than 00 or FF, an element deeper than the
+walk's limit and a file larger than 256 KiB are **not established** (the reader
+names the form and the field and did not read the file); an element past its
+parent or cut off, bytes left over, a reserved length octet, an indefinite
+length on a primitive element, an empty file, a rule of
+`ENVELOPE_TYPE_RULES` broken, a field not of its declared shape and a version
+out of range are **malformed**. A refusal's reason is true of the file: the
+named form or shape was met at the named field. Where a file has more than one
+defect, the one reported need not be the first, and a "not established" report
+says nothing about defects elsewhere
+(`test_finding_3_and_2_a_reason_is_true_of_the_file_and_need_not_be_the_first`).
+
+**Stated limits** (not refused, and not claimed), each with the probe input of
+the reviews it covers:
+
+- The contents of digest algorithm parameters, certificates, revocation lists
+  and signer information are length-walked but not validated as ASN.1: some
+  universal-type rules met there are refused (those in `ENVELOPE_TYPE_RULES`,
+  such as a constructed OBJECT IDENTIFIER: probe `wrongly constructed OID in
+  parameters`, refused) and others are not (a reserved universal tag, a
+  primitive EXTERNAL or EMBEDDED PDV, the contents of strings and times, among
+  others: probes `reserved UNIVERSAL tag 15`, `primitive UNIVERSAL EXTERNAL`,
+  `primitive UNIVERSAL EMBEDDED PDV`, `permitted unknown primitive EXTERNAL`,
+  and the `Digest`, `Certificate`, `CRL` and `Signer` marker cases, read). That
+  is outside the claim because nothing authenticates the envelope, so
+  validating those fields would add no assurance about who wrote the content
+  (`test_stated_limit_the_inside_of_other_fields_is_length_walked_not_validated`).
+- The order of the elements of a SET (which DER sorts) and the unused bits of
+  a BIT STRING are not checked (probes `out of order digest SET encodings`,
+  `unused BIT STRING bits nonzero`, `two signers`, read).
+- A constructed form of a string type reads as not established, whatever its
+  fragments hold (probes `constructed OCTET STRING truncated fragment`,
+  `constructed OCTET STRING with NULL fragment`, `constructed malformed
+  fragments`, `constructed BIT STRING with unusable contents`).
+- The walk's depth limit counts from the element each walk starts from, so a
+  path from ContentInfo can be longer than 64 (probe `certificate 0-based walk
+  depth 64` reads; control `review: an element exactly 64 levels below a
+  certificate (the walk boundary)`, case `review: an element 65 levels below a
+  certificate`).
+- No order between defects is promised (probes `encap eContentType wrong OID
+  preceding out-of-subset eContent`, `SignedData wrong tag preceding
+  out-of-subset third outer field`, `unsupported first comment and later XML
+  error`, `unsupported header before malformed end`: each reports a reason
+  true of the file).
+- A certificate can legitimately carry arbitrary bytes inside its own fields,
+  so "no other property list anywhere in the file" is not claimed.
+- **Nothing is authenticated**: the profile is checked for consistency, not
+  shown to be Apple's.
+
+The readers that rely on this, and the facts that rest on them:
+
+- `prepare.profile_consistency` (the owner's step 2, through
+  `prepare.profile_plist`): the team, App ID prefix, App ID, platform, all
+  devices, debugging grant and validity dates it checks, and the UUID and
+  expiry it returns;
+- `record.profile_facts` (the record's step 13 and `record.py check`): the
+  profile's UUID, team, App ID, allowed and unexpected entitlements and expiry;
+- `common.read_info_plist` (the build's checks, `common.load_candidate` before
+  the owner's run and in the build's final check, and the record's reading):
+  the bundle identifier, version, bundle version, minimum macOS and
+  executable.
+
+In `record.py check`, a file in a form not read is a failed observation named
+`provisioning profile not established` or `bundle identity not established`;
+the fields it would have shown are listed under `not_established` and are not
+reported as differences; the result is not equal (exit 1), never agreement.
+
+What this shows is that each value comes from the whole file. A file digest
+still binds only bytes; neither establishes who wrote the file.
 
 The line-form command readers also have a separate limit: they decode UTF-8
 with replacement, drop blank lines and strip trailing whitespace before
@@ -518,7 +897,8 @@ the record's must equal it; otherwise the result is not equal. A record whose
 standing is missing or not a known standing is refused as lacking a required
 field.
 
-It exits 0 when there is no difference, 1 when there are differences, and 2
-with a fixed message when it cannot read its inputs. It runs `codesign -d`,
+It exits 0 when there is no difference, 1 when there are differences or a
+failed observation reported in the result, and 2 with a fixed message when an
+input error prevents producing the comparison result. It runs `codesign -d`,
 `stapler validate` and `spctl --assess`, which only the owner or an examiner
 the owner authorises runs on the real package.

@@ -288,7 +288,7 @@ fn continue_as_falls_back_to_the_header_when_the_source_turn_fails() {
     assert_eq!(written.view(&json!({}))[0]["draftText"], "Handoff from conversation other (role not established in this App process).");
     // A request refused before any write asked nothing: no handoff stays open, and trying again is possible.
     let mut refused = Handoffs::default();
-    for reason in ["refused-not-sent(not-ready): state stopping", "refused-not-sent: Stop Codex was confirmed for this Codex process; no turn/start is sent", "conversation is not loaded in this home generation"] {
+    for reason in ["refused-not-sent(not-ready): state stopping", "refused-not-sent: Stopping this Codex process was confirmed. No turn/start was sent.", "refused-not-sent: Quit blocked this request. No turn/start was sent.", "conversation is not loaded in this home generation"] {
         let error = refused.begin(&f.generation, "other", RoleInForce::Unknown { reason: "r".into() }, None, |_| Err(reason.into())).unwrap_err();
         assert!(error.contains("No summary was requested") && error.contains(reason), "{error}");
         assert_eq!(refused.view(&json!({})), json!([]), "{reason}: no handoff left open");

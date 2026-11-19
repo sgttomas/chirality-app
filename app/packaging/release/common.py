@@ -17,7 +17,6 @@ import importlib.util
 import json
 import os
 from pathlib import Path
-import plistlib
 import re
 import stat
 import struct
@@ -134,11 +133,12 @@ class FixedParser(__import__('argparse').ArgumentParser):
 class Failure(Exception):
     """A failure with a code from REASONS; its text is the fixed reason and nothing else."""
 
-    def __init__(self, code, detail=None):
+    def __init__(self, code, detail=None, refusals=()):
         require(code in REASONS, 'unlisted failure reason')
         super().__init__(REASONS[code])
         # `detail` holds only shaped values the caller constructed; it goes to the returnable failure description.
-        self.code, self.reason, self.detail = code, REASONS[code], detail
+        # `refusals` are file readers' refusal details (fixed text and integers): what was refused, where and why.
+        self.code, self.reason, self.detail, self.refusals = code, REASONS[code], detail, list(refusals)
 
 
 def check(condition, code):
@@ -174,6 +174,9 @@ VOCABULARY = set(REASONS.values()) | STATUS_WORDS | AUTHORITY_KINDS | {
     'limitations copy in the bundle: absent', 'limitations copy in the disk_image: absent', 'publisher-build-selection.s1 generated from the source keychain selection', 'supplied publisher input file',
     CANDIDATE_FORMAT, *STANDINGS.values(),
 }
+# The file readers' refusals: fixed text from their closed lists (production_inputs/whole_plist.py and prepare.py).
+Refused, describe = prepare.whole_plist.Refused, prepare.whole_plist.describe
+VOCABULARY.update(prepare.whole_plist.vocabulary())
 
 
 MAX_LENGTH = 1024  # every string field, paths and identifiers included, is bounded
@@ -321,10 +324,55 @@ class PrivateWriter:
 
 # --- Info.plist and locations ---------------------------------------------------
 
+# The five identity fields the release tools read from Info.plist: key -> (Info.plist key, the build's named check).
+INFO_FIELDS = {'identifier': ('CFBundleIdentifier', 'info_plist_identifier'),
+               'version': ('CFBundleShortVersionString', 'info_plist_version'),
+               'bundle_version': ('CFBundleVersion', 'info_plist_bundle_version'),
+               'minimum_system_version': ('LSMinimumSystemVersion', 'info_plist_minimum_system_version'),
+               'executable': ('CFBundleExecutable', 'info_plist_executable')}
+INFO_RELEASE = {'identifier': RELEASE['identifier'], 'version': RELEASE['version'], 'bundle_version': RELEASE['version'],
+                'minimum_system_version': RELEASE['minimum_system_version'], 'executable': MAIN_EXECUTABLE}
+# Info.plist holds a few dozen keys; 64 KiB is far above that and bounds the reader's memory.
+INFO_PLIST_LIMIT, INFO_PLIST_SIZE = 64 * 1024, 'an Info.plist of 1 byte to 64 KiB'
+INFO_SHAPES = {'identifier': 'identifier', 'version': 'version', 'bundle_version': 'version',
+               'minimum_system_version': 'version', 'executable': 'identifier'}
+SHAPE_TEXT = {'identifier': 'a string of the identifier shape the record states',
+              'version': 'a string of the version shape the record states'}
+prepare.whole_plist.declare(fields={key for key, _ in INFO_FIELDS.values()},
+                            expected={'a string', INFO_PLIST_SIZE, *SHAPE_TEXT.values(), *('the release value ' + v for v in INFO_RELEASE.values())},
+                            found={'a missing key', prepare.OTHER_TYPE, 'another value', 'another shape'})
+VOCABULARY.update(prepare.whole_plist.vocabulary())
+
+
+def info_refusal(key, expected, found):
+    """A mismatch naming one identity field of an Info.plist that was read whole."""
+    return Refused(f'Info.plist {INFO_FIELDS[key][0]}: {found}', part='Info.plist', kind='mismatch', field=INFO_FIELDS[key][0],
+                   expected=expected, found=found)
+
+
 def read_info_plist(app):
-    raw = (Path(app) / 'Contents/Info.plist').read_bytes()
-    value = plistlib.loads(raw, dict_type=prepare.UniquePlistDict)  # a key twice is refused, never resolved to the last
-    require(isinstance(value, dict), 'Info.plist is not a dictionary')
+    """(bytes, value) of the App's Contents/Info.plist, read only when its value is the whole document, with each of the
+    five identity fields present and a string.
+
+    The one whole-document file reader (production_inputs/whole_plist.load) reads it: an XML property list only (a
+    binary one is refused), whose structure read from its own bytes accounts for every byte and agrees with plistlib's
+    value. Anything else raises common.Refused (a ValueError) naming the part 'Info.plist', the kind (malformed, not
+    established, or a mismatch for an identity field missing or not a string), the field, the shape expected, what was
+    found and, where it has a position, the byte. Its size is checked from the file system before it is read, by name;
+    load refuses more than INFO_PLIST_LIMIT bytes before parsing anything."""
+    raw = prepare.whole_plist.read_within_limit(Path(app) / 'Contents/Info.plist', 'Info.plist', INFO_PLIST_LIMIT, INFO_PLIST_SIZE)
+    try:
+        value = prepare.whole_plist.load(raw, INFO_PLIST_LIMIT, INFO_PLIST_SIZE)
+    except Refused as refused:
+        raise refused.moved('Info.plist') from None
+    if not isinstance(value, dict):
+        raise Refused('Info.plist is not a dictionary', part='Info.plist', kind='malformed', field='plist',
+                      expected='a dictionary under plist', found=prepare.NOT_A_DICTIONARY)
+    for key, (name, _) in INFO_FIELDS.items():  # the one typed check of the fields the tools read, for every consumer
+        if name not in value:
+            raise info_refusal(key, 'a string', 'a missing key')
+        if not isinstance(value[name], str):
+            raise info_refusal(key, 'a string', prepare.OTHER_TYPE)
     return raw, value
 
 
@@ -334,16 +382,12 @@ def bundle_identity(info):
             'executable': info.get('CFBundleExecutable')}
 
 
-def release_identity_errors(info):
+def release_identity_refusals(info):
+    """A mismatch for each identity field that is not the release value (the release value is the tools' own text)."""
     identity = bundle_identity(info)
-    errors = []
-    for key, wanted in (('identifier', RELEASE['identifier']), ('version', RELEASE['version']),
-                        ('bundle_version', RELEASE['version']), ('minimum_system_version', RELEASE['minimum_system_version'])):
-        if identity[key] != wanted:
-            errors.append('info_plist_' + key)
-    if identity['executable'] != MAIN_EXECUTABLE:
-        errors.append('info_plist_executable')
-    return errors
+    return [info_refusal(key, 'the release value ' + wanted, 'another value')
+            for key, wanted in INFO_RELEASE.items() if identity[key] != wanted]
+
 
 
 def protected_places():
@@ -477,7 +521,8 @@ def load_candidate(candidate, name=CANDIDATE_FILE, finishing=False):
     require(inventory.compare(tree, value['bundle']['inventory'])['equal'], 'candidate App differs from its description')
     info_raw, info = read_info_plist(app)
     require(sha(info_raw) == value['bundle']['info_plist_sha256'], 'candidate Info.plist digest differs')
-    require(not release_identity_errors(info), 'candidate Info.plist is not the 4.0.0 release identity')
+    for refused in release_identity_refusals(info):  # read whole, and not the release identity: the field is named
+        raise refused
     executable = (app / 'Contents/MacOS' / MAIN_EXECUTABLE).read_bytes()
     require(sha(executable) == value['bundle']['executable_sha256'], 'candidate executable digest differs')
     adhoc, _ = only_linker_adhoc(executable)

@@ -5,9 +5,11 @@ profile are names of items already in the owner's keychain; no credential is
 an argument or an environment variable.
 
 Each step is verified before the next. Every observation goes through the one
-rule in observations.observe, whose output forms are declared as data. Any failure prints `STOP: <fixed reason>` (a reason
-from common.REASONS, naming the step and the observation), writes STOPPED.json,
-runs no later command and writes no success result. Nothing is installed.
+rule in observations.observe, whose output forms are declared as data. On a failure, independent observations of the
+same step and cleanup (a detach) may still run; then it prints `STOP: <fixed reason>` (a reason from common.REASONS,
+naming the step and the observation), then one line for each file reader's refusal (fixed text and integers: the part,
+the kind, the field, the shape expected, what was found and, where the form has a position in the file, its byte
+offset), attempts to write STOPPED.json when the output folder exists, and writes no success result. Nothing is installed.
 
 What is written, and where:
 - Returnable files (sent back): log.jsonl, the notarization summaries in
@@ -42,9 +44,18 @@ observation that was not made, that failed, or that is incomplete cannot come ou
 that drift and mistakes are caught. They are not a filesystem snapshot and are not built to withstand
 a writer changing the inputs during the run, nor someone with write access forging a record: a
 completion marker or a recorded digest is not authentication.
-The whole-document command-output rule does not cover the profile or Info.plist file readers:
-those use the standard parser, which does not refuse a repeated top-level value. This limits the
-profile UUID/team/App ID/allowed and unexpected entitlements/expiry and the bundle identity fields.
+The whole Info.plist, and the property list a profile's envelope holds as its content, are read by the one
+whole-document reader (production_inputs/whole_plist.py): a value is returned only when that input is one XML property list
+in the admitted form whose structure, read from its own bytes, accounts for every byte and agrees
+with plistlib's value. The profile's envelope (prepare.profile_envelope) is read for exactly the enforced list stated
+there (one definite-length element; the declared structure from the outside down to the content; every
+length inside its parent; the property list the whole of the one content string); it is not validated
+as ASN.1 beyond that and not authenticated. A refusal names the part, the kind, the field, the shape
+expected, what was found and, where the form has a position in the file, its byte offset, in fixed text and integers. "Not established" means the reader
+met a named form outside the subset it reads, at a named field, and did not read the file; it asserts
+nothing about whether the file is valid (never a mismatch, never agreement). Malformed is asserted only
+where the reader is certain within its subset; a mismatch means the file was read whole and a value the
+tools read is not of its type or not what the release requires.
 Line-form output is decoded with UTF-8 replacement, blank lines omitted and trailing whitespace stripped.
 """
 import argparse
@@ -270,6 +281,11 @@ def plan(identity, profile, paths, candidate_app, vendor_paths, requirement):
     return steps
 
 
+# The step-2 stop for each kind of profile refusal. The digest is checked before step 2 (REFUSED_PROFILE_BYTES).
+PROFILE_CODES = {'unsupported': 'S2_PROFILE_NOT_ESTABLISHED', 'malformed': 'S2_PROFILE_MALFORMED', 'mismatch': 'S2_PROFILE',
+                 'digest': 'REFUSED_PROFILE_BYTES'}
+
+
 def sign(args, *, runner=common.system_runner, environ=None, host=None, now=None, private=common.PrivateWriter, progress=None):
     """The signing run. Raises Failure (a fixed reason) on any failed step; returns the result written.
 
@@ -282,11 +298,19 @@ def sign(args, *, runner=common.system_runner, environ=None, host=None, now=None
     team = refusals(args, environ, host)
     try:
         candidate, candidate_app, binding, requirement = common.load_candidate(args.candidate)
+    except common.Refused as refused:  # the candidate's Info.plist, read by the one whole-document reader
+        code = {'unsupported': 'REFUSED_INFO_PLIST_NOT_ESTABLISHED', 'malformed': 'REFUSED_INFO_PLIST_MALFORMED',
+                'mismatch': 'REFUSED_INFO_PLIST_MISMATCH'}[refused.kind]
+        raise Failure(code, refusals=[refused.detail()])
     except (ValueError, OSError, KeyError):
         raise Failure('REFUSED_CANDIDATE')
     check(binding['developer_id_team_identifier'] == team, 'REFUSED_TEAM')
     limitations = Path(args.limitations).read_bytes()
     check(sha(limitations) == candidate['limitations']['sha256'], 'REFUSED_LIMITATIONS')
+    try:
+        prepare.profile_size(args.profile)  # by name, before the profile is read for its digest and the reader
+    except common.Refused as refused:
+        raise Failure(PROFILE_CODES[refused.kind], refusals=[refused.detail()])
     profile_raw = Path(args.profile).read_bytes()
     check(sha(profile_raw) == args.profile_sha256, 'REFUSED_PROFILE_BYTES')
     out = Path(os.path.abspath(args.out))
@@ -352,6 +376,9 @@ def sign(args, *, runner=common.system_runner, environ=None, host=None, now=None
     selected = {'developer_id_team_identifier': team, 'production_bundle_identifier': binding['production_bundle_identifier']}
     try:
         profile = prepare.profile_consistency(profile_raw, args.profile_sha256, selected, now=now)
+    except common.Refused as refused:
+        # A form the reader does not read is not established (never a mismatch); malformed and mismatch are named apart.
+        raise Failure(PROFILE_CODES[refused.kind], refusals=[refused.detail()])
     except ValueError:
         raise Failure('S2_PROFILE')
     destination = app / 'Contents/embedded.provisionprofile'
@@ -556,12 +583,16 @@ def main(argv=None, *, stdout=None, stderr=None, **kw):
         else:
             stop = Failure('REFUSED_UNREADABLE' if step is None else f'S{step}_UNEXPECTED')
         print('STOP: ' + stop.reason, file=stderr)
+        # Each refusal of a file reader, and each failed observation that carries one: fixed text and integers only.
+        refusals = list(stop.refusals) + [f['detail'] for f in getattr(stop, 'failures', []) if 'detail' in f]
+        for detail in refusals:
+            print('  ' + common.describe(detail), file=stderr)
         if not existed and out.is_dir():
             try:
                 if not isinstance(error, Failure):
                     private(out).write('trace', ''.join(traceback.format_exception(error)))
                 value = {'result': 'stopped', 'step': step, 'reason_code': stop.code, 'reason': stop.reason,
-                         'failed_observations': getattr(stop, 'failures', []),
+                         'failed_observations': getattr(stop, 'failures', []), 'refusals': list(stop.refusals),
                          'private_folder': common.PRIVATE_FOLDER}  # named only; never opened or examined
                 common.write_returnable(out / 'STOPPED.json', value, out, set())
             except BaseException:

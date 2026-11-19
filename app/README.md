@@ -471,18 +471,68 @@ implemented behavior and qualification limits.
 22a. **Quit asks first** (DEL-01-02 DEF-6, K-4, SQ-Q; DEL-01-04 §5.2). The
     App's own Quit is available from its menu (Cmd/Ctrl+Q) and Setup's Quit
     button. The host assesses live work across
-    every App-owned home and records `quit_requested` with the lists. With
-    nothing live it quits without asking. Otherwise a native question lists
-    the live turns, waiting requests, delegated agents and workflow runs in
-    force, with no time limit; **Keep running** is the default, and it and
-    Cancel record `quit_answered` *cancelled* and change nothing. On **Quit**
-    every ready home is closed to new turns and assessed again (a changed list
-    is recorded and asked again); then `quit_answered` *confirmed*, each live
-    turn's stop request (SR-01, cause *quit*) and its interrupt, whose write is
-    bounded by the same limit as Stop Codex's; the App waits
-    up to the stop wait limit for those turns to end, exits, stops each home's
-    Codex and writes `session_ended` *quit* with each quit stop request's
-    state. A relaunch reads *quit-with-live-work* and "interrupted by quit".
+    every App-owned home and records `quit_requested` with the lists. When the
+    first assessment finds nothing live, the host closes admission for turn
+    starts and steers on every listed home and assesses again. If it still
+    finds nothing live, it proceeds without a question. Otherwise a native
+    question lists the live turns, waiting requests, delegated agents and
+    workflow runs in force, with no time limit. **Keep running** is the
+    default. The App attempts to record Keep running or Cancel as
+    `quit_answered` *cancelled*. On **Quit**, the
+    host closes admission for turn starts and steers on every listed home
+    before reassessing. If the assessment changed and still requires
+    confirmation, the host reopens admission before recording the updated
+    assessment and asking again. The closure applies in every generation of the
+    listed homes, including a process that becomes ready while the closure is
+    held. On cancellation, an unavailable question, or a returned settlement
+    refusal, the quit reopens the admissions it closed. The Stop or Restart
+    closure is independent. An unexpected fault can leave quit closures in
+    place. After final confirmation the App attempts to record `quit_answered`
+    *confirmed* and checks each observed live turn for interruption. At the
+    writer, the App attempts to record the stop request (SR-01, cause *quit*)
+    before sending an interrupt. Quit uses the same deadline as Stop Codex for
+    waiting on interrupt writes and turn ends. If a write is still in progress
+    at that deadline, its outcome is reported as unknown. For both a
+    confirmed and an unasked quit, the App first settles its owned processes,
+    then attempts to write `session_ended` *quit* with the quit stop requests'
+    final states before allowing exit. A relaunch can show
+    *quit-with-live-work* and identify turns recorded as interrupted by quit.
+
+    History shows the selected conversation's App stop requests where its home
+    is established. A labelled row gives the status Codex reported when
+    available, including interrupted, completed or failed. If a labelled row
+    has no reported final status, the App says its stop record has no reported
+    final status for that turn. Each row gives the stop-record reading, with
+    any App label attributed and a derived label marked. An interrupt request
+    does not answer a Codex request. The host gives a request-state/write
+    disagreement its own reading and omits the label. Where those fields
+    agree, the host gives a reported final outside the settled and
+    outcome-recovered states its own reading and omits the label. Any reported
+    final is still projected independently. For other rows, the host reads a
+    written label only in the settled, outcome-unknown and outcome-recovered
+    states. The remaining states use their ordinary reading. A sent, accepted
+    or refused row from an earlier session whose end is established can still
+    receive a derived label. The App's writers produce neither the conflicting
+    rows nor rows with written labels outside those three states. The
+    read-back rules apply to the Recorded stop requests disclosure, the live
+    stop label, the box and the stored page. The live activity code and its
+    home mapping match the pinned main base.
+
+    An accepted stored turn page shows the native status and the newest
+    matching row in the App's stop-request view. With no matching stop-request
+    row, it can show an applicable in-memory Stop or Restart Codex outcome.
+    Both matches require the turn's home. The page shows the App's
+    stop-request reading or its Stop or Restart Codex outcome, with any App
+    label attributed and any final report identified by source. On a matched
+    stop-request row, the two final reports are identified by source when they
+    differ. A labelled stop-request row whose interrupt write is recorded as
+    sent, from an earlier session whose end is established, offers **Continue
+    this conversation**. It sends the existing Codex resume request and opens
+    the conversation after matching admission in the current view. Continue
+    sends no conversation message. The read-only Prior work section in
+    Conversation shows the same stored-turn stop labels after a matched resume
+    and adds no Continue.
+
     An ordinary programmatic exit request without a decided Quit is held and
     handled as the App's own Quit. **Closing the window is
     not quit** (DEF-1, SQ-W): it hides the window (macOS; the Dock icon shows

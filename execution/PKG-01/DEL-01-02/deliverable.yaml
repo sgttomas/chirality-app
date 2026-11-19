@@ -36,6 +36,8 @@ code_paths:
 - app/src-tauri/src/hosting_continuation_context.rs
 - app/src-tauri/src/execution_custody.rs
 - app/src-tauri/src/app_quit.rs
+# hosting.rs is shared with DEL-01-01 and others. Here: the quit's closure of new work on a Host.
+- app/src-tauri/src/hosting.rs
 - app/src-tauri/src/codex_stop.rs
 - app/src-tauri/src/stop_records.rs
 # One App at a time on the App data: each App session's liveness lock beside the ledger, and
@@ -66,6 +68,10 @@ code_paths:
 - app/src-tauri/resources/runtime_core/recovery.*.json
 - app/src/ObserverAttachment.tsx
 - app/src/RecoveryCustodyPanel.tsx
+# CodexControls.tsx is shared with DEL-01-04. NativeHistory.tsx is shared with DEL-01-03 and
+# DEL-01-04. Both are listed here for their presentation of this deliverable's stop-request records.
+- app/src/CodexControls.tsx
+- app/src/NativeHistory.tsx
 checks:
 - app/src-tauri/src/hosting_continuation_context_tests.rs
 - app/src-tauri/src/hosting_observer_journal.rs
@@ -86,6 +92,9 @@ checks:
 - app/src-tauri/src/stop_records_host_tests.rs
 - app/src-tauri/src/hosting_stop_bound_tests.rs
 - app/tests/stop-not-sent.test.mjs
+- app/tests/codex-controls.test.mjs
+- app/tests/native-history.test.mjs
+- app/tests/history-continue-navigation.test.mjs
 - app/src-tauri/src/execution_custody_tests.rs
 - app/src-tauri/src/hosting_recovery_reads_tests.rs
 - app/src-tauri/src/session_liveness_tests.rs

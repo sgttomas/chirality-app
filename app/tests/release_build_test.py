@@ -231,10 +231,40 @@ class ReleaseBuild(unittest.TestCase):
             (app / 'Contents/Resources/instructions/roles.json').write_text('{}')
         def presigned(app):
             (app / 'Contents/_CodeSignature').mkdir()
+        def not_whole(app):
+            (app / 'Contents/Info.plist').write_bytes(fx.conflicting_info_plist())
+        def not_read(app):  # a comment: a form outside the subset the reader reads
+            (app / 'Contents/Info.plist').write_bytes(fx.info_plist().replace(b'<dict>', b'<!-- invented --><dict>', 1))
+        def info(raw):
+            return lambda app: (app / 'Contents/Info.plist').write_bytes(raw)
+        no_executable = plistlib.loads(fx.info_plist())
+        del no_executable['CFBundleExecutable']
+        # check -> the reason its detail must carry (kind, field, found); every Info.plist check carries one
+        details = {
+            'version': ('mismatch', 'CFBundleShortVersionString', 'another value'),
+            'Info.plist not whole': ('malformed', 'plist', 'a second value under plist'),
+            'Info.plist in a form not read': ('unsupported', 'plist', 'a comment'),
+            'review: Shift_JIS declared': ('unsupported', 'document header', 'a declared encoding other than UTF-8'),
+            'review: an unknown encoding declared': ('unsupported', 'document header', 'a declared encoding other than UTF-8'),
+            'review 3: XML 1.1 declared': ('unsupported', 'document header', 'a declared XML version other than 1.0'),
+            'an empty Info.plist': ('malformed', 'the file', 'an empty file'),
+            'an Info.plist larger than 64 KiB': ('unsupported', 'the file', 'a file larger than the size limit'),
+            'review: an integer bundle version': ('mismatch', 'CFBundleVersion', 'a value of another type'),
+            'no executable key': ('mismatch', 'CFBundleExecutable', 'a missing key'),
+        }
         cases = {
             'dyld_info': (dict(dyld={'chirality-app-v4': Result(1)}), 'dyld_validate'),
             'dyld_info negative with zero': (dict(dyld={'chirality-app-v4': Result(0, b'', b'malformed LINKEDIT')}), 'dyld_validate'),
             'version': (dict(mutate=wrong_version), 'info_plist_version'),
+            'Info.plist not whole': (dict(mutate=not_whole), 'info_plist_whole'),
+            'Info.plist in a form not read': (dict(mutate=not_read), 'info_plist_not_read'),
+            'review: Shift_JIS declared': (dict(mutate=info(fx.info_plist().replace(b'UTF-8', b'Shift_JIS'))), 'info_plist_not_read'),
+            'review: an unknown encoding declared': (dict(mutate=info(fx.info_plist().replace(b'UTF-8', b'x-invented-encoding'))), 'info_plist_not_read'),
+            'an empty Info.plist': (dict(mutate=info(b'')), 'info_plist_whole'),
+            'review 3: XML 1.1 declared': (dict(mutate=info(fx.info_plist().replace(b'<?xml version="1.0"', b'<?xml version="1.1"'))), 'info_plist_not_read'),
+            'an Info.plist larger than 64 KiB': (dict(mutate=info(fx.info_plist(CFBundleName='x' * 64 * 1024))), 'info_plist_not_read'),
+            'review: an integer bundle version': (dict(mutate=info(fx.info_plist(CFBundleVersion=4))), 'info_plist_bundle_version'),
+            'no executable key': (dict(mutate=info(plistlib.dumps(no_executable))), 'info_plist_executable'),
             'vendor modes': (dict(mutate=vendor_mode), 'vendor_tree'),
             'resource': (dict(mutate=resource_bytes), 'resource'),
             'developer signature': (dict(executable=fx.macho(common.CS_RUNTIME, cms=True)), 'executable_signature'),
@@ -250,8 +280,31 @@ class ReleaseBuild(unittest.TestCase):
                 self.assertEqual(raised.exception.code, 'BUILD_CHECKS')
                 refused = json.loads((self.candidate / 'BUILD_REFUSED.json').read_text())
                 self.assertIn(check_name, [c['check'] for c in refused['checks']])
+                # The Info.plist checks carry why, in fixed text and integers; no identity field is read from part of it.
+                expected = details.get(name)
+                self.assertEqual(expected is not None, check_name.startswith('info_plist_'))
+                if expected:
+                    [entry] = [c for c in refused['checks'] if c['check'] == check_name]
+                    detail = entry['detail']
+                    self.assertEqual((detail['part'], detail['kind'], detail['field'], detail['found']), ('Info.plist', *expected))
+                    self.assertFalse([c for c in refused['checks'] if c['check'].startswith('info_plist_') and c['check'] != check_name])
                 self.assertFalse((self.candidate / 'CANDIDATE.json').exists())
                 self.assertTrue((self.candidate / 'INCOMPLETE.txt').exists())
+
+    def test_a_mistyped_identity_field_is_reported_alone_and_each_wrong_value_apart(self):
+        """Review round 4, point 3: a field missing or of another type is reported as the only Info.plist check; with all five strings, each
+        value that is not the release's is reported under its own check."""
+        cases = ((fx.info_plist(CFBundleIdentifier=1, CFBundleVersion=2), ['info_plist_identifier']),
+                 (fx.info_plist(CFBundleIdentifier='invalid.example.other', CFBundleVersion='9.8.7'),
+                  ['info_plist_identifier', 'info_plist_bundle_version']))
+        for raw, expected in cases:
+            with self.subTest(expected=expected):
+                self.setUp()
+                self.fake.mutate = lambda app, raw=raw: (app / 'Contents/Info.plist').write_bytes(raw)
+                with self.assertRaises(common.Failure):
+                    self.run_build(not_for_public_release=True)
+                checks = json.loads((self.candidate / 'BUILD_REFUSED.json').read_text())['checks']
+                self.assertEqual([c['check'] for c in checks if c['check'].startswith('info_plist_')], expected)
 
     def credentials_cache(self):
         cache = self.root / 'cargo-cache-with-credentials'
@@ -727,6 +780,36 @@ class InfoPlistKeys(unittest.TestCase):
                 common.read_info_plist(app)
             (app / 'Contents/Info.plist').write_bytes(fx.info_plist())
             self.assertEqual(common.read_info_plist(app)[1]['CFBundleIdentifier'], 'com.chirality.app')
+
+    def test_the_size_cap_exactly_reads_and_one_byte_more_is_refused_before_it_is_read(self):
+        """Review round 3: a control exactly at the 64 KiB cap; above it, refused by name from the file system."""
+        with tempfile.TemporaryDirectory() as temp:
+            app = Path(temp) / common.APP_NAME
+            (app / 'Contents').mkdir(parents=True)
+            raw = fx.info_plist()
+            at_cap = raw.replace(b'</dict>', b'</dict>' + b' ' * (common.INFO_PLIST_LIMIT - len(raw)))
+            self.assertEqual(len(at_cap), common.INFO_PLIST_LIMIT)
+            (app / 'Contents/Info.plist').write_bytes(at_cap)
+            self.assertEqual(common.read_info_plist(app)[1]['CFBundleVersion'], '4.0.0')
+            (app / 'Contents/Info.plist').write_bytes(at_cap + b' ')
+            with patch.object(Path, 'read_bytes', side_effect=AssertionError('read before its size was refused')), \
+                    self.assertRaises(common.Refused) as raised:
+                common.read_info_plist(app)
+            self.assertEqual((raised.exception.kind, raised.exception.found), ('unsupported', 'a file larger than the size limit'))
+
+    def test_two_sibling_values_are_refused_not_read_as_the_last(self):
+        """The conflicting pair: another identity's values, then the release identity's, as two dictionaries under the
+        root. plistlib alone reads the release identity; the whole-document reader refuses, and reads the control."""
+        with tempfile.TemporaryDirectory() as temp:
+            app = Path(temp) / common.APP_NAME
+            (app / 'Contents').mkdir(parents=True)
+            (app / 'Contents/Info.plist').write_bytes(fx.conflicting_info_plist())
+            with self.assertRaisesRegex(ValueError, 'a second value under plist'):
+                common.read_info_plist(app)
+            (app / 'Contents/Info.plist').write_bytes(fx.info_plist())
+            self.assertEqual(common.bundle_identity(common.read_info_plist(app)[1]),
+                             {'identifier': 'com.chirality.app', 'version': '4.0.0', 'bundle_version': '4.0.0',
+                              'minimum_system_version': '15.0', 'executable': 'chirality-app-v4'})
 
 
 class PrivateFolderGuard(unittest.TestCase):
