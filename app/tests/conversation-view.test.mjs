@@ -281,6 +281,19 @@ test('the attach control opens the present attachment selection, which stays mou
   }, {attachments: panel});
 });
 
+test('the model pill draws the model Codex reported inside it, set apart and marked, and names it as Codex\'s (App Agent 0, 19 November)', async () => {
+  for (const [model, words] of [['Allow', 'Allow'], ['Send\u202Enow', 'Send‹U+202E›now']]) {
+    await mounted(host({threads: [{...host().threads[0], model}]}), async ({container}) => {
+      const pill = settingButton(container, 'Model');
+      assert.equal(props(pill)['aria-label'], `Model, as Codex reported it: ${words}`, 'its name says whose the words are, before them');
+      const marked = pill.querySelectorAll(n => (n.getAttribute('class') ?? '') === 'v4-reported-in-control');
+      assert.equal(marked.length, 1, 'the reported name is set apart inside the pill');
+      assert.equal(marked[0].textContent, words, 'with its control characters as marks');
+      assert.equal(pill.textContent === marked[0].textContent, true, 'and the pill says nothing else');
+    });
+  }
+});
+
 test('the settings line shows the folder, role, mode, access level, model and effort; the level\'s name is in view and its reading sentence is in its panel', async () => {
   await mounted(host({threads: [{...host().threads[0], cwd: projectPath}]}), async ({container}) => {
     const line = settingsLine(container);

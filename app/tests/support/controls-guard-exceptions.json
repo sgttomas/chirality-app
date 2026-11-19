@@ -677,5 +677,32 @@
   "count": 1,
   "basis": "an App-owned literal vocabulary",
   "reason": "level.name as for the access level's aria-label."
+ },
+ {
+  "file": "App.tsx",
+  "where": "@aria-label",
+  "expr": "modelValue ? `Model, ${modelValue.whose}: ${modelWord}` : `Model: ${modelWord}`",
+  "component": "ConversationPanel",
+  "count": 1,
+  "basis": "the adopted conversation title form",
+  "reason": "App Agent 0's decision of 19 November 2026 on the conversation unit's second review (pull request 400): the settings line's model pill keeps 3.0.1's form, with the model Codex reported drawn inside it in the conversation title's marked form (DEL-01-04 AC-002's adopted form for a supplied title in a choice) and named after the App's words saying whose it is. The App's words come first (\"Model, as Codex reported it:\" or \"Model, as typed:\"; modelValue.whose is one of those two literals); modelWord is then reportedValueWords (AgentText.tsx): the same characters as the marked form shows, control and direction characters given as their visible marks, shortened as a title is. Without a model it is the literal \"Model\" or \"Choose a model\"."
+ },
+ {
+  "file": "App.tsx",
+  "where": "<button>",
+  "expr": "modelWord",
+  "component": "ConversationPanel",
+  "count": 1,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "Drawn as the pill's text only where modelValue is null, when modelWord is the literal \"Model\" or \"Choose a model\"; a model's own name is drawn through ReportedInControl instead."
+ },
+ {
+  "file": "App.tsx",
+  "where": "<ReportedInControl> inside <button>",
+  "expr": "ReportedInControl",
+  "component": "ConversationPanel",
+  "count": 1,
+  "basis": "the adopted conversation title form",
+  "reason": "App Agent 0's decision of 19 November 2026 on the conversation unit's second review (pull request 400): the settings line's model pill keeps 3.0.1's form, with the model Codex reported drawn inside it in the conversation title's marked form (DEL-01-04 AC-002's adopted form for a supplied title in a choice) and named after the App's words saying whose it is. ReportedInControl (AgentText.tsx) draws the value set apart in ChoiceTitle's style, every mark through Parts, shortened as boundedTitle shortens a title."
  }
 ]

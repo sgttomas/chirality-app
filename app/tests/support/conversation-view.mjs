@@ -48,7 +48,7 @@ export async function startWithFirstMessage(container, act, { text = 'First mess
 /** The settings line under the composer ("Chat context"). */
 export const settingsLine = container => container.querySelectorAll(node => node.getAttribute?.('aria-label') === 'Chat context')[0];
 /** A settings-line button by the start of its accessible name: "Role", "Mode", "Access level", "Model", "Reasoning effort". */
-export const settingButton = (container, name) => settingsLine(container)?.querySelectorAll(node => node.localName === 'button' && (node.getAttribute('aria-label') ?? '').startsWith(`${name}:`))[0];
+export const settingButton = (container, name) => settingsLine(container)?.querySelectorAll(node => node.localName === 'button' && ((node.getAttribute('aria-label') ?? '').startsWith(`${name}:`) || (node.getAttribute('aria-label') ?? '').startsWith(`${name}, as `)))[0];
 /** Opens a settings-line panel, as a person pressing its button; an open panel is left open. */
 export async function openSetting(container, act, name) {
   const control = settingButton(container, name);

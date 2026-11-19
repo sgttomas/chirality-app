@@ -1,4 +1,4 @@
-import { AgentText, ConversationChoices, RecordedData, SuppliedId, idWords, numberWords, plainId, safeName, wordOf } from "./AgentText";
+import { AgentText, ConversationChoices, RecordedData, ReportedInControl, SuppliedId, idWords, numberWords, plainId, reportedValueWords, safeName, wordOf } from "./AgentText";
 import { ROLE_SPEAKER } from "./nativeWords";
 import { ActionFeedback } from "./ActionFeedback";
 import { LOCAL_ROUTE_OFFERED } from "./localRoute";
@@ -637,7 +637,13 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
   useEffect(() => { setEffortShown(contextOpen === "effort"); }, [contextOpen]);
   const toggleContext = (which: NonNullable<typeof contextOpen>) => setContextOpen(current => current === which ? null : which);
   const openTools = (target: string) => { setContextOpen(null); showTools?.(target); };
-  const modelWord = selected ? (ordinaryModelValue ? (plainId(ordinaryModelValue) ?? "Model typed") : plainId(selected?.model) ?? "Model") : !newChat ? "Model" : startNew?.model ? plainId(startNew.model) ?? "Model chosen" : "Choose a model";
+  // The model pill (App Agent 0's decision, 19 November): a model Codex reported, or one typed or chosen from Codex's
+  // list, is drawn inside the pill in the marked form and named "Model, as Codex reported it: …" (or "as typed"); the
+  // pill's own words are the App's only where there is no model to show.
+  const modelValue: { value: string; whose: string } | null = selected
+    ? (ordinaryModelValue ? { value: ordinaryModelValue, whose: "as typed" } : typeof selected?.model === "string" && selected.model ? { value: selected.model, whose: "as Codex reported it" } : null)
+    : newChat && typeof startNew?.model === "string" && startNew.model ? { value: startNew.model, whose: "as Codex reported it" } : null;
+  const modelWord = modelValue ? reportedValueWords(modelValue.value) : !newChat ? "Model" : "Choose a model";
   const effortShownWord = ordinaryModel.owner === ordinaryOwner && ordinaryModel.effort ? plainId(ordinaryModel.effort) ?? "Effort chosen" : effortInForce ? plainId(effortInForce) ?? "Effort" : "Effort";
   const startRoleWord = startNew ? wordOf(ROLE_SPEAKER, startNew.role) ?? "No role" : "";
   // The transcript follows the latest: a conversation opens at its end, and what arrives while the person is at or near
@@ -880,7 +886,7 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
       </span>
       <span aria-hidden="true">·</span>
       <span className="v4-level chat-mode-selector">
-        <button type="button" aria-expanded={contextOpen === "model"} aria-label={`Model: ${modelWord}`} onClick={() => toggleContext("model")}>{modelWord}</button>
+        <button type="button" aria-expanded={contextOpen === "model"} aria-label={modelValue ? `Model, ${modelValue.whose}: ${modelWord}` : `Model: ${modelWord}`} onClick={() => toggleContext("model")}>{modelValue ? <ReportedInControl value={modelValue.value} /> : modelWord}</button>
         <div className={`v4-level-pop v4-level-pop--end${contextOpen === "model" ? " open" : ""}`} role="dialog" aria-label="Model" hidden={contextOpen !== "model"}><div className="daily-workspace v4-in-chat">
           {selected ? <>
             <p><label>Optional model identifier for next ordinary text turn <input {...EXACT_TEXT} disabled={!selected || !!busy} value={ordinaryModelValue}

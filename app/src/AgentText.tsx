@@ -682,6 +682,21 @@ export function boundedTitle(value: unknown): { text: string; total: number; sho
   const points = [...text];
   return points.length > CHOICE_TITLE_LIMIT ? { text: points.slice(0, CHOICE_TITLE_LIMIT).join(""), total: points.length, shortened: true } : { text, total: points.length, shortened: false };
 }
+/**
+ * A value Codex reported, drawn inside one of the App's own controls (the settings line's model pill): set apart in the
+ * conversation title's marked form, its line breaks and control characters as marks, shortened as a title is. Its words
+ * for the control's accessible name come from `reportedValueWords`, after the App's words saying whose it is.
+ */
+export function ReportedInControl({ value }: { value: string }) {
+  const shown = boundedTitle(value);
+  if (!shown) return null;
+  return <span className="v4-reported-in-control" style={choiceTitleStyle}><Parts value={shown.text} />{shown.shortened ? "…" : null}</span>;
+}
+/** The words of `ReportedInControl` for an accessible name: the same characters, with marks in place of control characters. */
+export function reportedValueWords(value: string): string {
+  const shown = boundedTitle(value);
+  return shown ? agentTextParts(shown.text).map(part => part.text).join("") + (shown.shortened ? "…" : "") : "";
+}
 /** The App's words after a shortened title: how much of it is shown. */
 const titleCount = (title: { total: number; shortened: boolean }) => title.shortened ? ` (its first ${CHOICE_TITLE_LIMIT} of ${title.total} characters)` : "";
 /** The list's one visible attribution for its titles; each choice's accessible name repeats it before its own title. */
