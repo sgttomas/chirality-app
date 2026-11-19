@@ -1671,6 +1671,49 @@ class QuestionThatDoesNotWait(unittest.TestCase):
                     if i.get('type') == 'agentMessage' and i.get('questions')]
             self.assertEqual([i['questions'] for i in kept], [[ASYNC_QUESTION]])
 
+    def test_a_plain_resume_gives_the_question_and_the_persons_reply_is_an_ordinary_message_after_it(self):
+        with L.Run(SCRATCH, BINARY) as run:
+            client = run.start()
+            thread = client.start_thread(model=CATALOGUE_MODEL)['thread']['id']
+
+            def script(body, outputs, stub):
+                if 'call_resumeask' in outputs:
+                    return [L.message('Carried on.', 'msg_resumeask')]
+                return [{'type': 'function_call', 'name': 'request_user_input_async', 'call_id': 'call_resumeask',
+                         'id': 'fc_resumeask', 'arguments': json.dumps({'questions': [ASYNC_QUESTION]})}]
+            run.stub.scripts['resumeask'] = script
+            asked_turn, done = client.turn(thread, 'LEVEL[resumeask] go')
+            self.assertEqual(done['turn']['status'], 'completed')
+            self.assertEqual(json.loads(run.stub.outputs['call_resumeask']), {'accepted': True})
+            # In the turn's own items the question comes before the agent's closing message.
+            live = [(i['type'], i['id']) for i in client.items(thread, asked_turn, 'agentMessage')]
+            self.assertEqual(live, [('agentMessage', 'call_resumeask'), ('agentMessage', 'msg_resumeask')])
+            client.kill()
+            client.drain()
+
+            def questions_in(turns):
+                return [(t['id'], i['id'], i['questions']) for t in turns for i in t.get('items') or []
+                        if i.get('type') == 'agentMessage' and i.get('questions')]
+            again = run.start()
+            resumed = again.result('thread/resume', {'threadId': thread})
+            # The resume reply itself, with nothing further read, holds the question.
+            self.assertEqual(questions_in(resumed['thread']['turns']), [(asked_turn, 'call_resumeask', [ASYNC_QUESTION])])
+            # A list of the conversation's turns holds it too.
+            listed = again.result('thread/turns/list', {'threadId': thread})['data']
+            self.assertEqual(questions_in(listed), [(asked_turn, 'call_resumeask', [ASYNC_QUESTION])])
+
+            # The person's reply is an ordinary next message: a new turn whose first item is theirs.
+            run.stub.scripts['reply'] = lambda body, outputs, stub: [L.message('Thank you.', 'msg_reply')]
+            reply_turn, done = again.turn(thread, 'LEVEL[reply] Invented yes')
+            self.assertEqual(done['turn']['status'], 'completed')
+            self.assertEqual([r['method'] for r in again.server_requests if r['thread'] == thread], [])
+            read = again.result('thread/read', {'threadId': thread, 'includeTurns': True})['thread']['turns']
+            self.assertEqual([t['id'] for t in read], [asked_turn, reply_turn])
+            first = read[1]['items'][0]
+            self.assertEqual(first['type'], 'userMessage')
+            self.assertIn('Invented yes', json.dumps(first))
+            self.assertEqual(questions_in(read), [(asked_turn, 'call_resumeask', [ASYNC_QUESTION])])
+
     def test_on_a_model_the_catalogue_does_not_list_it_for_the_same_call_is_unsupported(self):
         """The control: the fixture's invented model has no catalogue entry."""
         with L.Run(SCRATCH, BINARY) as run:
