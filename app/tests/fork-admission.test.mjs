@@ -63,11 +63,14 @@ async function mounted(options,check) {
  const change=async(e,value)=>React.act(()=>e.localName==='fieldset'?chooseIn(e,value):props(e).onChange({target:{value}}));
  // In the account home the only connection is shown in use without a press (DEL-01-05 REQ-004); elsewhere the toggle is pressed.
  const routeChosen=()=>{if(c.querySelectorAll(e=>e.getAttribute('aria-label')==='Connection in use').length)return true;const b=button(c,ROUTE);return !!b&&props(b)['aria-pressed']===true;};
- const edit=async values=>{if(values.route&&!routeChosen())await press(ROUTE);if(values.model!==undefined)await change(labelled(c,'input','Model '),values.model);};
+ // New chat is only "no conversation chosen": with a chosen conversation that the current source no longer lists, the
+ // new conversation's choice is not shown, so it is edited and read in New chat.
+ const inNewChat=()=>props(elements(conversation(c),'textarea')[0]).placeholder==='Write your first message…';
+ const edit=async values=>{if(!selected()&&!inNewChat())await newChat();if(values.route&&!routeChosen())await press(ROUTE);if(values.model!==undefined)await change(labelled(c,'input','Model '),values.model);};
  const read=()=>({model:labelled(c,'input','Model ')?props(labelled(c,'input','Model ')).value:null,route:routeChosen()});
  // The new conversation's choice is shown in New chat (the empty conversation). Reading it there returns to the
  // conversation that was shown, as a person going to look and coming back.
- const values=async()=>{const shown=selected();if(!shown)return read();await newChat();const value=read();await change(choiceLists(conversation(c))[0],shown);return value;};
+ const values=async()=>{const shown=selected();if(!shown){if(!inNewChat())await newChat();return read();}await newChat();const value=read();await change(choiceLists(conversation(c))[0],shown);return value;};
  const newChat=async()=>React.act(async()=>{props(newChatButton(c)).onClick();});
  const press=async label=>{
   // Start: New chat (no conversation chosen), then the unsent message is sent as the new conversation's first.

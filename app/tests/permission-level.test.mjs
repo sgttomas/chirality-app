@@ -165,7 +165,7 @@ test('the real App shows the default before Start and wires its plain setting th
     // level's full panel, with its default sentences and its setting, is among the conversation's tools.
     const start=c.querySelectorAll(e=>e.getAttribute('id')==='workspace-start')[0];
     const level=settingButton(c,'Access level');assert.ok(start.contains(level),'the level is in the new conversation\'s settings line');
-    const name=props(level)['aria-label'].slice('Access level: '.length);assert.ok(name);assert.ok(level.textContent.startsWith(name),'its name is in view');
+    const name=props(level)['aria-label'].slice('Access level: '.length).replace(/\. Opens what it allows\.$/,'');assert.ok(name);assert.ok(level.textContent.startsWith(name),'its name is in view');
     assert.equal(calls.filter(x=>x.command==='set_level').length,0);
     const panel=c.querySelectorAll(e=>e.getAttribute('aria-label')==='Permission level for new conversations')[0];
     assert.ok(conversationTools(c).contains(panel));assert.ok(panel.textContent.includes(name),'the panel names the same level');
@@ -305,6 +305,28 @@ test('the real App exceptional ask preselects full and one press continues throu
     });
 });
 
+test('the real App shows the ask in view above the composer, its default preselected, with no press; one press there continues and the ask is gone',async()=>{
+  const ask='Invented host case: the recorded choice is unusable. Choose a level to continue.';
+  const shown=e=>{for(let n=e;n;n=n.parentNode)if(props(n)?.hidden)return false;return true;};
+  const above=c=>c.querySelectorAll(e=>e.localName==='section'&&e.getAttribute('aria-label')==='Choose a permission level to continue')[0];
+  await appWithLevels(host({roleLimits:{account:{roles:[]}},serverRequests:[],levelDefault:null,levelRecordMissing:ask,levelAskPreselected:'full'}),
+    (h,args)=>({...h,levelDefault:chosen(args.levelId,'chosen'),levelRecordMissing:null}),async(c,calls)=>{
+      const section=above(c);
+      assert.ok(section,'the ask is drawn');assert.ok(c.querySelectorAll(e=>e.getAttribute('id')==='conversation')[0].contains(section),'in the conversation');
+      assert.ok(shown(section),'in view: no closed panel or hidden tab holds it');
+      assert.ok(section.textContent.includes(ask),'the host\'s sentence says why');
+      assert.equal(props(nodes(section,'select')[0]).value,'full','the default is preselected');
+      const button=nodes(section,'button')[0];assert.equal(button.textContent,'Use selected level and continue');assert.equal(!!props(button).disabled,false);
+      assert.match(settingButton(c,'Access level').textContent,/ — choose to continue$/,'the level\'s name says the App is asking');
+      assert.equal(calls.filter(x=>x.command==='set_level').length,0);
+      await React.act(async()=>props(button).onClick());
+      assert.deepEqual(calls.filter(x=>x.command==='set_level'),[{command:'set_level',args:{scope:'default',levelId:'full'}}]);
+      assert.ok(!above(c),'once a level is chosen the ask is gone, and only the name is in view');
+      assert.equal(settingButton(c,'Access level').textContent,'Full access');
+    });
+  // When the App is not asking, nothing stands above the composer.
+  await appWithLevels(host({roleLimits:{account:{roles:[]}},serverRequests:[]}),h=>h,async c=>{assert.ok(!above(c));});
+});
 test('shipped default control separates each saving outcome from the current level and its scope',async()=>{
   for(const variant of ['recorded','no-store','applied-unconfirmed','not-applied-unconfirmed']) {
     const applied=variant!=='not-applied-unconfirmed';

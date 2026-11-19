@@ -195,6 +195,8 @@ pub(crate) fn session_flags(s: &LocalSettings) -> Vec<String> {
         "features.plugins=false".into(),
         // Session flags merge into lower layers; a foreign catalogue URL must never receive the home key.
         "features.api_key_model_discovery=false".into(),
+        // The agent's question to the person, as in the account home (`hosting::QUESTION_FEATURE_FLAG`).
+        crate::hosting::QUESTION_FEATURE_FLAG.into(),
         "cli_auth_credentials_store=\"file\"".into(),
         format!("model_provider=\"{PROVIDER}\""),
         format!("model=\"{}\"", s.model),
@@ -1671,6 +1673,7 @@ mod tests {
             LocalSettings::new("https://127.0.0.1", "m").unwrap(),
         ] {
             assert_eq!(parse(canonical(&s).as_bytes()), Some(s.clone()));
+            assert!(session_flags(&s).iter().any(|f| f == crate::hosting::QUESTION_FEATURE_FLAG), "the agent's question reaches the App in the local home too");
             let flags = session_flags(&s).join("\n");
             assert!(flags.contains(&format!("model=\"{}\"", s.model())));
             assert!(flags.contains(&format!("base_url=\"{}\"", s.endpoint())));

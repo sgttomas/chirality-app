@@ -382,8 +382,10 @@ the owner decide on what was actually observed.
    App's default level, not chosen by the person, it can be changed at any
    time, and it is never recorded as the person's choice; on 15 November 2026 (UTC) the owner wrote to App Agent 0 directly, in their own words: "Regarding the permission level I want there to be a default setting the user can change if they want, not something they have to set."; as the one exception, the person is asked to choose before a conversation runs only where the App cannot show that applying its default would not raise a level the person had set: a recorded choice that no longer matches the App's level table requires the person to choose again, whether or not the account home holds earlier Codex state. With no usable choice, the App also asks when its whole ledger holds no entry from an earlier session while that home holds earlier Codex state, when the records cannot be read and that state is present, or when the home-state probe is unknown. The default is preselected so one press continues, and the App says why. A whole validated record with earlier session entries and no choice means only that no choice was found, and the default applies. Removal or replacement of individual entries by writes outside the App is not detected and can expose an older choice or the default (LIM-022); this excludes neither ordinary App choice-write failures nor corruption the store detects from the exception. Established absence of earlier Codex state permits the default after an unreadable first-run record, with the unread-records disclosure and any later choice's separate saving outcome; an already known narrower level is preserved on a failed fresh read; every level offered was first shown at
    the pin by a fixture; the
-   level in force is always shown, with the statement that reading is not
-   limited; the App sends it to Codex on each turn and on start, resume and
+   name of the level in force is always shown wherever a conversation is
+   shown, and what it allows, where it comes from and the statement that
+   reading is not limited are shown when the person opens it, one action from
+   the name, and in full in the conversation's tools; the App sends it to Codex on each turn and on start, resume and
    fork; a change of level is taken from the person only and recorded, as
    the person's own setting and not as a reserved act, and no agent raises
    its own level.

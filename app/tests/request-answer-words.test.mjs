@@ -10,7 +10,7 @@ import {agentPlain} from './support/agent-text.mjs';
 // (requestAnswerWords.json), forwards which question button was pressed, says what a selected network rule
 // does, and marks every location, saying so when the comparison cannot be made. Invented material only.
 const shared=JSON.parse(readFileSync(new URL('../src/requestAnswerWords.json',import.meta.url),'utf8'));
-const {NativeRequestCard,DECISION_WORDS,QUESTION_CHOICE_WORDS,decisionWords,decisionForms}=loadSrc('RequestCards');
+const {NativeRequestCard,DECISION_WORDS,QUESTION_CHOICE_WORDS,decisionWords,decisionForms,questionAnswers}=loadSrc('RequestCards');
 
 const g={appSession:'s',home:'h',spawnCounter:1};
 const at={threadId:'T',turnId:'u',itemId:'i'};
@@ -42,7 +42,7 @@ test('the card\'s answer words are the shared table\'s, entry for entry, and the
     [shared.decisions.approved,shared.decisions.approved_for_session,shared.decisions.abort,shared.decisions.denied]);
   const q=renderRaw(question(),project);
   // The question form's buttons are plain buttons (type button), so that no press submits the form.
-  assert.ok(q.includes(`<button type="button">${shared.questionChoices['question-answers']}</button>`));
+  assert.ok(q.includes(`<button type="button" disabled="">${shared.questionChoices['question-answers']}</button>`),'not offered until an answer is entered');
   assert.ok(unescape(q).includes(`<button type="button">${shared.questionChoices['question-decline']}</button>`));
 });
 
@@ -60,6 +60,24 @@ async function mounted(r,place=project){
   const press=async label=>{const chosen=option(label);await React.act(async()=>chosen?props(chosen).onChange({target:{checked:true}}):props(container.querySelectorAll(n=>n.localName==='button'&&n.textContent===label)[0]).onClick());await mount();};
   return {calls,press,done:async()=>{await React.act(()=>root.unmount());document.body.removeChild(container);}};
 }
+
+test('an answer is sent under its question\'s id whatever that id is, including one a plain object would lose',async()=>{
+  // A question's id is the agent's text. `__proto__` assigned to a plain object makes no entry, so its answer was
+  // dropped; `constructor` read from one answers from the prototype, so a selection was shown that nobody made.
+  const odd=JSON.parse('{"threadId":"T","turnId":"u","itemId":"i","questions":[{"id":"__proto__","header":"Odd","question":"First?","isOther":true,"isSecret":false,"options":[{"label":"One","description":"d"}]},{"id":"constructor","header":"Odd","question":"Second?","isOther":true,"isSecret":false,"options":[{"label":"Two","description":"d"}]},{"id":"toString","header":"Odd","question":"Third?","isOther":true,"isSecret":false,"options":[{"label":"Three","description":"d"}]}]}');
+  const r={...question(),nativeParameters:odd};
+  assert.equal(JSON.stringify(questionAnswers(odd.questions,{},{})),'{}','nothing chosen or typed sends nothing, whatever the ids');
+  const html=renderRaw(r,project);
+  assert.equal((html.match(/Selected: (?:<!-- -->)?—/g)??[]).length,3,'no question shows a selection the person did not make');
+  assert.equal((html.match(/<input[^>]*value=""/g)??[]).length,3,'and each own-answer field is empty');
+  assert.ok(html.includes(`<button type="button" disabled="">${shared.questionChoices['question-answers']}</button>`));
+  const q=await mounted(r);
+  await q.press('Choose option 1');
+  await q.press(shared.questionChoices['question-answers']);
+  assert.equal(q.calls.length,1);
+  assert.equal(JSON.stringify(q.calls[0].slice(1)),'[{"answers":{"__proto__":{"answers":["One"]}}},"question-answers"]','the first question\'s answer is an own entry of what is sent; the two left unanswered are absent');
+  await q.done();
+});
 
 test('a question\'s send and decline buttons forward their closed choice beside the unchanged answer; other kinds forward none',async()=>{
   const q=await mounted(question());

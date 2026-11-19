@@ -45,6 +45,7 @@ unconfirmed drafting defaults are not accepted merely by inclusion.
 | OD-nn / D-nn | Original scoped directions/choices in `conceptual/DECISIONS.md` (`sgttomas/chirality-app@974916b54487af69f17445c582a1aa9ee4fc3b5d:conceptual/DECISIONS.md`), including D-19 and D-20; later direction supersedes only what it addresses. |
 | X-nn / L-nn | Historical exemplars/lessons in `conceptual/EXEMPLARS_AND_LESSONS.md` (`sgttomas/chirality-app@974916b54487af69f17445c582a1aa9ee4fc3b5d:conceptual/EXEMPLARS_AND_LESSONS.md`); evidence with limits, not automatic additional requirements. |
 | R-STORE | Owner directions of 2026-10-12, given in session: "We can't rely on Git for records management, that's not what it's meant for." The owner approved the records-storage recommendations then presented ("I approve your recommendations. Proceed accordingly."): append-only, grouped and hash-chained logs, a derived SQLite index and the App's recovery ledger in SQLite. The owner also asked for "the best way overall, not how to wedge yourself into rulings that may no longer be appropriate", and accepted an App-managed records store outside the project working tree "as a new direction". Revises V4-REC-02 and V4-REC-04 and adds V4-REC-06. |
+| R-LEVEL | Owner decision of 2026-11-19, given in session through App Agent 0. Asked whether, under the composer, v4 should show only the access level's name as Chirality 3.0.1 does, or the name with the two to three lines the rule then required in view (what it allows, where it comes from, that reading is never limited), or those lines until acknowledged, the owner chose "Name only, rest on click": like 3.0.1, only the level's name (such as "Full access") is in view, and pressing it opens what it allows and where it comes from. Revises where V4-AUT-06 says the level and the statement on reading are shown. |
 | DEC-1 D2/D3 | Existing first-increment owner rulings `APP-V4-FIRST-INCREMENT-20260928-DECISION-1`, carried by [DEL-04-01's current policy contract](../execution/PKG-04/DEL-04-01/ScopeOfWork.md#governing-values-and-decisions--axiology). D2 names the reserved act kinds and D3 settles App/host routine classifier treatment for that increment; operation-specific additions remain with OI-021. |
 | DEC-4 / DEC-5 | Owner decisions (`sgttomas/chirality@archive/pre-efficiency-cleanup-2026-10-09:projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-SWBPIPE-INTAKE-20260928/OWNER_DECISIONS.md`) `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-4`, with its clarification (phased checkpoints; model access by OAuth sign-in or an API key, with no default), and `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-5`, with its confirmation (host-agent network destinations); applied by scope-change amendment SCA-V4-001. |
 
@@ -404,9 +405,11 @@ Shared access does not transfer decision rights (OD-05).
   when it wants to go beyond its sandbox; never). With every level the App
   sends that the person answers the harness's requests, whatever review
   routing the person's own settings name. Reading is not limited at
-  any level: Codex can read whatever the person's account can read, and the
-  App says so wherever the level is shown. The level in force is always
-  shown. The App offers a level only once a fixture has shown that level at
+  any level: Codex can read whatever the person's account can read. The name
+  of the level in force is always shown wherever a conversation is shown;
+  what the level allows, where it comes from and that reading is not limited
+  are shown when the person opens it, one action from the name, and in full
+  in the conversation's tools (R-LEVEL). The App offers a level only once a fixture has shown that level at
   the pinned Codex version. The level is the person's own setting (V4-AUT-04):
   it is no reserved act and stands in for none. Only the person sets or
   changes it, by a choice the App takes from the person alone, and the

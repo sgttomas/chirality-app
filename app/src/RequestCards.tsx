@@ -97,17 +97,15 @@ export type RequestReplyObservation = {
   command: { kind: "pending" | "written" | "dismissed" } | { kind: "rejected"; reason: string } | { kind: "unconfirmed"; writeResult: string };
   custody: RequestCustodyObservation;
 };
-/** Which of two buttons that can send the same native answer the person pressed
- * (a question's "send answers" and "decline" both may send `{answers:{}}`). Only
- * this closed App vocabulary is forwarded, so the host's confirmation can name
- * the button; the answer itself is unchanged. Other kinds send no choice. */
+/** The closed choice identifies which question button was pressed so the host can check it against the answer. */
 export type RequestPresentationChoice = "question-answers" | "question-decline";
 export type RequestAnswer = (request: Json, answer: Json, presentationChoice?: RequestPresentationChoice) => Promise<RequestReplyObservation | void>;
 export type ReadRequestCustody = (request: Json) => Promise<RequestCustodyObservation>;
 
-function replyObservationWords(observation: RequestReplyObservation): string {
+function replyObservationWords(observation: RequestReplyObservation, question = false): string {
   switch (observation.command.kind) {
-    case "pending": return "Answer command in progress; waiting for native confirmation or a reply write result.";
+    // A question's answers are sent with no native confirmation (DEL-01-04 REQ-001: conversation input).
+    case "pending": return question ? "Answer being sent; waiting for a reply write result." : "Answer command in progress; waiting for native confirmation or a reply write result.";
     case "written": return "The reply was written locally. Codex receipt or action is not confirmed by that write.";
     case "dismissed": return "Native confirmation dismissed; no reply write was attempted.";
     case "rejected": return "The native answer command reported an error (shown below). A complete local reply write is not established by this error alone.";
@@ -158,8 +156,8 @@ export const DECISION_WORDS = {
   "abort": "Don't allow; the agent waits for your next message"
 } as const;
 export const QUESTION_CHOICE_WORDS = {
-  "question-answers": "Send current question answers…",
-  "question-decline": "Decline to answer"
+  "question-answers": "Send answers",
+  "question-decline": "Decline to answer; the agent continues without one"
 } as const;
 // END GENERATED REQUEST ANSWER WORDS
 export function decisionWords(decision: Json): string {
@@ -364,8 +362,17 @@ export function hostRequests(host: Json): Json[] {
   });
 }
 
-/** §4.4 card states, in the person's words, from the register entry. */
+/** §4.4 card states, in the person's words, from the register entry: the card's own line, which for a request Codex
+ * resolved adds Codex's cause where it is a plain token (requestStateWords otherwise). */
 export function cardState(request: Json): string {
+  // Codex's cause is shown inside the App's sentence only in a plain token's form; anything else is
+  // said as reported in a form the App does not show inside its own sentence.
+  if (request?.state === "resolved-by-supplier") { const cause = request?.supplierResolution?.cause; return `Resolved by Codex before you answered (cause: ${cause === undefined || cause === null || cause === "" ? "not reported" : plainId(cause) ?? "reported in a form the App does not show here"})`; }
+  return requestStateWords(request);
+}
+/** §4.4 card states as closed App sentences: a literal for every state, nothing supplied in any of them (a control's
+ * name, such as an earlier request's disclosure, holds only these). */
+export function requestStateWords(request: Json): string {
   const origin = request?.settlement?.origin;
   const confirmed = request?.acknowledgmentObservation?.status === "observed";
   switch (request?.state) {
@@ -383,9 +390,7 @@ export function cardState(request: Json): string {
       if (origin?.class === "app-rule") return "Declined by an App rule (named below), not by you";
       return confirmed ? "You declined; written; Codex reported the request resolved" : request?.closedGeneration ? "You declined; the reply was written locally; whether Codex received or acted on it is unknown" : "You declined; written to Codex; Codex has not confirmed it";
     case "settle-write-failed": return "Your answer could not be written; whether Codex received it is unknown";
-    // Codex's cause is shown inside the App's sentence only in a plain token's form; anything else is
-    // said as reported in a form the App does not show inside its own sentence.
-    case "resolved-by-supplier": { const cause = request?.supplierResolution?.cause; return `Resolved by Codex before you answered (cause: ${cause === undefined || cause === null || cause === "" ? "not reported" : plainId(cause) ?? "reported in a form the App does not show here"})`; }
+    case "resolved-by-supplier": return "Resolved by Codex before you answered";
     case "ended-unanswered": return request?.endContext === "app-quit" ? "Ended unanswered: the Codex process ended when you quit" : "Ended unanswered: the Codex process ended";
     default: return request?.state === undefined || request?.state === null || request?.state === "" ? "Register state not reported" : "Register state the App does not recognise (shown under Register)";
   }
@@ -465,7 +470,9 @@ function Subject({ request, item, place }: { request: Json; item: Json; place?: 
         })}</div>;
     }
     case QUESTION:
-      return p.isBlocking === false ? <div>Not blocking the turn: the agent continues while this waits.</div> : null;
+      // Codex marks an ordinary conversation's question `isBlocking: false`; at the pin the turn waits
+      // for the answer all the same (supplier_checks/level), so the card says nothing of it.
+      return null;
     case ELICITATION:
       return <div>
         {text(p.message ?? p.description) !== "" && <div>Message: <AgentText value={text(p.message ?? p.description)} label="Sent with the request:" name={ELICITATION_TEXT} /></div>}
@@ -493,16 +500,23 @@ export function requestItem(request: Json, view: Json): Json {
   return (Array.isArray(view?.items) ? view.items : []).find((row: Json) => row?.threadId === p.threadId && row?.turnId === p.turnId && row?.native?.id === p.itemId) ?? null;
 }
 
-/** The answers to send: each chosen option's label as offered, and each free answer as typed. */
-export function questionAnswers(questions: Json, chosen: Record<string, number>, drafts: Record<string, string>): Record<string, { answers: string[] }> {
+/** Where a question's selection or draft is kept in the card's state. A question's id is the agent's text and
+ * may be any string Codex accepts, `__proto__` and `constructor` included, which a plain object would answer from
+ * its prototype or lose; under this prefix no id meets one of those names. */
+const slot = (id: string): string => "q:" + id;
+/** The answers to send: each chosen option's label as offered, and each free answer as typed. Each is set as an
+ * own entry under its question's id, whatever that id is, so that none is lost from what is sent. */
+export function questionAnswers(questions: Json, chosen: Record<string, number | undefined>, drafts: Record<string, string | undefined>): Record<string, { answers: string[] }> {
   const out: Record<string, { answers: string[] }> = {};
+  const put = (id: string, answers: string[]) => Object.defineProperty(out, id, { value: { answers }, enumerable: true, writable: true, configurable: true });
   for (const q of Array.isArray(questions) ? questions : []) {
     const id = q?.id;
     if (typeof id !== "string") continue;
-    const at = chosen[id];
+    const at = chosen[slot(id)];
+    const draft = drafts[slot(id)];
     const option = at !== undefined && Array.isArray(q.options) ? q.options[at] : undefined;
-    if (option && typeof option.label === "string") out[id] = { answers: [option.label] };
-    else if (Object.prototype.hasOwnProperty.call(drafts, id)) out[id] = { answers: [drafts[id]] };
+    if (option && typeof option.label === "string") put(id, [option.label]);
+    else if (draft !== undefined) put(id, [draft]);
   }
   return out;
 }
@@ -600,17 +614,17 @@ export function NativeRequestCard({ request, view, answer, readRequest, observat
   const a14 = TOOL_PERMISSION.includes(method);
   const asker = requestAsker(requestThread(request), request.generation, view);
   const open = answerable(request) && !replyGuard;
-  // 3.0.1's card frame: the request's kind and, while it waits for the person, "answer required". The question and
-  // its answers come first; who asked (when it is not the conversation's own agent), the register and the request
-  // as Codex sent it are under "Request details". No answer is styled above another.
+  // 3.0.1's card frame: the request's kind and, while it waits for the person, "answer required". Who asks, the question
+  // and its answers are in view (PRD V4-PM-07: each card names who asks); the register and the request as Codex sent
+  // it are under "Request details". No answer is styled above another.
   return <article id={requestAnchorId(request.generation, request.requestIdentity)} className="permission-card request-card" role="group" aria-label={`Request: ${requestTitle(request)}`}>
     <header className="permission-card-header"><h3 className="permission-card-tool">{requestTitle(request)}</h3>{open && <span className="permission-card-badge">answer required</span>}</header>
     {!KNOWN_METHODS.includes(method) && <p>Codex named the request: {method === undefined || method === null || method === "" ? "no method" : <AgentText value={text(method)} source="codex" label="Method:" name="The request's method as Codex sent it, not the App's words" />}</p>}
     {method === ELICITATION && <p>{text(p.serverName) === "" ? "MCP server name not reported." : <>MCP server, as named in the request: <AgentText value={text(p.serverName)} label="Server name:" name={ELICITATION_TEXT} /></>}</p>}
-    {asker.kind !== "conversation" && <p className="request-asker"><AskedBy asker={asker} />.</p>}
+    <p className="request-asker"><AskedBy asker={asker} />.</p>
     {!open && <p><b>{unreconciled ? reply?.command.kind === "pending" ? "Answer command in progress" : "Current request state unavailable or not reconciled" : cardState(request)}</b>{unreconciled && <>. Last observed: {cardState(request)}</>}</p>}
     {reply && <section aria-label="Native reply observation">
-      <p>{replyObservationWords(reply)}</p>
+      <p>{replyObservationWords(reply, method === QUESTION)}</p>
       {reply.command.kind === "rejected" && <p><AgentText value={text(reply.command.reason)} source="codex" label="Reported:" name="What the native answer command reported, not the App's words" /></p>}
       {reply.command.kind === "unconfirmed" && <p>Write result: <SuppliedId value={reply.command.writeResult} label="Write result:" name="The reply write result as recorded" /></p>}
       {!reply.custody.available && reply.command.kind !== "pending" && <p role="alert">Request state unavailable: {reply.custody.reason ? <AgentText value={text(reply.custody.reason)} source="codex" label="Reported:" name="Why the request state could not be read, as reported; it may not be the App's words" /> : "the original request custody could not be read"}</p>}
@@ -639,15 +653,16 @@ export function NativeRequestCard({ request, view, answer, readRequest, observat
           <p>Question: {text(q.question) === "" ? "no wording reported" : <AgentText value={text(q.question)} />}</p>
           {/* The option's label is the agent's: the radio button is named in the App's words and the label stands beside it. */}
           {(q.options ?? []).map((o: Json, i: number) => <div key={i} className="v4-question-option">
-            <input type="radio" name={`${requestAnchorId(request.generation, request.requestIdentity)}-question-${n}`} aria-label={`Choose option ${i + 1}`} disabled={busy} checked={chosen[q.id] === i}
-              onChange={() => { setChosen(c => ({ ...c, [q.id]: i })); setDrafts(d => { const next = { ...d }; delete next[q.id]; return next; }); }} />
+            <input type="radio" name={`${requestAnchorId(request.generation, request.requestIdentity)}-question-${n}`} aria-label={`Choose option ${i + 1}`} disabled={busy} checked={chosen[slot(q.id)] === i}
+              onChange={() => { setChosen(c => ({ ...c, [slot(q.id)]: i })); setDrafts(d => { const next = { ...d }; delete next[slot(q.id)]; return next; }); }} />
             <span><AgentText value={text(o.label)} label={`Option ${i + 1}:`} />{text(o.description) !== "" && <> <AgentText value={text(o.description)} label="Its description:" /></>}</span></div>)}
-          {q.isOther && <label className="native-plan-clarification-other">Your own answer <input autoComplete="off" type={q.isSecret ? "password" : "text"} value={drafts[q.id] ?? ""} onChange={e => { const typed = e.target.value; setChosen(c => { const next = { ...c }; delete next[q.id]; return next; }); setDrafts(d => ({ ...d, [q.id]: typed })); }} /></label>}
-          <p className="v4-question-selected">Selected: {chosen[q.id] !== undefined ? q.isSecret ? "[masked]" : <SelectedOption options={q.options} index={chosen[q.id]} /> : drafts[q.id] !== undefined ? q.isSecret ? "[masked]" : "your own answer, in the field above" : "—"}
-            {" "}<button type="button" disabled={busy} onClick={() => { setChosen(c => { const next = { ...c }; delete next[q.id]; return next; }); setDrafts(d => { const next = { ...d }; delete next[q.id]; return next; }); }}>Leave unanswered</button></p>
+          {q.isOther && <label className="native-plan-clarification-other">Your own answer <input autoComplete="off" type={q.isSecret ? "password" : "text"} value={drafts[slot(q.id)] ?? ""} onChange={e => { const typed = e.target.value; setChosen(c => { const next = { ...c }; delete next[slot(q.id)]; return next; }); setDrafts(d => ({ ...d, [slot(q.id)]: typed })); }} /></label>}
+          <p className="v4-question-selected">Selected: {chosen[slot(q.id)] !== undefined ? q.isSecret ? "[masked]" : <SelectedOption options={q.options} index={chosen[slot(q.id)]} /> : drafts[slot(q.id)] !== undefined ? q.isSecret ? "[masked]" : "your own answer, in the field above" : "—"}
+            {" "}<button type="button" disabled={busy} onClick={() => { setChosen(c => { const next = { ...c }; delete next[slot(q.id)]; return next; }); setDrafts(d => { const next = { ...d }; delete next[slot(q.id)]; return next; }); }}>Leave unanswered</button></p>
         </fieldset>)}
         <div className="permission-card-actions">
-          <button type="button" disabled={busy} onClick={() => send({ answers: questionAnswers(p.questions, chosen, drafts) }, "question-answers")}>{wordOf(QUESTION_CHOICE_WORDS, "question-answers")}</button>
+          {/* With nothing entered the answers would be empty, which Codex reads as a decline: only the decline button sends that. */}
+          <button type="button" disabled={busy || Object.keys(questionAnswers(p.questions, chosen, drafts)).length === 0} onClick={() => send({ answers: questionAnswers(p.questions, chosen, drafts) }, "question-answers")}>{wordOf(QUESTION_CHOICE_WORDS, "question-answers")}</button>
           <button type="button" disabled={busy} onClick={() => send({ answers: {} }, "question-decline")}>{wordOf(QUESTION_CHOICE_WORDS, "question-decline")}</button>
         </div>
         <p><small>Unanswered questions are omitted; entered empty answers are preserved.</small></p>
@@ -662,13 +677,12 @@ export function NativeRequestCard({ request, view, answer, readRequest, observat
           <button disabled={busy} onClick={() => send({ action: "cancel", content: null, _meta: null })}>Cancel <code>cancel</code></button>
         </div>
       </>}
-      <p><small>Sending opens a native confirmation. Closing this card leaves the request waiting; the App never answers it by itself.</small></p>
+      <p><small>{method === QUESTION ? "Both buttons submit directly from this card." : "Sending opens a native confirmation."} Closing this card leaves the request waiting; the App never answers it by itself.</small></p>
     </div>}
     {error && <ErrorLine kind={error.kind} reported={error.reported} />}
     {a14 && <p><small>Tool permission only. Your answer decides whether Codex may use this tool; it does not mark anything checked, take the work as done, give engineering sign-off or rely on the result, and it is not recorded as a human act. <a href="#file-acts">Open the App act control</a> (a separate standing facility; nothing is filled in from this request).</small></p>}
     {(method === QUESTION || method === ELICITATION) && <p><small>Your answer goes to the agent as conversation input; it is not a recorded act. <a href="#file-acts">Open the App act control</a> (a separate standing facility; nothing is filled in from this request).</small></p>}
     <details className="v4-request-details"><summary>Request details</summary>
-      {asker.kind === "conversation" && <p className="request-asker"><AskedBy asker={asker} />.</p>}
       {open && <p>{cardState(request)}.</p>}
       {request?.settlement?.origin?.class === "app-rule" && <p><small>App rule: <SuppliedId value={request.settlement.origin.ruleName} label="Rule:" name="The App rule's name as recorded" /></small></p>}
       <About request={request} item={item} navigation={activityLink?.(request) ?? null} />

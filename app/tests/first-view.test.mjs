@@ -23,10 +23,15 @@ const visible = e => { for (let n = e; n; n = n.parentNode) if (props(n)?.hidden
 const currentTab = c => elements(c, 'button').find(b => b.getAttribute('role') === 'tab' && b.getAttribute('aria-selected') === 'true')?.textContent;
 // What the App shows the person now: 'Conversation' when New conversation has been revealed in the centre since the last
 // look (the App's move to a new conversation, which leaves the right panel as it is), otherwise the selected tab.
-// The empty new conversation is shown: no conversation chosen, and the settings line is the new conversation's
-// (it carries the workspace-start anchor only then).
-const newChatShown = container => !!byId(container, 'workspace-start');
-const viewNow = ui => ui.revealedSinceLastLook().includes('workspace-start') ? 'Conversation' : currentTab(ui.container);
+// The empty new conversation is shown: the composer is the new conversation's, which it is only while no conversation
+// is chosen (a chosen one, listed or not, asks for something else), empty and asking for the first message, with the
+// new conversation's own words above it. (The settings line's anchor is not proof that anything is open.)
+const newChatShown = container => { const field = byId(container, 'ordinary-composer-text');
+  return props(field).placeholder === 'Write your first message…' && props(field).value === '' && /Write your first message below\./.test(container.textContent); };
+// The list of conversations under Conversation tools, mounted while that tab is shown.
+const currentChoices = c => elements(c, 'input').filter(i => props(i).name === 'current-conversation');
+// A move to the conversation reveals New conversation's start or focuses its composer.
+const viewNow = ui => ui.revealedSinceLastLook().some(id => id === 'workspace-start' || id === 'ordinary-composer-text') ? 'Conversation' : currentTab(ui.container);
 
 const base = (over = {}) => ({state: 'ready', generationClosed: false, generation: g, threads: [], roleLimits: {account: {roles: []}},
   homeRouting: {activeModeHomeClass: 'account', entries: [{modeHomeClass: 'account'}]}, serverRequests: [], ...over});
@@ -64,6 +69,10 @@ async function mountedApp(initial, check) {
   let revealed = [];
   document.getElementById = id => { revealed.push(id); return container.querySelectorAll(node => node.getAttribute('id') === id)[0] ?? null; };
   const revealedSinceLastLook = () => { const seen = revealed; revealed = []; return seen; };
+  // A focus counts as a reveal of the element focused, with whether it was shown when it was focused.
+  const proto = Object.getPrototypeOf(document.createElement('div'));
+  const previousFocus = Object.getOwnPropertyDescriptor(proto, 'focus');
+  proto.focus = function () { if (visible(this)) revealed.push(this.getAttribute('id')); };
   let snapshot = initial;
   const idle = installIdleNativeWaiting(async (command, args) => {
     calls.push({command, args});
@@ -85,7 +94,7 @@ async function mountedApp(initial, check) {
   };
   const type = async (id, value) => { const field = byId(container, id); assert.ok(field, id); await React.act(() => props(field).onChange({target: {value}})); };
   try { await React.act(async () => root.render(React.createElement(App))); await check({container, calls, observe, navigate, type, revealedSinceLastLook}); }
-  finally { const text = container.textContent; await React.act(() => root.unmount()); document.body.removeChild(container); idle.restore(text); document.getElementById = previousGetById; }
+  finally { const text = container.textContent; await React.act(() => root.unmount()); document.body.removeChild(container); idle.restore(text); document.getElementById = previousGetById; if (previousFocus) Object.defineProperty(proto, 'focus', previousFocus); else delete proto.focus; }
 }
 
 test('the first view at launch follows the launch account reading: no account, signed in with no conversation yet, otherwise Run a workflow', async () => {
@@ -189,6 +198,22 @@ test('a sign-in completed in this process and confirmed by the read after it ope
     await ui.observe(completed(signedIn(base(), {ref: 'read-after-sign-in'})));
     assert.equal(viewNow(ui), 'Settings & tools', 'unsent text blocks the move');
     assert.doesNotMatch(ui.container.textContent, signedInLine);
+  });
+  // A conversation was chosen before the sign-in completed: the move shows the empty new conversation, not that one.
+  const listed = {...base(), threads: [{generation: g, threadId: 'listed-1', status: {type: 'idle'}, cwd: null}]};
+  await mountedApp(noAccount(listed), async ui => {
+    await ui.navigate('Conversation tools');
+    const choice = currentChoices(ui.container).find(i => props(i).value !== '');
+    assert.ok(choice, 'the listed conversation can be chosen');
+    await React.act(async () => props(choice).onChange({target: {checked: true}}));
+    assert.equal(props(choice).checked, true);
+    assert.equal(newChatShown(ui.container), false, 'a conversation is chosen');
+    await ui.observe(completed(noAccount(listed)));
+    await ui.observe(completed(signedIn(listed, {ref: 'read-after-sign-in'})));
+    assert.equal(viewNow(ui), 'Conversation', 'the composer was focused while shown');
+    assert.equal(newChatShown(ui.container), true, 'the empty new conversation, not the one chosen before');
+    assert.equal(props(currentChoices(ui.container).find(i => props(i).checked)).value, '', 'no conversation chosen');
+    assert.match(ui.container.textContent, signedInLine);
   });
 });
 
