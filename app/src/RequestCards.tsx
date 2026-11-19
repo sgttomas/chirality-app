@@ -97,10 +97,7 @@ export type RequestReplyObservation = {
   command: { kind: "pending" | "written" | "dismissed" } | { kind: "rejected"; reason: string } | { kind: "unconfirmed"; writeResult: string };
   custody: RequestCustodyObservation;
 };
-/** Which of two buttons that can send the same native answer the person pressed
- * (a question's "send answers" and "decline" both may send `{answers:{}}`). Only
- * this closed App vocabulary is forwarded, so the host's confirmation can name
- * the button; the answer itself is unchanged. Other kinds send no choice. */
+/** The closed choice identifies which question button was pressed so the host can check it against the answer. */
 export type RequestPresentationChoice = "question-answers" | "question-decline";
 export type RequestAnswer = (request: Json, answer: Json, presentationChoice?: RequestPresentationChoice) => Promise<RequestReplyObservation | void>;
 export type ReadRequestCustody = (request: Json) => Promise<RequestCustodyObservation>;
@@ -496,16 +493,25 @@ export function requestItem(request: Json, view: Json): Json {
   return (Array.isArray(view?.items) ? view.items : []).find((row: Json) => row?.threadId === p.threadId && row?.turnId === p.turnId && row?.native?.id === p.itemId) ?? null;
 }
 
-/** The answers to send: each chosen option's label as offered, and each free answer as typed. */
+/** A selection or draft kept under a question's id, read as an own entry only. A question's id is the agent's
+ * text and may be any string Codex accepts, `__proto__` included, which a plain lookup would answer from the
+ * object's prototype. */
+function ownEntry<T>(map: Record<string, T>, id: string): T | undefined {
+  return Object.prototype.hasOwnProperty.call(map, id) ? map[id] : undefined;
+}
+/** The answers to send: each chosen option's label as offered, and each free answer as typed. Each is set as an
+ * own entry under its question's id, whatever that id is, so that none is lost from what is sent. */
 export function questionAnswers(questions: Json, chosen: Record<string, number>, drafts: Record<string, string>): Record<string, { answers: string[] }> {
   const out: Record<string, { answers: string[] }> = {};
+  const put = (id: string, answers: string[]) => Object.defineProperty(out, id, { value: { answers }, enumerable: true, writable: true, configurable: true });
   for (const q of Array.isArray(questions) ? questions : []) {
     const id = q?.id;
     if (typeof id !== "string") continue;
-    const at = chosen[id];
+    const at = ownEntry(chosen, id);
+    const draft = ownEntry(drafts, id);
     const option = at !== undefined && Array.isArray(q.options) ? q.options[at] : undefined;
-    if (option && typeof option.label === "string") out[id] = { answers: [option.label] };
-    else if (Object.prototype.hasOwnProperty.call(drafts, id)) out[id] = { answers: [drafts[id]] };
+    if (option && typeof option.label === "string") put(id, [option.label]);
+    else if (draft !== undefined) put(id, [draft]);
   }
   return out;
 }
@@ -641,9 +647,9 @@ export function NativeRequestCard({ request, view, answer, readRequest, observat
           {/* The option's label is the agent's: the button carries the App's words and the label stands beside it. */}
           {(q.options ?? []).map((o: Json, i: number) => <div key={i}><button disabled={busy} onClick={() => { setChosen(c => ({ ...c, [q.id]: i })); setDrafts(d => { const next = { ...d }; delete next[q.id]; return next; }); }}>Choose option {i + 1}</button>
             {" "}<AgentText value={text(o.label)} label={`Option ${i + 1}:`} />{text(o.description) !== "" && <> <AgentText value={text(o.description)} label="Its description:" /></>}</div>)}
-          {q.isOther && <label>Your own answer <input autoComplete="off" type={q.isSecret ? "password" : "text"} value={drafts[q.id] ?? ""} onChange={e => { const typed = e.target.value; setChosen(c => { const next = { ...c }; delete next[q.id]; return next; }); setDrafts(d => ({ ...d, [q.id]: typed })); }} /></label>}
+          {q.isOther && <label>Your own answer <input autoComplete="off" type={q.isSecret ? "password" : "text"} value={ownEntry(drafts, q.id) ?? ""} onChange={e => { const typed = e.target.value; setChosen(c => { const next = { ...c }; delete next[q.id]; return next; }); setDrafts(d => ({ ...d, [q.id]: typed })); }} /></label>}
           <button disabled={busy} onClick={() => { setChosen(c => { const next = { ...c }; delete next[q.id]; return next; }); setDrafts(d => { const next = { ...d }; delete next[q.id]; return next; }); }}>Leave unanswered</button>
-          <p>Selected: {chosen[q.id] !== undefined ? q.isSecret ? "[masked]" : <SelectedOption options={q.options} index={chosen[q.id]} /> : drafts[q.id] !== undefined ? q.isSecret ? "[masked]" : "your own answer, in the field above" : "—"}</p>
+          <p>Selected: {ownEntry(chosen, q.id) !== undefined ? q.isSecret ? "[masked]" : <SelectedOption options={q.options} index={ownEntry(chosen, q.id) as number} /> : ownEntry(drafts, q.id) !== undefined ? q.isSecret ? "[masked]" : "your own answer, in the field above" : "—"}</p>
         </div>)}
         {/* With nothing entered the answers would be empty, which Codex reads as a decline: only the decline button sends that. */}
         <button disabled={busy || Object.keys(questionAnswers(p.questions, chosen, drafts)).length === 0} onClick={() => send({ answers: questionAnswers(p.questions, chosen, drafts) }, "question-answers")}>{wordOf(QUESTION_CHOICE_WORDS, "question-answers")}</button>

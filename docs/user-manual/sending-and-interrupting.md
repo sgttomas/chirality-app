@@ -50,8 +50,10 @@ Three limits apply:
   with.
 - A question that is still waiting when Codex stops (you stop or restart
   Codex, quit the App, or Codex ends unexpectedly) is not asked again
-  afterwards. The turn shows as interrupted and the question is shown as a
-  past request. Send a message to continue.
+  afterwards. Chirality shows the question as a past request when its record
+  is available and shows the turn status Codex reports. If the turn was last
+  observed in progress and no later status is available, its outcome is
+  unknown. Send a message to continue.
 - An agent may also ask in a message. Chirality shows the message and uses
   Codex's reported turn status. Only a request makes the question count as
   waiting for your answer.

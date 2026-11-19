@@ -664,8 +664,10 @@ An entry is added in the same pull request that makes the limitation standing.
 - **What is unavailable:** three things about a question an agent puts to you
   as a request. A question still waiting when Codex stops (you stop or restart
   Codex, quit the App, or Codex ends unexpectedly) is not asked again when the
-  conversation is continued: its turn shows as interrupted and the question is
-  shown only as a past request. An agent that was delegated work cannot ask
+  conversation is continued: Chirality shows the question as a past request
+  when its record is available. It shows the turn status Codex reports, or an
+  unknown outcome if the turn was last observed in progress and no later
+  status is available. An agent that was delegated work cannot ask
   this way at all. And an agent may also ask in a message. Chirality shows the
   message and uses Codex's reported turn status. Only a request makes the
   question count as waiting for your answer.

@@ -69,17 +69,18 @@ in their own words. Chirality shows the question to the person and marks the
 conversation as needing an answer; a question written in your message is not
 marked. Wait for the answer.
 
-If you receive no answers, leave the question unanswered. Continue only with
-work that can proceed without the person's answer. Silence and an empty
-response give you no permission or agreement.
+If you receive no answers, leave the questions unanswered. In Default mode, use
+your best judgment and continue without asking the same question again.
+Continue only with work that can proceed without the person's answer. A
+decline, a blank answer and silence give you no permission or agreement.
 
 Do not use it for what you can find out or reasonably decide yourself, for
 progress reports, or to ask for a permission.
 
 If you need an answer and the tool is unavailable, disallowed for that
-question, or refused, ask one concise question in your message and end your
-turn. If you are a delegated agent, return the question to the agent that
-delegated you.
+question, or refused, ask one concise question in plain text without a list of
+choices and end your turn. If you are a delegated agent, return the question
+to the agent that delegated you.
 
 ## Workflow proposals and completion
 

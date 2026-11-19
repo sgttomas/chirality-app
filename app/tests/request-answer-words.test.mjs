@@ -10,7 +10,7 @@ import {agentPlain} from './support/agent-text.mjs';
 // (requestAnswerWords.json), forwards which question button was pressed, says what a selected network rule
 // does, and marks every location, saying so when the comparison cannot be made. Invented material only.
 const shared=JSON.parse(readFileSync(new URL('../src/requestAnswerWords.json',import.meta.url),'utf8'));
-const {NativeRequestCard,DECISION_WORDS,QUESTION_CHOICE_WORDS,decisionWords,decisionForms}=loadSrc('RequestCards');
+const {NativeRequestCard,DECISION_WORDS,QUESTION_CHOICE_WORDS,decisionWords,decisionForms,questionAnswers}=loadSrc('RequestCards');
 
 const g={appSession:'s',home:'h',spawnCounter:1};
 const at={threadId:'T',turnId:'u',itemId:'i'};
@@ -57,6 +57,17 @@ async function mounted(r,place=project){
   const press=async label=>{await React.act(async()=>props(container.querySelectorAll(n=>n.localName==='button'&&n.textContent===label)[0]).onClick());await mount();};
   return {calls,press,done:async()=>{await React.act(()=>root.unmount());document.body.removeChild(container);}};
 }
+
+test('an answer is sent under its question\'s id whatever that id is, including one a plain object would lose',async()=>{
+  // A question's id is the agent's text. `__proto__` assigned to a plain object makes no entry, so its answer was dropped.
+  const odd=JSON.parse('{"threadId":"T","turnId":"u","itemId":"i","questions":[{"id":"__proto__","header":"Odd","question":"First?","isOther":true,"isSecret":false,"options":[{"label":"One","description":"d"}]},{"id":"constructor","header":"Odd","question":"Second?","isOther":true,"isSecret":false,"options":[{"label":"Two","description":"d"}]},{"id":"left","header":"Odd","question":"Third?","isOther":true,"isSecret":false,"options":[{"label":"Three","description":"d"}]}]}');
+  const sent=questionAnswers(odd.questions,JSON.parse('{"__proto__":0}'),JSON.parse('{"constructor":"typed"}'));
+  assert.equal(JSON.stringify(sent),'{"__proto__":{"answers":["One"]},"constructor":{"answers":["typed"]}}','each answer is an own entry; the unanswered question is absent');
+  assert.equal(JSON.stringify(questionAnswers(odd.questions,{},{})),'{}','nothing chosen or typed sends nothing, whatever the ids');
+  const html=renderRaw({...question(),nativeParameters:odd},project);
+  assert.equal((html.match(/Selected: (?:<!-- -->)?—/g)??[]).length,3,'no question shows a selection the person did not make');
+  assert.ok(html.includes(`<button disabled="">${shared.questionChoices['question-answers']}</button>`));
+});
 
 test('a question\'s send and decline buttons forward their closed choice beside the unchanged answer; other kinds forward none',async()=>{
   const q=await mounted(question());
