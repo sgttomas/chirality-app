@@ -3692,10 +3692,9 @@ div.woven-chat-section-heading--folder:hover { background:transparent; }
 .chat-composer-line > button.chat-workflow-button:hover { color:var(--ink); }
 .chat-composer-line > button[type="submit"].v4-send-run { width:auto; height:30px; padding:0 14px 0 12px; border-radius:999px; display:inline-flex; align-items:center; gap:7px; font-weight:600; font-size:12.5px; white-space:nowrap; }
 .v4-mark { display:inline-block; width:7px; height:7px; transform:rotate(45deg); border:1.5px solid currentColor; border-radius:1px; flex:none; }
-/* v4: text the App did not write, drawn plain where it stands (WorkflowPick.tsx Supplied): a workflow's title,
-   description or name, a tool's or input's name, a host's reason. AgentText's named group says whose text it is to
-   assistive technology and its marks still show control and direction characters; its dashed box and visible label are
-   not drawn, so a card's title reads as 3.0.1's plain title. */
+/* v4: text the App did not write, drawn where it stands (WorkflowPick.tsx Supplied): a workflow's title, description
+   or name, a tool's or input's name, a host's reason. AgentText's named group says whose text it is to assistive
+   technology and its marks still show control and direction characters; a title, description or reason keeps its
+   visible label, which says whose it is; the dashed box is not drawn. */
 .v4-supplied > .agent-text { border:0 !important; background:none !important; padding:0 !important; color:inherit !important; }
-.v4-supplied > .agent-text > .agent-text-label { display:none; }
 .v4-supplied > .agent-text > .agent-text-value { font-family:inherit !important; white-space:normal !important; }

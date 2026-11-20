@@ -49,7 +49,7 @@ import { FirstUseSetup } from "./FirstUse";
 import { AccountStatus, DIDNT_SAY, accountReadError, accountReadRef, accountReading, reportedPlan, signInCompletion, type ReadAccountStatus } from "./AccountStatus";
 import { RunWorkflowGuide, registeredRevisionAnchor, runEvidenceAnchor } from "./RunJourney";
 import { WorkflowLibrary } from "./WorkflowLibrary";
-import { PICK_STEPS, PartsLine, PickChip, Supplied, chosenNotStarted, conversationRuns, pickHold, pickLimit, pickMemory, pickScope, pickedSelection, reviewKey, runPickedWorkflow, type Part, type PickRunOutcome, type WorkflowPick } from "./WorkflowPick";
+import { PICK_STEPS, PartsLine, PickChip, Supplied, chosenNotStarted, conversationRuns, pickLimit, pickMemory, pickScope, pickedSelection, reviewKey, runHold, runPickedWorkflow, type Part, type PickMemory, type PickRunOutcome, type PressRevisions, type WorkflowPick } from "./WorkflowPick";
 import { LevelChoiceShare, PermissionLevel, PermissionLevelActions, PermissionLevelAsk, PermissionLevelSummary, levelInForce, levelOwner } from "./PermissionLevel";
 import { MakeWorkflowGuide } from "./MakeJourney";
 import { acknowledgeBringBackDoubt, beginBringBack, bringBackRefusal, doubtDestination, endBringBack, noteBringBackDoubt, resetBringBackDoubts, sendKey, useBringBackDoubts, type BringBackDoubt } from "./bringBackDoubts";
@@ -173,14 +173,19 @@ export type StartSettings = { role: string; model: string; blocked: string; role
 // (lib.rs start_conversation) returns every error raised before it sets dispatch_invoked as this reason, alone when it
 // carries a reading sentence (readingRefusal's) and otherwise followed by "; role supply observation: …"; an error raised
 // after dispatch carries the same suffix, so the suffix marks nothing and the renderer can tell a refusal only by its
-// sentence. Each entry is one literal sentence the host returns, with the host file and function it is written in;
-// thread-start-refusals.test.mjs reads the host source for each: the sentence is in that function and nowhere else in
-// the host, the function runs only before dispatch, and every literal refusal those functions can return is listed
-// here. A changed sentence fails that test. A refusal whose words the host composes at run time (a configuration or
-// file reading, the role composition, the provider reading), or whose sentence the host also writes in a function that
-// is not listed (start_params' "not started — no model selected", endpoint_checkpoint's "Endpoint controller busy"),
-// is not listed: it reads as a start not confirmed.
-export const START_REFUSED_BEFORE_DISPATCH: readonly { sentence: string; at: string }[] = [
+// sentence. Each entry is one sentence the host returns, with the host file and function that returns it (and, for a
+// sentence the host keeps as a constant, the constant's name). This list is not proved complete: a refusal it misses
+// reads as a start not confirmed, which pauses the new chat and sends nothing. thread-start-refusals.test.mjs reads the
+// host source and checks only this: each sentence is written in its function (or in its constant, which the function
+// returns); it is written nowhere else in the host, or, where the host also writes it in other functions (shared), none
+// of those is reached from the start after dispatch; each function is reached before dispatch and not after; and the
+// literal refusals written in the listed functions, and in thread_start's own code before dispatch, are all listed. A
+// refusal whose words the host composes at run time (a configuration or file reading, the role composition, the provider
+// reading), one a helper not listed returns, or start_params' "not started — no model selected" (also written after
+// dispatch), is not listed.
+export const START_REFUSED_BEFORE_DISPATCH: readonly { sentence: string; at: string; constant?: string; shared?: boolean }[] = [
+  { sentence: "Endpoint controller busy", at: "lib.rs endpoint_checkpoint", shared: true },
+  { sentence: "This version of the App does not offer a local model server or a local provider. Use your ChatGPT account: sign in under Connection and access.", at: "lib.rs local_route_refused", constant: "LOCAL_ROUTE_NOT_OFFERED" },
   { sentence: "The selected Codex home changed since you chose it (a different or replaced source); nothing started. Read models again or choose again", at: "runtime_session.rs check_start_source" },
   { sentence: "The selected Codex home is not running that source now (closed or not ready); nothing started", at: "runtime_session.rs check_start_source" },
   { sentence: "The start names no complete Codex home source (full generation required); nothing started", at: "runtime_session.rs start_source" },
@@ -212,7 +217,7 @@ export const startRefusedBeforeDispatch = (error: unknown): boolean => {
   return START_REFUSED_BEFORE_DISPATCH.some(({ sentence }) => message.startsWith(sentence) && ["", ";", ".", " "].includes(message.charAt(sentence.length)));
 };
 
-export function ConversationPanel({ reportChooser, localRoute = null, focusComposer, startAct, composerOffer, host, threadKey, setThreadKey, answer, readRequest, replyObservations, runAct, trialRunAct, send, observeOrdinaryView, steer, submitAttachments, observeAttachmentView, interrupt, checkPlanMode, codexBusy, forkConversation, handoffSend, handoffRead, activityNavigationRef, activityLink, preparedReveal, toolsHost = null, showTools, before, attachments, actionOutcome, startNew, pick = null, setPick, clearPick, pickDropped = false, showWorkflows, readStatus, latest }: { /** Receives the view's own choice of a conversation while the view takes a choice, else null. */
+export function ConversationPanel({ reportChooser, localRoute = null, focusComposer, startAct, composerOffer, host, threadKey, setThreadKey, answer, readRequest, replyObservations, runAct, trialRunAct, send, observeOrdinaryView, steer, submitAttachments, observeAttachmentView, interrupt, checkPlanMode, codexBusy, forkConversation, handoffSend, handoffRead, activityNavigationRef, activityLink, preparedReveal, toolsHost = null, showTools, before, attachments, actionOutcome, startNew, pick = null, setPick, clearPick, pickDropped = false, showWorkflows, readStatus, latest, runMemory }: { /** Receives the view's own choice of a conversation while the view takes a choice, else null. */
   reportChooser?: (choose: ((key: string) => void) | null) => void; localRoute?: LocalView | null; focusComposer?: number; startAct?: RunAct; composerOffer?: ComposerOffer | null; preparedReveal?: PreparedComposerReveal | null; activityNavigationRef?: Ref<NativeActivityHandle>; activityLink?: RequestActivityLink; forkConversation?: (generation: Json, sourceThread: string) => Promise<void>; handoffSend?: (id: string, text: string) => Promise<HandoffSendOutcome>; handoffRead?: (id: string) => Promise<HandoffSendOutcome>; codexBusy: boolean; host: Json; threadKey: string; setThreadKey: (key: string) => void; trialRunAct?: RunAct; answer: RequestAnswer; readRequest?: ReadRequestCustody; replyObservations?: Record<string, RequestReplyObservation>; runAct: RunAct; checkPlanMode: (generation: Json) => Promise<void>; submitAttachments: (generation: Json, thread: string, expected: string | null, text: string, owner: string, revision: number, refs: string[]) => Promise<Json>; observeAttachmentView?: (request: AttachmentRequest) => Promise<void>; send: (generation: Json, thread: string, text: string, mode?: "plan" | "default", model?: string, effort?: string) => Promise<Json>; observeOrdinaryView?: (request: OrdinaryTextRequest, isCurrent: () => boolean) => Promise<void>; steer: (generation: Json, thread: string, expected: string, text: string) => Promise<boolean | void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<boolean | void>;
   /** The right panel's "Conversation tools" element, where the conversation's other tools are drawn; without it they are drawn after the transcript. */
   toolsHost?: HTMLElement | null;
@@ -237,8 +242,11 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
   /** Reads host_status and applies it, resolving to the latest status the App has accepted (this read's, or a newer one's). */
   readStatus?: () => Promise<Json>;
   /** Now, without waiting for the view to draw: the latest status the App has accepted, the key of the conversation the
-   * person has chosen, and the workflow picked. A press checks them after every step (WorkflowPick.tsx). */
-  latest?: () => { host: Json; threadKey: string; pick: WorkflowPick | null } }) {
+   * person has chosen, the workflow picked, and the person's navigation and home revisions (a change of home pending
+   * included). A press checks them after every step (WorkflowPick.tsx). */
+  latest?: () => { host: Json; threadKey: string; pick: WorkflowPick | null; revisions?: PressRevisions };
+  /** The App's one hold per conversation, shared with the Run guide (RunJourney.tsx runHold); without it, the panel's own. */
+  runMemory?: PickMemory }) {
   const [turnId, setTurnId] = useState<string>("");
   const [offerBusy, setOfferBusy] = useState(false);
   const [text, setText] = useState<string>("");
@@ -645,12 +653,18 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
   // The last press's outcome, for the conversation it concerns ("" for a new chat that was not started).
   const [pickOutcomeHeld, setPickOutcome] = useState<{ owner: string; kind: "alert" | "status"; parts: readonly Part[] } | null>(null);
   const pickOutcome = pickOutcomeHeld && pickOutcomeHeld.owner === (selected ? threadKey : "") ? pickOutcomeHeld : null;
-  // The person's acknowledgement of a hold (the guide's starts of unknown outcome and this composer's own doubts, by
-  // pickHold's key): a later hold starts unacknowledged.
-  const [checkedRun, setCheckedRun] = useState<string | null>(null);
-  // What the composer keeps between presses for this App session: its preparations, its sends, and the commands whose
-  // outcome it has not established (WorkflowPick.tsx PickMemory).
-  const pickKept = useRef(pickMemory());
+  // What the App keeps between presses for this App session, shared with the Run guide: the composer's preparations,
+  // the sends either made, the commands whose outcome is not established, and the person's acknowledgement of each
+  // conversation's hold (RunJourney.tsx runHold), by its key: a later hold starts unacknowledged.
+  const ownMemory = useRef<PickMemory | null>(null);
+  const pickKept = { current: runMemory ?? (ownMemory.current ??= pickMemory()) };
+  const [, redrawHold] = useState(0);
+  const checkedRun = selected ? pickKept.current.acknowledged.get(selected.threadId) ?? null : null;
+  const setCheckedRun = (key: string | null) => {
+    if (!selected) return;
+    if (key) pickKept.current.acknowledged.set(selected.threadId, key); else pickKept.current.acknowledged.delete(selected.threadId);
+    pickKept.current.changed?.(); redrawHold(n => n + 1);
+  };
   // The draft as it is now, for a press that checks it after each step.
   const draftNow = useRef(text);
   draftNow.current = text;
@@ -658,10 +672,10 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
   useEffect(() => { if (pick || !pickDropped) setPickOutcome(null); }, [pick]); // eslint-disable-line react-hooks/exhaustive-deps
   const pickCurrent = !!pick && pick.scope === pickScope(host);
   // The note that a workflow is chosen and nothing run, only where the App establishes both (WorkflowPick.tsx chosenNotStarted).
-  const chosenUnstarted: string | null = selected ? chosenNotStarted(host, selected.threadId, pickKept.current.doubts.get(selected.threadId)?.kind === "send") : null;
+  const chosenUnstarted: string | null = selected ? chosenNotStarted(host, selected.threadId, !!runHold(host, selected.threadId, pickKept.current)?.sent) : null;
   const pickStop = pick && pickCurrent ? pickLimit(pick, host) : null;
   const pickRuns = pick && selected ? conversationRuns(host, selected.threadId) : null;
-  const hold = pick && selected ? pickHold(host, selected.threadId, pickKept.current) : null;
+  const hold = pick && selected ? runHold(host, selected.threadId, pickKept.current) : null;
   // A start that may have sent the workflow holds Start run until the person says they read the conversation; a step
   // whose outcome is not established is read again at the next press, which says when it can't establish it.
   const pickHeld = !!hold?.sent && checkedRun !== hold.key;
@@ -697,12 +711,12 @@ export function ConversationPanel({ reportChooser, localRoute = null, focusCompo
     let outcome: PickRunOutcome;
     try {
       outcome = await runPickedWorkflow({ pick: picked, text: draft, thread: selected?.threadId ?? null, threadKey: selected ? threadKey : "", host, shown: shownReview,
-        now: () => { const now = latest?.(); return { host: now?.host ?? host, thread: now ? now.threadKey : threadKeyNow.current, pick: now ? now.pick : picked, text: textRevision.current === revision ? draftNow.current : `${draftNow.current}\u0000` }; },
+        now: () => { const now = latest?.(); return { host: now?.host ?? host, thread: now ? now.threadKey : threadKeyNow.current, pick: now ? now.pick : picked, text: textRevision.current === revision ? draftNow.current : `${draftNow.current}\u0000`, revisions: now?.revisions ?? null }; },
         start: () => startNew ? startNew.start() : Promise.resolve(null),
         act: (command, args) => (startAct ?? runAct)(command, args),
         read: () => readStatus ? readStatus() : Promise.reject(Error("The App can't read its state here.")),
         step: words => setBusy(words), memory: pickKept.current, acknowledged: checkedRun });
-    } finally { turnActionPending.current = false; setBusy(""); }
+    } finally { turnActionPending.current = false; setBusy(""); pickKept.current.changed?.(); }
     if (outcome.state === "started") {
       if (textRevision.current === revision) setText(current => current === draft ? "" : current);
       clearPick?.(picked);
@@ -1529,7 +1543,7 @@ export function NewerRevisionNotice({ selection, busy, act }:{ selection: Json; 
       : ` ${String(newer.offered)}.`}</p>;
 }
 
-export function WorkflowRootPanel({ viewStale = false, readFailure = null, data, host, act, observeView, openFileAct, fileActBusy = false, openPreparedMessage, operationalReference, offerComposer, showConversation, view, findInHistory, pick = null, setPick }:{ pick?: WorkflowPick | null; setPick?: (pick: WorkflowPick | null) => void; viewStale?: boolean; readFailure?: string | null; findInHistory?: (hint: string) => void; view?: string; showConversation?: (threadId: string, target?: string) => void; offerComposer?: (threadKey: string, text: string) => void; data: Json; host: Json; act: (command:string,args:Record<string,unknown>)=>Promise<Json>; observeView?: ()=>Promise<unknown>; openFileAct?: OpenArrivalFileAct; fileActBusy?: boolean; openPreparedMessage?: (item: PreparedMessage) => void; operationalReference?: Json }) {
+export function WorkflowRootPanel({ viewStale = false, readFailure = null, data, host, act, observeView, openFileAct, fileActBusy = false, openPreparedMessage, operationalReference, offerComposer, showConversation, view, findInHistory, pick = null, setPick, runMemory }:{ runMemory?: PickMemory; pick?: WorkflowPick | null; setPick?: (pick: WorkflowPick | null) => void; viewStale?: boolean; readFailure?: string | null; findInHistory?: (hint: string) => void; view?: string; showConversation?: (threadId: string, target?: string) => void; offerComposer?: (threadKey: string, text: string) => void; data: Json; host: Json; act: (command:string,args:Record<string,unknown>)=>Promise<Json>; observeView?: ()=>Promise<unknown>; openFileAct?: OpenArrivalFileAct; fileActBusy?: boolean; openPreparedMessage?: (item: PreparedMessage) => void; operationalReference?: Json }) {
   const [name,setName]=useState("");
   const [revision,setRevision]=useState("");
   const [draftsState,setDraftsState]=useState<DraftsState>(initialDraftsState);
@@ -1644,7 +1658,7 @@ export function WorkflowRootPanel({ viewStale = false, readFailure = null, data,
     {unsavedRecords.length>0&&<aside aria-label="Workflow records not saved">{unsavedRecords.map((record,index)=><p role="alert" key={`${record.reference}:${index}`}>{record.reference}: {record.limit}</p>)}</aside>}
     <div id="view-run" data-workspace-view="run" hidden={view !== undefined && view !== "run"}>
     <RunWorkflowGuide data={data} host={host} thread={thread} chooseThread={chooseWorkflowChat} act={action} busy={busy} text={text} setText={setText}
-      outcome={guideOutcome} showConversation={showConversation} viewStale={viewStale} readFailure={readFailure}/>
+      outcome={guideOutcome} showConversation={showConversation} viewStale={viewStale} readFailure={readFailure} memory={runMemory}/>
     </div>
     {/* The Workflows tab picks a workflow for the next message; the composer's Start run uses the pick. */}
     {view !== undefined && <div id="view-library" data-workspace-view="workflows" hidden={view !== "workflows"}>
@@ -2595,6 +2609,10 @@ export function App() {
   // sent or stored. It is dropped when the workflow source, the Codex generation or the home changes, since its name
   // may then no longer name the same workflow; the composer says so in one line.
   const [pick, setPickNow] = useState<WorkflowPick | null>(null);
+  // One hold per conversation, read by both ways of starting a run (the composer's Start run and the Run guide).
+  const runMemory = useRef<PickMemory>(pickMemory());
+  const [, setHoldRevision] = useState(0);
+  runMemory.current.changed = () => setHoldRevision(n => n + 1);
   // The pick as it is now, for a press that checks it after each step: set with the state, before the view draws it.
   const pickNow = useRef<WorkflowPick | null>(null);
   const setPickState = (next: WorkflowPick | null | ((current: WorkflowPick | null) => WorkflowPick | null)) => {
@@ -3552,7 +3570,8 @@ export function App() {
           strip={<ActivityStrip phase={statusCurrent ? turnPhase(shownRow, !!shownRow && waitingThreads.has(shownRow.threadId)) : null}/>}
           centre={<div id="view-conversation" data-workspace-view="conversation" className="v4-centre" onFocus={enterConversation} onPointerDown={enterConversation}>
             <ConversationPanel pick={pick} setPick={setPick} clearPick={done => setPickState(current => current === done ? null : current)} pickDropped={pickDropped} showWorkflows={() => showView("workflows")}
-              readStatus={async () => { const read = await readHost(invoke<Json>("host_status")); applyHost(read); return accepted(); }} latest={() => ({ host: accepted() ?? currentHost.current, threadKey: threadKeyNow.current, pick: pickNow.current })} toolsHost={toolsHost} showTools={showToolsTarget} before={centreNotices} attachments={attachmentPanel} actionOutcome={actionOutcome} startNew={startNew} reportChooser={choose => setConversationChooser({ choose })} localRoute={fixedLocal} focusComposer={conversationReveal?.target === "ordinary-composer-text" ? conversationReveal.sequence : undefined} composerOffer={composerOffer} preparedReveal={preparedReveal} activityNavigationRef={activityNavigationRef} activityLink={activityLink} forkConversation={forkConversation} handoffSend={(id, text) => handoffAction("continue_as_send", { id, text })} handoffRead={id => handoffAction("continue_as_send_read", { id })} codexBusy={processBusy} host={host} threadKey={threadKey} setThreadKey={setThreadKey} answer={answerRequest} readRequest={readRequestCustody} replyObservations={replyObservations} runAct={runAct} trialRunAct={trialRunAct} startAct={startRunAct} send={ordinarySend} observeOrdinaryView={observeOrdinaryView} checkPlanMode={async (generation) => {
+              readStatus={async () => { const read = await readHost(invoke<Json>("host_status")); applyHost(read); return accepted(); }} latest={() => ({ host: accepted() ?? currentHost.current, threadKey: threadKeyNow.current, pick: pickNow.current,
+                revisions: { navigation: threadChoiceRevision.current, home: chooserHome.current.epoch, homePending: homePendingRef.current } })} runMemory={runMemory.current} toolsHost={toolsHost} showTools={showToolsTarget} before={centreNotices} attachments={attachmentPanel} actionOutcome={actionOutcome} startNew={startNew} reportChooser={choose => setConversationChooser({ choose })} localRoute={fixedLocal} focusComposer={conversationReveal?.target === "ordinary-composer-text" ? conversationReveal.sequence : undefined} composerOffer={composerOffer} preparedReveal={preparedReveal} activityNavigationRef={activityNavigationRef} activityLink={activityLink} forkConversation={forkConversation} handoffSend={(id, text) => handoffAction("continue_as_send", { id, text })} handoffRead={id => handoffAction("continue_as_send_read", { id })} codexBusy={processBusy} host={host} threadKey={threadKey} setThreadKey={setThreadKey} answer={answerRequest} readRequest={readRequestCustody} replyObservations={replyObservations} runAct={runAct} trialRunAct={trialRunAct} startAct={startRunAct} send={ordinarySend} observeOrdinaryView={observeOrdinaryView} checkPlanMode={async (generation) => {
           // The check's own failure stands, with the fixed line after it when the refresh failed too.
           // A completed check whose refresh fails rejects with the fixed line alone: its result is
           // visible only through the refreshed status, and that line says the status was not read.
@@ -3589,7 +3608,7 @@ export function App() {
         </div>
         <div id="view-workflows" className="workspace-view workspace-view-narrow" hidden={rightTab !== "run" && rightTab !== "make" && rightTab !== "workflows"}>
           <div className="workspace-primary-column" aria-label="Workflow studio">
-            <WorkflowRootPanel pick={pick} setPick={setPick} viewStale={shownBeforePress(hostReads)} readFailure={hostReads.failure} findInHistory={findInHistory} view={rightTab} showConversation={showConversation} offerComposer={offerComposer} data={host?.workflowRoot} host={host} operationalReference={threadKey ? conversationFromKey(threadKey) ?? undefined : null} openFileAct={openArrivalFileAct} fileActBusy={fileActBusy} act={(command, args) => { const refusal = bringBackRefusal(command, args, currentHost.current); return refusal ? Promise.reject(Error(refusal)) : invoke<Json>(command, args); }} observeView={refresh} openPreparedMessage={item => { void openPreparedMessage(item); }}/>
+            <WorkflowRootPanel pick={pick} setPick={setPick} runMemory={runMemory.current} viewStale={shownBeforePress(hostReads)} readFailure={hostReads.failure} findInHistory={findInHistory} view={rightTab} showConversation={showConversation} offerComposer={offerComposer} data={host?.workflowRoot} host={host} operationalReference={threadKey ? conversationFromKey(threadKey) ?? undefined : null} openFileAct={openArrivalFileAct} fileActBusy={fileActBusy} act={(command, args) => { const refusal = bringBackRefusal(command, args, currentHost.current); return refusal ? Promise.reject(Error(refusal)) : invoke<Json>(command, args); }} observeView={refresh} openPreparedMessage={item => { void openPreparedMessage(item); }}/>
         {preparedNotice && <p role="status">{preparedNotice}</p>}
           </div>
         </div>

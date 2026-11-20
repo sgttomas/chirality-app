@@ -136,7 +136,7 @@ export function WorkflowLibrary({ data, host, busy, pick = null, setPick, viewSt
 
     <section className="method-library-group" aria-labelledby="method-group-included">
       <h3 id="method-group-included">Included with Chirality</h3>
-      {catalog?.limit && <p role="note">The included workflows can't be read: {text(catalog.limit)}</p>}
+      {catalog?.limit && <p role="note">The included workflows can't be read: <Supplied value={text(catalog.limit)} of="reason"/></p>}
       {sections.map((section, index) => <details key={section.key} className="method-library-subgroup"
         open={searching || index === 0 || section.entries.some(entry => isIncludedPick(pick, entry)) || section.entries.some(holds) ? true : undefined}>
         <summary><h4>{section.label}</h4><span className="method-library-count">{numberWords(section.entries.length)}</span></summary>
@@ -147,8 +147,8 @@ export function WorkflowLibrary({ data, host, busy, pick = null, setPick, viewSt
     <section className="method-library-group" aria-labelledby="method-group-project">
       <h3 id="method-group-project">This project</h3>
       {projectNote}
-      {active && !Array.isArray(active.registered) && active.registered?.limit && <p role="note">This library's list of approved workflows can't be read: {text(active.registered.limit)}</p>}
-      {active && listing?.libraryRef === active.reference && listing?.state === "unavailable" && <p role="note">The App couldn't look in this library's folder for other workflows{list(listing.limits).length ? `: ${list(listing.limits).map(text).join("; ")}` : "."}</p>}
+      {active && !Array.isArray(active.registered) && active.registered?.limit && <p role="note">This library's list of approved workflows can't be read: <Supplied value={text(active.registered.limit)} of="reason"/></p>}
+      {active && listing?.libraryRef === active.reference && listing?.state === "unavailable" && <p role="note">The App couldn't look in this library's folder for other workflows{list(listing.limits).length ? <>: <Supplied value={list(listing.limits).map(text).join("; ")} of="reason"/></> : "."}</p>}
       {pendingReview && <p role="note">A review is open. <a href="#workflow-reviews">Read it and confirm</a> to approve the workflow for use.</p>}
       {(shownRegistered.length > 0 || shownUnregistered.length > 0) && <ul className="method-library-list">
         {shownRegistered.map(registeredCard)}

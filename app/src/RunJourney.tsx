@@ -126,6 +126,65 @@ const sameWorkflowFamily = (recorded: Json, chosen: Json): boolean => {
 export type RunReading = { tone: "idle" | "working" | "waiting" | "failed" | "uncertain" | "ended" | "done"; title: string; detail: string };
 /** Only Codex's definite refusal establishes that the start did not happen. */
 export const startRefused = (run: Json) => starts(run?.status?.state, "native workflow-text turn/start refused by Codex");
+
+// ---- One hold per conversation, read by both ways of starting a run (this guide and the composer's Start run) ----
+
+/** A run row the host gave in full: its conversation, home, generation and lifecycle. A row with only a reference (the
+ * host's "original run operation pending", while another operation holds the run) establishes nothing about the run. */
+export const completeRun = (row: Json): boolean => !!row && typeof row.reference === "string" && typeof row.conversation === "string" && typeof row.home === "string"
+  && !!row.generation && typeof row.lifecycle?.state === "string";
+/** A command the composer issued whose outcome the App has not established: which command, for which conversation and
+ * workflow, what it was bound to, the runs the conversation had before it, and the host's reply where one came. */
+export type PickDoubt = { kind: "choose" | "prepare" | "send"; conversation: string; binding: string; command: string; key: string; reference?: string; before?: string[]; reply: string;
+  /** For a send: what its run was prepared for (WorkflowPick.tsx preparationKey), so a run the host later shows not sent may be sent again. */
+  prepared?: string };
+/** What the App keeps between presses for the App session, shared by the guide and the composer. */
+export type PickMemory = {
+  /** Runs the composer prepared and has not sent, by conversation, with what each was prepared for. */
+  prepared: Map<string, { reference: string; key: string }>;
+  /** Runs either way of starting asked the host to send, with their conversation: never asked again. */
+  attempted: Map<string, string>;
+  /** The composer's commands whose outcome is not established, by conversation. */
+  doubts: Map<string, PickDoubt>;
+  /** The hold (runHold's key) the person said they read, by conversation; a later hold starts unacknowledged. */
+  acknowledged: Map<string, string>;
+  /** Told when the person acknowledges or a send is attempted, so both ways of starting draw it. */
+  changed?: () => void;
+};
+export const pickMemory = (): PickMemory => ({ prepared: new Map(), attempted: new Map(), doubts: new Map(), acknowledged: new Map() });
+/** Whether a complete row of the run establishes what its send came to: sent (open, ended, or sent and awaiting its
+ * turn), or nothing sent (Codex's refusal, or the host's own "not sent" for that run). */
+const sendEstablished = (row: Json, conversation: string): boolean => completeRun(row) && row.conversation === conversation && (
+  starts(row.lifecycle.state, "open") || starts(row.lifecycle.state, "ended") || !!row.source && starts(row.lifecycle.state, "prepared")
+  || starts(row.lifecycle.state, "start not confirmed") && startRefused(row)
+  || !row.source && starts(row.lifecycle.state, "prepared") && row.status?.sent === false);
+/**
+ * What holds a new run in a conversation until the person says they read it, for the guide and the composer alike:
+ * a run of the conversation whose start is unknown (each one, not only the latest); a row the host gave only in part,
+ * which may be this conversation's (other than the composer's own prepared run that nothing sent); a run either way of
+ * starting sent here whose row does not establish what the send came to; and the composer's own doubt. `sent` when any
+ * of them may have sent the workflow; `key` is what the person's acknowledgement names; `items` what it covers.
+ */
+export function runHold(host: Json, thread: string, memory: PickMemory, root: Json = host?.workflowRoot): { key: string; sent: boolean; items: string[] } | null {
+  if (!thread) return null;
+  const rows = list(root?.runs);
+  const items = new Set<string>();
+  let sent = false;
+  const add = (item: string, maySend: boolean) => { items.add(item); sent ||= maySend; };
+  const own = memory.prepared.get(thread)?.reference;
+  for (const row of rows) {
+    if (!completeRun(row)) { if (row?.reference !== own || memory.attempted.has(text(row?.reference))) add(`partial:${text(row?.reference)}`, true); continue; }
+    if (row.conversation === thread && row.home === host?.generation?.home && same(row.generation, host?.generation)
+      && starts(row.lifecycle.state, "start not confirmed") && !startRefused(row)) add(`start:${text(row.reference)}`, true);
+  }
+  for (const [reference, conversation] of memory.attempted)
+    if (conversation === thread && !sendEstablished(rows.find((row: Json) => row?.reference === reference), thread)) add(`sent:${reference}`, true);
+  const doubt = memory.doubts.get(thread);
+  if (doubt) add(`doubt:${doubt.key}`, doubt.kind === "send");
+  if (!items.size) return null;
+  const sorted = [...items].sort();
+  return { key: JSON.stringify(sorted), sent, items: sorted };
+}
 export function runReading(run: Json, host: Json): RunReading {
   const lifecycle = text(run?.lifecycle?.state);
   const status = run?.status ?? {};
@@ -281,13 +340,19 @@ export function GuideWithheld({ guide, outcome, only, readFailure, children }: {
 }
 const RUN_COMMANDS = ["workflow_open_project_library", "workflow_library_entries_refresh", "workflow_review_library_entries", "workflow_select_listed", "workflow_select_production_bundle", "workflow_follow_newer_revision", "workflow_prepare_run", "workflow_send_run", "workflow_end_run"];
 
-export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, text: personText, setText, outcome, showConversation, viewStale = false, readFailure = null }: {
+export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, text: personText, setText, outcome, showConversation, viewStale = false, readFailure = null, memory: shared }: {
   data: Json; host: Json; thread: string; chooseThread: (thread: string) => void; act: Act; busy: boolean; viewStale?: boolean; readFailure?: string | null;
   text: string; setText: (text: string) => void; outcome?: GuideOutcome | null;
   showConversation?: (threadId: string, target?: string) => void;
+  /** The App's one hold per conversation, shared with the composer's Start run (runHold); without it, the guide's own. */
+  memory?: PickMemory;
 }) {
-  // The unknown-start acknowledgement names one run; a later run starts unacknowledged.
-  const [checkedRun, setCheckedRun] = useState<string | null>(null);
+  // The hold's acknowledgement names what it covers; a later hold starts unacknowledged. Kept with the composer's.
+  const ownMemory = useRef<PickMemory | null>(null);
+  const memory = shared ?? (ownMemory.current ??= pickMemory());
+  const [, redraw] = useState(0);
+  const checkedRun = thread ? memory.acknowledged.get(thread) ?? null : null;
+  const setCheckedRun = (key: string | null) => { if (!thread) return; if (key) memory.acknowledged.set(thread, key); else memory.acknowledged.delete(thread); memory.changed?.(); redraw(n => n + 1); };
   // Workflow texts the person asked to read. Held here, above the withheld
   // view, so a text is still shown when the steps come back after the status
   // read that follows the press.
@@ -333,9 +398,11 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
   const reading = latest ? runReading(latest, host) : null;
   const turnNotices = latest ? runTurnNotices(latest, host) : [];
   // An open run, or one sent and not yet opened, is ended or followed from the studio, not re-prepared here.
-  const unresolved = (latest ? [latest] : runs).filter((run: Json) => starts(run.lifecycle?.state, "start not confirmed") && !startRefused(run));
-  const unresolvedStart = unresolved.length > 0;
-  const holdKey = unresolved.map((run: Json) => text(run.reference)).join("\n");
+  const unresolvedStart = (latest ? [latest] : runs).some((run: Json) => starts(run.lifecycle?.state, "start not confirmed") && !startRefused(run));
+  // The conversation's one hold, shared with the composer's Start run: Prepare and Start wait for the person's word.
+  const hold = runHold(host, thread, memory, data);
+  const holdKey = hold?.key ?? "";
+  const held = !!hold && checkedRun !== holdKey;
   const finishedOffer = latest && starts(latest.lifecycle?.state, "open") ? list(data?.offers).find((offer: Json) => offer?.finished?.run === latest.reference) : undefined;
   const inProgress = (latest ? [latest] : runs).some((run: Json) => starts(run.lifecycle?.state, "open") || (!!run.source && starts(run.lifecycle?.state, "prepared")));
   const declaration = list(latest?.compatibility).find((c: Json) => c?.preparation?.declaration)?.preparation?.declaration ?? chosen?.declaration;
@@ -384,8 +451,10 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
     : !thread ? conversations.length ? "Choose the conversation that will run the workflow." : "Start a conversation first, then choose it here."
     : !chosen ? registered.some((row: Json) => row.selectable === true) || bundled.some((entry: Json) => entry.runnable === true) ? "Choose a workflow to use." : "No workflow here is ready to use yet. Review one below, or open another library in the workflow studio."
     : !chosenReady ? `${text(chosen.identity?.name)} can't run: ${text(chosenLimit)}`
-    : unresolvedStart && checkedRun !== holdKey ? (latest ? "Read the conversation: the last start's outcome is unknown and it may have run."
-      : "Read the conversation: a start here has an unknown outcome and may have run; the App can't tell which run is latest.")
+    : held ? (unresolvedStart ? latest ? "Read the conversation: the last start's outcome is unknown and it may have run."
+      : "Read the conversation: a start here has an unknown outcome and may have run; the App can't tell which run is latest."
+      : hold?.sent ? "Read the conversation: a run started here may have run, and the App couldn't establish its outcome."
+      : "An earlier step of Start run here has an outcome the App couldn't establish. Read the conversation, then confirm below to go on.")
     : orderUnknown && inProgress ? "A run in this conversation is still open, and the App can't tell which run is latest; follow or end it from Results or the workflow studio before preparing another."
     : !latest || starts(latest.lifecycle?.state, "ended") || starts(latest.lifecycle?.state, "start not confirmed") ? "Describe what the workflow should work on, then prepare the run."
     : prepared ? prepared.status?.sent === false && prepared.status?.limit ? "The run didn't start. Progress says why and what to do." : "Check your inputs, then start the run." : orderUnknown ? "This conversation has several runs whose order the App can't tell; see each under Results." : reading?.title ?? "";
@@ -454,13 +523,14 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
         <p><small>Name any files in the project folder that it should use. This text goes with the workflow's own instructions in one starting message.</small></p>
       </li>
       <li aria-labelledby="run-start-heading"><h3 id="run-start-heading">Start</h3>
-        {!prepared ? <>{unresolvedStart && <p><label><input type="checkbox" checked={checkedRun === holdKey} disabled={!canAct} onChange={event => setCheckedRun(event.target.checked ? holdKey : null)}/> I read the conversation and want to prepare a new run anyway</label>
-            <small>The earlier start may have run; a new run sends the workflow again.</small></p>}
-          <button className="setup-primary" disabled={!canAct || !ready || !thread || !chosenReady || inProgress || (unresolvedStart && checkedRun !== holdKey)}
-          onClick={() => { if (!unresolvedStart || checkedRun === holdKey) performThen("workflow_prepare_run", { generation: host.generation, threadId: thread, personText }, "start"); }}>Prepare this run</button></>
+        {hold && <p><label><input type="checkbox" checked={checkedRun === holdKey} disabled={!canAct} onChange={event => setCheckedRun(event.target.checked ? holdKey : null)}/> {prepared ? "I read the conversation and want to start this run anyway" : "I read the conversation and want to prepare a new run anyway"}</label>
+            <small>{hold.sent ? "The earlier start may have run; a new run sends the workflow again." : "The App couldn't establish what an earlier step of Start run did here."}</small></p>}
+        {!prepared ? <><button className="setup-primary" disabled={!canAct || !ready || !thread || !chosenReady || inProgress || held}
+          onClick={() => { if (!held) performThen("workflow_prepare_run", { generation: host.generation, threadId: thread, personText }, "start"); }}>Prepare this run</button></>
           : <><p>Prepared {text(prepared.workflow?.name)} with your text. Nothing has been sent yet.</p>
-            <button ref={startButton} className="setup-primary" disabled={!canAct || !ready || !!prepared.publication?.admissionRefusal} onClick={() => performThen("workflow_send_run", { runRef: prepared.reference }, "progress")}>Start the run</button>
-            {prepared.status?.sent === false && prepared.status?.limit && <>{" "}<button disabled={!canAct || !ready || !thread || !chosenReady} onClick={() => performThen("workflow_prepare_run", { generation: host.generation, threadId: thread, personText }, "start")}>Prepare this run again</button></>}</>}
+            <button ref={startButton} className="setup-primary" disabled={!canAct || !ready || !!prepared.publication?.admissionRefusal || held}
+              onClick={() => { if (held || !canAct) return; memory.attempted.set(text(prepared.reference), thread); memory.changed?.(); performThen("workflow_send_run", { runRef: prepared.reference }, "progress"); }}>Start the run</button>
+            {prepared.status?.sent === false && prepared.status?.limit && <>{" "}<button disabled={!canAct || !ready || !thread || !chosenReady || held} onClick={() => { if (!held) performThen("workflow_prepare_run", { generation: host.generation, threadId: thread, personText }, "start"); }}>Prepare this run again</button></>}</>}
         <p><small>Preparing composes the starting message from the chosen revision; nothing is sent. Starting records the run and sends that message once — if recording fails, nothing is sent.</small></p>
       </li>
       <li aria-labelledby="run-progress-heading"><h3 id="run-progress-heading">Progress</h3>

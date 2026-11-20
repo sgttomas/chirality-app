@@ -5,10 +5,15 @@ import {installMiniDom} from './support/mini-dom.mjs';
 import {loadSrc} from './support/load-src.mjs';
 
 // The renderer's list of the host's refusals of a start made before anything is dispatched (App.tsx
-// START_REFUSED_BEFORE_DISPATCH), read against the host's own source: a refusal there pauses nothing, so each sentence
-// must be one the host writes in a function that runs only before thread_start dispatches, and every literal refusal
-// those functions can return must be listed. A changed or moved sentence, a new literal refusal, or a listed function
-// called after dispatch fails here. Source text only: nothing is built or run.
+// START_REFUSED_BEFORE_DISPATCH), read against the host's own source. A listed refusal pauses nothing, so this checks
+// that each listed sentence is one the host returns only before thread_start dispatches: it is written in its listed
+// function (or in the constant that function returns); it is written nowhere else in the host product source, or, for a
+// sentence marked shared (and a constant's other uses), no function that writes it is reached from the start after
+// dispatch; and each listed function is reached before dispatch and not after. It also checks that the literal refusals
+// written in the listed functions, and in thread_start's own code before dispatch, are all listed. It does not establish
+// that the list is complete: a refusal returned by a helper not listed, a constant or formatted refusal outside the listed
+// functions, or a refusal added to the outer start_conversation is not seen here, and reads in the App as a start not
+// confirmed (paused, nothing sent). Source text only: nothing is built or run.
 installMiniDom();
 const {START_REFUSED_BEFORE_DISPATCH, startRefusedBeforeDispatch} = loadSrc('App');
 const HOST = new URL('../src-tauri/src/', import.meta.url);
@@ -59,17 +64,43 @@ const preDispatch = () => { const inner = body('lib.rs', 'start_conversation_inn
 const where = START_REFUSED_BEFORE_DISPATCH.map(row => ({...row, file: row.at.split(' ')[0], fn: row.at.split(' ')[1]}));
 const functions = [...new Map(where.map(row => [row.at, row])).values()];
 
-test('each listed sentence is written in its host function and nowhere else in the host product source', () => {
+/** The name of the function whose body holds an offset in a file's product source, or null. */
+const enclosing = (file, at) => {
+  const text = productSource(file);
+  let found = null;
+  for (const m of text.matchAll(/\bfn\s+(\w+)\s*[<(]/g)) {
+    if (m.index > at) break;
+    const start = text.indexOf('{', text.indexOf('(', m.index));
+    if (start < 0 || start > at) continue;
+    let end; try { end = blockEnd(text, start); } catch { continue; }
+    if (at <= end) found = m[1];
+  }
+  return found;
+};
+const calls = (text, fn) => new RegExp(`(?:\\.|::|\\b)${fn}\\s*\\(`).test(text);
+/** Whether a function is reached from the start after dispatch: called by the inner start after dispatch, or by what it calls to dispatch and finish. */
+const reachedAfterDispatch = fn => calls(preDispatch().after, fn)
+  || [['access_provider.rs', 'thread_start_with_role_dispatch'], ['runtime_session.rs', 'finalize_start_attempt']].some(([file, name]) => calls(body(file, name).text, fn));
+
+test('each listed sentence is written in its host function (or its constant); elsewhere only where marked shared, and never in a function reached after dispatch', () => {
   for (const row of where) {
+    const quoted = `"${row.sentence.replace(/"/g, '\\"')}"`;
     const piece = row.fn === 'start_conversation_inner' ? preDispatch().before : body(row.file, row.fn).text;
-    assert.ok(piece.includes(`"${row.sentence.replace(/"/g, '\\"')}"`), `${row.at} writes "${row.sentence}"`);
+    if (row.constant) {
+      assert.ok(productSource(row.file).includes(`const ${row.constant}: &str = ${quoted};`), `${row.file} defines ${row.constant} as "${row.sentence}"`);
+      assert.ok(calls(piece, 'Err') && piece.includes(row.constant), `${row.at} returns ${row.constant}`);
+    } else assert.ok(piece.includes(quoted), `${row.at} writes "${row.sentence}"`);
     for (const file of productFiles) {
       const text = productSource(file);
-      let at = text.indexOf(`"${row.sentence.replace(/"/g, '\\"')}"`);
-      while (at >= 0) {
-        const inListed = where.filter(w => w.sentence === row.sentence && w.file === file).some(w => { const b = body(file, w.fn); return at >= b.offset && at < b.offset + b.text.length; });
-        assert.ok(inListed, `"${row.sentence}" also appears in ${file} at ${at}, outside the listed functions`);
-        at = text.indexOf(`"${row.sentence}"`, at + 1);
+      for (const needle of [quoted, ...(row.constant ? [row.constant] : [])]) {
+        let at = text.indexOf(needle);
+        while (at >= 0) {
+          const inListed = where.filter(w => w.sentence === row.sentence && w.file === file).some(w => { const b = body(file, w.fn); return at >= b.offset && at < b.offset + b.text.length; });
+          const fn = enclosing(file, at);
+          if (!inListed && fn !== null && (row.shared || row.constant)) assert.ok(!reachedAfterDispatch(fn), `"${row.sentence}" is also written in ${file} ${fn}, which is reached after dispatch`);
+          else if (!inListed) assert.ok(row.constant && fn === null, `"${row.sentence}" also appears in ${file} at ${at}, outside the listed functions`);
+          at = text.indexOf(needle, at + 1);
+        }
       }
     }
   }
@@ -92,9 +123,8 @@ test('the listed functions run only before thread_start dispatches', () => {
   const start = body('lib.rs', 'start_conversation').text;
   const {before, after} = preDispatch();
   const outer = start.slice(0, start.indexOf('start_conversation_inner('));
-  const calls = (text, fn) => new RegExp(`(?:\\.|::|\\b)${fn}\\s*\\(`).test(text);
   // Reached from start_conversation before it calls the inner start, or from the inner start before dispatch.
-  const reached = {check_start_source: 'start_source', entry: 'entry', start_source: 'start_source', home_class: 'home_class', endpoint_checkpoint: 'invalidate_endpoint_edits',
+  const reached = {check_start_source: 'start_source', entry: 'entry', start_source: 'start_source', home_class: 'home_class', endpoint_checkpoint: 'invalidate_endpoint_edits', local_route_refused: 'local_route_refused',
     new_explicit: 'new_explicit', choose_start_entry: 'choose_start_entry', choose: 'choose_start_entry', start_params: 'start_params', claim_start: 'claim_start'};
   for (const row of functions) {
     if (row.fn === 'start_conversation_inner') continue;
@@ -119,4 +149,10 @@ test('a listed refusal is a refusal as the host returns it, with its suffix; any
   assert.equal(startRefusedBeforeDispatch(Error('Native start remains "unknown" (write "written"); no automatic retry')), false);
   assert.equal(startRefusedBeforeDispatch(Error(`Native start dispatched; original role preparation failed: thread start in progress`)), false, 'the words after another sentence are not the refusal');
   assert.equal(startRefusedBeforeDispatch(Error('thread start in progressive')), false, 'a sentence is matched whole');
+  // The two the second review found returned before dispatch by helpers of the inner start: the endpoint controller's
+  // busy refusal and the fixed local-route refusal, each as the host returns it, are refusals.
+  const lib = productSource('lib.rs');
+  const local = /const LOCAL_ROUTE_NOT_OFFERED: &str = "((?:[^"\\]|\\.)*)";/.exec(lib)?.[1];
+  assert.ok(local, 'lib.rs defines the local-route refusal');
+  for (const sentence of ['Endpoint controller busy', local]) assert.equal(startRefusedBeforeDispatch(Error(`${sentence}${OBSERVATION}`)), true, sentence);
 });

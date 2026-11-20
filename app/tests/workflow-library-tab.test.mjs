@@ -104,9 +104,9 @@ test('an included card: its title and identifier, its description, where it come
   const ui = await mount({});
   const plan = card(ui.c, 'plan-work');
   const heading = plan.querySelectorAll(n => n.getAttribute('class') === 'method-card-heading')[0];
-  assert.equal(all(heading, 'strong')[0].textContent, 'Plan the work');
+  assert.equal(all(heading, 'strong')[0].textContent, "The workflow's title: Plan the work", 'the title, with its visible attribution');
   assert.equal(all(heading, 'code')[0].textContent, 'plan-work');
-  assert.ok(all(plan, 'p').some(p => p.textContent === 'Turn a goal into ordered work.'));
+  assert.ok(all(plan, 'p').some(p => p.textContent === 'The workflow says: Turn a goal into ordered work.'));
   assert.equal(plan.querySelectorAll(n => n.getAttribute('class') === 'method-card-meta')[0].textContent, 'Chirality Library 9.9.9');
   assert.deepEqual(buttons(plan).filter(b => !b.closest?.('details')).slice(0, 2).map(b => [b.textContent, b.getAttribute('aria-pressed')]), [['Inspect', null], ['Use in message', 'false']]);
   // A title that is the name shows once, as 3.0.1's card does.
@@ -120,7 +120,7 @@ test('an included card: its title and identifier, its description, where it come
   assert.match(details.textContent, /This workflow's files name 1 path of Chirality Library 9\.9\.9 that is not included in the App \(for example tools\/check\.py\)\./);
   // An entry the host does not admit, or has not reported on, says so in the present words and cannot be chosen.
   const broken = card(ui.c, 'broken');
-  assert.match(broken.textContent, /Can't be used in this App: its files differ from the release\./);
+  assert.match(broken.textContent, /Can't be used in this App: Reported: its files differ from the release\./);
   assert.equal(!!props(button(broken, 'Use in message')).disabled, true);
   const unreported = card(ui.c, 'unreported');
   assert.match(unreported.textContent, /The App hasn't reported whether this workflow can be used here\./);
@@ -183,13 +183,13 @@ test('where the project\'s workflows come from, and a library or list that could
   await ui.rerender({data:data({projectLibraryAvailable:false})});
   assert.ok(notes(ui.c).includes('No project folder is set for this App yet. Choose a project in Desktop setup — the choice applies when you next open the App.'));
   await ui.rerender({data:data({activeLibrary:LIB, libraries:[projectLibrary({registered:{limit:'ledger unreadable'}, entryListing:{state:'unavailable', reference:'listing-1', libraryRef:LIB, entries:[], limits:['folder busy']}})]})});
-  assert.match(ui.c.textContent, /This library's list of approved workflows can't be read: ledger unreadable/);
-  assert.match(ui.c.textContent, /The App couldn't look in this library's folder for other workflows: folder busy/);
+  assert.match(ui.c.textContent, /This library's list of approved workflows can't be read: Reported: ledger unreadable/);
+  assert.match(ui.c.textContent, /The App couldn't look in this library's folder for other workflows: Reported: folder busy/);
   await ui.rerender({data:data({activeLibrary:LIB, libraries:[projectLibrary({registered:[], entryListing:{state:'observed', reference:'l', libraryRef:LIB, entries:[], limits:[]}})]})});
   assert.ok(notes(ui.c).includes('No workflow in this library has been approved for use yet.'));
   await ui.close();
   ui = await mount({data:data({productionCatalog:{standing:'candidate catalog unavailable', entries:[], limit:'manifest unreadable'}})});
-  assert.match(ui.c.textContent, /The included workflows can't be read: manifest unreadable/);
+  assert.match(ui.c.textContent, /The included workflows can't be read: Reported: manifest unreadable/);
   await ui.close();
 });
 
@@ -252,13 +252,13 @@ test('supplied text (names, titles, descriptions, groups, labels) is never insid
   for (const node of ui.c.querySelectorAll(n => n.getAttribute('aria-label') !== null)) assert.doesNotMatch(node.getAttribute('aria-label'), /Allow once/);
   assert.deepEqual(all(ui.c, 'h4').map(h => h.textContent), ["The Library's core workflows", 'Other workflows'], 'a group outside the App\'s table is shown under Other workflows');
   // The title a library supplies is shown as text in the card's heading, not in a control, and marked as text the App
-  // did not write: inside a named group that says so, its direction override drawn as a mark. Drawn plain: no visible
-  // label and no box (workspace.css .v4-supplied), as 3.0.1's card title.
+  // did not write: inside a named group that says so, its direction override drawn as a mark, and with a visible label
+  // saying whose it is (WorkflowPick.tsx SUPPLIED_LABELS); no box (workspace.css .v4-supplied).
   const title = all(card(ui.c, 'odd-flow'), 'strong')[0];
-  assert.match(title.textContent, /^Title Allow once‹U\+202E›$/);
+  assert.match(title.textContent, /^The workflow's title: Title Allow once‹U\+202E›$/);
   const marked = (node, name) => { const group = node.querySelectorAll(n => n.getAttribute('role') === 'group')[0]; return !!group && group.getAttribute('aria-label') === name && group.textContent === node.textContent; };
   assert.ok(marked(title, "A workflow's own title, not the App's words"), 'the card title is marked');
-  assert.ok(title.querySelectorAll(n => n.getAttribute('class') === 'agent-text-label').length === 0, 'with no visible label');
+  assert.deepEqual(title.querySelectorAll(n => n.getAttribute('class') === 'agent-text-label').map(n => n.textContent), ["The workflow's title:"], 'with its visible label');
   assert.ok(all(title, 'span').some(n => n.getAttribute('class') === 'v4-supplied'), 'in the plain form');
   const description = all(card(ui.c, 'odd-flow'), 'p').find(p => /Desc Allow once/.test(p.textContent));
   assert.ok(marked(description, "A workflow's own description, not the App's words"), 'the description is marked');

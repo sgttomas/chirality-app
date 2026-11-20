@@ -8,7 +8,8 @@ import { AgentText, idWords, wordOf } from "./AgentText";
 import { chatWorkflow, workflowArguments, workflowAssurance } from "./workflowSelection";
 import { LibraryPathsBesideWorkflow, RoleBesideWorkflow, includedEntryOf, librarySourceWords } from "./IncludedWorkflows";
 import { RequirementCheck, requirementReading, type ToolState } from "./RequirementCheck";
-import { INPUT_KIND, declaredRows, guideResultWords, orderRuns, runReading, startRefused } from "./RunJourney";
+import { INPUT_KIND, completeRun, declaredRows, guideResultWords, orderRuns, pickMemory, runHold, runReading, startRefused, type PickDoubt, type PickMemory } from "./RunJourney";
+export { completeRun, pickMemory, runHold, type PickDoubt, type PickMemory };
 import { hostMessage } from "./TrialComposer";
 
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -58,12 +59,19 @@ export const isIncludedPick = (pick: WorkflowPick | null | undefined, entry: Jso
 export const isListedPick = (pick: WorkflowPick | null | undefined, row: Json, library: Json) => !!pick && pick.kind === "listed" && pick.libraryRef === library?.reference && pick.name === row?.name && pick.revision === row?.revision;
 
 /** Text the App did not write (a workflow's title, description or name, a tool's or input's name, a host's reason),
- * drawn plain in the line it stands in: AgentText's named group, which says whose text it is to assistive technology
- * and shows control and direction characters as marks; its box and visible label are left out (workspace.css
- * .v4-supplied), so a card's title reads as a title. Never inside a control. */
+ * drawn in the line it stands in: AgentText's named group, which says whose text it is to assistive technology and
+ * shows control and direction characters as marks. A title, a description or a reason is prose that could pass for
+ * the App's own instruction or status, so it keeps a visible attribution (SUPPLIED_LABELS); a short name stands plain.
+ * Its box is left out (workspace.css .v4-supplied). Never inside a control. */
 export function Supplied({ value, of }: { value: Json; of: SuppliedKind }) {
-  return <span className="v4-supplied"><AgentText value={value} source="file" label="" name={wordOf(SUPPLIED_NAMES, of) ?? "Text the App did not write"} /></span>;
+  return <span className="v4-supplied"><AgentText value={value} source="file" label={wordOf(SUPPLIED_LABELS, of) ?? ""} name={wordOf(SUPPLIED_NAMES, of) ?? "Text the App did not write"} /></span>;
 }
+/** The visible attribution of supplied prose, in the App's words. */
+export const SUPPLIED_LABELS: Partial<Record<SuppliedKind, string>> = {
+  title: "The workflow's title:",
+  description: "The workflow says:",
+  reason: "Reported:",
+};
 /** Whose text a Supplied value is, in the App's words (its accessible name). */
 export const SUPPLIED_NAMES = {
   title: "A workflow's own title, not the App's words",
@@ -110,11 +118,6 @@ export function pickedSelection(host: Json, thread: string, pick: WorkflowPick):
   return library && id?.origin === library.origin && id?.source_root === library.sourceRoot && id?.name === pick.name && id?.revision === pick.revision ? selection : undefined;
 }
 
-/** A run row the host gave in full: its conversation, home, generation and lifecycle. A row with only a reference (the
- * host's "original run operation pending", while another operation holds the run) establishes nothing about the run. */
-export const completeRun = (row: Json): boolean => !!row && typeof row.reference === "string" && typeof row.conversation === "string" && typeof row.home === "string"
-  && !!row.generation && typeof row.lifecycle?.state === "string";
-
 /**
  * What the Run guide holds about a conversation's runs that decides whether a run may start there (RunWorkflowGuide:
  * runs of the exact current generation, home and thread; the latest by preparationOrder; a start whose outcome is
@@ -137,25 +140,26 @@ const mayHaveBeenSent = (run: Json) => !completeRun(run) || !!run.source || !sta
  * The name of the workflow chosen for a conversation, for the transcript's "chosen, not started" note, only where the
  * App establishes both: the host shows a workflow chosen for it, and no run of the conversation that was sent or may
  * have been (a prepared run never sent does not count; a row the host gave only in part, which may be this
- * conversation's, and a start this composer could not confirm, both may have been). Else null.
+ * conversation's, a start this composer could not confirm, a run reopened from the project's records for this
+ * conversation, and a reopened run whose conversation is not recorded, all may have been). Else null.
  */
 export function chosenNotStarted(host: Json, thread: string, doubted: boolean): string | null {
   const root = host?.workflowRoot;
   const chosen = thread ? chatWorkflow(root, root?.context?.sourceRef, thread) : undefined;
   const name = chosen && chosen.state !== "not-selected" ? text(chosen.identity?.name) : "";
-  if (!name || doubted || !Array.isArray(root?.runs)) return null;
+  if (!name || doubted || !Array.isArray(root?.runs) || !Array.isArray(root?.reopened?.runs)) return null;
   const mine = (run: Json) => !completeRun(run) || run.conversation === thread && run.home === host?.generation?.home;
+  if (root.reopened.runs.some((run: Json) => !text(run?.conversation) || run.conversation === thread)) return null;
   return root.runs.some((run: Json) => mine(run) && mayHaveBeenSent(run)) ? null : name;
 }
 
-/** What a read establishes about a preparation whose reply gave no run: the one new prepared run of the conversation
- * (`found`), or, with every run given in full and none new, that nothing was prepared; else nothing (`established` false). */
-function preparationOutcome(host: Json, conversation: string, before: readonly string[]): { established: boolean; found?: Json } {
+/** Whether a read establishes that a preparation whose reply gave no run prepared nothing: every run given in full and
+ * none new in the conversation. A new run is never taken as this press's: nothing correlates it with the request (the
+ * Run guide may have prepared it, with another text or workflow), so it is left unsent. */
+function preparedNothing(host: Json, conversation: string, before: readonly string[]): boolean {
   const rows = list(host?.workflowRoot?.runs);
-  if (!Array.isArray(host?.workflowRoot?.runs) || rows.some((r: Json) => !completeRun(r))) return { established: false };
-  const fresh = rows.filter((r: Json) => r.conversation === conversation && !before.includes(r.reference));
-  if (!fresh.length) return { established: true };
-  return fresh.length === 1 && !fresh[0].source && starts(fresh[0].lifecycle.state, "prepared") ? { established: true, found: fresh[0] } : { established: false };
+  if (!Array.isArray(host?.workflowRoot?.runs) || rows.some((r: Json) => !completeRun(r))) return false;
+  return !rows.some((r: Json) => r.conversation === conversation && !before.includes(r.reference));
 }
 
 /** The declared part of a selection as the Run guide reads it. */
@@ -177,7 +181,14 @@ export function pickReview(selection: Json): PickReview {
   return { words: "Required tools:", tools, inputs };
 }
 const TOOL_STATE_WORDS: Record<ToolState, string> = { available: "available", unavailable: "unavailable now", missing: "missing", unknown: "not established" };
-export const reviewKey = (selection: Json, conversation: string): string => JSON.stringify([conversation, text(selection?.reference), selection?.identity ?? null, pickReview(selection)]);
+/** What a press compares with what it reads: the selection, its short reading, and the whole requirement check shown
+ * with it (each tool's outcome and the host's reason, the check's result and its basis), so a changed reason or basis
+ * stops the press again even where the outcome is the same. */
+export const reviewKey = (selection: Json, conversation: string): string => {
+  const preparation = selection?.compatibility?.preparation;
+  return JSON.stringify([conversation, text(selection?.reference), selection?.identity ?? null, pickReview(selection),
+    preparation?.requirements ?? null, preparation?.check?.result ?? null, preparation?.basis ?? null]);
+};
 
 // ---- The press: the steps, in the Run guide's order, through its commands ----
 
@@ -190,36 +201,17 @@ export function PartsLine({ parts }: { parts: readonly Part[] }) {
   return <>{parts.map((part, index) => typeof part === "string" ? part : <Supplied key={index} value={part.supplied} of={part.of}/>)}</>;
 }
 
-/** What a start of a new conversation came to (App.tsx StartOutcome). */
-type StartOutcome = { opened: string } | { failed: string } | { notConfirmed: true };
-/** A command this composer issued whose outcome the App has not established: which command, for which conversation and
- * workflow, what it was bound to, the runs the conversation had before it, and the host's reply where one came. */
-export type PickDoubt = { kind: "choose" | "prepare" | "send"; conversation: string; binding: string; command: string; key: string; reference?: string; before?: string[]; reply: string;
-  /** For a send: what its run was prepared for (preparationKey), so a run the host later shows not sent may be sent again. */
-  prepared?: string };
-/** What the composer keeps between presses, for the App session. */
-export type PickMemory = {
-  /** Runs this composer prepared and has not sent, by conversation, with what each was prepared for (preparationKey). */
-  prepared: Map<string, { reference: string; key: string }>;
-  /** Runs this composer asked the host to send: never asked again. */
-  attempted: Set<string>;
-  /** Commands whose outcome is not established, by conversation. */
-  doubts: Map<string, PickDoubt>;
-};
-export const pickMemory = (): PickMemory => ({ prepared: new Map(), attempted: new Set(), doubts: new Map() });
+/** What a start of a new conversation came to (App.tsx StartOutcome), with the changes it made itself. */
+type StartOutcome = { opened: string; own?: { navigation: number } } | { failed: string } | { notConfirmed: true };
+/** The person's navigation and home, counted synchronously at each change (App.tsx StartIntent): a navigation counter
+ * (so away and back is a change), the home's epoch, and whether a change of home is still pending. */
+export type PressRevisions = { navigation: number; home: number; homePending: boolean };
 /** What a preparation was made for: the selection and workflow, the conversation, home, Codex generation and text. */
 export const preparationKey = (selection: Json, pick: WorkflowPick, conversation: string, host: Json, personText: string): string =>
   JSON.stringify([text(selection?.reference), selection?.identity ?? null, [pick.kind, pick.name, pick.revision, pick.libraryRef ?? null], conversation, host?.homeRouting?.activeModeHomeClass ?? null, host?.generation?.home ?? null, host?.generation ?? null, personText]);
 
-/** What the composer holds back on for a conversation: the guide's unknown starts and this composer's doubts. `sent`
- * when one of them may have sent the workflow; `key` is what the person's acknowledgement names. */
-export function pickHold(host: Json, thread: string, memory: PickMemory): { key: string; sent: boolean } | null {
-  if (!thread) return null;
-  const runs = conversationRuns(host, thread);
-  const doubt = memory.doubts.get(thread);
-  if (!runs.unresolvedStart && !doubt) return null;
-  return { key: JSON.stringify([runs.holdKey, doubt?.key ?? null]), sent: runs.unresolvedStart || doubt?.kind === "send" };
-}
+/** What the composer holds back on for a conversation: the conversation's one hold, shared with the guide (runHold). */
+export const pickHold = runHold;
 
 export type PickRun = {
   pick: WorkflowPick;
@@ -232,8 +224,9 @@ export type PickRun = {
   host: Json;
   /** The review the composer was showing when the person pressed (reviewKey), or null. */
   shown: string | null;
-  /** Now: the latest status the App has accepted, the key of the conversation the person has chosen ("" for none), the pick and the draft. */
-  now: () => { host: Json; thread: string; pick: WorkflowPick | null; text: string };
+  /** Now: the latest status the App has accepted, the key of the conversation the person has chosen ("" for none), the
+   * pick, the draft, and the navigation and home revisions where the App counts them. */
+  now: () => { host: Json; thread: string; pick: WorkflowPick | null; text: string; revisions?: PressRevisions | null };
   /** Step 1: the new chat's present start (App.tsx startConversation). */
   start: () => Promise<StartOutcome | null>;
   /** A host command; rejects with the host's message. */
@@ -280,6 +273,7 @@ export function reasonPart(error: unknown): Part {
 /** Codex or the workflow source changed under the press: the steps stop where they are. */
 const CHANGED = "Codex or the workflow source changed, so the App stopped";
 const MOVED = {
+  home: "The Codex home changed, or a change of home began, while the App was working, so it stopped",
   library: "The workflow library in use changed, so the App stopped",
   conversation: "Another conversation was chosen while the App was working, so it stopped",
   pick: "Another workflow was picked while the App was working, so it stopped",
@@ -302,13 +296,18 @@ let doubtSequence = 0;
  * workflow for it unless it already is, and (4) read the status for the selection; then stop to show what it needs,
  * unless the composer was showing exactly that when the person pressed; (5) prepare the run with the person's text and
  * (6) send it. After every await the press goes on only while the source, library, conversation, pick and text are
- * those it was pressed with. A command whose outcome is not established is kept (PickMemory.doubts): the next press
- * reads first and acts only on what the read establishes.
+ * those it was pressed with, and the person's navigation and home are as they were at the press with no change of home
+ * pending (PressRevisions). A command whose outcome is not established is kept (PickMemory.doubts): the next press
+ * reads first and acts only on what the read establishes. The conversation's one hold (runHold), shared with the Run
+ * guide, is read at the press and again just before the send.
  */
 export async function runPickedWorkflow(run: PickRun): Promise<PickRunOutcome> {
   const { pick, text: personText, memory } = run;
   const pressed = run.host;
   const scope = pick.scope, binding = pressBinding(pressed);
+  // The person's navigation and home at the press, as the first message's send binds them (App.tsx StartIntent).
+  const revisions = run.now().revisions ?? null;
+  let ownNavigation = 0;
   let host = pressed, thread = run.thread;
   let opened: string | undefined;
   let chose = false, preparedNow = false;
@@ -317,9 +316,12 @@ export async function runPickedWorkflow(run: PickRun): Promise<PickRunOutcome> {
   const done = () => [opened ? " The conversation started." : "", chose ? " The workflow was chosen for it." : "", preparedNow ? " The run was prepared." : ""].join("");
   const moved = (): PickRunOutcome | null => {
     const now = run.now();
-    const why = pickScope(now.host) !== scope ? CHANGED : pressBinding(now.host) !== binding ? MOVED.library
+    const at = now.revisions ?? null;
+    const homeMoved = !!revisions && (!at || at.homePending || at.home !== revisions.home);
+    const navigated = !!revisions && (!at || at.navigation !== revisions.navigation + ownNavigation);
+    const why = pickScope(now.host) !== scope ? CHANGED : homeMoved ? MOVED.home : pressBinding(now.host) !== binding ? MOVED.library
       : !samePick(now.pick, pick) ? MOVED.pick : now.text !== personText ? MOVED.text
-      : (run.thread ? now.thread !== run.threadKey : now.thread !== "" && now.thread !== opened) ? MOVED.conversation : null;
+      : navigated || (run.thread ? now.thread !== run.threadKey : now.thread !== "" && now.thread !== opened) ? MOVED.conversation : null;
     return why ? stop(`${why}.${done()} ${NOTHING_SENT}`) : null;
   };
   const early = moved();
@@ -333,6 +335,8 @@ export async function runPickedWorkflow(run: PickRun): Promise<PickRunOutcome> {
     if ("opened" in outcome) { try { key = JSON.parse(outcome.opened); } catch { key = null; } }
     if (!Array.isArray(key) || typeof key[1] !== "string") return { state: "stopped", parts: ["The App couldn't confirm the conversation started; it may exist. The workflow wasn't sent."], startUnknown: true };
     opened = (outcome as { opened: string }).opened;
+    // The start's own selection of the new conversation is not the person's navigation.
+    ownNavigation += (outcome as { own?: { navigation: number } }).own?.navigation ?? 0;
     thread = key[1];
     // Step 2: the new conversation's row, which the selection's context names.
     let seen: Json = null;
@@ -352,27 +356,33 @@ export async function runPickedWorkflow(run: PickRun): Promise<PickRunOutcome> {
     if (change) return change;
   }
   const conversation = thread as string;
-  // The guide's conditions (no run of it still open or sent and unconfirmed; a start of unknown outcome only once
-  // acknowledged), and this composer's own doubts, reconciled with what this read establishes.
+  // The guide's conditions (no run of it still open or sent and unconfirmed) and the conversation's one hold, shared
+  // with the guide (runHold), reconciled with what this read establishes.
   const runs = conversationRuns(host, conversation);
   if (runs.inProgress) return stop(`A workflow run is still open in this conversation. End it under Run a workflow before starting another. ${NOTHING_SENT}`);
-  const hold = pickHold(host, conversation, memory);
-  const acknowledged = !!hold && run.acknowledged === hold.key;
+  const hold = runHold(host, conversation, memory);
+  const acknowledged = !!hold && (run.acknowledged === hold.key || memory.acknowledged.get(conversation) === hold.key);
+  // What the person's acknowledgement covers: at the send, nothing else may hold.
+  const covered = new Set(acknowledged && hold ? hold.items : []);
   const doubt = memory.doubts.get(conversation);
   if (doubt && doubt.binding !== binding && !acknowledged) return stop(`An earlier step here has an outcome the App couldn't establish, under another Codex session or workflow source. Read the conversation, then confirm below to go on. ${NOTHING_SENT}`);
   if (doubt?.kind === "send") {
     const row = list(host?.workflowRoot?.runs).find((r: Json) => r.reference === doubt.reference);
-    // Established only by a complete row: Codex's own refusal, or the host's own "nothing sent". Anything else (a row
-    // given in part, a missing row, an outcome unknown) holds until the person says they read the conversation.
+    // Established only by a complete row of that same run: Codex's own refusal, the host's own "nothing sent", or the
+    // run open or ended. Anything else (a row given in part, a missing row, an outcome unknown, another run's row) holds
+    // until the person says they read the conversation.
     const full = completeRun(row) && row.conversation === conversation;
     if (full && starts(row.lifecycle.state, "start not confirmed") && startRefused(row)) memory.doubts.delete(conversation);
     else if (full && starts(row.lifecycle.state, "prepared") && !row.source && row.status?.sent === false) {
       memory.doubts.delete(conversation); memory.attempted.delete(text(doubt.reference));
       if (doubt.prepared) memory.prepared.set(conversation, { reference: text(doubt.reference), key: doubt.prepared });
-    } else if (!acknowledged) return stop(`${notConfirmedWords(host)} Nothing more was sent.`);
+    } else if (full && (starts(row.lifecycle.state, "open") || starts(row.lifecycle.state, "ended"))) memory.doubts.delete(conversation);
+    else if (!acknowledged) return stop(`${notConfirmedWords(host)} Nothing more was sent.`);
     else { memory.doubts.delete(conversation); memory.prepared.delete(conversation); }
   }
-  if (runs.unresolvedStart && !acknowledged) return stop(`Read the conversation: a start here has an unknown outcome and may have run. ${NOTHING_SENT}`);
+  const standing = runHold(host, conversation, memory);
+  if (standing?.sent && !(acknowledged && standing.items.every(item => covered.has(item))))
+    return stop(`Read the conversation: a start here has an unknown outcome and may have run. ${NOTHING_SENT}`);
   // Steps 3 and 4: the selection, unless the conversation already has exactly this workflow chosen.
   let selection = pickedSelection(host, conversation, pick);
   if (doubt?.kind === "choose") {
@@ -407,26 +417,26 @@ export async function runPickedWorkflow(run: PickRun): Promise<PickRunOutcome> {
   const limit = selection.runnable === true ? selection.currentLimit : selection.runLimit;
   if (selection.runnable !== true || selection.currentLimit) return stop("The workflow can't run: ", text(limit) ? reported(text(limit)) : "the App reports it as not runnable", `. ${NOTHING_SENT}`);
   // Release target criterion 1: before the run the App says which declared required tools are available and which are
-  // missing. A press goes on to prepare only when the composer was showing this selection with this reading when the
-  // person pressed; otherwise it stops here and shows it.
+  // missing, with each one's purpose, the host's reason and the check's basis. A press goes on to prepare only when the
+  // composer was showing this selection with this whole reading when the person pressed; otherwise it stops here and shows it.
   if (run.shown !== reviewKey(selection, conversation)) return { state: "review", ...(opened ? { opened } : {}), ...(run.shown && !chose ? { changed: true } : {}) };
   // Step 5: prepare, unless this composer prepared a run for exactly this and it is still prepared and unsent.
   const want = preparationKey(selection, pick, conversation, host, personText);
   if (doubt?.kind === "prepare" && memory.doubts.get(conversation) === doubt) {
-    const outcome = preparationOutcome(host, conversation, doubt.before ?? []);
-    if (outcome.found) {
-      // Prepared. Used only for exactly what it was prepared for; otherwise left unsent, as the guide leaves one no longer wanted.
-      if (want === doubt.key.slice(doubt.key.indexOf(":") + 1)) memory.prepared.set(conversation, { reference: outcome.found.reference, key: want });
-      memory.doubts.delete(conversation);
-    } else if (!outcome.established) {
-      if (!acknowledged) return stop(`The App couldn't establish whether the run was prepared, so it didn't prepare it again. Read Run a workflow, then confirm below to go on. ${NOTHING_SENT}`);
-      memory.doubts.delete(conversation);
-    } else memory.doubts.delete(conversation); // every row read in full, none new: nothing was prepared.
+    // A preparation whose reply was lost is never taken from a later read. Settled only when the read shows every run
+    // in full and none new (nothing was prepared), or by the person's word, after which a new one may be prepared.
+    if (preparedNothing(host, conversation, doubt.before ?? [])) memory.doubts.delete(conversation);
+    else if (!acknowledged) return stop(`The App couldn't establish whether the run was prepared, so it didn't prepare it again. Read Run a workflow, then confirm below to go on. ${NOTHING_SENT}`);
+    else memory.doubts.delete(conversation);
   }
   const kept = memory.prepared.get(conversation);
   let reference = kept && kept.key === want && !memory.attempted.has(kept.reference) ? kept.reference : "";
   if (kept && !reference) memory.prepared.delete(conversation); // made for something else: left unsent, as the guide leaves a prepared run no longer wanted.
   if (!reference) {
+    // A prepared run of this conversation that nothing sent, readable in full (the guide's, or one made for another
+    // text or workflow): the Run tab starts it, and the composer prepares no other beside it.
+    if (conversationRuns(host, conversation).runs.some((row: Json) => completeRun(row) && !row.source && starts(row.lifecycle.state, "prepared")))
+      return stop(`A run is already prepared in this conversation and hasn't been sent. Start it under Run a workflow. ${NOTHING_SENT}`);
     const notPrepared = (...reason: Part[]) => stop(opened ? "The conversation started and the workflow was chosen, but the run wasn't prepared: " : "The run wasn't prepared: ", ...reason, `. ${NOTHING_SENT}`);
     let request: Record<string, unknown>;
     try { request = workflowArguments("workflow_prepare_run", { generation: host.generation, threadId: conversation, personText }, host?.workflowRoot, host, conversation); }
@@ -439,23 +449,18 @@ export async function runPickedWorkflow(run: PickRun): Promise<PickRunOutcome> {
     reference = text(reply?.reference);
     if (!reference) {
       // The reply establishes nothing: kept, and the status read now. Said "wasn't prepared" only when the read shows
-      // every run in full and none new; a new prepared run is the one this press made; anything else holds.
-      const kept: PickDoubt = { kind: "prepare", conversation, binding, command: "workflow_prepare_run", key: `${++doubtSequence}:${want}`, before, reply: refused !== null ? replyOf(refused) : JSON.stringify(reply ?? null) };
-      memory.doubts.set(conversation, kept);
+      // every run in full and none new; a new run is never taken as this press's; anything else holds.
+      memory.doubts.set(conversation, { kind: "prepare", conversation, binding, command: "workflow_prepare_run", key: `prepare:${++doubtSequence}`, before, reply: refused !== null ? replyOf(refused) : JSON.stringify(reply ?? null) });
       const why: Part = refused !== null ? reasonPart(refused) : "the App didn't report the prepared run";
       try { host = await run.read(); } catch { return stop("The App couldn't establish whether the run was prepared: ", why, `. ${NOTHING_SENT}`); }
       const change = moved();
       if (change) return change;
-      const outcome = preparationOutcome(host, conversation, before);
-      if (!outcome.established) return stop("The App couldn't establish whether the run was prepared: ", why, `. ${NOTHING_SENT}`);
+      if (!preparedNothing(host, conversation, before)) return stop("The App couldn't establish whether the run was prepared: ", why, `. ${NOTHING_SENT}`);
       memory.doubts.delete(conversation);
-      if (!outcome.found) return notPrepared(why);
-      reference = text(outcome.found.reference);
-      memory.prepared.set(conversation, { reference, key: want });
-    } else {
+      return notPrepared(why);
+    }
     memory.prepared.set(conversation, { reference, key: want });
     try { host = await run.read(); } catch { preparedNow = true; return stop(`The run was prepared, but the App couldn't read its state afterwards, so it wasn't started. ${NOTHING_SENT}`); }
-    }
     preparedNow = true;
     const change = moved();
     if (change) return change;
@@ -467,9 +472,14 @@ export async function runPickedWorkflow(run: PickRun): Promise<PickRunOutcome> {
     return stop(`The run was prepared, but the App can't read it as ready to start now, so it wasn't started. Press Start run to read it again. ${NOTHING_SENT}`);
   if (prepared.publication?.admissionRefusal) return stop("The run was prepared, but its records can't be saved: ", reasonPart(prepared.publication.admissionRefusal), `. It wasn't started. ${NOTHING_SENT}`);
   if (memory.attempted.has(reference)) return stop("This run was already sent once, so the App won't send it again. Read the conversation.");
+  // Before dispatch: every earlier run of the conversation that was or may have been sent, read again on this read.
+  // Anything the person's acknowledgement did not cover holds the send; the prepared run is kept.
+  const final = runHold(host, conversation, memory);
+  if (final?.sent && !(acknowledged && final.items.every(item => covered.has(item))))
+    return stop(`Read the conversation: a run here may have started, and the App couldn't establish its outcome, so it didn't start this one. ${NOTHING_SENT}`);
   // Step 6: send, once. Kept as a doubt until the host's row establishes what happened.
   run.step(PICK_STEPS.send);
-  memory.attempted.add(reference);
+  memory.attempted.set(reference, conversation);
   memory.prepared.delete(conversation);
   memory.doubts.set(conversation, { kind: "send", conversation, binding, command: "workflow_send_run", key: `send:${reference}`, reference, reply: "", prepared: want });
   let sendError: unknown = null, reply: Json = null;
@@ -492,7 +502,7 @@ export async function runPickedWorkflow(run: PickRun): Promise<PickRunOutcome> {
   }
   if (starts(sent.lifecycle.state, "open") || sent.source && starts(sent.lifecycle.state, "prepared")) { memory.doubts.delete(conversation); return { state: "started" }; }
   if (starts(sent.lifecycle.state, "prepared") && !sent.source && sent.status?.sent === false) {
-    // The host's own "nothing sent": the same prepared run may be started again.
+    // The host's own "nothing sent" for this run: the same prepared run may be started again.
     memory.doubts.delete(conversation);
     memory.attempted.delete(reference);
     memory.prepared.set(conversation, { reference, key: want });
@@ -521,11 +531,13 @@ export function PickChip({ pick, host, thread, disabled, remove }: { pick: Workf
     {review ? <p className="v4-pick-note" aria-label="What it needs">{review.words}{review.tools.map((tool, index) => <span key={index}>{index ? ", " : " "}<Supplied value={tool.name || "Unnamed tool"} of="tool"/> {TOOL_STATE_WORDS[tool.state]}</span>)}{review.tools.length ? "." : ""}
       {review.inputs.length > 0 && <> It asks for: {review.inputs.map((input, index) => <span key={index}>{index ? ", " : ""}<Supplied value={input.name} of="input"/>{input.optional ? " (optional)" : ""}</span>)}.</>}</p>
       : <p className="v4-pick-note">Press Start run to see the tools it needs. Nothing is sent until you press again.</p>}
+    {/* The whole reading a press is bound to (reviewKey), in view: each required tool's purpose and reading, the host's
+        reason, and what the check was made with. */}
+    {selection && <RequirementCheck selection={selection}/>}
     <details className="v4-pick-details"><summary>Details</summary>
       {inputs.length > 0 && <ul aria-label="What this workflow needs">{inputs.map((input: Json, index: number) => <li key={index}>
         <Supplied value={text(input.name)} of="input"/> ({input.necessity === "optional" ? "optional" : "required"}; {INPUT_KIND[text(input.kind)] ?? "kind not recognised"}): <Supplied value={text(input.meaning)} of="meaning"/>{input.absence_effect ? <> If you leave it out: <Supplied value={text(input.absence_effect)} of="meaning"/></> : null}</li>)}</ul>}
       {selection && !inputs.length && <p>This workflow doesn't list required inputs. Describe what it should work on.</p>}
-      {selection && <RequirementCheck selection={selection}/>}
       {selection && <RoleBesideWorkflow entry={includedEntryOf(root?.productionCatalog, selection)} conversation={conversation}/>}
       {selection && selection.identity?.origin !== "bundled" && <p role="note" aria-label="Approval evidence">{workflowAssurance(selection.assurance)}</p>}
       {!selection && pick.kind === "listed" && pick.label && <p><Supplied value={pick.label} of="reason"/></p>}
