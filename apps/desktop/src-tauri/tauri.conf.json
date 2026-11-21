@@ -7,6 +7,7 @@
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://127.0.0.1:1420",
     "beforeBuildCommand": "npm run library && npm run build",
+    "beforeBundleCommand": "npm run library",
     "frontendDist": "../dist"
   },
   "app": {
