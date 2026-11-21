@@ -16,7 +16,7 @@ crate-type = ["rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-chirality-engine-tauri = { git = "ssh://git@github.com/sgttomas/chirality-engine.git", rev = "70523bbcc20a7fb825285afedd8ebcc64b926583" }
+chirality-engine-tauri = { git = "ssh://git@github.com/sgttomas/chirality-engine.git", rev = "0b4dfb13ba37e4da7475cb1fbd572b765c2062f7" }
 tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"
 tauri-plugin-notification = "2"

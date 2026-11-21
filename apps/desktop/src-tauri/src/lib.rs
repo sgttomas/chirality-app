@@ -37,8 +37,8 @@ fn library(dir: &Path) -> Vec<PathBuf> {
 
 pub fn run() {
     tauri::Builder::default()
-        .plugin(chirality_engine_tauri::plugin(|app| config(app)))
-        .invoke_handler(chirality_engine_tauri::commands(|_| false))
+        .plugin(chirality_engine_tauri::plugin(config))
+        .invoke_handler(chirality_engine_tauri::commands![])
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_opener::init())

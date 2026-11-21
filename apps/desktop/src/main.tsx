@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import { applyTheme, EngineProvider, Store, storedTheme, type EngineClient, type Host, type PanelTab } from "@chirality/engine-ui";
 import { inTauri } from "@chirality/engine-ui/tauri";
 import "@chirality/engine-ui/tokens.css";
+import "@chirality/engine-ui/page.css";
 
 import { App } from "./App";
 
