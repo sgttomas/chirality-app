@@ -1,3 +1,10 @@
+---
+name: chirality-app-standing-instructions
+description: How to work in the Chirality App, rebuilt on the Chirality engine.
+metadata:
+  kind: instruction
+  surface: standing
+---
 # Working in chirality-app
 
 This repository is the Chirality App, being rebuilt on the Chirality engine
