@@ -32,7 +32,8 @@ if (!library) {
 
 const licence = join(resources, "licenses", "LICENSE-IBM-Plex-OFL.txt");
 const shipped = join(here, "node_modules", "@chirality", "engine-ui", "src", "fonts", "LICENSE-IBM-Plex-OFL.txt");
-if (!lstatSync(licence, { throwIfNoEntry: false })?.isFile()) problems.push(`${licence} is missing or not a file`);
+const real = (path) => lstatSync(path, { throwIfNoEntry: false });
+if (!real(join(resources, "licenses"))?.isDirectory() || !real(licence)?.isFile()) problems.push(`${licence} is missing or not a file`);
 else if (sha256(licence) !== sha256(shipped)) problems.push(`${licence} is not the engine package's fonts licence`);
 
 if (problems.length) {

@@ -31,6 +31,8 @@ function kind(path) {
 export function files(dir, skip = () => false) {
   const names = readdirSync(dir).filter((name) => !skip(name));
   if (!names.length) throw new Error(`${dir} is an empty folder`);
+  const odd = names.find((name) => name.includes("\n"));
+  if (odd) throw new Error(`${join(dir, odd)} has a line break in its name`);
   return names.flatMap((name) => {
     const path = join(dir, name);
     const k = kind(path);
@@ -42,10 +44,10 @@ export function files(dir, skip = () => false) {
 
 const executable = (path) => (lstatSync(path).mode & 0o111) !== 0;
 
-/** sha256 of the sorted "<sha256>  <path>" lines of every file under `dir`, an executable file's
- * line ending "  x". */
+/** sha256 of the sorted "<sha256>  <x or ->  <path>" lines of every file under `dir`: x for an
+ * executable file. */
 export function digest(dir, skip) {
-  const lines = files(dir, skip).map((f) => `${sha256(join(dir, f))}  ${f}${executable(join(dir, f)) ? "  x" : ""}`).sort();
+  const lines = files(dir, skip).map((f) => `${sha256(join(dir, f))}  ${executable(join(dir, f)) ? "x" : "-"}  ${f}`).sort();
   return createHash("sha256").update(lines.join("\n") + "\n").digest("hex");
 }
 
@@ -107,15 +109,19 @@ function real(path) {
   return parent === path ? path : join(real(parent), basename(path));
 }
 
-/** Puts back what an interrupted staging had set aside, when nothing is staged. */
-export function recover(library) {
+/** Puts back what an interrupted staging had set aside, when nothing is staged. Only a staging
+ * folder that is a real folder holding what staging makes, and not holding `source`, is touched. */
+export function recover(library, source) {
   const to = resolve(library);
   if (kind(to) !== "missing" || kind(dirname(to)) !== "folder") return;
   for (const name of readdirSync(dirname(to)).filter((n) => n.startsWith(".library-staging-"))) {
-    const previous = join(dirname(to), name, "previous");
-    if (kind(previous) !== "folder") continue;
+    const work = join(dirname(to), name);
+    const previous = join(work, "previous");
+    if (kind(work) !== "folder" || kind(previous) !== "folder") continue;
+    if (readdirSync(work).some((n) => !["previous", "library", "extracted"].includes(n))) continue;
+    if (source && existsSync(source) && within(realpathSync(source), work)) continue;
     renameSync(previous, to);
-    rmSync(join(dirname(to), name), { recursive: true, force: true });
+    rmSync(work, { recursive: true, force: true });
     return;
   }
 }
@@ -124,9 +130,11 @@ export function recover(library) {
  * `library`. Nothing is removed until the staged copy is checked; a source that is a link, or that
  * overlaps `library`, is refused first. */
 export function stage(source, library, edition) {
-  if (kind(source) === "a link") throw new Error(`${source} is a link`);
+  // As named, without a trailing separator or dot that would name something else.
+  if (kind(resolve(source)) === "a link") throw new Error(`${source} is a link`);
   const from = realpathSync(source);
-  const to = join(real(dirname(resolve(library))), basename(library));
+  const named = resolve(library);
+  const to = join(real(dirname(named)), basename(named));
   // `from` in what would be replaced (as named, or where a link there leads), or holding it.
   const overlaps = within(from, to) || [to, ...(existsSync(to) ? [realpathSync(to)] : [])].some((t) => lineage(t).includes(lineage(from)[0]));
   if (overlaps) throw new Error(`${source} overlaps ${library}: stage from an archive or extraction outside it`);
@@ -165,7 +173,7 @@ if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.me
   const edition = JSON.parse(readFileSync(join(here, "library.json"), "utf8"));
   const library = join(here, "src-tauri", "library");
   const source = process.env.CHIRALITY_LIBRARY;
-  recover(library);
+  recover(library, source);
   if (source) stage(source, library, edition);
   const problem = checkStaged(library, edition);
   if (problem) throw new Error(source ? problem : `${problem}; set CHIRALITY_LIBRARY to ${edition.archive.name} or its extracted folder`);

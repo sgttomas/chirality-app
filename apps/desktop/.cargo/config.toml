@@ -1,3 +1,0 @@
-# The engine is fetched from GitHub over SSH; Cargo uses git for it.
-[net]
-git-fetch-with-cli = true

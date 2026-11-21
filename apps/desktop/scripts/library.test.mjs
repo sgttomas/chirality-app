@@ -165,6 +165,33 @@ describe("staging the Library edition", () => {
     expect(readdirSync(join(library, ".."))).toEqual(["library"]);
   });
 
+  it("recovers nothing from a staging folder that holds the source or anything staging did not make", () => {
+    const { source, archive, library, meta } = edition();
+    stage(source, library, meta);
+    const work = join(library, "..", ".library-staging-stopped");
+    mkdirSync(work);
+    copyFileSync(archive, join(work, "kept.tar"));
+    renameSync(library, join(work, "previous"));
+    recover(library, join(work, "kept.tar"));
+    expect(existsSync(join(work, "kept.tar"))).toBe(true);
+    expect(existsSync(library)).toBe(false);
+    expect(() => stage(join(work, "kept.tar"), library, meta)).not.toThrow();
+    expect(existsSync(join(work, "kept.tar"))).toBe(true);
+  });
+
+  it("stages as the folder named, whatever trails its name, and refuses a linked source named with a trailing separator", () => {
+    const { source, library, meta } = edition();
+    writeFileSync(join(root, "beside.txt"), "kept");
+    mkdirSync(join(root, "resources"));
+    writeFileSync(join(root, "resources", "beside.txt"), "kept");
+    stage(source, join(library, "."), meta);
+    expect(checkStaged(library, meta)).toBeNull();
+    expect(readdirSync(join(root, "resources")).sort()).toEqual(["beside.txt", "library"]);
+    const link = join(root, "link to edition");
+    symlinkSync(source, link);
+    expect(() => stage(link + "/", library, meta)).toThrow(/is a link/);
+  });
+
   it("leaves what was staged before when a staging fails, and no work behind", () => {
     const { source, library, meta } = edition();
     stage(source, library, meta);

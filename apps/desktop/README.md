@@ -17,7 +17,7 @@ IBM Plex copyright notices) is bundled under `licenses/`.
 It is built from the engine's parts (`sgttomas/chirality-engine`): the crate
 `chirality-engine-tauri` and the package `@chirality/engine-ui`, both at one
 engine revision named in `src-tauri/Cargo.toml` and `package.json` (a test
-checks they agree). Both are fetched from GitHub over SSH.
+checks they agree). Both are fetched from GitHub over https.
 
 Development builds are `Chirality Dev`, version `4.0.0-dev`, with the bundle
 identifier `com.chirality.app.dev`, apart from an installed Chirality's name,
