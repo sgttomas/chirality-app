@@ -925,11 +925,15 @@ def test_repository_checks_run_every_consumer_of_the_narrowed_classes():
     runs = "\n".join(step.get("run", "") for job in product.values() for step in job.get("steps", []))
     # No macOS step names a class B path; the Group B suites are repository checks only.
     assert "group_b" not in runs and "standalone" not in runs and "docs/" not in runs
+    # Nor the engine app's (class C): no App v4 job reads apps/.
+    assert ENGINE_APP_REFERENCE.search(runs) is None
 
 
 # Every file outside a narrowed class that names one of its paths, and why that
 # reader is not a macOS product input (docs/CI_SELECTION.md mapping).
-CLASS_REFERENCE = re.compile(r"group_b[_*]|standalone/|(?<![\w./-])docs/|\.\./docs/|[\"'](docs|standalone)[\"']")
+# The engine app's root, apps/ (not @tauri-apps/ and the like).
+ENGINE_APP_REFERENCE = re.compile(r"(?<![\w./@-])apps/|(?<![\w.@-])\./apps/|\.\./apps\b|[\"']apps[\"']|\bcd apps\b")
+CLASS_REFERENCE = re.compile(r"group_b[_*]|standalone/|(?<![\w./-])docs/|\.\./docs/|[\"'](docs|standalone)[\"']|" + ENGINE_APP_REFERENCE.pattern)
 KNOWN_REFERRERS = {
     ".github/workflows/governance-harness.yml": "repository-checks runs the Group B suites",
     "tools/ci/select_checks.py": "the selector's own rules",
@@ -949,6 +953,10 @@ KNOWN_REFERRERS = {
     "app/supplier_checks/version_advance/0.167.0-to-0.169.0.json": "retains the supplier WebSearchProvider enum value standalone, not a path; no narrowed-class path is read through this comparison",
     "app/packaging/supplier_notices/crates/index.json": "names members of the deltae 0.3.2 crate archive (docs/doc/LICENSE-*.txt, COPYRIGHT.txt), not repository paths; nothing reads a repository docs/ path through it",
     "app/packaging/supplier_notices/crates/packages.json": "generated from crates/index.json; names the same crate archive members, not repository paths",
+    "app/supplier_checks/swbpipe_catalog_v4_receiving.py": "names apps/ paths in the SWBPIPE repository; reads its fixture snapshots, not this repository's apps/",
+    "app/supplier_checks/swbpipe_catalog_v4_pr30_receiving.py": "names apps/ paths in the SWBPIPE repository; reads its fixture snapshots, not this repository's apps/",
+    "app/supplier_checks/swbpipe_catalog_v4_pr40_receiving.py": "names apps/ paths in the SWBPIPE repository; reads its fixture snapshots, not this repository's apps/",
+    "app/supplier_checks/swbpipe_receiving_v4_pr30_test.py": "asserts an apps/ path in the SWBPIPE repository; reads no file of this repository's apps/",
     # Readers of in-root paths that stay product inputs.
     'app/packaging/production_inputs/bundle_resources.py': 'selects the limitations resource mapping that prepare.py inventories; sources-packaging',
     'app/packaging/notices/coverage-inputs.json': 'names the limitations resource mapping exactly as App content in the notice coverage account; sources-packaging',
@@ -986,7 +994,7 @@ def test_no_unreviewed_reader_of_a_narrowed_class():
     found = set()
     for path in git(root, "ls-files").splitlines():
         if (path.startswith(("docs/", "execution/", "app/src-tauri/resources/supplier/"))
-                or subject.path_rule(path) == "examination" or not path.endswith(CODE_SUFFIXES)):
+                or subject.path_rule(path) in ("examination", "engine-app") or not path.endswith(CODE_SUFFIXES)):
             continue
         if LIBRARY_MANIFEST.fullmatch(path):
             continue
@@ -1118,3 +1126,42 @@ def test_reviewer_link_consumer_commit_is_refused(repo):
                  "app/tests/font_notice_test.py": ("100644", b"# reads r2-assets/r2-input.json\n")})
     plumb(repo, {"app/tests/r2-assets": ("120000", b"../examination/standalone")})
     assert subject.inventory(repo)["links"] == ["app/tests/r2-assets (symbolic link)"]
+
+
+@pytest.mark.parametrize("path", [
+    "apps/desktop/README.md", "apps/desktop/src/App.tsx", "apps/desktop/src-tauri/src/lib.rs",
+    "apps/desktop/package-lock.json", "apps/desktop/src-tauri/icons/icon.png",
+])
+def test_engine_app_changes_select_only_repository_checks(repo, path):
+    base = git(repo, "rev-parse", "HEAD")
+    write(repo, path)
+    result = selection(repo, base)
+    assert result["mode"] == "prose" and result["run_product"] is False
+    assert result["changes"][0]["rule"] == "engine-app" and result["changes"][0]["checks"] == "repository"
+
+
+def test_engine_app_deletions_and_mode_changes_stay_repository(repo):
+    write(repo, "apps/desktop/scripts/library.mjs")
+    base = commit(repo)
+    (repo / "apps/desktop/scripts/library.mjs").chmod(0o755)
+    moded = selection(repo, base)
+    assert moded["run_product"] is False and moded["changes"][0]["new_mode"] == "100755"
+    (repo / "apps/desktop/scripts/library.mjs").unlink()
+    deleted = selection(repo, base)
+    assert deleted["run_product"] is False and deleted["changes"][0]["status"] == "D"
+
+
+def test_engine_app_links_and_other_spellings_keep_product(repo):
+    base = git(repo, "rev-parse", "HEAD")
+    (repo / "apps").mkdir()
+    (repo / "apps/link").symlink_to("../app")
+    assert selection(repo, base)["run_product"] is True
+    for path in ["Apps/desktop/README.md", "apps/desktop/\u017f.md", "appsx/README.md", "app/src/App.tsx"]:
+        assert subject.path_rule(path) != "engine-app", path
+
+
+def test_engine_app_beside_a_product_path_keeps_product(repo):
+    base = git(repo, "rev-parse", "HEAD")
+    write(repo, "apps/desktop/README.md")
+    write(repo, "app/src/App.tsx")
+    assert selection(repo, base)["run_product"] is True

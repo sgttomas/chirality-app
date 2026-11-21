@@ -1,0 +1,34 @@
+{
+  "name": "chirality-app",
+  "private": true,
+  "version": "4.0.0-dev",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "library": "node scripts/library.mjs",
+    "check-bundle": "node scripts/bundle-check.mjs",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@chirality/engine-ui": "git+https://github.com/sgttomas/chirality-engine.git#419da0fa6a779cfa12642bbf140abdbb11461f79::path:packages/ui",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.12.6",
+    "@testing-library/jest-dom": "6.9.1",
+    "@testing-library/react": "16.3.3",
+    "@testing-library/user-event": "14.6.13",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.3.0",
+    "jsdom": "31.0.1",
+    "typescript": "7.0.2",
+    "vite": "8.3.8",
+    "vitest": "5.1.1"
+  }
+}

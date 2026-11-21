@@ -1,0 +1,23 @@
+[package]
+name = "chirality-app"
+version = "4.0.0-dev"
+edition = "2024"
+license = "MIT"
+publish = false
+
+# Its own workspace, apart from App v4's.
+[workspace]
+
+[lib]
+name = "chirality_app"
+crate-type = ["rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+chirality-engine-tauri = { git = "https://github.com/sgttomas/chirality-engine.git", rev = "419da0fa6a779cfa12642bbf140abdbb11461f79" }
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+tauri-plugin-notification = "2"
+tauri-plugin-opener = "2"
