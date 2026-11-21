@@ -1,123 +1,26 @@
 # Chirality App
 
-Start a conversation with Help Human, the assistant in Chirality App. Work out
-what you need, make a plan when it helps, and carry out the work together. Turn
-a useful plan into a workflow for next time.
+The Chirality App: the place to use the Chirality Library's workflows with an
+agent, through a plain interface for workflows. It is being rebuilt on the
+Chirality engine (`sgttomas/chirality-engine`), which supplies the agent,
+conversations, workflows and the person's part in them through one typed Rust
+API.
 
-[Download v3.0.1](https://github.com/sgttomas/chirality-app/releases/tag/v3.0.1) · [Website](https://chirality.ai) · [Release announcement](https://chirality.ai/announcements)
+## What this repository holds
 
-The download is **v3.0.1**. This repository’s `main` branch develops **v4**,
-which is not yet released.
+- **App v3.0.1**, the released app, at the tag `v3.0.1`. Its design language
+  (layout, type, colour, spacing, the feel of the navigator and conversation)
+  carries forward.
+- **App v4**, retired as a product and kept for reference at the tags
+  `app-v4/reference-main` and `app-v4/reference-interface`. What it learned
+  about Codex is recorded in the engine's `SPEC.md`; most of the rest is what
+  not to do. Its code and governance documents are still on `main` until the
+  rebuild replaces them.
 
-## Use the App
+## Related repositories
 
-Bring a task such as a monthly update, a proposal, an investigation, or a review.
-Help Human can organize references, prepare work, and help you check it. You can
-select a workflow from the library or ask it to turn your plan into one. Return
-to the conversation to reuse and refine the method as your work changes.
-
-You direct the work and decide what is ready to rely on. Use review appropriate
-to its consequences.
-
-## Get the App
-
-- **Current release:** [v3.0.1](https://github.com/sgttomas/chirality-app/releases/tag/v3.0.1),
-  published 2026-09-20 as `Chirality-3.0.1-arm64.dmg` with its SHA-256 checksum.
-  App v4 is [in development](#develop-the-app) and does not replace v3.0.1
-  until a separate release decision.
-- **v3.0.1 requirements:** an Apple Silicon Mac with macOS 15 or newer, and a ChatGPT
-  account. v3.0.1 uses Codex through your account and does not offer local-model
-  support.
-- **Your data in v3.0.1:** saved plans, workflows, references, and outputs are ordinary
-  files in your folders. Plans stay in conversation history unless you choose
-  to save them to a file. You can keep and use them outside the App. Task
-  content needed by the model is sent to OpenAI using your account; Chirality
-  AI Ltd does not proxy or retain that content. See
-  [installation and data handling](https://chirality.ai/app#install).
-- **Issues:** [report an App issue](https://github.com/sgttomas/chirality-app/issues/new).
-
-The released v3.0.1 desktop source (`sgttomas/chirality@485051eac923c759238948a54cd7bb094eee4899:projects/chirality-app-dev/frontend`)
-is identified by the release notes. GitHub’s automatic source archives for that
-release contain the release repository’s framework snapshot, not the desktop
-application source.
-
-App v3 is frozen and no longer developed or verified. Its source is archived in
-the Git history of the private `sgttomas/chirality` repository (Chirality Root).
-
-Built on [Chirality](https://github.com/sgttomas/chirality-library)'s principles, roles
-and workflows.
-
-## Develop the App
-
-**Development resumed by owner direction on 2026-10-28.** App v4 has moved here
-from Chirality. The migration does not publish or qualify a v4 release; the
-existing v3.0.1 release remains the fallback.
-
-The [release target](docs/RELEASE_TARGET_4.0.0.md) defines the public v4
-release, version 4.0.0, with the exit criteria that are its definition of done
-and the deliverables that own each.
-
-Chirality makes a general agent act within and for a host application. Its
-workflow-authoring App is the exemplar. [Chirality thesis](https://github.com/sgttomas/chirality-library/blob/main/docs/thesis/README.md)
-develops the reasons for its form; product commitments are in the [PRD](docs/PRD.md),
-its companions and the deliverable Scopes of Work.
-
-Development enters through the [init prompt](init-prompt.md) and the
-[repository instructions](AGENTS.md). Deliverables live
-in `execution/PKG-nn/DEL-nn-nn/`: `ScopeOfWork.md` holds commitments and acceptance
-criteria, and `deliverable.yaml` states needs and code/check pointers. The code,
-tests, schemas and fixtures they point to live under `app/` and `tools/`. Query their inputs and
-consumers with the [deliverables tools](tools/deliverables/README.md).
-For the toolchain, build and launch instructions, start with the
-[App developer start](app/README.md#developer-start). The rest of that README
-describes the current product path, checks and remaining qualification limits.
-
-The Library edition selected in [AGENTS.md](AGENTS.md), and with it the
-Project Management manual in that release, applies to forward development.
-App and host boundaries are in [host integration](docs/HOST_INTEGRATION.md).
-New contract gaps belong in their owning deliverable's scope; PR descriptions
-carry the history of their fixes.
-
-### User documentation
-
-The [App v4 User Manual](docs/user-manual/README.md) is a working draft focused
-on completing tasks and using, testing and improving workflows. Its procedures
-need verification against the release candidate before publication.
-
-### Basis and history
-
-The accepted project basis is identified in [PRD §0](docs/PRD.md), the accepted
-decomposition at its [pointer](execution/_Decomposition/checkpoint_snapshots/_LATEST_ACCEPTED.md),
-and the release obligations in the [release target](docs/RELEASE_TARGET_4.0.0.md).
-Earlier acceptance gates apply to their recorded subjects;
-v4 publication and replacement of v3.0.1 remain separate decisions.
-
-<details>
-<summary>Historical source recovery</summary>
-
-The [accepted decomposition](execution/_Decomposition/checkpoint_snapshots/_LATEST_ACCEPTED.md)
-retains its original decision record. The project DAG records, the conceptual
-records and the local thesis copy are no longer in the working tree; they
-remain in this repository's Git history.
-Old setup logs, handoffs and acceptance packets are recoverable in the
-pre-contract-register-retirement archive (`sgttomas/chirality@archive/app-v4-pre-contract-register-retirement-20261011:projects/chirality-app-v4`).
-Earlier AgentRuns are in the
-pre-efficiency-cleanup archive (`sgttomas/chirality@archive/pre-efficiency-cleanup-2026-10-09:projects/chirality-app-v4/execution/_Coordination/AgentRuns`).
-These sources preserve history; they do not define a standing development backlog.
-
-</details>
-
-### Layout
-
-| Path | Contents |
-|---|---|
-| [docs/](docs/) | PRD, architecture, host integration, examination and operating method |
-| [app/](app/) | Rust host, web view and maintained product checks |
-| [execution/](execution/) | Deliverable scopes of work and dependency conditions |
-| [reference/](reference/) | Identified source revisions and inventories |
-
-## License
-
-Repository code is available under the [MIT License](LICENSE.md). Bundled
-third-party components retain their own licenses, terms and notices; the
-repository license does not replace them.
+| Repository | What it is |
+| --- | --- |
+| `sgttomas/chirality-engine` | The engine every Chirality application builds on |
+| `sgttomas/chirality-library` | The workflows and roles the app offers |
+| `sgttomas/epc-project-init` | An application for FEED estimates and schedules, built on the engine |

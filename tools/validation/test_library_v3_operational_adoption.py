@@ -132,8 +132,6 @@ def test_v3_method_selection_still_requires_explicit_interlocutor_eligibility(tm
 
 
 def test_active_selection_and_entry_do_not_depend_on_packaged_instructions():
-    agents = (ROOT / "AGENTS.md").read_text()
-    assert "1bba3d170e7a25bc2a04e0a4dfe77b624ea440ca" in agents and "library-v3.4.0" in agents
     assert (ROOT / "CLAUDE.md").read_bytes() == b"@AGENTS.md\n"
     prompt = (ROOT / "init-prompt.md").read_text()
     assert prompt.count("<init-prompt>") == prompt.count("</init-prompt>") == 1

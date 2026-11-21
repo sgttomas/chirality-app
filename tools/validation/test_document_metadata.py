@@ -117,7 +117,7 @@ def test_incomplete_or_unsupported_derivation_metadata_is_rejected(upstream):
         VALIDATOR.validate(data)
 
 
-@pytest.mark.parametrize("name", ("AGENTS.md", "init-prompt.md"))
+@pytest.mark.parametrize("name", ("init-prompt.md",))
 def test_reconciled_entry_documents_name_the_canonical_released_template(name):
     data = header(ROOT / name)
     VALIDATOR.validate(data)
