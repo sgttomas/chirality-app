@@ -71,7 +71,7 @@ JavaScript, JSON and Markdown under `app/examination/standalone/` and the
 macOS job reads; and the Chirality App on the engine, everything under `apps/`.
 An `apps/` path selects repository checks whatever the change (addition,
 modification, deletion or mode change), except a symbolic link or gitlink. Its
-own checks need the private engine and run where the engine can be fetched.
+own checks fetch the engine at its pinned revision and run outside these jobs.
 
 Every narrowing rule, the documentary paths and `execution/` included, applies
 only to a path of printable ASCII; any other spelling selects product checks,

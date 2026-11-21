@@ -11,8 +11,7 @@ start). Workflows come from the bundled Library edition and the project's own
 It is built from the engine's parts (`sgttomas/chirality-engine`): the crate
 `chirality-engine-tauri` and the package `@chirality/engine-ui`, both at one
 engine revision named in `src-tauri/Cargo.toml` and `package.json` (a test
-checks they agree). The engine repository is private: fetching it uses your
-own SSH access to GitHub.
+checks they agree). Both are fetched from GitHub over SSH.
 
 ## Build
 

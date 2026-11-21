@@ -51,7 +51,7 @@ PRODUCT_DOMAINS = (
     "tools/", "workflows/",
 )
 # Class C, the Chirality App on the engine: no App v4 job reads anything under
-# apps/, and its own checks need the private engine, so they run locally.
+# apps/; its own checks fetch the engine at its pin and run outside these jobs.
 ENGINE_APP_ROOT = "apps/"
 PRODUCT_FILES = frozenset({".gitattributes", ".gitignore", "CLAUDE.md", "LICENSE.md"})
 OID = re.compile(r"[0-9a-f]{40}(?:[0-9a-f]{24})?\Z")
