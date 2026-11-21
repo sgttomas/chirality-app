@@ -181,7 +181,7 @@ def test_unknowns_anywhere_keep_every_product_job(repo, path):
 
 @pytest.mark.parametrize("path", [
     "app/src/new.rs", "docs/document-metadata.schema.json", "tools/ci/select_checks.py",
-    "reference/library-v3.1.0/README.md",
+    "reference/library-v3.1.0/README.md", "apps/desktop/README.md",
 ])
 def test_new_documentary_exceptions_do_not_swallow_product_domains(repo, path):
     base = git(repo, "rev-parse", "HEAD")

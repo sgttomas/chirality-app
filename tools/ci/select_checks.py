@@ -47,7 +47,7 @@ MACOS_INPUTS_IN_CLASS_ROOTS = (
 # These domains contain code, contracts, fixtures or retained source inputs.
 # Documentary exceptions above take precedence; unfamiliar domains stay unmatched.
 PRODUCT_DOMAINS = (
-    ".github/actions/", ".github/workflows/", "app/", "docs/", "reference/",
+    ".github/actions/", ".github/workflows/", "app/", "apps/", "docs/", "reference/",
     "tools/", "workflows/",
 )
 PRODUCT_FILES = frozenset({".gitattributes", ".gitignore", "CLAUDE.md", "LICENSE.md"})

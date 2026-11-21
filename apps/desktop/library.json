@@ -1,0 +1,10 @@
+{
+  "tag": "library-v3.4.0",
+  "commit": "1bba3d170e7a25bc2a04e0a4dfe77b624ea440ca",
+  "archive": {
+    "name": "chirality-library-3.4.0-source.tar",
+    "sha256": "b4f0ec20b5e9a26125a16002e95895e5171ebeb6d4e44664e400f18dfe9eb7b5"
+  },
+  "digest": "695e035bb4db8c12a9413f7f9d09fb4bbd5e1d3722c24041a74a03eab323273b",
+  "license": "495c4cd17baafde07be4c358bd47237f259bb2e01914e94114efc97d7fa721da"
+}

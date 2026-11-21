@@ -8,6 +8,9 @@ API.
 
 ## What this repository holds
 
+- **The Chirality App**, rebuilt on the engine, at `apps/desktop`: the
+  standard layout built from the engine's adapter and interface parts. See
+  [its README](apps/desktop/README.md).
 - **App v3.0.1**, the released app, at the tag `v3.0.1`. Its design language
   (layout, type, colour, spacing, the feel of the navigator and conversation)
   carries forward.

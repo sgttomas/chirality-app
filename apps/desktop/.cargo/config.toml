@@ -1,0 +1,3 @@
+# The engine is a private GitHub repository reached over SSH; Cargo fetches it with git.
+[net]
+git-fetch-with-cli = true
