@@ -47,9 +47,12 @@ MACOS_INPUTS_IN_CLASS_ROOTS = (
 # These domains contain code, contracts, fixtures or retained source inputs.
 # Documentary exceptions above take precedence; unfamiliar domains stay unmatched.
 PRODUCT_DOMAINS = (
-    ".github/actions/", ".github/workflows/", "app/", "apps/", "docs/", "reference/",
+    ".github/actions/", ".github/workflows/", "app/", "docs/", "reference/",
     "tools/", "workflows/",
 )
+# Class C, the Chirality App on the engine: no App v4 job reads anything under
+# apps/, and its own checks need the private engine, so they run locally.
+ENGINE_APP_ROOT = "apps/"
 PRODUCT_FILES = frozenset({".gitattributes", ".gitignore", "CLAUDE.md", "LICENSE.md"})
 OID = re.compile(r"[0-9a-f]{40}(?:[0-9a-f]{24})?\Z")
 RAW_HEADER = re.compile(
@@ -110,6 +113,8 @@ def path_rule(path: str) -> str:
             return "governing-text"
         if path.startswith(EXAMINATION_ROOTS) and path.endswith(EXAMINATION_SUFFIXES):
             return "examination"
+        if path.startswith(ENGINE_APP_ROOT):
+            return "engine-app"
     if path in PRODUCT_FILES:
         return "product-file"
     if path.startswith(PRODUCT_DOMAINS):
@@ -166,6 +171,7 @@ REPOSITORY_RULES = {
     "documentary": "Audited documentary file",
     "governing-text": "Governing text read only by repository checks",
     "examination": "Examination tooling run only by repository checks",
+    "engine-app": "The Chirality App on the engine, read by no App v4 job",
 }
 
 
@@ -175,6 +181,9 @@ def classify(change: dict[str, str]) -> dict[str, str]:
              "Explicit product input requires product verification"
     if not plain(change["path"]):
         reason = "Only printable ASCII paths can skip product verification"
+    elif rule == "engine-app" and change["new_mode"] not in ALIAS_MODES:
+        # Any addition, modification, deletion or mode change: no App v4 job reads the tree.
+        return {**change, "rule": rule, "checks": "repository", "reason": REPOSITORY_RULES[rule]}
     if change["status"] not in {"A", "M"}:
         reason = "Deletion or file-type change requires product verification"
     elif change["new_mode"] != "100644" or change["old_mode"] not in {"000000", "100644"}:

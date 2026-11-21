@@ -181,7 +181,7 @@ def test_unknowns_anywhere_keep_every_product_job(repo, path):
 
 @pytest.mark.parametrize("path", [
     "app/src/new.rs", "docs/document-metadata.schema.json", "tools/ci/select_checks.py",
-    "reference/library-v3.1.0/README.md", "apps/desktop/README.md",
+    "reference/library-v3.1.0/README.md",
 ])
 def test_new_documentary_exceptions_do_not_swallow_product_domains(repo, path):
     base = git(repo, "rev-parse", "HEAD")
@@ -1118,3 +1118,42 @@ def test_reviewer_link_consumer_commit_is_refused(repo):
                  "app/tests/font_notice_test.py": ("100644", b"# reads r2-assets/r2-input.json\n")})
     plumb(repo, {"app/tests/r2-assets": ("120000", b"../examination/standalone")})
     assert subject.inventory(repo)["links"] == ["app/tests/r2-assets (symbolic link)"]
+
+
+@pytest.mark.parametrize("path", [
+    "apps/desktop/README.md", "apps/desktop/src/App.tsx", "apps/desktop/src-tauri/src/lib.rs",
+    "apps/desktop/package-lock.json", "apps/desktop/src-tauri/icons/icon.png",
+])
+def test_engine_app_changes_select_only_repository_checks(repo, path):
+    base = git(repo, "rev-parse", "HEAD")
+    write(repo, path)
+    result = selection(repo, base)
+    assert result["mode"] == "prose" and result["run_product"] is False
+    assert result["changes"][0]["rule"] == "engine-app" and result["changes"][0]["checks"] == "repository"
+
+
+def test_engine_app_deletions_and_mode_changes_stay_repository(repo):
+    write(repo, "apps/desktop/scripts/library.mjs")
+    base = commit(repo)
+    (repo / "apps/desktop/scripts/library.mjs").chmod(0o755)
+    moded = selection(repo, base)
+    assert moded["run_product"] is False and moded["changes"][0]["new_mode"] == "100755"
+    (repo / "apps/desktop/scripts/library.mjs").unlink()
+    deleted = selection(repo, base)
+    assert deleted["run_product"] is False and deleted["changes"][0]["status"] == "D"
+
+
+def test_engine_app_links_and_other_spellings_keep_product(repo):
+    base = git(repo, "rev-parse", "HEAD")
+    (repo / "apps").mkdir()
+    (repo / "apps/link").symlink_to("../app")
+    assert selection(repo, base)["run_product"] is True
+    for path in ["Apps/desktop/README.md", "apps/desktop/\u017f.md", "appsx/README.md", "app/src/App.tsx"]:
+        assert subject.path_rule(path) != "engine-app", path
+
+
+def test_engine_app_beside_a_product_path_keeps_product(repo):
+    base = git(repo, "rev-parse", "HEAD")
+    write(repo, "apps/desktop/README.md")
+    write(repo, "app/src/App.tsx")
+    assert selection(repo, base)["run_product"] is True
