@@ -52,3 +52,5 @@ CHIRALITY_CODEX_BIN=<the pinned codex> CODEX_HOME=<a Codex home> \
 
 Change the revision in `src-tauri/Cargo.toml` and `package.json`, then
 `npm install` and `cargo update -p chirality-engine-tauri` (in `src-tauri`).
+npm writes the engine's `resolved` line in `package-lock.json` as `git+ssh`; put it
+back to `git+https` (the pin test fails until it is).
