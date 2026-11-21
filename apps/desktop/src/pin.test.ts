@@ -71,3 +71,12 @@ describe("the bundled Library", () => {
     expect(JSON.parse(tauriConf).bundle.resources).toEqual({ [`library/${edition.tag}/`]: `library/${edition.tag}/` });
   });
 });
+
+describe("the app's identity", () => {
+  it("is a development build, apart from the installed Chirality, at one version", () => {
+    const conf = JSON.parse(tauriConf);
+    expect(conf.identifier).toBe("com.chirality.app.dev");
+    const versions = [conf.version, JSON.parse(npmPackage).version, /^version = "([^"]+)"$/m.exec(cargoToml)?.[1]];
+    expect(versions).toEqual(["4.0.0-dev", "4.0.0-dev", "4.0.0-dev"]);
+  });
+});

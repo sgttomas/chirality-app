@@ -15,6 +15,10 @@ It is built from the engine's parts (`sgttomas/chirality-engine`): the crate
 engine revision named in `src-tauri/Cargo.toml` and `package.json` (a test
 checks they agree). Both are fetched from GitHub over SSH.
 
+Development builds are version `4.0.0-dev` with the bundle identifier
+`com.chirality.app.dev`, apart from an installed Chirality's preferences, data
+and grants. The release identifier is chosen at release.
+
 ## Build
 
 ```sh
