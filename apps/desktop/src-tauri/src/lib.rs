@@ -8,7 +8,7 @@ use tauri::{AppHandle, Manager, Runtime};
 
 /// The engine's setup. `CHIRALITY_CODEX_BIN` names the pinned Codex (by
 /// default `codex` among the app's resources); `CHIRALITY_WORKFLOW_ROOTS`
-/// (a `:`-separated list) replaces the bundled Library. Codex uses the
+/// (a `:`-separated list) replaces the bundled Library edition. Codex uses the
 /// person's own home, or `CODEX_HOME`.
 fn config<R: Runtime>(app: &AppHandle<R>) -> Result<EngineConfig, Box<dyn std::error::Error>> {
     let resources = app.path().resource_dir()?;
@@ -27,12 +27,13 @@ fn config<R: Runtime>(app: &AppHandle<R>) -> Result<EngineConfig, Box<dyn std::e
     })
 }
 
-/// The bundled Library edition's workflows: `library/<edition>/workflows`.
+/// The pinned Library edition (`library.json`).
+const EDITION: &str = env!("CHIRALITY_LIBRARY_TAG");
+
+/// The bundled Library edition's workflows, `library/<the pinned edition>/workflows`, and no other edition's.
 fn library(dir: &Path) -> Vec<PathBuf> {
-    let Ok(entries) = std::fs::read_dir(dir) else { return Vec::new() };
-    let mut roots: Vec<PathBuf> = entries.filter_map(|e| Some(e.ok()?.path().join("workflows"))).filter(|p| p.is_dir()).collect();
-    roots.sort();
-    roots
+    let workflows = dir.join(EDITION).join("workflows");
+    if workflows.is_dir() { vec![workflows] } else { Vec::new() }
 }
 
 pub fn run() {
@@ -49,11 +50,14 @@ pub fn run() {
 #[cfg(test)]
 mod tests {
     #[test]
-    fn the_bundled_library_is_each_editions_workflows() {
+    fn the_bundled_library_is_the_pinned_editions_workflows_only() {
+        let edition = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/../library.json")).unwrap();
+        assert!(edition.contains(&format!("\"tag\": \"{}\"", super::EDITION)), "the pinned edition is library.json's");
         let dir = std::env::temp_dir().join(format!("chirality-app-library-{}", std::process::id()));
-        std::fs::create_dir_all(dir.join("library-v3.4.0/workflows")).unwrap();
+        std::fs::create_dir_all(dir.join(super::EDITION).join("workflows")).unwrap();
+        std::fs::create_dir_all(dir.join("library-v9.9.9/workflows")).unwrap();
         std::fs::create_dir_all(dir.join("stray")).unwrap();
-        assert_eq!(super::library(&dir), vec![dir.join("library-v3.4.0/workflows")]);
+        assert_eq!(super::library(&dir), vec![dir.join(super::EDITION).join("workflows")]);
         assert!(super::library(&dir.join("absent")).is_empty());
         std::fs::remove_dir_all(dir).unwrap();
     }

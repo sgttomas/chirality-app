@@ -6,7 +6,9 @@ file references, the workflow picker, model, reasoning and access), the side
 panel on the right (the thread's changes as diffs, the workflow in use, a
 preview of a changed file), and first use (sign in, add a project folder,
 start). Workflows come from the bundled Library edition and the project's own
-`.chirality/workflows`.
+`.chirality/workflows`. The app bundles and loads the edition `library.json`
+names and no other; `npm run library` stages it as real files (refusing
+links) and checks the whole staged tree against `library.json`.
 
 It is built from the engine's parts (`sgttomas/chirality-engine`): the crate
 `chirality-engine-tauri` and the package `@chirality/engine-ui`, both at one

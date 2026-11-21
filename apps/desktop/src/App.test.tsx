@@ -3,9 +3,11 @@ import { act, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { engineData, mount, ReplayTransport, settle } from "@chirality/engine-ui/testing";
+import { createEngineClient, describeError, Store } from "@chirality/engine-ui";
+import { engineData, mount, ReplayTransport, settle, testHost } from "@chirality/engine-ui/testing";
+import { render } from "@testing-library/react";
 
-import { App } from "./App";
+import { App, Root } from "./App";
 
 const signedIn = (name: string) => new ReplayTransport(engineData(name), (s) => ({ ...s, account: { state: "signedIn", email: "person@example.com", plan: null } }));
 
@@ -50,5 +52,16 @@ describe("the Chirality App", () => {
     await act(async () => void engine.play());
     await settle();
     expect(screen.getByText("estimate")).toBeInTheDocument();
+  });
+
+  it("shows why it could not start, when the engine could not", async () => {
+    const refused = { kind: "codexUnavailable", message: "No such file or directory (os error 2)" };
+    const client = createEngineClient({ invoke: () => Promise.reject(refused), listen: async () => () => {} });
+    const store = new Store(client, testHost);
+    render(<Root store={store} started={store.start().then(() => null, describeError)} />);
+    await settle();
+    const alert = screen.getByRole("alert");
+    expect(within(alert).getByRole("heading", { name: "Chirality couldn't start" })).toBeInTheDocument();
+    expect(alert).toHaveTextContent("Codex isn't running: No such file or directory (os error 2)");
   });
 });

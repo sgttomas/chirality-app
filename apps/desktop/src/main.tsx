@@ -1,12 +1,12 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
-import { applyTheme, EngineProvider, Store, storedTheme, type EngineClient, type Host, type PanelTab } from "@chirality/engine-ui";
+import { applyTheme, describeError, Store, storedTheme, type EngineClient, type Host, type PanelTab } from "@chirality/engine-ui";
 import { inTauri } from "@chirality/engine-ui/tauri";
 import "@chirality/engine-ui/tokens.css";
 import "@chirality/engine-ui/page.css";
 
-import { App } from "./App";
+import { Root } from "./App";
 
 interface Start {
   engine: EngineClient;
@@ -33,14 +33,17 @@ async function boot() {
   applyTheme(theme === "dark" || theme === "system" ? theme : storedTheme());
   const start = await connect();
   const store = new Store(start.engine, start.host);
-  await store.start();
-  if (start.thread) await store.selectThread(start.thread);
-  else if (store.get().project) store.selectProject(start.project ?? store.get().project!);
+  const started = store.start().then(
+    async () => {
+      if (start.thread) await store.selectThread(start.thread);
+      else if (start.project) store.selectProject(start.project);
+      return null;
+    },
+    (e: unknown) => describeError(e),
+  );
   createRoot(document.getElementById("root")!).render(
     <StrictMode>
-      <EngineProvider store={store}>
-        <App panel={start.panel} />
-      </EngineProvider>
+      <Root store={store} started={started} panel={start.panel} />
     </StrictMode>,
   );
 }

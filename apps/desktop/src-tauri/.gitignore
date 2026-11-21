@@ -1,3 +1,2 @@
 /gen/
-/library/*
-!/library/.gitkeep
+/library/
