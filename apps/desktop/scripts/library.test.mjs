@@ -3,13 +3,15 @@
 // every file accounted for; and never at the cost of its source or of what was staged before.
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, copyFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { checkStaged, digest, files, stage } from "./library.mjs";
+import { checkStaged, digest, files, recover, stage } from "./library.mjs";
+
+const statMode = (path) => statSync(path).mode;
 
 let root;
 afterEach(() => root && rmSync(root, { recursive: true, force: true }));
@@ -78,6 +80,24 @@ describe("staging the Library edition", () => {
     mkdirSync(viaLink);
     symlinkSync(join(source, "tools"), join(viaLink, "tools"));
     expect(() => stage(viaLink, library, meta)).toThrow(/tools is a link/);
+    const link = join(root, "link to edition");
+    symlinkSync(source, link);
+    expect(() => stage(link, library, meta)).toThrow(/link to edition is a link/);
+    expect(existsSync(library)).toBe(false);
+  });
+
+  it("refuses an edition whose file lost its executable flag, or that gained an empty folder", () => {
+    const { source, library, meta: plain } = edition();
+    chmodSync(join(source, "tools/validation/validate_enum.py"), 0o755);
+    const meta = { ...plain, digest: digest(source) };
+    expect(meta.digest).not.toBe(plain.digest);
+    stage(source, library, meta);
+    expect((0o111 & Number(statMode(join(library, meta.tag, "tools/validation/validate_enum.py")))) !== 0).toBe(true);
+    chmodSync(join(library, meta.tag, "tools/validation/validate_enum.py"), 0o644);
+    expect(checkStaged(library, meta)).toMatch(/is not library-v0\.0\.1/);
+    chmodSync(join(library, meta.tag, "tools/validation/validate_enum.py"), 0o755);
+    mkdirSync(join(library, meta.tag, "workflows/empty"));
+    expect(checkStaged(library, meta)).toMatch(/empty is an empty folder/);
   });
 
   it("refuses a staged link even where the digest would match through it", () => {
@@ -99,7 +119,7 @@ describe("staging the Library edition", () => {
       expect(checkStaged(library, meta)).toMatch(/is not library-v0\.0\.1: 7 files/);
       rmSync(join(library, meta.tag, extra));
     }
-    rmSync(join(library, meta.tag, "tools/validation/validate_enum.py"));
+    rmSync(join(library, meta.tag, "README.md"));
     expect(checkStaged(library, meta)).toMatch(/is not library-v0\.0\.1: 5 files/);
   });
 
@@ -111,6 +131,38 @@ describe("staging the Library edition", () => {
     expect(checkStaged(library, meta)).toBeNull();
     expect(() => stage(source, join(source, "resources", "library"), meta)).toThrow(/overlaps/);
     expect(digest(source, (n) => n === ".DS_Store")).toBe(meta.digest);
+  });
+
+  it("refuses a source inside what it would replace however either is spelled, and it survives", () => {
+    const { source, archive, library, meta } = edition();
+    stage(source, library, meta);
+    // An entry of the staged folder whose name starts with two dots.
+    const inside = join(library, "..edition");
+    cpSync(source, inside, { recursive: true });
+    expect(() => stage(inside, library, meta)).toThrow(/overlaps/);
+    expect(digest(inside)).toBe(meta.digest);
+    const tar = join(library, "..source.tar");
+    copyFileSync(archive, tar);
+    expect(() => stage(tar, library, meta)).toThrow(/overlaps/);
+    expect(existsSync(tar)).toBe(true);
+    // The staged folder reached by another name: a link to it, and (where the volume ignores case) another case.
+    const alias = join(root, "resources", "alias");
+    symlinkSync(library, alias);
+    expect(() => stage(inside, alias, meta)).toThrow(/overlaps/);
+    if (existsSync(join(root, "resources", "LIBRARY"))) expect(() => stage(inside, join(root, "resources", "LIBRARY"), meta)).toThrow(/overlaps/);
+    expect(digest(inside)).toBe(meta.digest);
+  });
+
+  it("puts back what an interrupted staging had set aside", () => {
+    const { source, library, meta } = edition();
+    stage(source, library, meta);
+    // Stopped between setting the staged edition aside and putting the new one in its place.
+    const work = join(library, "..", ".library-staging-stopped");
+    mkdirSync(work);
+    renameSync(library, join(work, "previous"));
+    recover(library);
+    expect(checkStaged(library, meta)).toBeNull();
+    expect(readdirSync(join(library, ".."))).toEqual(["library"]);
   });
 
   it("leaves what was staged before when a staging fails, and no work behind", () => {

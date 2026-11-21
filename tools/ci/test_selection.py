@@ -932,7 +932,7 @@ def test_repository_checks_run_every_consumer_of_the_narrowed_classes():
 # Every file outside a narrowed class that names one of its paths, and why that
 # reader is not a macOS product input (docs/CI_SELECTION.md mapping).
 # The engine app's root, apps/ (not @tauri-apps/ and the like).
-ENGINE_APP_REFERENCE = re.compile(r"(?<![\w./@-])apps/|\.\./apps/")
+ENGINE_APP_REFERENCE = re.compile(r"(?<![\w./@-])apps/|(?<![\w.@-])\./apps/|\.\./apps\b|[\"']apps[\"']|\bcd apps\b")
 CLASS_REFERENCE = re.compile(r"group_b[_*]|standalone/|(?<![\w./-])docs/|\.\./docs/|[\"'](docs|standalone)[\"']|" + ENGINE_APP_REFERENCE.pattern)
 KNOWN_REFERRERS = {
     ".github/workflows/governance-harness.yml": "repository-checks runs the Group B suites",

@@ -4,7 +4,8 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   plugins: [react()],
   clearScreen: false,
-  server: { host: "127.0.0.1", port: 1420, strictPort: true },
+  // src-tauri holds the staged Library and Cargo's output, none of it the interface's source.
+  server: { host: "127.0.0.1", port: 1420, strictPort: true, watch: { ignored: ["**/src-tauri/**"] } },
   test: {
     environment: "jsdom",
     globals: true,

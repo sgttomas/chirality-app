@@ -4,13 +4,14 @@
 // was extracted to:
 //   CHIRALITY_LIBRARY=<chirality-library-…-source.tar, or its extracted folder> npm run library
 // The archive is checked against library.json's archive digest, and every file of the edition against
-// library.json's digest of the whole tree, before staging and again after; links are refused. It is
-// staged beside the resources and swapped in only once checked, so a failure leaves them as they were.
-// With no source given, it checks what is staged.
+// library.json's digest of the whole tree (each file's bytes, and whether it is executable), before
+// staging and again after; links and empty folders are refused. It is staged beside the resources and
+// swapped in only once checked, so a failure leaves them as they were, and what an interrupted
+// staging had set aside is put back. With no source given, it checks what is staged.
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { copyFileSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, renameSync, rmSync } from "node:fs";
-import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
+import { copyFileSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, renameSync, rmSync, statSync } from "node:fs";
+import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const sha256 = (path) => createHash("sha256").update(readFileSync(path)).digest("hex");
@@ -25,12 +26,13 @@ function kind(path) {
   return "not a file or folder";
 }
 
-/** Every file under `dir`, relative to it; a link or anything else not a file or folder is refused.
- * `skip` names entries left out (the source's Finder files). */
+/** Every file under `dir`, relative to it; a link, an empty folder or anything else not a file or
+ * folder is refused. `skip` names entries left out (the source's Finder files). */
 export function files(dir, skip = () => false) {
-  return readdirSync(dir).flatMap((name) => {
+  const names = readdirSync(dir).filter((name) => !skip(name));
+  if (!names.length) throw new Error(`${dir} is an empty folder`);
+  return names.flatMap((name) => {
     const path = join(dir, name);
-    if (skip(name)) return [];
     const k = kind(path);
     if (k === "folder") return files(path, skip).map((f) => join(name, f));
     if (k === "file") return [name];
@@ -38,9 +40,12 @@ export function files(dir, skip = () => false) {
   });
 }
 
-/** sha256 of the sorted "<sha256>  <path>" lines of every file under `dir`. */
+const executable = (path) => (lstatSync(path).mode & 0o111) !== 0;
+
+/** sha256 of the sorted "<sha256>  <path>" lines of every file under `dir`, an executable file's
+ * line ending "  x". */
 export function digest(dir, skip) {
-  const lines = files(dir, skip).map((f) => `${sha256(join(dir, f))}  ${f}`).sort();
+  const lines = files(dir, skip).map((f) => `${sha256(join(dir, f))}  ${f}${executable(join(dir, f)) ? "  x" : ""}`).sort();
   return createHash("sha256").update(lines.join("\n") + "\n").digest("hex");
 }
 
@@ -84,11 +89,16 @@ function copy(from, to) {
   }
 }
 
-/** Whether `path` is `folder` or inside it. */
-function within(path, folder) {
-  const rest = relative(folder, path);
-  return rest === "" || (!rest.startsWith("..") && !isAbsolute(rest));
+/** What the file system says `path` (or, where it does not exist, the nearest folder above it) and
+ * every folder above it are: the same folder under another spelling is the same one. */
+function lineage(path) {
+  const stat = statSync(path, { bigint: true, throwIfNoEntry: false });
+  const parent = dirname(path);
+  return [...(stat ? [`${stat.dev}:${stat.ino}`] : []), ...(parent === path ? [] : lineage(parent))];
 }
+
+/** Whether `path`, which exists, is `folder` or inside it. */
+const within = (path, folder) => existsSync(folder) && lineage(path).includes(lineage(folder)[0]);
 
 /** `path` with its nearest existing folder's real path. */
 function real(path) {
@@ -97,13 +107,28 @@ function real(path) {
   return parent === path ? path : join(real(parent), basename(path));
 }
 
+/** Puts back what an interrupted staging had set aside, when nothing is staged. */
+export function recover(library) {
+  const to = resolve(library);
+  if (kind(to) !== "missing" || kind(dirname(to)) !== "folder") return;
+  for (const name of readdirSync(dirname(to)).filter((n) => n.startsWith(".library-staging-"))) {
+    const previous = join(dirname(to), name, "previous");
+    if (kind(previous) !== "folder") continue;
+    renameSync(previous, to);
+    rmSync(join(dirname(to), name), { recursive: true, force: true });
+    return;
+  }
+}
+
 /** Stages `source` (`edition`'s source archive, or a folder it was extracted to) as the whole of
- * `library`. Nothing is removed until the staged copy is checked; a source that overlaps `library`
- * is refused first. */
+ * `library`. Nothing is removed until the staged copy is checked; a source that is a link, or that
+ * overlaps `library`, is refused first. */
 export function stage(source, library, edition) {
+  if (kind(source) === "a link") throw new Error(`${source} is a link`);
   const from = realpathSync(source);
   const to = join(real(dirname(resolve(library))), basename(library));
-  const overlaps = [to, existsSync(to) ? realpathSync(to) : to].some((t) => within(from, t) || within(t, from));
+  // `from` in what would be replaced (as named, or where a link there leads), or holding it.
+  const overlaps = within(from, to) || [to, ...(existsSync(to) ? [realpathSync(to)] : [])].some((t) => lineage(t).includes(lineage(from)[0]));
   if (overlaps) throw new Error(`${source} overlaps ${library}: stage from an archive or extraction outside it`);
   mkdirSync(dirname(to), { recursive: true });
   const work = mkdtempSync(join(dirname(to), ".library-staging-"));
@@ -140,6 +165,7 @@ if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.me
   const edition = JSON.parse(readFileSync(join(here, "library.json"), "utf8"));
   const library = join(here, "src-tauri", "library");
   const source = process.env.CHIRALITY_LIBRARY;
+  recover(library);
   if (source) stage(source, library, edition);
   const problem = checkStaged(library, edition);
   if (problem) throw new Error(source ? problem : `${problem}; set CHIRALITY_LIBRARY to ${edition.archive.name} or its extracted folder`);

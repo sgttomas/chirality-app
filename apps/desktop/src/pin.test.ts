@@ -20,10 +20,10 @@ function lockedCrates(lock: string) {
 
 /** The revision each entry names, or what it names instead. */
 function pins(files: { cargoToml: string; cargoLock: string; npmPackage: string; npmLock: string }) {
-  const rev = /^chirality-engine-tauri = \{ git = "ssh:\/\/git@github\.com\/sgttomas\/chirality-engine\.git", rev = "([0-9a-f]{40})" \}$/m.exec(files.cargoToml)?.[1];
-  const npm = (spec: string | undefined) => /^git\+ssh:\/\/git@github\.com\/sgttomas\/chirality-engine\.git#([0-9a-f]{40})::path:packages\/ui$/.exec(spec ?? "")?.[1] ?? spec;
+  const rev = /^chirality-engine-tauri = \{ git = "https:\/\/github\.com\/sgttomas\/chirality-engine\.git", rev = "([0-9a-f]{40})" \}$/m.exec(files.cargoToml)?.[1];
+  const npm = (spec: string | undefined) => /^git\+https:\/\/github\.com\/sgttomas\/chirality-engine\.git#([0-9a-f]{40})::path:packages\/ui$/.exec(spec ?? "")?.[1] ?? spec;
   const cargo = (source: string | undefined) => {
-    const m = /^git\+ssh:\/\/git@github\.com\/sgttomas\/chirality-engine\.git\?rev=([0-9a-f]{40})#([0-9a-f]{40})$/.exec(source ?? "");
+    const m = /^git\+https:\/\/github\.com\/sgttomas\/chirality-engine\.git\?rev=([0-9a-f]{40})#([0-9a-f]{40})$/.exec(source ?? "");
     return m && m[1] === m[2] ? m[1] : source;
   };
   const lock = JSON.parse(files.npmLock);

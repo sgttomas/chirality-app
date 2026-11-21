@@ -4,7 +4,7 @@
 //   npm run check-bundle [-- <path to the .app>]
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync } from "node:fs";
+import { lstatSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -21,15 +21,18 @@ const problems = [];
 const library = checkStaged(join(resources, "library"), edition);
 if (library) problems.push(library);
 
-const step = (value) =>
-  spawnSync("python3", ["tools/validation/validate_enum.py", "BASIS_OF_ESTIMATE", value], { cwd: join(resources, "library", edition.tag), encoding: "utf8" });
-const quote = step("QUOTE");
-if (quote.status !== 0) problems.push(`estimate-snapshot's step zero failed for QUOTE: ${quote.error?.message ?? (quote.stderr || quote.stdout).trim()}`);
-if (step("GUESS").status === 0) problems.push("estimate-snapshot's step zero accepted GUESS");
+// Nothing of a Library that is not the pinned edition is run.
+if (!library) {
+  const step = (value) =>
+    spawnSync("python3", ["tools/validation/validate_enum.py", "BASIS_OF_ESTIMATE", value], { cwd: join(resources, "library", edition.tag), encoding: "utf8" });
+  const quote = step("QUOTE");
+  if (quote.status !== 0) problems.push(`estimate-snapshot's step zero failed for QUOTE: ${quote.error?.message ?? (quote.stderr || quote.stdout).trim()}`);
+  if (step("GUESS").status === 0) problems.push("estimate-snapshot's step zero accepted GUESS");
+}
 
 const licence = join(resources, "licenses", "LICENSE-IBM-Plex-OFL.txt");
 const shipped = join(here, "node_modules", "@chirality", "engine-ui", "src", "fonts", "LICENSE-IBM-Plex-OFL.txt");
-if (!existsSync(licence)) problems.push(`${licence} is missing`);
+if (!lstatSync(licence, { throwIfNoEntry: false })?.isFile()) problems.push(`${licence} is missing or not a file`);
 else if (sha256(licence) !== sha256(shipped)) problems.push(`${licence} is not the engine package's fonts licence`);
 
 if (problems.length) {
