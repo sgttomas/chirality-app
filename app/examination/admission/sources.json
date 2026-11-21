@@ -1,7 +1,0 @@
-{
-  "sources": {
-    "app/examination/admission/exam.change-impact.schema.json": "b8fcb4586aa8d844fd9700d660f8eb66ccd66893724215b0a5d9cd468500f82f",
-    "app/examination/admission/exam.review-record.schema.json": "b3294a402197ffa67ba1beb85847b60a7cf8d7bf1edf0006703f94faf7344508",
-    "app/src-tauri/resources/external_trace/exam.result-record.schema.json": "f7871c96cef25bb974aea73feca009ed3caf843db5077d80612f13b130af2081"
-  }
-}

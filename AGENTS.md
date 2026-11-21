@@ -12,10 +12,11 @@ This repository is the Chirality App, being rebuilt on the Chirality engine
 and `AGENTS.md`: the engine is the agent; this app is a plain interface for
 using workflows with it.
 
-The v4 code and its governance documents (`execution/`, `docs/`, `tools/`,
-the release target) are retired. They do not govern new work. Read them as
-reference only: what v4 learned about Codex is in the engine's `SPEC.md`, and
-most of the rest is what not to do (the engine's Non-goals list it).
+The app is in `apps/desktop`. The earlier v4 code and its governance documents
+are retired and no longer on `main`; they are kept at the tags
+`app-v4/reference-main` and `app-v4/reference-interface`. What v4 learned
+about Codex is in the engine's `SPEC.md`, and most of the rest is what not to
+do (the engine's Non-goals list it).
 
 ## How to work
 

@@ -17,8 +17,8 @@ API. The rebuilt app is what will be published as Chirality App v4.
 - **An earlier, unreleased attempt at v4**, kept for reference at the
   `app-v4/*` tags (`app-v4/reference-main`, `app-v4/reference-interface`).
   What it learned about Codex is recorded in the engine's `SPEC.md`; most of
-  the rest is what not to do. Its code and governance documents are still on
-  `main` until the rebuild replaces them.
+  the rest is what not to do. Its code and governance documents are no longer
+  on `main`.
 
 ## Related repositories
 

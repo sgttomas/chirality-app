@@ -1,6 +1,0 @@
-{
-  "sources": {
-    "app/src-tauri/resources/external_trace/exam.result-record.schema.json": "f7871c96cef25bb974aea73feca009ed3caf843db5077d80612f13b130af2081",
-    "app/packaging/static_distribution/schemas/pkg.identity-record.schema.json": "efb0de357efc3cfc0a193a8ffdcb9b08d93908b99d51ece614c4c2d6b94e008a"
-  }
-}
