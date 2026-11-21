@@ -21,6 +21,9 @@ most of the rest is what not to do (the engine's Non-goals list it).
 
 - Use the engine only through its API; what the app needs that the engine
   does not offer goes to the engine.
+- Workflows come from the Chirality Library. The edition the app bundles now
+  is tag `library-v3.4.0`, commit `1bba3d170e7a25bc2a04e0a4dfe77b624ea440ca`;
+  changing it is a deliberate change.
 - T3 Code is the pattern for the agent interface; Chirality 3.0.1 (tag
   `v3.0.1`) for the design language only.
 - Keep modules small and single-purpose (about 600 lines at most), types at
