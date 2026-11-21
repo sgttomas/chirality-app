@@ -1,12 +1,16 @@
-// Puts the Library edition the app bundles (library.json) among its resources,
-// at src-tauri/library/<tag> (its workflows and licence), from an extracted copy of that edition:
-//   CHIRALITY_LIBRARY=<the edition's folder, holding workflows/ and LICENSE.md> npm run library
-// The copy is checked against the edition's digest and licence first, and so is
-// everything staged afterwards: src-tauri/library holds that edition and nothing
-// else, as real files and folders. With no folder given, it checks what is staged.
+// Puts the Library edition the app bundles (library.json) among its resources, whole, as released:
+// src-tauri/library/<tag> holds the edition's source archive extracted (its workflows, the tools and
+// files they run, its licence), with edition-relative paths kept. From that archive, or a folder it
+// was extracted to:
+//   CHIRALITY_LIBRARY=<chirality-library-…-source.tar, or its extracted folder> npm run library
+// The archive is checked against library.json's archive digest, and every file of the edition against
+// library.json's digest of the whole tree, before staging and again after; links are refused. It is
+// staged beside the resources and swapped in only once checked, so a failure leaves them as they were.
+// With no source given, it checks what is staged.
+import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { copyFileSync, lstatSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmSync } from "node:fs";
-import { join, relative } from "node:path";
+import { copyFileSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, renameSync, rmSync } from "node:fs";
+import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const sha256 = (path) => createHash("sha256").update(readFileSync(path)).digest("hex");
@@ -42,31 +46,30 @@ export function digest(dir, skip) {
 
 const finder = (name) => name === ".DS_Store";
 
-/** Why `root` (holding workflows/ and LICENSE.md) is not `edition`, if it is not. */
-function checkEdition(root, edition, skip) {
-  const dir = join(root, "workflows");
-  if (kind(dir) !== "folder") return `${dir} is ${kind(dir) === "missing" ? "missing" : `${kind(dir)}, not a folder`}`;
-  const license = join(root, "LICENSE.md");
-  if (kind(license) !== "file") return `${license} is ${kind(license)}`;
+const reason = (check) => {
+  try {
+    return check();
+  } catch (e) {
+    return e.message;
+  }
+};
+
+/** Why `dir` is not the whole of `edition`, file by file, if it is not. */
+function checkTree(dir, edition, skip) {
+  if (kind(dir) !== "folder") return `${dir} is ${kind(dir)}`;
   const found = digest(dir, skip);
-  if (found !== edition.digest) return `${dir} is not ${edition.tag} (digest ${found})`;
-  return sha256(license) === edition.license ? null : `${license} is not ${edition.tag}'s licence`;
+  if (found === edition.digest) return null;
+  return `${dir} is not ${edition.tag}: ${files(dir, skip).length} files, digest ${found}; ${edition.tag} is ${edition.files} files`;
 }
 
 /** Why `library` (the staged resources) is not exactly `edition`, if it is not. */
 export function checkStaged(library, edition) {
-  try {
+  return reason(() => {
     if (kind(library) !== "folder") return `${library} is ${kind(library)}`;
     const extra = readdirSync(library).filter((n) => n !== edition.tag);
     if (extra.length) return `${library} holds more than ${edition.tag}: ${extra.join(", ")}`;
-    const root = join(library, edition.tag);
-    if (kind(root) !== "folder") return `${root} is ${kind(root)}`;
-    const others = readdirSync(root).filter((n) => n !== "workflows" && n !== "LICENSE.md");
-    if (others.length) return `${root} holds more than its workflows and licence: ${others.join(", ")}`;
-    return checkEdition(root, edition);
-  } catch (e) {
-    return e.message;
-  }
+    return checkTree(join(library, edition.tag), edition);
+  });
 }
 
 /** Copies real files and folders only, refusing links. */
@@ -81,22 +84,55 @@ function copy(from, to) {
   }
 }
 
-/** Stages `source` (an extracted `edition`) as the whole of `library`, then checks what was staged. */
+/** Whether `path` is `folder` or inside it. */
+function within(path, folder) {
+  const rest = relative(folder, path);
+  return rest === "" || (!rest.startsWith("..") && !isAbsolute(rest));
+}
+
+/** `path` with its nearest existing folder's real path. */
+function real(path) {
+  const parent = dirname(path);
+  if (existsSync(path)) return realpathSync(path);
+  return parent === path ? path : join(real(parent), basename(path));
+}
+
+/** Stages `source` (`edition`'s source archive, or a folder it was extracted to) as the whole of
+ * `library`. Nothing is removed until the staged copy is checked; a source that overlaps `library`
+ * is refused first. */
 export function stage(source, library, edition) {
-  const root = realpathSync(source);
-  const problem = (() => {
-    try {
-      return checkEdition(root, edition, finder);
-    } catch (e) {
-      return e.message;
+  const from = realpathSync(source);
+  const to = join(real(dirname(resolve(library))), basename(library));
+  const overlaps = [to, existsSync(to) ? realpathSync(to) : to].some((t) => within(from, t) || within(t, from));
+  if (overlaps) throw new Error(`${source} overlaps ${library}: stage from an archive or extraction outside it`);
+  mkdirSync(dirname(to), { recursive: true });
+  const work = mkdtempSync(join(dirname(to), ".library-staging-"));
+  try {
+    let root = from;
+    if (kind(from) === "file") {
+      if (sha256(from) !== edition.archive.sha256) throw new Error(`${source} is not ${edition.archive.name}`);
+      root = join(work, "extracted");
+      mkdirSync(root);
+      execFileSync("tar", ["-xf", from, "-C", root]);
     }
-  })();
-  if (problem) throw new Error(problem);
-  rmSync(library, { recursive: true, force: true });
-  copy(join(root, "workflows"), join(library, edition.tag, "workflows"));
-  copyFileSync(join(root, "LICENSE.md"), join(library, edition.tag, "LICENSE.md"));
-  const staged = checkStaged(library, edition);
-  if (staged) throw new Error(staged);
+    const problem = reason(() => checkTree(root, edition, finder));
+    if (problem) throw new Error(problem);
+    const staged = join(work, "library");
+    copy(root, join(staged, edition.tag));
+    const check = checkStaged(staged, edition);
+    if (check) throw new Error(check);
+    const previous = join(work, "previous");
+    const had = kind(to) !== "missing";
+    if (had) renameSync(to, previous);
+    try {
+      renameSync(staged, to);
+    } catch (e) {
+      if (had) renameSync(previous, to);
+      throw e;
+    }
+  } finally {
+    rmSync(work, { recursive: true, force: true });
+  }
 }
 
 if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
@@ -106,6 +142,6 @@ if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.me
   const source = process.env.CHIRALITY_LIBRARY;
   if (source) stage(source, library, edition);
   const problem = checkStaged(library, edition);
-  if (problem) throw new Error(source ? problem : `${problem}; set CHIRALITY_LIBRARY to the extracted ${edition.tag}`);
-  console.log(`${edition.tag} (${edition.commit}) is in ${relative(here, join(library, edition.tag))}, and nothing else is`);
+  if (problem) throw new Error(source ? problem : `${problem}; set CHIRALITY_LIBRARY to ${edition.archive.name} or its extracted folder`);
+  console.log(`${edition.tag} (${edition.commit}) is in ${relative(here, join(library, edition.tag))}, whole, and nothing else is`);
 }

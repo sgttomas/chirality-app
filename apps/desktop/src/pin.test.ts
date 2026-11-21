@@ -1,6 +1,6 @@
 // One engine revision for the adapter crate and the interface package, entry
-// by entry: each manifest, and what each lockfile resolved; and the bundle
-// carries the pinned Library edition only.
+// by entry: each manifest, and what each lockfile resolved; the bundle carries
+// the pinned Library edition and the fonts' licence; and the app's identity.
 import { describe, expect, it } from "vitest";
 
 import cargoLock from "../src-tauri/Cargo.lock?raw";
@@ -66,9 +66,12 @@ describe("the engine pin", () => {
   });
 });
 
-describe("the bundled Library", () => {
-  it("is the pinned edition's folder only", () => {
-    expect(JSON.parse(tauriConf).bundle.resources).toEqual({ [`library/${edition.tag}/`]: `library/${edition.tag}/` });
+describe("the bundle's resources", () => {
+  it("are the pinned edition's folder and the fonts' licence", () => {
+    expect(JSON.parse(tauriConf).bundle.resources).toEqual({
+      [`library/${edition.tag}/`]: `library/${edition.tag}/`,
+      "../node_modules/@chirality/engine-ui/src/fonts/LICENSE-IBM-Plex-OFL.txt": "licenses/LICENSE-IBM-Plex-OFL.txt",
+    });
   });
 });
 
@@ -76,6 +79,7 @@ describe("the app's identity", () => {
   it("is a development build, apart from the installed Chirality, at one version", () => {
     const conf = JSON.parse(tauriConf);
     expect(conf.identifier).toBe("com.chirality.app.dev");
+    expect(conf.productName).toBe("Chirality Dev");
     const versions = [conf.version, JSON.parse(npmPackage).version, /^version = "([^"]+)"$/m.exec(cargoToml)?.[1]];
     expect(versions).toEqual(["4.0.0-dev", "4.0.0-dev", "4.0.0-dev"]);
   });

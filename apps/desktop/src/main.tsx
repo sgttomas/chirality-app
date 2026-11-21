@@ -30,7 +30,7 @@ async function connect(): Promise<Start> {
 
 async function boot() {
   const theme = new URLSearchParams(location.search).get("theme");
-  applyTheme(theme === "dark" || theme === "system" ? theme : storedTheme());
+  applyTheme(theme === "light" || theme === "dark" || theme === "system" ? theme : storedTheme());
   const start = await connect();
   const store = new Store(start.engine, start.host);
   const started = store.start().then(

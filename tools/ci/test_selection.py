@@ -925,11 +925,15 @@ def test_repository_checks_run_every_consumer_of_the_narrowed_classes():
     runs = "\n".join(step.get("run", "") for job in product.values() for step in job.get("steps", []))
     # No macOS step names a class B path; the Group B suites are repository checks only.
     assert "group_b" not in runs and "standalone" not in runs and "docs/" not in runs
+    # Nor the engine app's (class C): no App v4 job reads apps/.
+    assert ENGINE_APP_REFERENCE.search(runs) is None
 
 
 # Every file outside a narrowed class that names one of its paths, and why that
 # reader is not a macOS product input (docs/CI_SELECTION.md mapping).
-CLASS_REFERENCE = re.compile(r"group_b[_*]|standalone/|(?<![\w./-])docs/|\.\./docs/|[\"'](docs|standalone)[\"']")
+# The engine app's root, apps/ (not @tauri-apps/ and the like).
+ENGINE_APP_REFERENCE = re.compile(r"(?<![\w./@-])apps/|\.\./apps/")
+CLASS_REFERENCE = re.compile(r"group_b[_*]|standalone/|(?<![\w./-])docs/|\.\./docs/|[\"'](docs|standalone)[\"']|" + ENGINE_APP_REFERENCE.pattern)
 KNOWN_REFERRERS = {
     ".github/workflows/governance-harness.yml": "repository-checks runs the Group B suites",
     "tools/ci/select_checks.py": "the selector's own rules",
@@ -949,6 +953,10 @@ KNOWN_REFERRERS = {
     "app/supplier_checks/version_advance/0.167.0-to-0.169.0.json": "retains the supplier WebSearchProvider enum value standalone, not a path; no narrowed-class path is read through this comparison",
     "app/packaging/supplier_notices/crates/index.json": "names members of the deltae 0.3.2 crate archive (docs/doc/LICENSE-*.txt, COPYRIGHT.txt), not repository paths; nothing reads a repository docs/ path through it",
     "app/packaging/supplier_notices/crates/packages.json": "generated from crates/index.json; names the same crate archive members, not repository paths",
+    "app/supplier_checks/swbpipe_catalog_v4_receiving.py": "names apps/ paths in the SWBPIPE repository; reads its fixture snapshots, not this repository's apps/",
+    "app/supplier_checks/swbpipe_catalog_v4_pr30_receiving.py": "names apps/ paths in the SWBPIPE repository; reads its fixture snapshots, not this repository's apps/",
+    "app/supplier_checks/swbpipe_catalog_v4_pr40_receiving.py": "names apps/ paths in the SWBPIPE repository; reads its fixture snapshots, not this repository's apps/",
+    "app/supplier_checks/swbpipe_receiving_v4_pr30_test.py": "asserts an apps/ path in the SWBPIPE repository; reads no file of this repository's apps/",
     # Readers of in-root paths that stay product inputs.
     'app/packaging/production_inputs/bundle_resources.py': 'selects the limitations resource mapping that prepare.py inventories; sources-packaging',
     'app/packaging/notices/coverage-inputs.json': 'names the limitations resource mapping exactly as App content in the notice coverage account; sources-packaging',
@@ -986,7 +994,7 @@ def test_no_unreviewed_reader_of_a_narrowed_class():
     found = set()
     for path in git(root, "ls-files").splitlines():
         if (path.startswith(("docs/", "execution/", "app/src-tauri/resources/supplier/"))
-                or subject.path_rule(path) == "examination" or not path.endswith(CODE_SUFFIXES)):
+                or subject.path_rule(path) in ("examination", "engine-app") or not path.endswith(CODE_SUFFIXES)):
             continue
         if LIBRARY_MANIFEST.fullmatch(path):
             continue

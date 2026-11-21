@@ -9,7 +9,7 @@ fn main() {
         .filter(|tag| tag.starts_with("library-v") && tag.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '.'))
         .expect("library.json has the edition's tag");
     println!("cargo:rustc-env=CHIRALITY_LIBRARY_TAG={tag}");
-    // Its folder is the bundle's one resource; empty until `npm run library` stages it, which a release does first.
+    // Its folder is a bundle resource; empty until `npm run library` stages it, which a build does first.
     std::fs::create_dir_all(format!("library/{tag}")).expect("the edition's resource folder");
     tauri_build::build()
 }
