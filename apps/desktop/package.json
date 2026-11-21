@@ -14,7 +14,7 @@
     "tauri": "tauri"
   },
   "dependencies": {
-    "@chirality/engine-ui": "git+https://github.com/sgttomas/chirality-engine.git#f4185d1498dd719bd2977699878bb760b3287b0f::path:packages/ui",
+    "@chirality/engine-ui": "git+https://github.com/sgttomas/chirality-engine.git#46c18fb66bcdfbfc9391818198cd741c7c54cfda::path:packages/ui",
     "react": "19.3.1",
     "react-dom": "19.3.1"
   },
