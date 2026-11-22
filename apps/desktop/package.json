@@ -10,11 +10,12 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
     "library": "node scripts/library.mjs",
+    "codex": "node scripts/codex.mjs",
     "check-bundle": "node scripts/bundle-check.mjs",
     "tauri": "tauri"
   },
   "dependencies": {
-    "@chirality/engine-ui": "git+https://github.com/sgttomas/chirality-engine.git#c71cd99d1a696bac25bca882e5c7d9ccd673bb10::path:packages/ui",
+    "@chirality/engine-ui": "git+https://github.com/sgttomas/chirality-engine.git#74985ae16bf641b4cddab33a74e4e8671d960433::path:packages/ui",
     "react": "19.3.1",
     "react-dom": "19.3.1"
   },

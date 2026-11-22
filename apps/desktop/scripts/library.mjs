@@ -10,7 +10,7 @@
 // staging had set aside is put back. With no source given, it checks what is staged.
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { copyFileSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, renameSync, rmSync, statSync } from "node:fs";
+import { constants, copyFileSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, renameSync, rmSync, statSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -42,10 +42,11 @@ export function files(dir, skip = () => false) {
   });
 }
 
-const executable = (path) => (lstatSync(path).mode & 0o111) !== 0;
+/** Whether its owner can run the file: a file executable only by others is not. */
+const executable = (path) => (lstatSync(path).mode & 0o100) !== 0;
 
-/** sha256 of the sorted "<sha256>  <x or ->  <path>" lines of every file under `dir`: x for an
- * executable file. */
+/** sha256 of the sorted "<sha256>  <x or ->  <path>" lines of every file under `dir`: x for a file
+ * its owner can run. */
 export function digest(dir, skip) {
   const lines = files(dir, skip).map((f) => `${sha256(join(dir, f))}  ${executable(join(dir, f)) ? "x" : "-"}  ${f}`).sort();
   return createHash("sha256").update(lines.join("\n") + "\n").digest("hex");
@@ -109,16 +110,19 @@ function real(path) {
   return parent === path ? path : join(real(parent), basename(path));
 }
 
+/** The prefix of the folders staging `to` works in, beside it: `.library-staging-` for `library`. */
+const staging = (to) => `.${basename(to)}-staging-`;
+
 /** Puts back what an interrupted staging had set aside, when nothing is staged. Only a staging
  * folder that is a real folder holding what staging makes, and not holding `source`, is touched. */
 export function recover(library, source) {
   const to = resolve(library);
   if (kind(to) !== "missing" || kind(dirname(to)) !== "folder") return;
-  for (const name of readdirSync(dirname(to)).filter((n) => n.startsWith(".library-staging-"))) {
+  for (const name of readdirSync(dirname(to)).filter((n) => n.startsWith(staging(to)))) {
     const work = join(dirname(to), name);
     const previous = join(work, "previous");
     if (kind(work) !== "folder" || kind(previous) !== "folder") continue;
-    if (readdirSync(work).some((n) => !["previous", "library", "extracted"].includes(n))) continue;
+    if (readdirSync(work).some((n) => !["previous", "library", "extracted", "archive"].includes(n))) continue;
     if (source && existsSync(source) && within(realpathSync(source), work)) continue;
     renameSync(previous, to);
     rmSync(work, { recursive: true, force: true });
@@ -128,8 +132,10 @@ export function recover(library, source) {
 
 /** Stages `source` (`edition`'s source archive, or a folder it was extracted to) as the whole of
  * `library`. Nothing is removed until the staged copy is checked; a source that is a link, or that
- * overlaps `library`, is refused first. */
-export function stage(source, library, edition) {
+ * overlaps `library`, is refused first. The archive is checked against `edition.archive`'s sha256
+ * (and its size, where it names one); `inspect`, given the extracted folder, says why it is not the
+ * edition before its digest is checked, if it can. */
+export function stage(source, library, edition, inspect = () => null) {
   // As named, without a trailing separator or dot that would name something else.
   if (kind(resolve(source)) === "a link") throw new Error(`${source} is a link`);
   const from = realpathSync(source);
@@ -139,16 +145,20 @@ export function stage(source, library, edition) {
   const overlaps = within(from, to) || [to, ...(existsSync(to) ? [realpathSync(to)] : [])].some((t) => lineage(t).includes(lineage(from)[0]));
   if (overlaps) throw new Error(`${source} overlaps ${library}: stage from an archive or extraction outside it`);
   mkdirSync(dirname(to), { recursive: true });
-  const work = mkdtempSync(join(dirname(to), ".library-staging-"));
+  const work = mkdtempSync(join(dirname(to), staging(to)));
   try {
     let root = from;
     if (kind(from) === "file") {
-      if (sha256(from) !== edition.archive.sha256) throw new Error(`${source} is not ${edition.archive.name}`);
+      // The archive's own copy, checked and then extracted, so what is extracted is what was checked.
+      const archive = join(work, "archive");
+      copyFileSync(from, archive, constants.COPYFILE_FICLONE);
+      const size = edition.archive.size;
+      if ((size !== undefined && statSync(archive).size !== size) || sha256(archive) !== edition.archive.sha256) throw new Error(`${source} is not ${edition.archive.name}`);
       root = join(work, "extracted");
       mkdirSync(root);
-      execFileSync("tar", ["-xf", from, "-C", root]);
+      execFileSync("tar", ["-xf", archive, "-C", root]);
     }
-    const problem = reason(() => checkTree(root, edition, finder));
+    const problem = reason(() => inspect(root) ?? checkTree(root, edition, finder));
     if (problem) throw new Error(problem);
     const staged = join(work, "library");
     copy(root, join(staged, edition.tag));

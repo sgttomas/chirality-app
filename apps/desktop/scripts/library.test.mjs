@@ -86,14 +86,16 @@ describe("staging the Library edition", () => {
     expect(existsSync(library)).toBe(false);
   });
 
-  it("refuses an edition whose file lost its executable flag, or that gained an empty folder", () => {
+  it("refuses an edition whose file lost its owner's executable flag, or that gained an empty folder", () => {
     const { source, library, meta: plain } = edition();
     chmodSync(join(source, "tools/validation/validate_enum.py"), 0o755);
     const meta = { ...plain, digest: digest(source) };
     expect(meta.digest).not.toBe(plain.digest);
     stage(source, library, meta);
-    expect((0o111 & Number(statMode(join(library, meta.tag, "tools/validation/validate_enum.py")))) !== 0).toBe(true);
+    expect((0o100 & Number(statMode(join(library, meta.tag, "tools/validation/validate_enum.py")))) !== 0).toBe(true);
     chmodSync(join(library, meta.tag, "tools/validation/validate_enum.py"), 0o644);
+    expect(checkStaged(library, meta)).toMatch(/is not library-v0\.0\.1/);
+    chmodSync(join(library, meta.tag, "tools/validation/validate_enum.py"), 0o645);
     expect(checkStaged(library, meta)).toMatch(/is not library-v0\.0\.1/);
     chmodSync(join(library, meta.tag, "tools/validation/validate_enum.py"), 0o755);
     mkdirSync(join(library, meta.tag, "workflows/empty"));

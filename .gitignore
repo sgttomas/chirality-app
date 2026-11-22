@@ -6,3 +6,7 @@ __pycache__/
 node_modules/
 target/
 dist/
+
+# The pinned Codex: its archive and an unpacked package are never committed.
+codex-package-aarch64-apple-darwin.tar.gz
+pkg/

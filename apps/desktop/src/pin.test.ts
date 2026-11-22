@@ -1,11 +1,12 @@
 // One engine revision for the adapter crate and the interface package, entry
 // by entry: each manifest, and what each lockfile resolved; the bundle carries
-// the pinned Library edition and the fonts' licence; and the app's identity.
+// the pinned Library edition, the pinned Codex package and the fonts' licence; and the app's identity.
 import { describe, expect, it } from "vitest";
 
 import cargoLock from "../src-tauri/Cargo.lock?raw";
 import cargoToml from "../src-tauri/Cargo.toml?raw";
 import tauriConf from "../src-tauri/tauri.conf.json?raw";
+import codex from "../codex.json";
 import edition from "../library.json";
 import npmLock from "../package-lock.json?raw";
 import npmPackage from "../package.json?raw";
@@ -67,11 +68,26 @@ describe("the engine pin", () => {
 });
 
 describe("the bundle's resources", () => {
-  it("are the pinned edition's folder and the fonts' licence", () => {
+  it("are the pinned edition's folder, the pinned Codex package's folder and the fonts' licence", () => {
     expect(JSON.parse(tauriConf).bundle.resources).toEqual({
       [`library/${edition.tag}/`]: `library/${edition.tag}/`,
+      [`codex/${codex.tag}/`]: `codex/${codex.tag}/`,
+      "../licenses/codex/LICENSE": "licenses/codex/LICENSE",
+      "../licenses/codex/NOTICE": "licenses/codex/NOTICE",
       "../node_modules/@chirality/engine-ui/src/fonts/LICENSE-IBM-Plex-OFL.txt": "licenses/LICENSE-IBM-Plex-OFL.txt",
     });
+  });
+});
+
+describe("the pinned Codex", () => {
+  it("is OpenAI's package of one version for Apple Silicon, staged before running, building and bundling", () => {
+    expect(codex.tag).toBe(`codex-${codex.version}-${codex.target}`);
+    expect(codex.archive.name).toBe(`codex-package-${codex.target}.tar.gz`);
+    expect(codex.release).toBe(`https://github.com/openai/codex/releases/tag/rust-v${codex.version}`);
+    const { beforeDevCommand, beforeBuildCommand, beforeBundleCommand } = JSON.parse(tauriConf).build;
+    expect(beforeDevCommand).toContain("npm run codex");
+    expect(beforeBuildCommand).toContain("npm run codex");
+    expect(beforeBundleCommand).toContain("npm run codex");
   });
 });
 

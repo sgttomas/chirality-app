@@ -10,7 +10,8 @@ API. The rebuilt app is what will be published as Chirality App v4.
 
 - **The Chirality App**, rebuilt on the engine, at `apps/desktop`: the
   standard layout built from the engine's adapter and interface parts, to be
-  published as v4 (now `4.0.0-dev`). See [its README](apps/desktop/README.md).
+  published as v4 (now `4.0.0-dev`). It bundles the pinned Codex, so the
+  built app needs no `CHIRALITY_CODEX_BIN`. See [its README](apps/desktop/README.md).
 - **App v3.0.1**, the released app, at the tag `v3.0.1`. Its design language
   (layout, type, colour, spacing, the feel of the navigator and conversation)
   carries forward.
