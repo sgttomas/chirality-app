@@ -1,0 +1,16 @@
+{
+  "tag": "codex-0.171.0-aarch64-apple-darwin",
+  "release": "https://github.com/openai/codex/releases/tag/rust-v0.171.0",
+  "version": "0.171.0",
+  "target": "aarch64-apple-darwin",
+  "layoutVersion": 1,
+  "entrypoint": "bin/codex",
+  "team": "2DC432GLL2",
+  "archive": {
+    "name": "codex-package-aarch64-apple-darwin.tar.gz",
+    "size": 176190739,
+    "sha256": "58c88032ec446e72922d911d8f03773102da20c16a6059cf21f6744bce57f210"
+  },
+  "files": 42,
+  "digest": "fb2a73c7050f06d0847995389eee38f016012a903a7688d88d37e3862e1e4f87"
+}

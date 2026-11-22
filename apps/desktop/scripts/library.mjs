@@ -109,12 +109,15 @@ function real(path) {
   return parent === path ? path : join(real(parent), basename(path));
 }
 
+/** The prefix of the folders staging `to` works in, beside it: `.library-staging-` for `library`. */
+const staging = (to) => `.${basename(to)}-staging-`;
+
 /** Puts back what an interrupted staging had set aside, when nothing is staged. Only a staging
  * folder that is a real folder holding what staging makes, and not holding `source`, is touched. */
 export function recover(library, source) {
   const to = resolve(library);
   if (kind(to) !== "missing" || kind(dirname(to)) !== "folder") return;
-  for (const name of readdirSync(dirname(to)).filter((n) => n.startsWith(".library-staging-"))) {
+  for (const name of readdirSync(dirname(to)).filter((n) => n.startsWith(staging(to)))) {
     const work = join(dirname(to), name);
     const previous = join(work, "previous");
     if (kind(work) !== "folder" || kind(previous) !== "folder") continue;
@@ -128,8 +131,10 @@ export function recover(library, source) {
 
 /** Stages `source` (`edition`'s source archive, or a folder it was extracted to) as the whole of
  * `library`. Nothing is removed until the staged copy is checked; a source that is a link, or that
- * overlaps `library`, is refused first. */
-export function stage(source, library, edition) {
+ * overlaps `library`, is refused first. The archive is checked against `edition.archive`'s sha256
+ * (and its size, where it names one); `inspect`, given the extracted folder, says why it is not the
+ * edition before its digest is checked, if it can. */
+export function stage(source, library, edition, inspect = () => null) {
   // As named, without a trailing separator or dot that would name something else.
   if (kind(resolve(source)) === "a link") throw new Error(`${source} is a link`);
   const from = realpathSync(source);
@@ -139,16 +144,17 @@ export function stage(source, library, edition) {
   const overlaps = within(from, to) || [to, ...(existsSync(to) ? [realpathSync(to)] : [])].some((t) => lineage(t).includes(lineage(from)[0]));
   if (overlaps) throw new Error(`${source} overlaps ${library}: stage from an archive or extraction outside it`);
   mkdirSync(dirname(to), { recursive: true });
-  const work = mkdtempSync(join(dirname(to), ".library-staging-"));
+  const work = mkdtempSync(join(dirname(to), staging(to)));
   try {
     let root = from;
     if (kind(from) === "file") {
-      if (sha256(from) !== edition.archive.sha256) throw new Error(`${source} is not ${edition.archive.name}`);
+      const size = edition.archive.size;
+      if ((size !== undefined && statSync(from).size !== size) || sha256(from) !== edition.archive.sha256) throw new Error(`${source} is not ${edition.archive.name}`);
       root = join(work, "extracted");
       mkdirSync(root);
       execFileSync("tar", ["-xf", from, "-C", root]);
     }
-    const problem = reason(() => checkTree(root, edition, finder));
+    const problem = reason(() => inspect(root) ?? checkTree(root, edition, finder));
     if (problem) throw new Error(problem);
     const staged = join(work, "library");
     copy(root, join(staged, edition.tag));

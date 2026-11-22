@@ -1,3 +1,5 @@
 /gen/
 /library/
 /.library-staging-*
+/codex/
+/.codex-staging-*

@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
     "library": "node scripts/library.mjs",
+    "codex": "node scripts/codex.mjs",
     "check-bundle": "node scripts/bundle-check.mjs",
     "tauri": "tauri"
   },
