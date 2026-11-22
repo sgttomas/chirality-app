@@ -504,7 +504,7 @@ dependencies = [
 [[package]]
 name = "chirality-engine"
 version = "0.1.0"
-source = "git+https://github.com/sgttomas/chirality-engine.git?rev=8f3da8cab8f54cdc31dffd830d3f701b0359f198#8f3da8cab8f54cdc31dffd830d3f701b0359f198"
+source = "git+https://github.com/sgttomas/chirality-engine.git?rev=dbfad03d08784566e575cc0aed8dd2cb5ec490d5#dbfad03d08784566e575cc0aed8dd2cb5ec490d5"
 dependencies = [
  "serde",
  "serde_json",
@@ -516,7 +516,7 @@ dependencies = [
 [[package]]
 name = "chirality-engine-tauri"
 version = "0.1.0"
-source = "git+https://github.com/sgttomas/chirality-engine.git?rev=8f3da8cab8f54cdc31dffd830d3f701b0359f198#8f3da8cab8f54cdc31dffd830d3f701b0359f198"
+source = "git+https://github.com/sgttomas/chirality-engine.git?rev=dbfad03d08784566e575cc0aed8dd2cb5ec490d5#dbfad03d08784566e575cc0aed8dd2cb5ec490d5"
 dependencies = [
  "chirality-engine",
  "serde",
