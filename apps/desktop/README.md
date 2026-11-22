@@ -29,19 +29,28 @@ checks they agree). Both are fetched from GitHub over https.
 
 Development builds are `Chirality Dev`, version `4.0.0-dev`, with the bundle
 identifier `com.chirality.app.dev`, apart from an installed Chirality's name,
-preferences, data and grants. The release name and identifier are chosen at
-release.
+preferences, data and grants. A release is `Chirality`, with the identifier
+`com.chirality.app` and its version, from `src-tauri/tauri.release.conf.json`;
+it replaces Chirality 3 in place.
 
 ## Build
 
 ```sh
 npm ci
-CHIRALITY_LIBRARY=<chirality-library-3.4.0-source.tar, or its extracted folder> npm run library   # once
+CHIRALITY_LIBRARY=<chirality-library-3.5.0-source.tar, or its extracted folder> npm run library   # once
 CHIRALITY_CODEX=<codex-package-aarch64-apple-darwin.tar.gz, or its extracted folder> npm run codex   # once
 npm run typecheck && npm test
 (cd src-tauri && cargo test)
 npx tauri build --bundles app
 npm run check-bundle   # the built bundle's Library, a workflow step run from it, its Codex and that version, the fonts' licence
+```
+
+A release build, signed with a Developer ID Application identity from the
+keychain:
+
+```sh
+APPLE_SIGNING_IDENTITY=<the identity> npx tauri build --bundles app,dmg --config src-tauri/tauri.release.conf.json
+npm run check-bundle -- src-tauri/target/release/bundle/macos/Chirality.app
 ```
 
 ## Run

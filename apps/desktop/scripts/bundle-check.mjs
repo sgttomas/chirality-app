@@ -1,6 +1,6 @@
 // Checks a built app (by default this checkout's macOS bundle): its Library is the pinned edition,
 // whole, and nothing else; a step the edition's workflows run outside workflows/ runs from it
-// (estimate-snapshot's enum check of BASIS_OF_ESTIMATE); its Codex is the pinned package, whole with
+// (estimate-snapshot's enum check of BASIS_OF_ESTIMATE), and every workflow the picker lists first is in it; its Codex is the pinned package, whole with
 // its notices and licences, signed by its team, and reports the pinned version (run with a scratch
 // CODEX_HOME), with Codex's licence and notice beside it; and the fonts' licence is among its resources.
 //   npm run check-bundle [-- <path to the .app>]
@@ -35,6 +35,16 @@ if (!library) {
   if (step("GUESS").status === 0) problems.push("estimate-snapshot's step zero accepted GUESS");
 }
 
+// Every workflow the picker lists first is in the bundled edition.
+if (!library) {
+  const featured = [...readFileSync(join(here, "src", "workflows.ts"), "utf8").matchAll(/^\s*"([a-z0-9-]+)",$/gm)].map((m) => m[1]);
+  if (!featured.length) problems.push("src/workflows.ts names no workflows");
+  for (const name of featured) {
+    if (!lstatSync(join(resources, "library", edition.tag, "workflows", name, "WORKFLOW.md"), { throwIfNoEntry: false })?.isFile())
+      problems.push(`${name}, which the picker lists first, is not a workflow of ${edition.tag}`);
+  }
+}
+
 const codex = checkCodex(join(resources, "codex"), pin);
 if (codex) problems.push(codex);
 
@@ -67,5 +77,5 @@ if (problems.length) {
   process.exit(1);
 }
 console.log(
-  `${app}: ${edition.tag} whole (${edition.files} files), its enum step runs from it; Codex ${pin.version} whole (${pin.files} files, with its notices), signed by ${pin.team}, and reports that version, with its licence and notice; and the fonts' licence is in it`,
+  `${app}: ${edition.tag} whole (${edition.files} files), its enum step runs from it, the picker's first workflows are in it; Codex ${pin.version} whole (${pin.files} files, with its notices), signed by ${pin.team}, and reports that version, with its licence and notice; and the fonts' licence is in it`,
 );

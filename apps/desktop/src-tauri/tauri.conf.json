@@ -49,7 +49,7 @@
       "icons/icon.png"
     ],
     "resources": {
-      "library/library-v3.4.0/": "library/library-v3.4.0/",
+      "library/library-v3.5.0/": "library/library-v3.5.0/",
       "codex/codex-0.171.0-aarch64-apple-darwin/": "codex/codex-0.171.0-aarch64-apple-darwin/",
       "../licenses/codex/LICENSE": "licenses/codex/LICENSE",
       "../licenses/codex/NOTICE": "licenses/codex/NOTICE",
