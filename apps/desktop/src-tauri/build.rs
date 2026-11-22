@@ -21,6 +21,10 @@ fn main() {
     println!("cargo:rustc-env=CHIRALITY_LIBRARY_TAG={tag}");
     let codex = field("../codex.json", "tag", |t| t.starts_with("codex-") && plain(t));
     let entrypoint = field("../codex.json", "entrypoint", |e| e.split('/').all(plain));
+    let target = field("../codex.json", "target", plain);
+    let building = std::env::var("TARGET").expect("cargo names the target");
+    let staged = std::fs::read_dir(format!("codex/{codex}")).is_ok_and(|mut entries| entries.next().is_some());
+    assert!(!staged || building == target, "Codex is bundled for {target} only; this build is for {building}");
     println!("cargo:rustc-env=CHIRALITY_CODEX_TAG={codex}");
     println!("cargo:rustc-env=CHIRALITY_CODEX_ENTRYPOINT={entrypoint}");
     // Their folders are bundle resources; empty until `npm run library` and `npm run codex` stage them,

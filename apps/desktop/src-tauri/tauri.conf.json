@@ -4,7 +4,7 @@
   "version": "4.0.0-dev",
   "identifier": "com.chirality.app.dev",
   "build": {
-    "beforeDevCommand": "npm run library && npm run dev",
+    "beforeDevCommand": "npm run library && npm run codex && npm run dev",
     "devUrl": "http://127.0.0.1:1420",
     "beforeBuildCommand": "npm run library && npm run codex && npm run build",
     "beforeBundleCommand": "npm run library && npm run codex",
@@ -51,6 +51,8 @@
     "resources": {
       "library/library-v3.4.0/": "library/library-v3.4.0/",
       "codex/codex-0.171.0-aarch64-apple-darwin/": "codex/codex-0.171.0-aarch64-apple-darwin/",
+      "../licenses/codex/LICENSE": "licenses/codex/LICENSE",
+      "../licenses/codex/NOTICE": "licenses/codex/NOTICE",
       "../node_modules/@chirality/engine-ui/src/fonts/LICENSE-IBM-Plex-OFL.txt": "licenses/LICENSE-IBM-Plex-OFL.txt"
     }
   }

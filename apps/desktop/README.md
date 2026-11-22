@@ -19,6 +19,8 @@ package for Apple Silicon), whole with its layout, notices and licences, and
 runs its `bin/codex`. `npm run codex` stages it from the archive or its
 extracted folder, checking the archive's size and digest, the package's version
 and target, every file against `codex.json`'s digest, and OpenAI's signature.
+A build for any other target is refused. Codex's licence and notice (from its
+source at `rust-v0.171.0`) are bundled under `licenses/codex/`.
 
 It is built from the engine's parts (`sgttomas/chirality-engine`): the crate
 `chirality-engine-tauri` and the package `@chirality/engine-ui`, both at one

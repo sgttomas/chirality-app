@@ -10,7 +10,7 @@
 // staging had set aside is put back. With no source given, it checks what is staged.
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { copyFileSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, renameSync, rmSync, statSync } from "node:fs";
+import { constants, copyFileSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, renameSync, rmSync, statSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -42,10 +42,11 @@ export function files(dir, skip = () => false) {
   });
 }
 
-const executable = (path) => (lstatSync(path).mode & 0o111) !== 0;
+/** Whether its owner can run the file: a file executable only by others is not. */
+const executable = (path) => (lstatSync(path).mode & 0o100) !== 0;
 
-/** sha256 of the sorted "<sha256>  <x or ->  <path>" lines of every file under `dir`: x for an
- * executable file. */
+/** sha256 of the sorted "<sha256>  <x or ->  <path>" lines of every file under `dir`: x for a file
+ * its owner can run. */
 export function digest(dir, skip) {
   const lines = files(dir, skip).map((f) => `${sha256(join(dir, f))}  ${executable(join(dir, f)) ? "x" : "-"}  ${f}`).sort();
   return createHash("sha256").update(lines.join("\n") + "\n").digest("hex");
@@ -121,7 +122,7 @@ export function recover(library, source) {
     const work = join(dirname(to), name);
     const previous = join(work, "previous");
     if (kind(work) !== "folder" || kind(previous) !== "folder") continue;
-    if (readdirSync(work).some((n) => !["previous", "library", "extracted"].includes(n))) continue;
+    if (readdirSync(work).some((n) => !["previous", "library", "extracted", "archive"].includes(n))) continue;
     if (source && existsSync(source) && within(realpathSync(source), work)) continue;
     renameSync(previous, to);
     rmSync(work, { recursive: true, force: true });
@@ -148,11 +149,14 @@ export function stage(source, library, edition, inspect = () => null) {
   try {
     let root = from;
     if (kind(from) === "file") {
+      // The archive's own copy, checked and then extracted, so what is extracted is what was checked.
+      const archive = join(work, "archive");
+      copyFileSync(from, archive, constants.COPYFILE_FICLONE);
       const size = edition.archive.size;
-      if ((size !== undefined && statSync(from).size !== size) || sha256(from) !== edition.archive.sha256) throw new Error(`${source} is not ${edition.archive.name}`);
+      if ((size !== undefined && statSync(archive).size !== size) || sha256(archive) !== edition.archive.sha256) throw new Error(`${source} is not ${edition.archive.name}`);
       root = join(work, "extracted");
       mkdirSync(root);
-      execFileSync("tar", ["-xf", from, "-C", root]);
+      execFileSync("tar", ["-xf", archive, "-C", root]);
     }
     const problem = reason(() => inspect(root) ?? checkTree(root, edition, finder));
     if (problem) throw new Error(problem);

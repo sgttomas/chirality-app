@@ -2,7 +2,7 @@
 // whole, and nothing else; a step the edition's workflows run outside workflows/ runs from it
 // (estimate-snapshot's enum check of BASIS_OF_ESTIMATE); its Codex is the pinned package, whole with
 // its notices and licences, signed by its team, and reports the pinned version (run with a scratch
-// CODEX_HOME); and the fonts' licence is among its resources.
+// CODEX_HOME), with Codex's licence and notice beside it; and the fonts' licence is among its resources.
 //   npm run check-bundle [-- <path to the .app>]
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -50,6 +50,12 @@ if (!codex) {
   }
 }
 
+for (const name of ["LICENSE", "NOTICE"]) {
+  const shipped = join(resources, "licenses", "codex", name);
+  if (!lstatSync(shipped, { throwIfNoEntry: false })?.isFile()) problems.push(`${shipped} is missing or not a file`);
+  else if (sha256(shipped) !== sha256(join(here, "licenses", "codex", name))) problems.push(`${shipped} is not Codex's ${name} (licenses/codex/${name})`);
+}
+
 const licence = join(resources, "licenses", "LICENSE-IBM-Plex-OFL.txt");
 const shipped = join(here, "node_modules", "@chirality", "engine-ui", "src", "fonts", "LICENSE-IBM-Plex-OFL.txt");
 const real = (path) => lstatSync(path, { throwIfNoEntry: false });
@@ -61,5 +67,5 @@ if (problems.length) {
   process.exit(1);
 }
 console.log(
-  `${app}: ${edition.tag} whole (${edition.files} files), its enum step runs from it; Codex ${pin.version} whole (${pin.files} files, with its notices), signed by ${pin.team}, and reports that version; and the fonts' licence is in it`,
+  `${app}: ${edition.tag} whole (${edition.files} files), its enum step runs from it; Codex ${pin.version} whole (${pin.files} files, with its notices), signed by ${pin.team}, and reports that version, with its licence and notice; and the fonts' licence is in it`,
 );

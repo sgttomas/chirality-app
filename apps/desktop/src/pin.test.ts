@@ -72,17 +72,20 @@ describe("the bundle's resources", () => {
     expect(JSON.parse(tauriConf).bundle.resources).toEqual({
       [`library/${edition.tag}/`]: `library/${edition.tag}/`,
       [`codex/${codex.tag}/`]: `codex/${codex.tag}/`,
+      "../licenses/codex/LICENSE": "licenses/codex/LICENSE",
+      "../licenses/codex/NOTICE": "licenses/codex/NOTICE",
       "../node_modules/@chirality/engine-ui/src/fonts/LICENSE-IBM-Plex-OFL.txt": "licenses/LICENSE-IBM-Plex-OFL.txt",
     });
   });
 });
 
 describe("the pinned Codex", () => {
-  it("is OpenAI's package of one version for Apple Silicon, staged before a build and before bundling", () => {
+  it("is OpenAI's package of one version for Apple Silicon, staged before running, building and bundling", () => {
     expect(codex.tag).toBe(`codex-${codex.version}-${codex.target}`);
     expect(codex.archive.name).toBe(`codex-package-${codex.target}.tar.gz`);
     expect(codex.release).toBe(`https://github.com/openai/codex/releases/tag/rust-v${codex.version}`);
-    const { beforeBuildCommand, beforeBundleCommand } = JSON.parse(tauriConf).build;
+    const { beforeDevCommand, beforeBuildCommand, beforeBundleCommand } = JSON.parse(tauriConf).build;
+    expect(beforeDevCommand).toContain("npm run codex");
     expect(beforeBuildCommand).toContain("npm run codex");
     expect(beforeBundleCommand).toContain("npm run codex");
   });

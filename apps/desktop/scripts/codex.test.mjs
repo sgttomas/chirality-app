@@ -3,13 +3,13 @@
 // signed by its team; anything else refused, and nothing staged from it.
 import { execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { checkCodex, stageCodex, team } from "./codex.mjs";
+import { checkCodex, checkTarget, stageCodex, team } from "./codex.mjs";
 import { digest, files } from "./library.mjs";
 
 let root;
@@ -60,7 +60,7 @@ describe("staging the pinned Codex", () => {
     const staged = join(dir, pin.tag);
     expect(checkCodex(dir, pin, signedBy("TESTTEAM"))).toBeNull();
     expect(files(staged).sort()).toEqual(files(source).sort());
-    for (const exe of ["bin/codex", "bin/codex-exec-server", "codex-path/rg"]) expect(statSync(join(staged, exe)).mode & 0o111).not.toBe(0);
+    for (const exe of ["bin/codex", "bin/codex-exec-server", "codex-path/rg"]) expect(statSync(join(staged, exe)).mode & 0o100).not.toBe(0);
     expect(execFileSync(join(staged, pin.entrypoint), ["--version"], { encoding: "utf8" })).toBe("codex-cli 0.0.1\n");
     expect(existsSync(join(staged, "codex-resources/voice/licenses/zlib.txt"))).toBe(true);
   });
@@ -103,6 +103,22 @@ describe("staging the pinned Codex", () => {
     expect(existsSync(dir)).toBe(false);
   });
 
+  it("refuses a helper its owner cannot run, staged or to be staged, though others can", () => {
+    const { source, dir, pin } = release();
+    stageCodex(source, dir, pin, signedBy("TESTTEAM"));
+    chmodSync(join(dir, pin.tag, "codex-path/rg"), 0o645);
+    expect(checkCodex(dir, pin, signedBy("TESTTEAM"))).toMatch(/is not codex-0\.0\.1-aarch64-apple-darwin/);
+    chmodSync(join(source, "codex-path/rg"), 0o645);
+    expect(() => stageCodex(source, dir, pin, signedBy("TESTTEAM"))).toThrow(/is not codex-0\.0\.1-aarch64-apple-darwin/);
+  });
+
+  it("is bundled for the package's target only", () => {
+    const { pin } = release();
+    expect(checkTarget(undefined, pin)).toBeNull();
+    expect(checkTarget("aarch64-apple-darwin", pin)).toBeNull();
+    for (const triple of ["x86_64-apple-darwin", "universal-apple-darwin"]) expect(checkTarget(triple, pin)).toBe(`Codex 0.0.1 is bundled for aarch64-apple-darwin only; this build is for ${triple}`);
+  });
+
   it("finds no team on a file that is not signed", () => {
     const { source } = release();
     expect(team(join(source, "bin/codex"))).toBeNull();
@@ -128,6 +144,9 @@ describe("staging the pinned Codex", () => {
     const unsigned = run({ CHIRALITY_CODEX: archive });
     expect(unsigned.status).not.toBe(0);
     expect(unsigned.stderr).toMatch(/bin\/codex is not signed by TESTTEAM/);
+    expect(existsSync(join(app, "src-tauri/codex"))).toBe(false);
+    const intel = run({ CHIRALITY_CODEX: archive, TAURI_ENV_TARGET_TRIPLE: "x86_64-apple-darwin" });
+    expect(intel.stderr).toMatch(/bundled for aarch64-apple-darwin only; this build is for x86_64-apple-darwin/);
     expect(existsSync(join(app, "src-tauri/codex"))).toBe(false);
     const unstaged = run({ CHIRALITY_CODEX: "" });
     expect(unstaged.stderr).toMatch(/src-tauri\/codex is missing; set CHIRALITY_CODEX to codex package\.tar\.gz or its extracted folder/);

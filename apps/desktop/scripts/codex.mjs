@@ -6,7 +6,8 @@
 // The archive is checked against codex.json's size and sha256; the package's codex-package.json
 // against its version, target and layout; every file against codex.json's digest of the whole tree;
 // and the entrypoint's signature against its team. Staging is the Library's (library.mjs): beside the
-// resources, swapped in only once checked. With no source given, it checks what is staged.
+// resources, swapped in only once checked. With no source given, it checks what is staged. Run by a
+// Tauri build, it refuses a build for any target but the package's (TAURI_ENV_TARGET_TRIPLE).
 import { spawnSync } from "node:child_process";
 import { lstatSync, readFileSync, realpathSync } from "node:fs";
 import { join, relative } from "node:path";
@@ -43,6 +44,9 @@ export function checkSigned(root, pin, signer = team) {
   return found === pin.team ? null : `${entry} is not signed by ${pin.team}${found ? ` but by ${found}` : ""}`;
 }
 
+/** Why a build for `triple` cannot bundle `pin`'s package, if it cannot. */
+export const checkTarget = (triple, pin) => (triple && triple !== pin.target ? `Codex ${pin.version} is bundled for ${pin.target} only; this build is for ${triple}` : null);
+
 /** What `stage` checks of a package before its digest. */
 const inspect = (pin, signer) => (root) => checkPackage(root, pin) ?? checkSigned(root, pin, signer);
 
@@ -61,6 +65,8 @@ if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.me
   const pin = JSON.parse(readFileSync(join(here, "codex.json"), "utf8"));
   const dir = join(here, "src-tauri", "codex");
   const source = process.env.CHIRALITY_CODEX;
+  const target = checkTarget(process.env.TAURI_ENV_TARGET_TRIPLE, pin);
+  if (target) throw new Error(target);
   recover(dir, source);
   if (source) stageCodex(source, dir, pin);
   const problem = checkCodex(dir, pin);
