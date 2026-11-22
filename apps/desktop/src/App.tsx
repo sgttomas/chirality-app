@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 
 import { EngineProvider, StandardLayout, type PanelTab, type Store } from "@chirality/engine-ui";
 
+import { featuredWorkflows } from "./workflows";
+
 /** The Chirality App: projects and threads, the conversation, and the side panel. */
 export function App({ panel }: { panel?: PanelTab }) {
-  return <StandardLayout brand="Chirality" panel={panel} />;
+  return <StandardLayout brand="Chirality" panel={panel} featuredWorkflows={featuredWorkflows} />;
 }
 
 /** The app over `store` once it has started; `started` resolves with why it could not, if it could not. */
